@@ -1,3 +1,4 @@
+#define BUILD 200 
 /*
 BrewTroller - Open Source Brewing Computer
 Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
@@ -167,6 +168,7 @@ void loop() {
 }
 
 void splashScreen() {
+  char buf[6];
   clearLCD();
   { 
     const byte bmpByte[] = {
@@ -282,7 +284,8 @@ void splashScreen() {
   lcdWriteCustChar(2, 1, 6); 
   lcdWriteCustChar(2, 2, 7); 
   printLCD_P(0, 4, PSTR("BrewTroller v1.0"));
-  printLCD_P(1, 10, PSTR("Build 0198"));
+  printLCD_P(1, 10, PSTR("Build "));
+  printLCDPad(1, 16, itoa(BUILD, buf, 10), 4, '0');
   printLCD_P(3, 1, PSTR("www.brewtroller.com"));
   while(!enterStatus) delay(250);
   enterStatus = 0;
