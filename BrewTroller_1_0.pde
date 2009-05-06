@@ -282,7 +282,7 @@ void splashScreen() {
   lcdWriteCustChar(2, 1, 6); 
   lcdWriteCustChar(2, 2, 7); 
   printLCD_P(0, 4, PSTR("BrewTroller v1.0"));
-  printLCD_P(1, 10, PSTR("Build 0196"));
+  printLCD_P(1, 10, PSTR("Build 0198"));
   printLCD_P(3, 1, PSTR("www.brewtroller.com"));
   while(!enterStatus) delay(250);
   enterStatus = 0;
