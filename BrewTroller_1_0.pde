@@ -1,4 +1,4 @@
-#define BUILD 203 
+#define BUILD 204 
 /*
 BrewTroller - Open Source Brewing Computer
 Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
@@ -27,7 +27,7 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 // If you are using a newer board or have implemented a fix to connect P/V to the new
 // pins, uncomment the following line.
 //
-//#define PV34REMAP
+#define PV34REMAP
 //**********************************************************************************
 
 
@@ -49,8 +49,8 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 #define VALVE2_PIN 7
 
 #ifdef PV34REMAP
-  #define VALVE3_PIN 25
-  #define VALVE4_PIN 26
+  #define VALVE3_PIN 26
+  #define VALVE4_PIN 25
 #else
   #define VALVE3_PIN 8
   #define VALVE4_PIN 9
