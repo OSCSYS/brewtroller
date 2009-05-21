@@ -71,7 +71,7 @@ int getChoice(char choices[][19], int numChoices, int iRow) {
   }
 }
 
-int confirmExit() {
+byte confirmExit() {
   clearLCD();
   printLCD(0, 0, "Exiting will reset");
   printLCD(1, 0, "outputs, setpoints");

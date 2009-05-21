@@ -1,4 +1,4 @@
-#define BUILD 200 
+#define BUILD 203 
 /*
 BrewTroller - Open Source Brewing Computer
 Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
@@ -11,7 +11,29 @@ With Sanguino Software v1.4 (http://code.google.com/p/sanguino/downloads/list)
 using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
 using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
+//*****************************************************************************************************************************
+// USER COMPILE OPTIONS
+//*****************************************************************************************************************************
 
+
+//**********************************************************************************
+// P/V 3-4 Serial Fix
+//**********************************************************************************
+// BrewTroller 1.0 - 2.0 boards share the output pins used for pump/valve outputs
+// 3 and 4 with the serial connection used to flash the board with new software. 
+// Newer boards use pins xx and xx for P/V 3 & 4 to avoid a conflict that causes
+// these outputs to be momentarily switched on during boot up causing unexpected
+// results.
+// If you are using a newer board or have implemented a fix to connect P/V to the new
+// pins, uncomment the following line.
+//
+//#define PV34REMAP
+//**********************************************************************************
+
+
+//*****************************************************************************************************************************
+// BEGIN CODE
+//*****************************************************************************************************************************
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
 
@@ -25,8 +47,15 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 #define ENCA_INT 2
 #define VALVE1_PIN 6
 #define VALVE2_PIN 7
-#define VALVE3_PIN 8
-#define VALVE4_PIN 9
+
+#ifdef PV34REMAP
+  #define VALVE3_PIN 25
+  #define VALVE4_PIN 26
+#else
+  #define VALVE3_PIN 8
+  #define VALVE4_PIN 9
+#endif
+
 #define VALVE5_PIN 10
 #define VALVE6_PIN 12
 #define VALVE7_PIN 13
