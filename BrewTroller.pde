@@ -1,4 +1,4 @@
-#define BUILD 355 
+#define BUILD 374 
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -414,7 +414,7 @@ unsigned long lastLog;
 byte logCount;
 
 const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "v1.1";
+const char BTVER[] PROGMEM = "v1.2";
 
 //Log Message Classes
 const char LOGAB[] PROGMEM = "AB";
