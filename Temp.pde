@@ -33,6 +33,17 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 #include <OneWire.h>
 //One Wire Bus on 
 OneWire ds(TEMP_PIN);
+unsigned long convStart;
+
+void updateTemps() {
+  if (convStart == 0) {
+    convertAll();
+    convStart = millis();
+  } else if (millis() - convStart >= 750) {
+    for (byte i = TS_HLT; i <= TS_AUX2; i++) temp[i] = read_temp(tSensor[i]);
+    convStart = 0;
+  }
+}
 
 void getDSAddr(byte addrRet[8]){
   byte scanAddr[8];

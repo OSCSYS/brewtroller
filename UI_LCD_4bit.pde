@@ -29,15 +29,9 @@ using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrar
 using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
-
 #include <LiquidCrystal.h>
 
-// LiquidCrystal display with:
-// rs on pin 17/18	  (LCD pin 4 ) aka DI
-// rw on pin 27	  (LCD pin 5)
-// enable on pin 19 (LCD pin 6)
-// d4, d5, d6, d7 on pins 20, 21, 22, 23  (LCD pins 11-14)
-
+//UI Globals
 #ifdef BTBOARD_3
   LiquidCrystal lcd(18, 19, 20, 21, 22, 23);
 #else

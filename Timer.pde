@@ -29,40 +29,56 @@ using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrar
 using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
+byte lastEEPROMWrite[2];
 
-#ifdef ENCODER_CUI
-#define ENTER_BOUNCE_DELAY 50
-#endif
+void setTimer(byte timer, unsigned int minutes) {
+  timerValue[timer] = minutes * 60000;
+  lastTime[timer] = millis();
+  timerStatus[timer] = 1;
+}
 
-#ifdef ENCODER_ALPS
-#define ENTER_BOUNCE_DELAY 30
-#endif
-
-volatile unsigned long lastEncUpd = millis();
-unsigned long enterStart;
-
-void doEncoderALPS() {
-  if (digitalRead(2) != digitalRead(4)) encCount++; else encCount--;
-  if (encCount == -1) encCount = 0; else if (encCount < encMin) { encCount = encMin; } else if (encCount > encMax) { encCount = encMax; }
-  lastEncUpd = millis();
-} 
-void doEncoderCUI() {
-  if (millis() - lastEncUpd < 50) return;
-  //Read EncB
-  if (digitalRead(4) == LOW) encCount++; else encCount--;
-  if (encCount == -1) encCount = 0; else if (encCount < encMin) { encCount = encMin; } else if (encCount > encMax) { encCount = encMax; }
-  lastEncUpd = millis();
-} 
-
-void doEnter() {
-  if (digitalRead(11) == HIGH) {
-    enterStart = millis();
+void pauseTimer(byte timer) {
+  if (timerStatus[timer]) {
+    //Pause
+    timerStatus[timer] = 0;
   } else {
-    if (millis() - enterStart > 1000) {
-      enterStatus = 2;
-    } else if (millis() - enterStart > ENTER_BOUNCE_DELAY) {
-      enterStatus = 1;
+    //Unpause
+    timerStatus[timer] = 1;
+    lastTime[timer] = millis();
+  }
+}
+
+void clearTimer(byte timer) {
+  timerValue[timer] = 0;
+  timerStatus[timer] = 0;
+}
+
+void updateTimers() {
+  for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
+    if (timerStatus[timer]) {
+      unsigned long now = millis();
+      if (timerValue[timer] > now - lastTime[timer]) {
+        timerValue[timer] -= now - lastTime[timer];
+      } else {
+        timerValue[timer] = 0;
+        timerStatus[timer] = 0;
+        setAlarm(1);
+      }
+      lastTime[timer] = now;
+    }
+
+    byte timerHours = timerValue[timer] / 3600000;
+    byte timerMins = (timerValue[timer] - timerHours * 3600000) / 60000;
+
+    //Update EEPROM once per minute
+    if (timerMins != lastEEPROMWrite[timer]) {
+      lastEEPROMWrite[timer] = timerMins;
+      setTimerRecovery(timer, timerValue[timer]/60000 + 1);
     }
   }
 }
 
+void setAlarm(boolean value) {
+  setAlarmStatus(value);
+  digitalWrite(ALARM_PIN, value);
+}
