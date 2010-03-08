@@ -199,22 +199,20 @@ boolean chkMsg() {
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "SET_PROG") == 0) {
           byte program = atoi(msg[1]);
-          if (msgField == 24 && program >= 0 && program < 21) {
+          if (msgField == 22 && program >= 0 && program < 21) {
             setProgName(program, msg[2]);
             for (byte i = STEP_DOUGHIN; i <= STEP_MASHOUT; i++) {
               setProgMashTemp(program, i, atoi(msg[i * 2 + 3]));
               setProgMashMins(program, i, atoi(msg[i * 2 + 4]));
             }
             setProgSparge(program, atoi(msg[15]));
-            setProgDelay(program, atol(msg[16]));
-            setProgHLT(program, atoi(msg[17]));
-            setProgBatchVol(program, strtoul(msg[18], NULL, 10));
-            setProgGrain(program, strtoul(msg[19], NULL, 10));
-            setProgBoil(program, atol(msg[20]));
-            setProgRatio(program, atol(msg[21]));
-            setProgPitch(program, atoi(msg[22]));
-            setProgAdds(program, atol(msg[23]));
-            setProgGrainT(program, atoi(msg[24]));
+            setProgHLT(program, atoi(msg[16]));
+            setProgBatchVol(program, strtoul(msg[17], NULL, 10));
+            setProgGrain(program, strtoul(msg[18], NULL, 10));
+            setProgBoil(program, atol(msg[19]));
+            setProgRatio(program, atol(msg[20]));
+            setProgPitch(program, atoi(msg[21]));
+            setProgAdds(program, atol(msg[22]));
             clearMsg();
             logProgram(program);
           } else rejectParam(LOGGLB);
@@ -237,7 +235,6 @@ boolean chkMsg() {
           if (msgField == 2 && timer >= TIMER_MASH && timer <= TIMER_BOIL) {
             timerValue[timer] = strtoul(msg[1], NULL, 10);
             lastTime[timer] = millis();
-            timerLastWrite = 0;
             clearMsg();
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "SET_TIMERSTATUS") == 0) {
@@ -248,22 +245,24 @@ boolean chkMsg() {
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "SET_AUTOVLV") == 0) {
           byte avSet = atoi(msg[1]);
-          if (msgField == 1 && avSet >= AV_OFF && avSet <= AV_CHILL) {
-            autoValve = avSet;
+          if (msgField == 1) {
+            byte actModes = atoi(msg[1]);
+            for (byte i = AV_FILL; i <= AV_CHILL; i++) 
+              autoValve[i] = actModes & 1<<i;
             clearMsg();
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "ACT_VLV") == 0) {
           if (msgField == 1) {
-            setValves(strtoul(msg[1], NULL, 10));
+            setValves(VLV_ALL, 0);
+            setValves(strtoul(msg[1], NULL, 10), 1);
             clearMsg();
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "ACT_VLVPRF") == 0) {
           if (msgField == 1) {
-            unsigned long newBits = 0;
+            setValves(VLV_ALL, 0);
             unsigned long actProfiles = strtoul(msg[1], NULL, 10);
             for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
-              if ((actProfiles & 1<<i)) newBits |= vlvConfig[i];
-            setValves(newBits);
+              if ((actProfiles & 1<<i)) setValves(vlvConfig[i], 1);
             clearMsg();
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "SET_LOGSTATUS") == 0) {
@@ -326,15 +325,13 @@ void updateLog() {
   if (logData) {
     if (millis() - lastLog > LOG_INTERVAL) {
       if (logCount == 0) {
-        logPgm();
-        if (pwrRecovery == 1) {
-          logStart_P(LOGDATA);
-          logField_P(PSTR("AB_STEP"));
-          logFieldI(recoveryStep);
-          logEnd();
-        }
+        logStart_P(LOGDATA);
+        logField_P(PSTR("ACT_STEPS"));
+        for (byte i = 0; i <= NUM_BREW_STEPS; i++)
+          logFieldI(stepProgram[i]);
+        logEnd();
       } else if (logCount == 1) {
-        for (byte timer = TIM_MASH; timer <= TIM_BOIL; timer++) {
+        for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
           logStart_P(LOGDATA);
           logField_P(PSTR("TIMER"));
           logFieldI(timer);
@@ -410,7 +407,10 @@ void updateLog() {
       } else if (logCount == 22) {
         logStart_P(LOGDATA);
         logField_P(PSTR("AUTOVLV"));
-        logFieldI(autoValve);
+        byte modeMask = 0;
+        for (byte i = AV_FILL; i <= AV_CHILL; i++)
+          if (autoValve[i]) modeMask |= 1<<i;
+        logFieldI(modeMask);
         logEnd();
         logStart_P(LOGDATA);
         logField_P(PSTR("SETVLV"));
@@ -510,7 +510,6 @@ void logProgram(byte program) {
     logFieldI(getProgMashMins(program, i));
   }
   logFieldI(getProgSparge(program));
-  logFieldI(getProgDelay(program));
   logFieldI(getProgHLT(program));
   logFieldI(getProgBatchVol(program));
   logFieldI(getProgGrain(program));
@@ -518,7 +517,6 @@ void logProgram(byte program) {
   logFieldI(getProgRatio(program));
   logFieldI(getProgPitch(program));
   logFieldI(getProgAdds(program));
-  logFieldI(getProgGrainT(program));
   logEnd();
 }
 

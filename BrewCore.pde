@@ -35,7 +35,7 @@ void brewCore() {
   updateTimers();
   
   //Volumes: Volume.pde
-  updatesVols();
+  updateVols();
   
   //Log: Log.pde
   updateLog();

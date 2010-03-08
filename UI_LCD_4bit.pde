@@ -29,6 +29,8 @@ using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrar
 using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
+#ifndef NOUI
+
 #include <LiquidCrystal.h>
 
 //UI Globals
@@ -153,3 +155,5 @@ void lcdWriteCustChar(byte iRow, byte iCol, byte slot) {
   #endif
   lcd.write(slot);
 }
+
+#endif

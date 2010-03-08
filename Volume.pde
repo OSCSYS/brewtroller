@@ -29,15 +29,15 @@ using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrar
 using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
-unsigned long volReadings[3][5], lastVolChk;
+unsigned long volReadings[3][5];
+unsigned long lastVolChk;
 byte volCount;
-
 
 void updateVols() {
   //Check volume every 200 ms and update vol with average of 5 readings
   if (millis() - lastVolChk > 200) {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-      volReadings[i][volCount] = readVolume(vSensor[i], calibVols[i], calibVals[i], zeroVol[i]);
+      volReadings[i][volCount] = readVolume(vSensor[i], calibVols[i], calibVals[i]);
       volAvg[i] = (volReadings[i][0] + volReadings[i][1] + volReadings[i][2] + volReadings[i][3] + volReadings[i][4]) / 5;
     }
     volCount++;
@@ -46,7 +46,7 @@ void updateVols() {
   }
 }
 
-unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned int calibrationValues[10], unsigned int zeroValue ) {
+unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned int calibrationValues[10] ) {
   unsigned int aValue = analogRead(pin);
   unsigned long retValue;
   #ifdef DEBUG
@@ -56,7 +56,6 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
     logFieldI(aValue);
     logFieldI(zeroValue);
   #endif
-  if (aValue <= zeroValue) aValue = 0; else aValue -= zeroValue;
   
   byte upperCal = 0;
   byte lowerCal = 0;
