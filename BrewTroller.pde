@@ -1,4 +1,4 @@
-#define BUILD 382 
+#define BUILD 383 
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -361,6 +361,10 @@ void(* softReset) (void) = 0;
 #define MASH_SACCH2 4
 #define MASH_MASHOUT 5
 
+//Zones
+#define ZONE_MASH 0
+#define ZONE_BOIL 1
+
 //Heat Output Pin Array
 byte heatPin[4] = { HLTHEAT_PIN, MASHHEAT_PIN, KETTLEHEAT_PIN, STEAMHEAT_PIN };
 
@@ -413,7 +417,6 @@ char msg[25][21];
 #define PROGRAM_IDLE 255
 byte stepProgram[NUM_BREW_STEPS];
 boolean preheated[4], doAutoBoil;
-unsigned int progDelay;
 
 //Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
 unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };

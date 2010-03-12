@@ -85,22 +85,22 @@ void pidInit() {
 }
 
 void resetOutputs() {
-  for (byte i = VS_HLT; i <= VS_STEAM; i++) {
-    setpoint[i] = 0;
-    pid[i].SetMode(MANUAL);
-    PIDOutput[i] = 0;
-  }
-  digitalWrite(HLTHEAT_PIN, LOW);
-  digitalWrite(MASHHEAT_PIN, LOW);
-  digitalWrite(KETTLEHEAT_PIN, LOW);
-
-#ifdef USESTEAM
-  digitalWrite(STEAMHEAT_PIN, LOW);
-#endif
-
+  #ifdef USESTEAM
+    #define LAST_HEAT_OUTPUT VS_STEAM
+  #else
+    #define LAST_HEAT_OUTPUT VS_KETTLE
+  #endif
+  for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++) resetHeatOutput(i);
   for (byte i = AV_FILL; i <= AV_CHILL; i++) autoValve[i] = 0;
   setValves(VLV_ALL, 0);
 }
+
+void resetHeatOutput(byte vessel) {
+  setpoint[vessel] = 0;
+  pid[vessel].SetMode(MANUAL);
+  PIDOutput[vessel] = 0;
+  digitalWrite(heatPin[vessel], LOW);
+}  
 
 //Sets the specified valves On or Off
 void setValves (unsigned long vlvBitMask, boolean value) {
@@ -155,11 +155,11 @@ void setValves (unsigned long vlvBitMask, boolean value) {
 void processHeatOutputs() {
   //Process Heat Outputs
   #ifdef USESTEAM
-    #define HEAT_OUTPUTS VS_STEAM
+    #define LAST_HEAT_OUTPUT VS_STEAM
   #else
-    #define HEAT_OUTPUTS VS_KETTLE
+    #define LAST_HEAT_OUTPUT VS_KETTLE
   #endif
-  for (byte i = VS_HLT; i <= HEAT_OUTPUTS; i++) {
+  for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++) {
     if (PIDEnabled[i]) {
       if (i != VS_STEAM && i != VS_KETTLE && temp[i] <= 0) {
         PIDOutput[i] = 0;
@@ -197,6 +197,10 @@ void processHeatOutputs() {
   }
 }
 
+boolean vlvConfigIsActive(byte profile) {
+  if (vlvBits & vlvConfig[profile] == vlvConfig[profile]) return 1; else return 0;
+}
+
 void processAutoValve() {
   //Do Valves
   if (autoValve[AV_FILL]) {
@@ -207,10 +211,10 @@ void processAutoValve() {
       else setValves(vlvConfig[VLV_FILLMASH], 0);
   } 
   if (autoValve[AV_MASH]) {
-    if (heatStatus[TS_MASH] && (vlvBits & vlvConfig[VLV_MASHHEAT] != vlvConfig[VLV_MASHHEAT])) {
+    if (heatStatus[TS_MASH] && (!vlvConfigIsActive(VLV_MASHHEAT))) {
       setValves(vlvConfig[VLV_MASHIDLE], 0);
       setValves(vlvConfig[VLV_MASHHEAT], 1);
-    } else if (!heatStatus[TS_MASH] && (vlvBits & vlvConfig[VLV_MASHIDLE] != vlvConfig[VLV_MASHIDLE])) {
+    } else if (!heatStatus[TS_MASH] && (!vlvConfigIsActive(VLV_MASHIDLE))) {
       setValves(vlvConfig[VLV_MASHHEAT], 0);
       setValves(vlvConfig[VLV_MASHIDLE], 1); 
     }
@@ -219,7 +223,7 @@ void processAutoValve() {
     //Needs work
     /*
     //If Pumping beer
-    if (vlvBits & vlvConfig[VLV_CHILLBEER] == vlvConfig[VLV_CHILLBEER]) {
+    if (vlvConfigIsActive(VLV_CHILLBEER)) {
       //Cut beer if exceeds pitch + 1
       if (temp[TS_BEEROUT] > pitchTemp + 1.0) setValves(vlvConfig[VLV_CHILLBEER], 0);
     } else {
@@ -229,7 +233,7 @@ void processAutoValve() {
     }
     
     //If chiller water is running
-    if (vlvBits & vlvConfig[VLV_CHILLH2O] == vlvConfig[VLV_CHILLH2O]) {
+    if (vlvConfigIsActive(VLV_CHILLH2O)) {
       //Cut H2O if beer below pitch - 1
       if (temp[TS_BEEROUT] < pitchTemp - 1.0) setValves(vlvConfig[VLV_CHILLH2O], 0);
     } else {

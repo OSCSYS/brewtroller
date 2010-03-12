@@ -342,15 +342,26 @@ void setValveRecovery(unsigned long value) { PROMwriteLong(309, value); }
 //**********************************************************************************
 //Step (313-327) NUM_BREW_STEPS (15)
 //**********************************************************************************
-byte setProgramStep(byte brewStep, byte actPgm) {
+void setProgramStep(byte brewStep, byte actPgm) {
   stepProgram[brewStep] = actPgm;
   EEPROM.write(313 + brewStep, actPgm); 
 }
 
 //**********************************************************************************
-//Reserved (328-400)
+//Reserved (328-399)
 //**********************************************************************************
 
+//**********************************************************************************
+//Delay Start (Mins) (398-399)
+//**********************************************************************************
+unsigned int getDelayMins() { return PROMreadInt(398); }
+void setDelayMins(unsigned int mins) { PROMwriteInt(398, mins); }
+
+//**********************************************************************************
+//Grain Temp (400)
+//**********************************************************************************
+void setGrainTemp(byte grainTemp) { EEPROM.write(400, grainTemp); }
+byte getGrainTemp() { return EEPROM.read(400); }
 
 //*****************************************************************************************************************************
 // Valve Profile Configuration (401-452; 453-500 Reserved)
@@ -367,7 +378,7 @@ void setValveCfg(byte profile, unsigned long value) {
 #define PROGRAM_START_ADDR 501
 
 //**********************************************************************************
-//Program Name (0-20)
+//Program Name (P:0-20)
 //**********************************************************************************
 void setProgName(byte preset, char name[20]) {
   for (byte i = 0; i < 19; i++) EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + i, name[i]);
@@ -379,70 +390,74 @@ void getProgName(byte preset, char name[20]) {
 }
 
 //**********************************************************************************
-//Sparge Temp (21)
+//Sparge Temp (P:21)
 //**********************************************************************************
 void setProgSparge(byte preset, byte sparge) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 21, sparge); }
 byte getProgSparge(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 21); }
 
 //**********************************************************************************
-//Boil Mins (22-23)
+//Boil Mins (P:22-23)
 //**********************************************************************************
 void setProgBoil(byte preset, unsigned int boilMins) { PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22, boilMins); }
 unsigned int getProgBoil(byte preset) { return PROMreadInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22); }
 
 //**********************************************************************************
-//Mash Ratio (24-25)
+//Mash Ratio (P:24-25)
 //**********************************************************************************
 void setProgRatio(byte preset, unsigned int ratio) { PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 24, ratio); }
 unsigned int getProgRatio(byte preset) { return PROMreadInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 24); }
 
 //**********************************************************************************
-//Mash Temps (26-31)
+//Mash Temps (P:26-31)
 //**********************************************************************************
 void setProgMashTemp(byte preset, byte mashStep, byte mashTemp) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 26 + mashStep, mashTemp); }
 byte getProgMashTemp(byte preset, byte mashStep) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 26 + mashStep); }
 
 //**********************************************************************************
-//Mash Times (32-37)
+//Mash Times (P:32-37)
 //**********************************************************************************
 void setProgMashMins(byte preset, byte mashStep, byte mashMins) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep, mashMins); }
 byte getProgMashMins(byte preset, byte mashStep) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep); }
 
 //**********************************************************************************
-//Batch Vol (38-41)
+//Batch Vol (P:38-41)
 //**********************************************************************************
 unsigned long getProgBatchVol(byte preset) { return PROMreadLong(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 38); }
 void setProgBatchVol (byte preset, unsigned long vol) { PROMwriteLong(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 38, vol); }
 
 //**********************************************************************************
-//Mash Liquor Heat Source (42)
+//Mash Liquor Heat Source (P:42)
 //**********************************************************************************
 void setProgMLHeatSrc(byte preset, byte vessel) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 42, vessel); }
 byte getProgMLHeatSrc(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 42); }
 
 //**********************************************************************************
-//HLT Temp (43)
+//HLT Temp (P:43)
 //**********************************************************************************
 void setProgHLT(byte preset, byte HLT) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 43, HLT); }
 byte getProgHLT(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 43); }
 
 //**********************************************************************************
-//Pitch Temp (44)
+//Pitch Temp (P:44)
 //**********************************************************************************
 void setProgPitch(byte preset, byte pitch) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 44, pitch); }
 byte getProgPitch(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 44); }
 
 //**********************************************************************************
-//Boil Addition Alarms (45-46)
+//Boil Addition Alarms (P:45-46)
 //**********************************************************************************
 void setProgAdds(byte preset, unsigned int adds) { PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 45, adds); }
 unsigned int getProgAdds(byte preset) { return PROMreadInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 45); }
 
 //**********************************************************************************
-//Grain Weight (47-50)
+//Grain Weight (P:47-50)
 //**********************************************************************************
 void setProgGrain(byte preset, unsigned long grain) { PROMwriteLong(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 47, grain); }
 unsigned long getProgGrain(byte preset) { return PROMreadLong(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 47); }
+
+//**********************************************************************************
+//OPEN (P:51-59)
+//**********************************************************************************
 
 
 //**********************************************************************************
@@ -518,7 +533,6 @@ void checkConfig() {
           setProgHLT(0, 82);
           setProgRatio(0, 277);
           setProgPitch(0, 21);
-          setProgGrainT(0, 16);
         #else
           byte temps[4] = {0, 0, 153, 0};
           byte mins[4] = {0, 0, 60, 0};
@@ -527,7 +541,6 @@ void checkConfig() {
           setProgHLT(0, 180);
           setProgRatio(0, 133);
           setProgPitch(0, 70);
-          setProgGrainT(0, 60);
         #endif
         setProgBoil(0, 60);
         setProgGrain(0, 0);
@@ -545,7 +558,6 @@ void checkConfig() {
           setProgHLT(1, 82);
           setProgRatio(1, 277);
           setProgPitch(1, 21);
-          setProgGrainT(1, 16);
         #else
           byte temps[4] = {104, 122, 153, 0};
           byte mins[4] = {20, 20, 60, 0};
@@ -554,7 +566,6 @@ void checkConfig() {
           setProgHLT(1, 180);
           setProgRatio(1, 133);
           setProgPitch(1, 70);
-          setProgGrainT(1, 60);
         #endif
 
         setProgBoil(1, 60);
