@@ -1,4 +1,4 @@
-#define BUILD 377 
+#define BUILD 384 
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -146,6 +146,19 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 #define MASH_HEAT_LOSS 0
 #define HLT_MAX_TEMP 180
 //**********************************************************************************
+
+
+//**********************************************************************************
+// Strike Temperature Correction
+//**********************************************************************************
+// STRIKE_TEMP_OFFSET: Adjusts strike temperature to compensate for thermal mass of
+// mash tun. (Note: This option is used only when Mash Liquor Heat Source is set to
+// HLT.)
+
+//#define STRIKE_TEMP_OFFSET 1
+
+//**********************************************************************************
+
 
 //**********************************************************************************
 // Pre-Boil Alarm

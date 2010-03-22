@@ -316,6 +316,9 @@ void doAutoBrew() {
           strikeTemp = strikeTemp + round(.192 * (strikeTemp - grainTemp) / (mashRatio / 100.0)) + 3;
         #endif
         if (MLHeatSrc == VS_HLT) {
+          #ifdef STRIKE_TEMP_OFFSET
+            strikeTemp += STRIKE_TEMP_OFFSET;
+          #endif
           setpoint[TS_HLT] = strikeTemp;
           setpoint[TS_MASH] = 0;
         } else {
