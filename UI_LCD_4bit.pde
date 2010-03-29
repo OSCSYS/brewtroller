@@ -31,7 +31,7 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 
 #ifndef NOUI
 
-#include <LiquidCrystal.h>
+#include <LiquidCrystalFP.h>
 
 //UI Globals
 #ifdef BTBOARD_3

@@ -1,33 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-//*****************************************************************************************************************************
-//1.3 To Do:
-//Add NOUI support for checkconfig
-//*****************************************************************************************************************************
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -97,6 +67,7 @@ void loadSetup() {
   //steamZero (114)
   //**********************************************************************************
   steamZero = PROMreadInt(114);
+  
   //**********************************************************************************
   //steamPSens (117-118)
   //**********************************************************************************
@@ -268,10 +239,11 @@ void setSteamZero(unsigned int value) {
 //**********************************************************************************
 //steamTgt (116)
 //**********************************************************************************
-byte getSteamTgt() { return EEPROM.read(116); }
 void setSteamTgt(byte value) {
-  EEPROM.write(116, value);
+  steamTgt = value;
+  EEPROM.write(116, steamTgt);
 }
+byte getSteamTgt() { return EEPROM.read(116); }
 
 //**********************************************************************************
 //steamPSens (117-118)
@@ -476,214 +448,62 @@ unsigned long getProgGrain(byte preset) { return PROMreadLong(PROGRAM_START_ADDR
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
 //*****************************************************************************************************************************
-void checkConfig() {
-/*  byte cfgVersion = EEPROM.read(2047);
+boolean checkConfig() {
+  byte cfgVersion = EEPROM.read(2047);
   byte BTFinger = EEPROM.read(2046);
-  
-#ifdef DEBUG
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("CFGVER"));
-  logFieldI(cfgVersion);
-  logEnd();
-#endif
 
-  //If the cfgVersion is newer than 6 and the BT fingerprint is missing force a init of EEPROM
+  //If the BT fingerprint is missing force a init of EEPROM
   //FermTroller will bump to a cfgVersion starting at 7
-  if (BTFinger != 254 && cfgVersion > 6) cfgVersion = 0;
-  if (cfgVersion == 255) cfgVersion = 0;
-  switch(cfgVersion) {
-    case 0:
-      {
-        logString_P(LOGSYS, PSTR("INIT_EEPROM"));
-        //Format EEPROM to 0's
-        for (int i=0; i<2048; i++) EEPROM.write(i, 0);
-        {
-          //Default Output Settings: p: 3, i: 4, d: 2, cycle: 4s, Hysteresis 0.3C(0.5F)
-          #ifdef USEMETRIC
-            byte defOutputSettings[5] = {3, 4, 2, 4, 3};
-          #else
-            byte defOutputSettings[5] = {3, 4, 2, 4, 5};
-          #endif
-          PROMwriteBytes(49, defOutputSettings, 5);
-          PROMwriteBytes(54, defOutputSettings, 5);
-          PROMwriteBytes(59, defOutputSettings, 5);
-        }
-      }
-      //Set cfgVersion = 1
-      EEPROM.write(2047, 1);
-    case 1:
-      //Default Grain Temp = 60F/16C
-      //If F else C
-      #ifdef USEMETRIC
-        EEPROM.write(156, 16);
-      #else
-        EEPROM.write(156, 60);
-      #endif
-      EEPROM.write(2047, 2);
-    case 2:
-      //Default Programs
-#ifdef MODULE_DEFAULTABPROGS
-      {
-        setProgName(0, "Single Infusion");
-        #ifdef USEMETRIC
-          byte temps[4] = {0, 0, 67, 0};
-          byte mins[4] = {0, 0, 60, 0};
-          setProgSchedule(0, temps, mins);
-          setProgSparge(0, 76);
-          setProgHLT(0, 82);
-          setProgRatio(0, 277);
-          setProgPitch(0, 21);
-        #else
-          byte temps[4] = {0, 0, 153, 0};
-          byte mins[4] = {0, 0, 60, 0};
-          setProgSchedule(0, temps, mins);
-          setProgSparge(0, 168);
-          setProgHLT(0, 180);
-          setProgRatio(0, 133);
-          setProgPitch(0, 70);
-        #endif
-        setProgBoil(0, 60);
-        setProgGrain(0, 0);
-        setProgDelay(0, 0);
-        setProgMLHeatSrc(0, 0);
-        setProgAdds(0, 0);
-      }
-      {
-        setProgName(1, "Multi-Rest");
-        #ifdef USEMETRIC
-          byte temps[4] = {40, 50, 67, 0};
-          byte mins[4] = {20, 20, 60, 0};
-          setProgSchedule(1, temps, mins);
-          setProgSparge(1, 76);
-          setProgHLT(1, 82);
-          setProgRatio(1, 277);
-          setProgPitch(1, 21);
-        #else
-          byte temps[4] = {104, 122, 153, 0};
-          byte mins[4] = {20, 20, 60, 0};
-          setProgSchedule(1, temps, mins);
-          setProgSparge(1, 168);
-          setProgHLT(1, 180);
-          setProgRatio(1, 133);
-          setProgPitch(1, 70);
-        #endif
+  if (BTFinger != 254 || cfgVersion < 14 || cfgVersion == 255) return 1;
 
-        setProgBoil(1, 60);
-        setProgGrain(1, 0);
-        setProgDelay(1, 0);
-        setProgMLHeatSrc(1, 0);
-        setProgAdds(1, 0);
-      }
-#endif
-      EEPROM.write(2047, 3);
-    case 3:
-      //Move Valve Configs from old 2-Byte EEPROM (136-151) to new 4-Byte Locations
-      for (byte profile = VLV_FILLHLT; profile <= VLV_CHILLBEER; profile ++) PROMwriteLong(1806 + (profile) * 4, PROMreadInt(136 + profile * 2));
-      EEPROM.write(2047, 4);
-    case 4:
-      //Default Steam Output Settings
-      EEPROM.write(88, 3);
-      EEPROM.write(89, 4);
-      EEPROM.write(90, 2);
-      EEPROM.write(91, 4);
-      #ifdef USEMETRIC
-        EEPROM.write(93, 3);
-      #else
-        EEPROM.write(93, 5);
-      #endif
-      EEPROM.write(2047, 5);
-    case 5:
-      //Set Default Boil temp 212F/100C
-      #ifdef USEMETRIC
-        setBoilTemp(100);
-      #else
-        setBoilTemp(212);
-      #endif
-      EEPROM.write(2047, 6);
-    case 6:
-      //Add BT Fingerprint (254)
-      EEPROM.write(2046, 254);
-      EEPROM.write(2047, 7);
-    case 7:
-      //Move Profiles 6 & 7 +12 
-      PROMwriteLong(1846, PROMreadLong(1834));
-      PROMwriteLong(1842, PROMreadLong(1830));
-      //Move Profiles 2 - 5 +4
-      PROMwriteLong(1830, PROMreadLong(1826));
-      PROMwriteLong(1826, PROMreadLong(1822));
-      PROMwriteLong(1822, PROMreadLong(1818));
-      PROMwriteLong(1818, PROMreadLong(1814));
-      //Zero out new profiles
-      PROMwriteLong(1814, 0);
-      PROMwriteLong(1834, 0);
-      PROMwriteLong(1838, 0);
-      EEPROM.write(2047, 8);
-    case 8:
-      setBoilPwr(100);
-      EEPROM.write(2047, 9);
-    case 9:
-      setMLHeatSrc(VS_MASH);
-      //Zero out unused program tgtvol bytes and set MLHeatSrc for each program to Mash Tun
-      for (byte preset = 0; preset < 20; preset++) {
-        EEPROM.write(preset * 55 + 198, 1);
-        for (byte i = 199; i <= 205; i++) EEPROM.write(preset * 55 + i, 0);
-      }
-      EEPROM.write(2047, 10);
-    case 10:
-      //Zero Out Aux1/AUX2 TSensor Addresses
-      for (byte i = 118; i <= 125; i++) EEPROM.write(i, 0);
-      for (unsigned int i = 1850; i <= 1857; i++) EEPROM.write(i, 0);
-      EEPROM.write(2047, 11);
-    case 11: 
-      //Swap P/V 3&4 in existing Valve Profiles
-      for (byte i = VLV_FILLHLT; i <= VLV_CHILLBEER; i++) {
-        unsigned long vlvs = PROMreadLong(1806 + i * 4);
-        vlvs = (vlvs & 0xFFFFFFF3) | ((vlvs>>1) & B100) | ((vlvs<<1) & B1000);
-        PROMwriteLong(1806 + i * 4, vlvs);
-      }
-      EEPROM.write(2047, 12);
-      
-    case 12: 
-      //Zero Out Boil Recirc Profile
-      PROMwriteLong(1802, 0);
-      EEPROM.write(2047, 13);
-      
-    case 13:
-      //Add Clean Program
-      {
-        setProgName(20, "Clean");
-        #ifdef USEMETRIC
-          byte temps[4] = {0, 0, 60, 0};
-          byte mins[4] = {0, 0, 5, 0};
-          setProgSchedule(20, temps, mins);
-          setProgSparge(20, 76);
-          setProgHLT(20, 82);
-          setProgRatio(20, 277);
-          setProgPitch(20, 21);
-          setProgGrainT(20, 16);
-        #else
-          byte temps[4] = {0, 0, 140, 0};
-          byte mins[4] = {0, 0, 5, 0};
-          setProgSchedule(20, temps, mins);
-          setProgSparge(20, 168);
-          setProgHLT(20, 180);
-          setProgRatio(20, 133);
-          setProgPitch(20, 70);
-          setProgGrainT(20, 60);
-        #endif
+  //In the future, incremental EEPROM settings will be included here
+  
+  return 0;
+}
 
-        setProgBoil(20, 0);
-        setProgGrain(20, 0);
-        setProgDelay(20, 0);
-        setProgMLHeatSrc(20, 0);
-        setProgAdds(20, 0);
-      }
-      EEPROM.write(2047, 14);
-    default:
-      //No EEPROM Upgrade Required
-      return;
+void initEEPROM() {
+  //Format EEPROM to 0's
+  for (int i=0; i<2048; i++) EEPROM.write(i, 0);
+
+  //Set BT Fingerprint (254)
+  EEPROM.write(2046, 254);
+
+  //Default Output Settings: p: 3, i: 4, d: 2, cycle: 4s, Hysteresis 0.3C(0.5F)
+  for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) {
+    setPIDp(vessel, 3);
+    setPIDi(vessel, 4);
+    setPIDd(vessel, 2);
+    setPIDCycle(vessel, 4);
+    if (vessel != VS_STEAM)
+    #ifdef USEMETRIC
+      setHysteresis(vessel, 3);
+    #else
+      setHysteresis(vessel, 5);      
+    #endif
   }
-*/
+
+  //Default Grain Temp = 60F/16C
+  //If F else C
+  #ifdef USEMETRIC
+    setGrainTemp(16);
+  #else
+    setGrainTemp(60);
+  #endif
+
+  //Set Default Boil temp 212F/100C
+  #ifdef USEMETRIC
+    setBoilTemp(100);
+  #else
+    setBoilTemp(212);
+  #endif
+
+  setBoilPwr(100);
+
+  //Set all steps idle
+  for (byte i = 0; i < NUM_BREW_STEPS; i++) setProgramStep(i, PROGRAM_IDLE);
+
+  //Set cfgVersion = 14
+  EEPROM.write(2047, 14);
 }
 
 //*****************************************************************************************************************************

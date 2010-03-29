@@ -32,10 +32,6 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 unsigned long lastHop;
 unsigned int boilAdds, triggered;
 
-void resetSteps() {
-  for (byte i = 0; i < NUM_BREW_STEPS; i++) stepProgram[i] = PROGRAM_IDLE;
-}
-
 boolean stepIsActive(byte brewStep) {
   if (stepProgram[brewStep] != PROGRAM_IDLE) return true; else return false;
 }
@@ -157,6 +153,7 @@ void stepMash(byte brewStep) {
 
 //Returns 0 if start was successful or 1 if unable to start due to conflict with other step
 //Performs any logic required at start of step
+//TO DO: Power Loss Recovery Handling
 boolean stepInit(byte pgm, byte brewStep) {
   
   //Abort Fill/Mash step init if mash Zone is not free
@@ -193,6 +190,9 @@ boolean stepInit(byte pgm, byte brewStep) {
     {
       if (getProgMLHeatSrc(pgm) == VS_HLT) {
         setpoint[TS_HLT] = calcStrikeTemp(pgm);
+        #ifdef STRIKE_TEMP_OFFSET
+          setpoint[TS_HLT] += STRIKE_TEMP_OFFSET;
+        #endif
         setpoint[TS_MASH] = 0;
       } else {
         setpoint[TS_HLT] = getProgHLT(pgm);
@@ -351,6 +351,8 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_CHILL) {
   //Step Init: Chill
   }
+  
+  return 0;
 }
 
 //Advances program to next brew step
@@ -366,7 +368,9 @@ boolean stepAdvance(byte brewStep) {
       stepExit(brewStep + 1); //Just to make sure we clean up a partial start
       stepProgram[brewStep] = program; //Show the step we started with as active
       return 1;
-    } 
+    }
+    //Init Successful
+    return 0;
   }
 }
 

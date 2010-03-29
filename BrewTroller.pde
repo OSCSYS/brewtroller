@@ -1,4 +1,4 @@
-#define BUILD 383 
+#define BUILD 385 
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -66,8 +66,8 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 // Use BTBOARD_3 for 3.0 boards
 //
 //#define BTBOARD_1
-//#define BTBOARD_2.2
-#define BTBOARD_3
+#define BTBOARD_2.2
+//#define BTBOARD_3
 //**********************************************************************************
 
 //**********************************************************************************
@@ -150,6 +150,17 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //**********************************************************************************
 
 //**********************************************************************************
+// Strike Temperature Correction
+//**********************************************************************************
+// STRIKE_TEMP_OFFSET: Adjusts strike temperature to compensate for thermal mass of
+// mash tun. (Note: This option is used only when Mash Liquor Heat Source is set to
+// HLT.)
+
+//#define STRIKE_TEMP_OFFSET 1
+
+//**********************************************************************************
+
+//**********************************************************************************
 // Pre-Boil Alarm
 //**********************************************************************************
 // PREBOIL_ALARM: Triggers the alarm during the boil stage when the defined
@@ -186,7 +197,7 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //**********************************************************************************
 // Uncomment the following line to disable built-in user interface 
 //
-#define NOUI
+//#define NOUI
 //**********************************************************************************
 
 
@@ -213,6 +224,7 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //*****************************************************************************************************************************
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
+#include <pin.h>
 
 void(* softReset) (void) = 0;
 
@@ -366,7 +378,15 @@ void(* softReset) (void) = 0;
 #define ZONE_BOIL 1
 
 //Heat Output Pin Array
-byte heatPin[4] = { HLTHEAT_PIN, MASHHEAT_PIN, KETTLEHEAT_PIN, STEAMHEAT_PIN };
+pin heatPin[4], alarmPin;
+
+#ifdef ONBOARDPV
+  pin valvePin[11];
+#endif
+
+#if MUXBOARDS > 0
+  pin muxLatchPin, muxDataPin, muxClockPin, muxOEPin;
+#endif
 
 //Volume Sensor Pin Array
 byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, KETTLEVOL_APIN};
@@ -384,7 +404,7 @@ unsigned long vlvConfig[13], vlvBits;
 boolean autoValve[NUM_AV];
 
 //Shared buffers
-char menuopts[21][20], buf[11];
+char menuopts[21][20], buf[20];
 
 //Output Globals
 double PIDInput[4], PIDOutput[4], setpoint[4];
@@ -393,7 +413,7 @@ unsigned long cycleStart[4];
 boolean heatStatus[4], PIDEnabled[4];
 unsigned int steamPSens, steamZero;
 float steamPressure;
-byte boilPwr;
+byte steamTgt, boilPwr;
 
 PID pid[4] = {
   PID(&PIDInput[VS_HLT], &PIDOutput[VS_HLT], &setpoint[VS_HLT], 3, 4, 1),
@@ -407,7 +427,8 @@ unsigned long timerValue[2], lastTime[2];
 boolean timerStatus[2], alarmStatus;
 
 //Log Globals
-boolean logData, msgQueued;
+boolean logData = 0;
+boolean msgQueued;
 unsigned long lastLog;
 byte logCount, msgField;
 char msg[25][21];
@@ -423,7 +444,7 @@ unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
 
 
 const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "v1.3";
+const char BTVER[] PROGMEM = "1.3";
 
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";
@@ -444,10 +465,7 @@ void setup() {
     uiInit();
   #endif
 
-  //Set all steps idle (StepLogic.pde)
-  resetSteps();
-  
-  //Check for cfgVersion variable and format EEPROM if necessary (EEPROM.pde)
+  //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();
   
   //Load global variable values stored in EEPROM (EEPROM.pde)

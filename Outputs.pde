@@ -30,35 +30,34 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
 void pinInit() {
-  pinMode(ENCA_PIN, INPUT);
-  pinMode(ENCB_PIN, INPUT);
-  pinMode(ENTER_PIN, INPUT);
-  pinMode(ALARM_PIN, OUTPUT);
+  alarmPin.setup(ALARM_PIN, OUTPUT);
+
   #if MUXBOARDS > 0
-    pinMode(MUX_LATCH_PIN, OUTPUT);
-    pinMode(MUX_CLOCK_PIN, OUTPUT);
-    pinMode(MUX_DATA_PIN, OUTPUT);
-    pinMode(MUX_OE_PIN, OUTPUT);
+    muxLatchPin.setup(MUX_LATCH_PIN, OUTPUT);
+    muxDataPin.setup(MUX_CLOCK_PIN, OUTPUT);
+    muxClockPin.setup(MUX_DATA_PIN, OUTPUT);
+    muxOEPin.setup(MUX_OE_PIN, OUTPUT);
   #endif
   #ifdef ONBOARDPV
-    pinMode(VALVE1_PIN, OUTPUT);
-    pinMode(VALVE2_PIN, OUTPUT);
-    pinMode(VALVE3_PIN, OUTPUT);
-    pinMode(VALVE4_PIN, OUTPUT);
-    pinMode(VALVE5_PIN, OUTPUT);
-    pinMode(VALVE6_PIN, OUTPUT);
-    pinMode(VALVE7_PIN, OUTPUT);
-    pinMode(VALVE8_PIN, OUTPUT);
-    pinMode(VALVE9_PIN, OUTPUT);
-    pinMode(VALVEA_PIN, OUTPUT);
-    pinMode(VALVEB_PIN, OUTPUT);
+    valvePin[0].setup(VALVE1_PIN, OUTPUT);
+    valvePin[1].setup(VALVE2_PIN, OUTPUT);
+    valvePin[2].setup(VALVE3_PIN, OUTPUT);
+    valvePin[3].setup(VALVE4_PIN, OUTPUT);
+    valvePin[4].setup(VALVE5_PIN, OUTPUT);
+    valvePin[5].setup(VALVE6_PIN, OUTPUT);
+    valvePin[6].setup(VALVE7_PIN, OUTPUT);
+    valvePin[7].setup(VALVE8_PIN, OUTPUT);
+    valvePin[8].setup(VALVE9_PIN, OUTPUT);
+    valvePin[9].setup(VALVEA_PIN, OUTPUT);
+    valvePin[10].setup(VALVEB_PIN, OUTPUT);
   #endif
-  pinMode(HLTHEAT_PIN, OUTPUT);
-  pinMode(MASHHEAT_PIN, OUTPUT);
-  pinMode(KETTLEHEAT_PIN, OUTPUT);
-  #ifdef USESTEAM
-    pinMode(STEAMHEAT_PIN, OUTPUT);
-  #endif
+  
+  heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
+  heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
+  heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
+#ifdef USESTEAM
+  heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
+#endif
   resetOutputs();  
 }
 
@@ -99,7 +98,7 @@ void resetHeatOutput(byte vessel) {
   setpoint[vessel] = 0;
   pid[vessel].SetMode(MANUAL);
   PIDOutput[vessel] = 0;
-  digitalWrite(heatPin[vessel], LOW);
+  heatPin[vessel].set(LOW);
 }  
 
 //Sets the specified valves On or Off
@@ -112,43 +111,33 @@ void setValves (unsigned long vlvBitMask, boolean value) {
   #if MUXBOARDS > 0
   //MUX Valve Code
     //Disable outputs (I'm not sure this is necessary; Removing for now) 
-    //digitalWrite(MUX_OE_PIN, HIGH);
+    //muxOEPin.set();
     //ground latchPin and hold low for as long as you are transmitting
-    digitalWrite(MUX_LATCH_PIN, LOW);
+    muxLatchPin.clear();
     //clear everything out just in case to prepare shift register for bit shifting
-    digitalWrite(MUX_DATA_PIN, LOW);
-    digitalWrite(MUX_CLOCK_PIN, LOW);
+    muxDataPin.clear();
+    muxClockPin.clear();
   
     //for each bit in the long myDataOut
     for (byte i = 0; i < 32; i++)  {
-      digitalWrite(MUX_CLOCK_PIN, LOW);
+      muxClockPin.clear();
       //create bitmask to grab the bit associated with our counter i and set data pin accordingly (NOTE: 32 - i causes bits to be sent most significant to least significant)
-      if ( vlvBits & ((unsigned long)1<<(31 - i)) ) digitalWrite(MUX_DATA_PIN, HIGH); else  digitalWrite(MUX_DATA_PIN, LOW);
+      if ( vlvBits & ((unsigned long)1<<(31 - i)) ) muxDataPin.set(); else muxDataPin.clear();
       //register shifts bits on upstroke of clock pin  
-      digitalWrite(MUX_CLOCK_PIN, HIGH);
+      muxClockPin.set();
       //zero the data pin after shift to prevent bleed through
-      digitalWrite(MUX_DATA_PIN, LOW);
+      muxDataPin.clear();
     }
   
     //stop shifting
-    digitalWrite(MUX_CLOCK_PIN, LOW);
-    digitalWrite(MUX_LATCH_PIN, HIGH);
+    muxClockPin.clear();
+    muxLatchPin.set();
     //Enable outputs
-    digitalWrite(MUX_OE_PIN, LOW);
+    muxOEPin.clear();
   #endif
   #ifdef ONBOARDPV
   //Original 11 Valve Code
-    if (vlvBits & 1) digitalWrite(VALVE1_PIN, HIGH); else digitalWrite(VALVE1_PIN, LOW);
-    if (vlvBits & 2) digitalWrite(VALVE2_PIN, HIGH); else digitalWrite(VALVE2_PIN, LOW);
-    if (vlvBits & 4) digitalWrite(VALVE3_PIN, HIGH); else digitalWrite(VALVE3_PIN, LOW);
-    if (vlvBits & 8) digitalWrite(VALVE4_PIN, HIGH); else digitalWrite(VALVE4_PIN, LOW);
-    if (vlvBits & 16) digitalWrite(VALVE5_PIN, HIGH); else digitalWrite(VALVE5_PIN, LOW);
-    if (vlvBits & 32) digitalWrite(VALVE6_PIN, HIGH); else digitalWrite(VALVE6_PIN, LOW);
-    if (vlvBits & 64) digitalWrite(VALVE7_PIN, HIGH); else digitalWrite(VALVE7_PIN, LOW);
-    if (vlvBits & 128) digitalWrite(VALVE8_PIN, HIGH); else digitalWrite(VALVE8_PIN, LOW);
-    if (vlvBits & 256) digitalWrite(VALVE9_PIN, HIGH); else digitalWrite(VALVE9_PIN, LOW);
-    if (vlvBits & 512) digitalWrite(VALVEA_PIN, HIGH); else digitalWrite(VALVEA_PIN, LOW);
-    if (vlvBits & 1024) digitalWrite(VALVEB_PIN, HIGH); else digitalWrite(VALVEB_PIN, LOW);
+  for (byte i = 0; i < 11; i++) { if (vlvBits & 1<<i) valvePin[i].set(); else valvePin[i].clear(); }
   #endif
 }
 
@@ -171,7 +160,7 @@ void processHeatOutputs() {
       }
       if (cycleStart[i] == 0) cycleStart[i] = millis();
       if (millis() - cycleStart[i] > PIDCycle[i] * 1000) cycleStart[i] += PIDCycle[i] * 1000;
-      if (PIDOutput[i] > millis() - cycleStart[i]) digitalWrite(heatPin[i], HIGH); else digitalWrite(heatPin[i], LOW);
+      if (PIDOutput[i] > millis() - cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
       if (PIDOutput[i] == 0)  heatStatus[i] = 0; else heatStatus[i] = 1;
     } else {
       if (heatStatus[i]) {
@@ -179,18 +168,18 @@ void processHeatOutputs() {
           (i != VS_STEAM && (temp[i] <= 0 || temp[i] >= setpoint[i]))  
             || (i == VS_STEAM && steamPressure >= setpoint[i])
         ) {
-          digitalWrite(heatPin[i], LOW);
+          heatPin[i].set(LOW);
           heatStatus[i] = 0;
         } else {
-          digitalWrite(heatPin[i], HIGH);
+          heatPin[i].set(HIGH);
         }
       } else {
         if ((i != VS_STEAM && temp[i] > 0 && (float)(setpoint[i] - temp[i]) >= (float) hysteresis[i] / 10.0) 
         || (i == VS_STEAM && (float)(setpoint[i] - steamPressure) >= (float) hysteresis[i] / 10.0)) {
-          digitalWrite(heatPin[i], HIGH);
+          heatPin[i].set(HIGH);
           heatStatus[i] = 1;
         } else {
-          digitalWrite(heatPin[i], LOW);
+          heatPin[i].set(LOW);
         }
       }
     }    

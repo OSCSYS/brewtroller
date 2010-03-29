@@ -80,5 +80,5 @@ void updateTimers() {
 
 void setAlarm(boolean value) {
   setAlarmStatus(value);
-  digitalWrite(ALARM_PIN, value);
+  alarmPin.set(value);
 }

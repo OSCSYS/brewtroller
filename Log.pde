@@ -91,7 +91,7 @@ boolean chkMsg() {
       if (byteIn == '\r') { 
         msgQueued = 1;
         //Check for Global Commands
-        if       (strcasecmp(msg[0], "GET_TS") == 0) {
+        if (strcasecmp(msg[0], "GET_TS") == 0) {
           byte val = atoi(msg[1]);
           if (msgField == 1 && val >= TS_HLT && val <= TS_AUX2) {
             logTSensor(val);
@@ -251,10 +251,9 @@ boolean chkMsg() {
               autoValve[i] = actModes & 1<<i;
             clearMsg();
           } else rejectParam(LOGGLB);
-        } else if(strcasecmp(msg[0], "ACT_VLV") == 0) {
-          if (msgField == 1) {
-            setValves(VLV_ALL, 0);
-            setValves(strtoul(msg[1], NULL, 10), 1);
+        } else if(strcasecmp(msg[0], "SET_VLV") == 0) {
+          if (msgField == 2) {
+            setValves(strtoul(msg[1], NULL, 10), atoi(msg[2]));
             clearMsg();
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "ACT_VLVPRF") == 0) {
@@ -327,7 +326,7 @@ void updateLog() {
       if (logCount == 0) {
         logStart_P(LOGDATA);
         logField_P(PSTR("ACT_STEPS"));
-        for (byte i = 0; i <= NUM_BREW_STEPS; i++)
+        for (byte i = 0; i < NUM_BREW_STEPS; i++)
           logFieldI(stepProgram[i]);
         logEnd();
       } else if (logCount == 1) {
@@ -431,6 +430,7 @@ void updateLog() {
       if (logCount > 23) logCount = 0;
     }
   }
+  if (chkMsg()) rejectMsg(LOGGLB);
 }
 
 #if defined USESERIAL
