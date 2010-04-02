@@ -1,4 +1,4 @@
-#define BUILD 385 
+#define BUILD 386 
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -30,19 +30,6 @@ using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrar
 using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
-
-//*****************************************************************************************************************************
-// !!! Do not use this code! I've committed it for backup purposes only and it is not ready to compile. !!!
-//*****************************************************************************************************************************
-
-
-
-
-
-
-
-
-
 //*****************************************************************************************************************************
 // USER COMPILE OPTIONS
 //*****************************************************************************************************************************
@@ -66,7 +53,7 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 // Use BTBOARD_3 for 3.0 boards
 //
 //#define BTBOARD_1
-#define BTBOARD_2.2
+//#define BTBOARD_2.2
 //#define BTBOARD_3
 //**********************************************************************************
 
@@ -204,9 +191,19 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //**********************************************************************************
 // Brew Step Automation
 //**********************************************************************************
-// Uncomment the following line to enable various steps to start/stop automatically 
+// Uncomment the following line(s) to enable various steps to start/stop 
+// automatically 
 //
+// AUTO_FILL: This option will enable the Fill AutoValve logic at the start of the
+// Fill step. The Fill step will automatically exit once target volumes have been
+// reached.
 // #define AUTO_FILL
+
+// AUTO_MASH_HOLD_EXIT: By default the user must manually exit the Mash Hold step.
+// This prevents the mash from cooling if the brewer is not present at the end of
+// the last mash step. Use this option to automatically exit the mash hold step if
+// the boil zone is inactive.
+// #define AUTO_MASH_HOLD_EXIT
 //**********************************************************************************
 
 
@@ -473,6 +470,9 @@ void setup() {
 
   //PID Initialization (Outputs.pde)
   pidInit();
+
+  //Restore running steps
+  for (byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) if (stepIsActive(brewStep)) stepInit(brewStep, stepProgram[brewStep]);
 
   //Load last saved EEPROM value for valve configuration
   setValves(getValveRecovery(), 1);

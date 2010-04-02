@@ -109,7 +109,8 @@ void loadSetup() {
   //**********************************************************************************
   //Step (313-327) NUM_BREW_STEPS (15)
   //**********************************************************************************
-  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) { stepProgram[brewStep] = EEPROM.read(313 + brewStep); }
+  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepProgram[brewStep] = EEPROM.read(313 + brewStep);
+
 
   //**********************************************************************************
   //401-452 Valve Profiles
