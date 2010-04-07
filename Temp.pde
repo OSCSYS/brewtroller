@@ -40,7 +40,7 @@ void updateTemps() {
     convertAll();
     convStart = millis();
   } else if (millis() - convStart >= 750) {
-    for (byte i = TS_HLT; i <= TS_AUX2; i++) temp[i] = read_temp(tSensor[i]);
+    for (byte i = TS_HLT; i <= TS_AUX3; i++) temp[i] = read_temp(tSensor[i]);
     convStart = 0;
   }
 }
@@ -57,7 +57,7 @@ void getDSAddr(byte addrRet[8]){
       return;
     }
     boolean found = 0;
-    for (byte i = TS_HLT; i <= TS_AUX2; i++) {
+    for (byte i = TS_HLT; i <= TS_AUX3; i++) {
       if (scanAddr[0] == tSensor[i][0] &&
           scanAddr[1] == tSensor[i][1] &&
           scanAddr[2] == tSensor[i][2] &&

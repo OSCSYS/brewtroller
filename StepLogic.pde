@@ -59,9 +59,212 @@ boolean zoneIsActive(byte brewZone) {
   }
 }
 
+//Returns 0 if start was successful or 1 if unable to start due to conflict with other step
+//Performs any logic required at start of step
+//TO DO: Power Loss Recovery Handling
+boolean stepInit(byte pgm, byte brewStep) {
+
+  //Nothing more to do if starting 'Idle' program
+  if(pgm == PROGRAM_IDLE) return 1;
+  
+  //Abort Fill/Mash step init if mash Zone is not free
+  if (brewStep >= STEP_FILL && brewStep <= STEP_MASHHOLD && zoneIsActive(ZONE_MASH)) return 1;  
+  //Abort sparge init if either zone is currently active
+  else if (brewStep == STEP_SPARGE && (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL))) return 1;  
+  //Allow Boil step init while sparge is still going
+
+  //If we made it without an abort, save the program number for stepCore
+  setProgramStep(brewStep, pgm);
+
+  if (brewStep == STEP_FILL) {
+  //Step Init: Fill
+    //Set Target Volumes
+    tgtVol[TS_HLT] = calcSpargeVol(pgm);
+    tgtVol[TS_MASH] = calcMashVol(pgm);
+    if (getProgMLHeatSrc(pgm) == VS_HLT) {
+      tgtVol[VS_HLT] = min(tgtVol[VS_HLT] + tgtVol[VS_MASH], getCapacity(VS_HLT));
+      tgtVol[VS_MASH] = 0;
+    }
+    #ifdef AUTO_FILL
+      autoValve[AV_FILL] = 1;
+    #endif
+
+  } else if (brewStep == STEP_DELAY) {
+  //Step Init: Delay
+    //Load delay minutes from EEPROM if timer is not already populated via Power Loss Recovery
+    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getDelayMins());
+
+  } else if (brewStep == STEP_PREHEAT) {
+  //Step Init: Preheat
+    //Find first temp and adjust for strike temp
+    {
+      if (getProgMLHeatSrc(pgm) == VS_HLT) {
+        setSetpoint(TS_HLT, calcStrikeTemp(pgm));
+        #ifdef STRIKE_TEMP_OFFSET
+          setSetpoint(TS_HLT, setPoint[TS_HLT] + STRIKE_TEMP_OFFSET;
+        #endif
+        setSetpoint(TS_MASH, 0);
+      } else {
+        setSetpoint(TS_HLT, getProgHLT(pgm));
+        setSetpoint(TS_MASH, calcStrikeTemp(pgm));
+      }
+      setSetpoint(VS_STEAM, getSteamTgt());
+      pid[VS_HLT].SetMode(AUTO);
+      pid[VS_MASH].SetMode(AUTO);
+      pid[VS_STEAM].SetMode(AUTO);
+    }
+    preheated[VS_MASH] = 0;
+    autoValve[AV_MASH] = 1;
+    //No timer used for preheat
+    clearTimer(TIMER_MASH);
+    
+  } else if (brewStep == STEP_ADDGRAIN) {
+  //Step Init: Add Grain
+    //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
+    resetHeatOutput(VS_HLT);
+    resetHeatOutput(VS_MASH);
+    setSetpoint(VS_STEAM, getSteamTgt());
+    setValves(vlvConfig[VLV_ADDGRAIN], 1);
+
+  } else if (brewStep == STEP_REFILL) {
+  //Step Init: Refill
+    if (getProgMLHeatSrc(pgm) == VS_HLT) {
+      tgtVol[VS_HLT] = calcSpargeVol(pgm);
+      tgtVol[VS_MASH] = 0;
+    }
+
+  } else if (brewStep == STEP_DOUGHIN) {
+  //Step Init: Dough In
+    setSetpoint(TS_HLT, getProgHLT(pgm));
+    setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_DOUGHIN));
+    setSetpoint(VS_STEAM, getSteamTgt());
+    pid[VS_HLT].SetMode(AUTO);
+    pid[VS_MASH].SetMode(AUTO);
+    pid[VS_STEAM].SetMode(AUTO);
+    preheated[VS_MASH] = 0;
+    autoValve[AV_MASH] = 1;
+    //Set timer only if empty (for purposed of power loss recovery)
+    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_DOUGHIN)); 
+    //Leave timer paused until preheated
+    timerStatus[TIMER_MASH] = 0;
+    
+  } else if (brewStep == STEP_ACID) {
+  //Step Init: Acid Rest
+    setSetpoint(TS_HLT, getProgHLT(pgm));
+    setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_ACID));
+    setSetpoint(VS_STEAM, getSteamTgt());
+    pid[VS_HLT].SetMode(AUTO);
+    pid[VS_MASH].SetMode(AUTO);
+    preheated[VS_MASH] = 0;
+    autoValve[AV_MASH] = 1;
+    //Set timer only if empty (for purposed of power loss recovery)
+    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_ACID)); 
+    //Leave timer paused until preheated
+    timerStatus[TIMER_MASH] = 0;
+    
+  } else if (brewStep == STEP_PROTEIN) {
+  //Step Init: Protein
+    setSetpoint(TS_HLT, getProgHLT(pgm));
+    setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_PROTEIN));
+    setSetpoint(VS_STEAM, getSteamTgt());
+    pid[VS_HLT].SetMode(AUTO);
+    pid[VS_MASH].SetMode(AUTO);
+    preheated[VS_MASH] = 0;
+    autoValve[AV_MASH] = 1;
+    //Set timer only if empty (for purposed of power loss recovery)
+    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_PROTEIN)); 
+    //Leave timer paused until preheated
+    timerStatus[TIMER_MASH] = 0;
+    
+  } else if (brewStep == STEP_SACCH) {
+  //Step Init: Sacch
+    setSetpoint(TS_HLT, getProgHLT(pgm));
+    setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH));
+    setSetpoint(VS_STEAM, getSteamTgt());
+    pid[VS_HLT].SetMode(AUTO);
+    pid[VS_MASH].SetMode(AUTO);
+    pid[VS_STEAM].SetMode(AUTO);
+    preheated[VS_MASH] = 0;
+    autoValve[AV_MASH] = 1;
+    //Set timer only if empty (for purposed of power loss recovery)
+    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH)); 
+    //Leave timer paused until preheated
+    timerStatus[TIMER_MASH] = 0;
+    
+  } else if (brewStep == STEP_SACCH2) {
+  //Step Init: Sacch2
+    setSetpoint(TS_HLT, getProgHLT(pgm));
+    setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH2));
+    setSetpoint(VS_STEAM, getSteamTgt());
+    pid[VS_HLT].SetMode(AUTO);
+    pid[VS_MASH].SetMode(AUTO);
+    preheated[VS_MASH] = 0;
+    autoValve[AV_MASH] = 1;
+    //Set timer only if empty (for purposed of power loss recovery)
+    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH2)); 
+    //Leave timer paused until preheated
+    timerStatus[TIMER_MASH] = 0;
+    
+  } else if (brewStep == STEP_MASHOUT) {
+  //Step Init: Mash Out
+    setSetpoint(TS_HLT, getProgHLT(pgm));
+    setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_MASHOUT));
+    setSetpoint(VS_STEAM, getSteamTgt());
+    pid[VS_HLT].SetMode(AUTO);
+    pid[VS_MASH].SetMode(AUTO);
+    pid[VS_STEAM].SetMode(AUTO);
+    preheated[VS_MASH] = 0;
+    autoValve[AV_MASH] = 1;
+    //Set timer only if empty (for purposed of power loss recovery)
+    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_MASHOUT)); 
+    //Leave timer paused until preheated
+    timerStatus[TIMER_MASH] = 0;
+    
+  } else if (brewStep == STEP_MASHHOLD) {
+    //Set HLT to Sparge Temp
+    setSetpoint(TS_HLT, getProgSparge(pgm));
+    //Cycle through steps and use last non-zero step for mash setpoint
+    if (!setpoint[TS_MASH]) {
+      byte i = MASH_MASHOUT;
+      while (setpoint[TS_MASH] == 0 && i >= MASH_DOUGHIN && i <= MASH_MASHOUT) setSetpoint(TS_MASH, getProgMashTemp(pgm, i--));
+    }
+    setSetpoint(VS_STEAM, getSteamTgt());
+    pid[VS_HLT].SetMode(AUTO);
+    pid[VS_MASH].SetMode(AUTO);
+    pid[VS_STEAM].SetMode(AUTO);
+
+  } else if (brewStep == STEP_SPARGE) {
+  //Step Init: Sparge
+
+
+  } else if (brewStep == STEP_BOIL) {
+  //Step Init: Boil
+    setSetpoint(VS_KETTLE, getBoilTemp());
+    preheated[VS_KETTLE] = 0;
+    triggered = getBoilAddsTrig();
+    //Set timer only if empty (for purposed of power loss recovery)
+    if (!timerValue[TIMER_BOIL]) setTimer(TIMER_BOIL, getProgBoil(pgm));
+    //Leave timer paused until preheated
+    timerStatus[TIMER_MASH] = 0;
+    lastHop = 0;
+    doAutoBoil = 1;
+    
+  } else if (brewStep == STEP_CHILL) {
+  //Step Init: Chill
+  }
+
+  //Call event handler
+  eventHandler(EVENT_STEPINIT, brewStep);  
+  return 0;
+}
+
 void stepCore() {
   if (stepIsActive(STEP_FILL)) stepFill(STEP_FILL);
-  if (stepIsActive(STEP_PREHEAT)) stepMash(STEP_PREHEAT);
+  if (stepIsActive(STEP_PREHEAT)) {
+    if ((setpoint[VS_MASH] && temp[VS_MASH] >= setpoint[VS_MASH])
+      || (!setpoint[VS_MASH] && temp[VS_HLT] >= setpoint[VS_HLT])
+    ) stepAdvance(STEP_PREHEAT);
+  }
   if (stepIsActive(STEP_DELAY)) if (timerValue[TIMER_MASH] == 0) stepAdvance(STEP_DELAY);
   if (stepIsActive(STEP_ADDGRAIN)) { /*Nothing much happens*/ }
   if (stepIsActive(STEP_REFILL)) stepFill(STEP_REFILL);
@@ -126,7 +329,7 @@ void stepCore() {
       #endif
     }
     //Exit Condition  
-    if(preheated[VS_KETTLE] && timerValue == 0) stepAdvance(STEP_BOIL);
+    if(preheated[VS_KETTLE] && timerValue[TIMER_BOIL] == 0) stepAdvance(STEP_BOIL);
   }
   
   if (stepIsActive(STEP_CHILL)) {
@@ -145,7 +348,7 @@ void stepFill(byte brewStep) {
   #endif
 }
 
-//stepCore Logic for Preheat and all mash steps
+//stepCore Logic for all mash steps
 void stepMash(byte brewStep) {
   #ifdef SMART_HERMS_HLT
     smartHERMSHLT();
@@ -155,201 +358,8 @@ void stepMash(byte brewStep) {
     //Unpause Timer
     if (!timerStatus[TIMER_MASH]) pauseTimer(TIMER_MASH);
   }
-  if (preheated[VS_MASH] && timerValue == 0) stepAdvance(brewStep);
-}
-
-//Returns 0 if start was successful or 1 if unable to start due to conflict with other step
-//Performs any logic required at start of step
-//TO DO: Power Loss Recovery Handling
-boolean stepInit(byte pgm, byte brewStep) {
-  
-  //Abort Fill/Mash step init if mash Zone is not free
-  if (brewStep >= STEP_FILL && brewStep <= STEP_MASHHOLD && zoneIsActive(ZONE_MASH)) return 1;  
-  //Abort sparge init if either zone is currently active
-  else if (brewStep == STEP_SPARGE && (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL))) return 1;  
-  //Allow Boil step init while sparge is still going
-
-  //If we made it without an abort, save the program number for stepCore
-  setProgramStep(brewStep, pgm);
-
-  if (brewStep == STEP_FILL) {
-  //Step Init: Fill
-    //Set Target Volumes
-    tgtVol[TS_HLT] = calcSpargeVol(pgm);
-    tgtVol[TS_MASH] = calcMashVol(pgm);
-    if (getProgMLHeatSrc(pgm) == VS_HLT) {
-      tgtVol[VS_HLT] = min(tgtVol[VS_HLT] + tgtVol[VS_MASH], getCapacity(VS_HLT));
-      tgtVol[VS_MASH] = 0;
-    }
-    #ifdef AUTO_FILL
-      autoValve[AV_FILL] = 1;
-    #endif
-
-  } else if (brewStep == STEP_DELAY) {
-  //Step Init: Delay
-    //Load delay minutes from EEPROM if timer is not already populated via Power Loss Recovery
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getDelayMins());
-
-  } else if (brewStep == STEP_PREHEAT) {
-  //Step Init: Preheat
-    //Find first temp and adjust for strike temp
-    {
-      if (getProgMLHeatSrc(pgm) == VS_HLT) {
-        setpoint[TS_HLT] = calcStrikeTemp(pgm);
-        #ifdef STRIKE_TEMP_OFFSET
-          setpoint[TS_HLT] += STRIKE_TEMP_OFFSET;
-        #endif
-        setpoint[TS_MASH] = 0;
-      } else {
-        setpoint[TS_HLT] = getProgHLT(pgm);
-        setpoint[TS_MASH] = calcStrikeTemp(pgm);
-      }
-      setpoint[VS_STEAM] = getSteamTgt();
-      pid[VS_HLT].SetMode(AUTO);
-      pid[VS_MASH].SetMode(AUTO);
-      pid[VS_STEAM].SetMode(AUTO);
-    }
-    preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
-    //No timer used for preheat
-    clearTimer(TIMER_MASH);
-    
-  } else if (brewStep == STEP_ADDGRAIN) {
-  //Step Init: Add Grain
-    //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
-    resetHeatOutput(VS_HLT);
-    resetHeatOutput(VS_MASH);
-    setpoint[VS_STEAM] = getSteamTgt();
-    setValves(vlvConfig[VLV_ADDGRAIN], 1);
-
-  } else if (brewStep == STEP_REFILL) {
-  //Step Init: Refill
-    if (getProgMLHeatSrc(pgm) == VS_HLT) {
-      tgtVol[VS_HLT] = calcSpargeVol(pgm);
-      tgtVol[VS_MASH] = 0;
-    }
-
-  } else if (brewStep == STEP_DOUGHIN) {
-  //Step Init: Dough In
-    setpoint[TS_HLT] = getProgHLT(pgm);
-    setpoint[TS_MASH] = getProgMashTemp(pgm, MASH_DOUGHIN);
-    setpoint[VS_STEAM] = getSteamTgt();
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    pid[VS_STEAM].SetMode(AUTO);
-    preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
-    //Set timer only if empty (for purposed of power loss recovery)
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_DOUGHIN)); 
-    //Leave timer paused until preheated
-    timerStatus[TIMER_MASH] = 0;
-    
-  } else if (brewStep == STEP_ACID) {
-  //Step Init: Acid Rest
-    setpoint[TS_HLT] = getProgHLT(pgm);
-    setpoint[TS_MASH] = getProgMashTemp(pgm, MASH_ACID);
-    setpoint[VS_STEAM] = getSteamTgt();
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
-    //Set timer only if empty (for purposed of power loss recovery)
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_ACID)); 
-    //Leave timer paused until preheated
-    timerStatus[TIMER_MASH] = 0;
-    
-  } else if (brewStep == STEP_PROTEIN) {
-  //Step Init: Protein
-    setpoint[TS_HLT] = getProgHLT(pgm);
-    setpoint[TS_MASH] = getProgMashTemp(pgm, MASH_PROTEIN);
-    setpoint[VS_STEAM] = getSteamTgt();
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
-    //Set timer only if empty (for purposed of power loss recovery)
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_PROTEIN)); 
-    //Leave timer paused until preheated
-    timerStatus[TIMER_MASH] = 0;
-    
-  } else if (brewStep == STEP_SACCH) {
-  //Step Init: Sacch
-    setpoint[TS_HLT] = getProgHLT(pgm);
-    setpoint[TS_MASH] = getProgMashTemp(pgm, MASH_SACCH);
-    setpoint[VS_STEAM] = getSteamTgt();
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    pid[VS_STEAM].SetMode(AUTO);
-    preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
-    //Set timer only if empty (for purposed of power loss recovery)
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH)); 
-    //Leave timer paused until preheated
-    timerStatus[TIMER_MASH] = 0;
-    
-  } else if (brewStep == STEP_SACCH2) {
-  //Step Init: Sacch2
-    setpoint[TS_HLT] = getProgHLT(pgm);
-    setpoint[TS_MASH] = getProgMashTemp(pgm, MASH_SACCH2);
-    setpoint[VS_STEAM] = getSteamTgt();
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
-    //Set timer only if empty (for purposed of power loss recovery)
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH2)); 
-    //Leave timer paused until preheated
-    timerStatus[TIMER_MASH] = 0;
-    
-  } else if (brewStep == STEP_MASHOUT) {
-  //Step Init: Mash Out
-    setpoint[TS_HLT] = getProgHLT(pgm);
-    setpoint[TS_MASH] = getProgMashTemp(pgm, MASH_MASHOUT);
-    setpoint[VS_STEAM] = getSteamTgt();
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    pid[VS_STEAM].SetMode(AUTO);
-    preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
-    //Set timer only if empty (for purposed of power loss recovery)
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_MASHOUT)); 
-    //Leave timer paused until preheated
-    timerStatus[TIMER_MASH] = 0;
-    
-  } else if (brewStep == STEP_MASHHOLD) {
-    //Set HLT to Sparge Temp
-    setpoint[TS_HLT] = getProgSparge(pgm);
-    //Cycle through steps and use last non-zero step for mash setpoint
-    if (!setpoint[TS_MASH]) {
-      byte i = MASH_MASHOUT;
-      while (setpoint[TS_MASH] == 0 && i >= MASH_DOUGHIN && i <= MASH_MASHOUT) setpoint[TS_MASH] = getProgMashTemp(pgm, i--);
-    }
-    setpoint[VS_STEAM] = getSteamTgt();
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    pid[VS_STEAM].SetMode(AUTO);
-
-  } else if (brewStep == STEP_SPARGE) {
-  //Step Init: Sparge
-
-
-  } else if (brewStep == STEP_BOIL) {
-  //Step Init: Boil
-    setpoint[TS_KETTLE] = getBoilTemp();
-    preheated[VS_KETTLE] = 0;
-    triggered = getBoilAddsTrig();
-    //Set timer only if empty (for purposed of power loss recovery)
-    if (!timerValue[TIMER_BOIL]) setTimer(TIMER_BOIL, getProgBoil(pgm));
-    //Leave timer paused until preheated
-    timerStatus[TIMER_MASH] = 0;
-    lastHop = 0;
-    doAutoBoil = 1;
-    
-  } else if (brewStep == STEP_CHILL) {
-  //Step Init: Chill
-  }
-  
-  return 0;
+  //Exit Condition (and skip unused mash steps)
+  if (setpoint[VS_MASH] == 0 || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0)) stepAdvance(brewStep);
 }
 
 //Advances program to next brew step
@@ -360,10 +370,10 @@ boolean stepAdvance(byte brewStep) {
   stepExit(brewStep);
   //Advance step (if applicable)
   if (brewStep + 1 < NUM_BREW_STEPS) {
-    if (stepInit(brewStep + 1, program)) {
+    if (stepInit(program, brewStep + 1)) {
       //Init Failed: Rollback
       stepExit(brewStep + 1); //Just to make sure we clean up a partial start
-      setProgramStep(brewStep, program); //Show the step we started with as active
+      setProgramStep(program, brewStep); //Show the step we started with as active
       return 1;
     }
     //Init Successful
@@ -431,7 +441,7 @@ void stepExit(byte brewStep) {
       setValves(vlvConfig[VLV_BOILRECIRC], 0);
     #endif
     resetHeatOutput(VS_KETTLE);
-    
+    clearTimer(TIMER_BOIL);
   } else if (brewStep == STEP_CHILL) {
   //Step Exit: Chill
     autoValve[AV_CHILL] = 0;

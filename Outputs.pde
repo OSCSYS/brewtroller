@@ -95,7 +95,7 @@ void resetOutputs() {
 }
 
 void resetHeatOutput(byte vessel) {
-  setpoint[vessel] = 0;
+  setSetpoint(vessel, 0);
   pid[vessel].SetMode(MANUAL);
   PIDOutput[vessel] = 0;
   heatPin[vessel].set(LOW);

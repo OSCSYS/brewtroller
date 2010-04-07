@@ -35,6 +35,7 @@ void setTimer(byte timer, unsigned int minutes) {
   timerValue[timer] = minutes * 60000;
   lastTime[timer] = millis();
   timerStatus[timer] = 1;
+  setTimerRecovery(timer, minutes);
 }
 
 void pauseTimer(byte timer) {
@@ -51,6 +52,7 @@ void pauseTimer(byte timer) {
 void clearTimer(byte timer) {
   timerValue[timer] = 0;
   timerStatus[timer] = 0;
+  setTimerRecovery(timer, 0);
 }
 
 void updateTimers() {

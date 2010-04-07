@@ -1,4 +1,4 @@
-#define BUILD 386 
+#define BUILD 387 
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -54,7 +54,7 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //
 //#define BTBOARD_1
 //#define BTBOARD_2.2
-//#define BTBOARD_3
+#define BTBOARD_3
 //**********************************************************************************
 
 //**********************************************************************************
@@ -311,6 +311,7 @@ void(* softReset) (void) = 0;
 #define TS_BEEROUT 5
 #define TS_AUX1 6
 #define TS_AUX2 7
+#define TS_AUX3 8
 
 #define VS_HLT 0
 #define VS_MASH 1
@@ -374,6 +375,9 @@ void(* softReset) (void) = 0;
 #define ZONE_MASH 0
 #define ZONE_BOIL 1
 
+//Events
+#define EVENT_STEPINIT 0
+
 //Heat Output Pin Array
 pin heatPin[4], alarmPin;
 
@@ -388,9 +392,9 @@ pin heatPin[4], alarmPin;
 //Volume Sensor Pin Array
 byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, KETTLEVOL_APIN};
 
-//8-byte Temperature Sensor Address x6 Sensors
-byte tSensor[8][8];
-float temp[8];
+//8-byte Temperature Sensor Address x9 Sensors
+byte tSensor[9][8];
+float temp[9];
 
 //Volume
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
@@ -451,6 +455,9 @@ const char LOGGLB[] PROGMEM = "GLOBAL";
 const char LOGDATA[] PROGMEM = "DATA";
 
 void setup() {
+  //Initialize Brew Steps to 'Idle'
+  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepProgram[brewStep] = PROGRAM_IDLE;
+  
   //Log initialization (Log.pde)
   logInit();
   
@@ -470,9 +477,6 @@ void setup() {
 
   //PID Initialization (Outputs.pde)
   pidInit();
-
-  //Restore running steps
-  for (byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) if (stepIsActive(brewStep)) stepInit(brewStep, stepProgram[brewStep]);
 
   //Load last saved EEPROM value for valve configuration
   setValves(getValveRecovery(), 1);

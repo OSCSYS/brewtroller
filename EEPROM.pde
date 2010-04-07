@@ -36,12 +36,10 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 void loadSetup() {
   //**********************************************************************************
   //TSensors: HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39),
-  //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63)
+  //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
   //**********************************************************************************
-  for (byte i = TS_HLT; i <= TS_AUX2; i++) PROMreadBytes(i * 8, tSensor[i], 8);
+  for (byte i = TS_HLT; i <= TS_AUX3; i++) PROMreadBytes(i * 8, tSensor[i], 8);
  
-  ///64-71 ***OPEN***
-
   //**********************************************************************************
   //PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam
   //PIDp HLT (73), Mash (78), Kettle (83), Steam (88)
@@ -109,8 +107,7 @@ void loadSetup() {
   //**********************************************************************************
   //Step (313-327) NUM_BREW_STEPS (15)
   //**********************************************************************************
-  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepProgram[brewStep] = EEPROM.read(313 + brewStep);
-
+  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepInit(EEPROM.read(313 + brewStep), brewStep);
 
   //**********************************************************************************
   //401-452 Valve Profiles
@@ -126,16 +123,12 @@ void loadSetup() {
 
 //**********************************************************************************
 //TSensors: HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39), 
-//          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63)
+//          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
 //**********************************************************************************
 void setTSAddr(byte sensor, byte addr[8]) {
   for (byte i = 0; i<8; i++) tSensor[sensor][i] = addr[i];
   PROMwriteBytes(sensor * 8, addr, 8);
 }
-
-//**********************************************************************************
-//64-71 ***OPEN*** (Reserved for Additional Temp Sensor Address)
-//**********************************************************************************
 
 //**********************************************************************************
 //PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam

@@ -93,13 +93,13 @@ boolean chkMsg() {
         //Check for Global Commands
         if (strcasecmp(msg[0], "GET_TS") == 0) {
           byte val = atoi(msg[1]);
-          if (msgField == 1 && val >= TS_HLT && val <= TS_AUX2) {
+          if (msgField == 1 && val >= TS_HLT && val <= TS_AUX3) {
             logTSensor(val);
             clearMsg();
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "SET_TS") == 0) {
           byte val = atoi(msg[1]);
-          if (msgField == 9 && val >= TS_HLT && val <= TS_AUX2) {
+          if (msgField == 9 && val >= TS_HLT && val <= TS_AUX3) {
             byte addr[8];
             for (byte i=0; i<8; i++) addr[i] = (byte)atoi(msg[i+2]);
             setTSAddr(val, addr);
@@ -355,7 +355,7 @@ void updateLog() {
           logFieldI(1);
         #endif
         logEnd();
-      } else if (logCount >= 5 && logCount <= 12) {
+      } else if (logCount >= 5 && logCount <= 13) {
         byte i = logCount - 5;
         logStart_P(LOGDATA);
         logField_P(PSTR("TEMP"));
@@ -368,7 +368,7 @@ void updateLog() {
           logFieldI(1);
         #endif
         logEnd();
-      } else if (logCount == 13) {
+      } else if (logCount == 14) {
         logStart_P(LOGDATA);
         logField_P(PSTR("STEAM"));
         ftoa(steamPressure, buf, 3);
@@ -379,9 +379,9 @@ void updateLog() {
           logFieldI(1);
         #endif
         logEnd();
-      } else if (logCount >= 14 && logCount <= 17) {
+      } else if (logCount >= 15 && logCount <= 18) {
         byte pct;
-        byte i = logCount - 14;
+        byte i = logCount - 15;
         if (PIDEnabled[i]) pct = PIDOutput[i] / PIDCycle[i] / 10;
         else if (heatStatus[i]) pct = 100;
         else pct = 0;
@@ -390,8 +390,8 @@ void updateLog() {
         logFieldI(i);
         logFieldI(pct);
         logEnd();
-      } else if (logCount >= 18 && logCount <= 21) {
-        byte i = logCount - 18;
+      } else if (logCount >= 19 && logCount <= 22) {
+        byte i = logCount - 19;
         logStart_P(LOGDATA);
         logField_P(PSTR("SETPOINT"));
         logFieldI(i);
@@ -403,7 +403,7 @@ void updateLog() {
           logFieldI(1);
         #endif
         logEnd();
-      } else if (logCount == 22) {
+      } else if (logCount == 23) {
         logStart_P(LOGDATA);
         logField_P(PSTR("AUTOVLV"));
         byte modeMask = 0;
@@ -415,7 +415,7 @@ void updateLog() {
         logField_P(PSTR("SETVLV"));
         logFieldI(vlvBits);
         logEnd();
-      } else if (logCount == 23) {
+      } else if (logCount == 24) {
         logStart_P(LOGDATA);
         logField_P(PSTR("VLVPRF"));
         unsigned int profileMask = 0;
@@ -427,7 +427,7 @@ void updateLog() {
         if (millis() - lastLog > LOG_INTERVAL * 2) lastLog = millis(); else lastLog += LOG_INTERVAL;
       }
       logCount++;
-      if (logCount > 23) logCount = 0;
+      if (logCount > 24) logCount = 0;
     }
   }
   if (chkMsg()) rejectMsg(LOGGLB);
