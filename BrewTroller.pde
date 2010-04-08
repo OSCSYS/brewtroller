@@ -1,4 +1,4 @@
-#define BUILD 388 
+#define BUILD 389 
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -460,7 +460,7 @@ void setup() {
   
   //Log initialization (Log.pde)
   logInit();
-  
+
   //Pin initialization (Outputs.pde)
   pinInit();
   
@@ -471,6 +471,9 @@ void setup() {
 
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();
+
+  //Load last saved EEPROM value for valve configuration
+  setValves(getValveRecovery(), 1);
   
   //Load global variable values stored in EEPROM (EEPROM.pde)
   loadSetup();
@@ -478,8 +481,6 @@ void setup() {
   //PID Initialization (Outputs.pde)
   pidInit();
 
-  //Load last saved EEPROM value for valve configuration
-  setValves(getValveRecovery(), 1);
 }
 
 void loop() {

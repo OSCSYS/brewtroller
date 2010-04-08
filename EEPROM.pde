@@ -244,6 +244,11 @@ byte getSteamTgt() { return EEPROM.read(116); }
 //**********************************************************************************
 void setSteamPSens(unsigned int value) {
   steamPSens = value;
+  #ifdef USEMETRIC
+    pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
+  #else
+    pid[VS_STEAM].SetInputLimits(0, 7250 / steamPSens);
+  #endif
   PROMwriteInt(117, value);
 }
 
@@ -441,9 +446,9 @@ boolean checkConfig() {
   byte cfgVersion = EEPROM.read(2047);
   byte BTFinger = EEPROM.read(2046);
 
-  //If the BT fingerprint is missing force a init of EEPROM
+  //If the BT 1.3 fingerprint is missing force a init of EEPROM
   //FermTroller will bump to a cfgVersion starting at 7
-  if (BTFinger != 254 || cfgVersion < 14 || cfgVersion == 255) return 1;
+  if (BTFinger != 252 || cfgVersion == 255) return 1;
 
   //In the future, incremental EEPROM settings will be included here
   
@@ -454,8 +459,8 @@ void initEEPROM() {
   //Format EEPROM to 0's
   for (int i=0; i<2048; i++) EEPROM.write(i, 0);
 
-  //Set BT Fingerprint (254)
-  EEPROM.write(2046, 254);
+  //Set BT 1.3 Fingerprint (252)
+  EEPROM.write(2046, 252);
 
   //Default Output Settings: p: 3, i: 4, d: 2, cycle: 4s, Hysteresis 0.3C(0.5F)
   for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) {
@@ -491,8 +496,8 @@ void initEEPROM() {
   //Set all steps idle
   for (byte i = 0; i < NUM_BREW_STEPS; i++) setProgramStep(i, PROGRAM_IDLE);
 
-  //Set cfgVersion = 14
-  EEPROM.write(2047, 14);
+  //Set cfgVersion = 0
+  EEPROM.write(2047, 0);
 }
 
 //*****************************************************************************************************************************

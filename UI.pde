@@ -589,19 +589,47 @@ void screenEnter(byte screen) {
         strcpy_P(menuopts[0], CANCEL);
         strcpy_P(menuopts[1], PSTR("Edit Program"));
         strcpy_P(menuopts[2], PSTR("Start Program"));
-        strcpy_P(menuopts[3], PSTR("System Setup"));
+        strcpy_P(menuopts[3], DRAIN);
+        if (vlvConfigIsActive(VLV_DRAIN)) strcat_P(menuopts[3], PSTR(": On"));
+        else strcat_P(menuopts[3], PSTR(": Off"));
+        strcpy_P(menuopts[4], PSTR("Reset All"));
+        strcpy_P(menuopts[5], PSTR("System Setup"));
         #ifdef UI_NO_SETUP
-          byte lastOption = scrollMenu("Main Menu", 3, 0);
+          byte lastOption = scrollMenu("Main Menu", 5, 0);
         #else
-          byte lastOption = scrollMenu("Main Menu", 4, 0);
+          byte lastOption = scrollMenu("Main Menu", 6, 0);
         #endif
         if (lastOption == 1) editProgramMenu();
         else if (lastOption == 2) startProgramMenu();
+        else if (lastOption == 3) {
+          //Drain
+          if (vlvConfigIsActive(VLV_DRAIN)) setValves(vlvConfig[VLV_DRAIN], 0);
+          else {
+            if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL)) {
+              clearLCD();
+              printLCD_P(0, 0, PSTR("Cannot drain while"));
+              printLCD_P(1, 0, PSTR("mash or boil zone"));
+              printLCD_P(2, 0, PSTR("is active"));
+              printLCD(3, 4, ">");
+              printLCD_P(3, 6, CONTINUE);
+              printLCD(3, 15, "<");
+              while (!Encoder.ok()) brewCore();
+            } else setValves(vlvConfig[VLV_DRAIN], 1);
+          }
+        }
+        else if (lastOption == 4) {
+          //Reset All
+          if (confirmAbort()) {
+            resetOutputs();
+            clearTimer(TIMER_MASH);
+            clearTimer(TIMER_BOIL);
+          }
+        }
 #ifndef UI_NO_SETUP        
-        else if (lastOption == 3) menuSetup();
+        else if (lastOption == 5) menuSetup();
 #endif
         screenInit(activeScreen);
-        
+
       } else if (screen == SCREEN_FILL) {
         //Sceeen Enter: Fill/Refill
         int encValue = Encoder.getCount();
@@ -1510,6 +1538,7 @@ void assignSensor() {
     }
     if (Encoder.cancel()) return;
     else if (Encoder.ok()) {
+      encValue = Encoder.getCount();
       //Pop-Up Menu
       strcpy_P(menuopts[0], PSTR("Scan Bus"));
       strcpy_P(menuopts[1], PSTR("Delete Address"));
@@ -1524,9 +1553,16 @@ void assignSensor() {
         {
           strcpy_P(menuopts[0], CONTINUE);
           strcpy_P(menuopts[1], CANCEL);
-          if (getChoice(2, 3) == 0) getDSAddr(tSensor[encValue]);
+          if (getChoice(2, 3) == 0) {
+            byte addr[8];
+            getDSAddr(addr);
+            setTSAddr(encValue, addr);
+          }
         }
-      } else if (selected == 1) for (byte i = 0; i <8; i++) tSensor[encValue][i] = 0;
+      } else if (selected == 1) {
+        byte addr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+        setTSAddr(encValue, addr);
+      }
       else if (selected > 2) return;
 
       Encoder.setMin(0);
@@ -1567,58 +1603,65 @@ void cfgOutputs() {
     strcpy_P(menuopts[20], EXIT);
 
     lastOption = scrollMenu("Configure Outputs", 21, lastOption);
-    if (lastOption == 0) PIDEnabled[VS_HLT] = PIDEnabled[VS_HLT] ^ 1;
+    if (lastOption == 0) {
+      if (PIDEnabled[VS_HLT]) setPIDEnabled(VS_HLT, 0);
+      else setPIDEnabled(VS_HLT, 1);
+    }
     else if (lastOption == 1) {
-      PIDCycle[VS_HLT] = getValue(HLTCYCLE, PIDCycle[VS_HLT], 3, 0, 255, SEC);
+      setPIDCycle(VS_HLT, getValue(HLTCYCLE, PIDCycle[VS_HLT], 3, 0, 255, SEC));
       pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * 10 * PIDLIMIT_HLT);
     } else if (lastOption == 2) {
-      setPIDGain("HLT PID Gain", pid[VS_HLT]);
-    } else if (lastOption == 3) hysteresis[VS_HLT] = getValue(HLTHY, hysteresis[VS_HLT], 3, 1, 255, TUNIT);
-    else if (lastOption == 4) PIDEnabled[VS_MASH] = PIDEnabled[VS_MASH] ^ 1;
+      setPIDGain("HLT PID Gain", VS_HLT);
+    } else if (lastOption == 3) setHysteresis(VS_HLT, getValue(HLTHY, hysteresis[VS_HLT], 3, 1, 255, TUNIT));
+    else if (lastOption == 4) {
+      if (PIDEnabled[VS_MASH]) setPIDEnabled(VS_MASH, 0);
+      else setPIDEnabled(VS_MASH, 1);
+    }
     else if (lastOption == 5) {
-      PIDCycle[VS_MASH] = getValue(MASHCYCLE, PIDCycle[VS_MASH], 3, 0, 255, SEC);
+      setPIDCycle(VS_MASH, getValue(MASHCYCLE, PIDCycle[VS_MASH], 3, 0, 255, SEC));
       pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * 10 * PIDLIMIT_MASH);
     } else if (lastOption == 6) {
-      setPIDGain("Mash PID Gain", pid[VS_MASH]);
-    } else if (lastOption == 7) hysteresis[VS_MASH] = getValue(MASHHY, hysteresis[VS_MASH], 3, 1, 255, TUNIT);
-    else if (lastOption == 8) PIDEnabled[VS_KETTLE] = PIDEnabled[VS_KETTLE] ^ 1;
+      setPIDGain("Mash PID Gain", VS_MASH);
+    } else if (lastOption == 7) setHysteresis(VS_MASH, getValue(MASHHY, hysteresis[VS_MASH], 3, 1, 255, TUNIT));
+    else if (lastOption == 8) {
+      if (PIDEnabled[VS_KETTLE]) setPIDEnabled(VS_KETTLE, 0);
+      else setPIDEnabled(VS_KETTLE, 1);
+    }
     else if (lastOption == 9) {
-      PIDCycle[VS_KETTLE] = getValue(KETTLECYCLE, PIDCycle[VS_KETTLE], 3, 0, 255, SEC);
+      setPIDCycle(VS_KETTLE, getValue(KETTLECYCLE, PIDCycle[VS_KETTLE], 3, 0, 255, SEC));
       pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * 10 * PIDLIMIT_KETTLE);
     } else if (lastOption == 10) {
-      setPIDGain("Kettle PID Gain", pid[VS_KETTLE]);
-    } else if (lastOption == 11) hysteresis[VS_KETTLE] = getValue(KETTLEHY, hysteresis[VS_KETTLE], 3, 1, 255, TUNIT);
+      setPIDGain("Kettle PID Gain", VS_KETTLE);
+    } else if (lastOption == 11) setHysteresis(VS_KETTLE, getValue(KETTLEHY, hysteresis[VS_KETTLE], 3, 1, 255, TUNIT));
     else if (lastOption == 12) setBoilTemp(getValue(PSTR("Boil Temp"), getBoilTemp(), 3, 0, 255, TUNIT));
     else if (lastOption == 13) setBoilPwr(getValue(PSTR("Boil Power"), boilPwr, 3, 0, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
-    else if (lastOption == 14) PIDEnabled[VS_STEAM] = PIDEnabled[VS_STEAM] ^ 1;
+    else if (lastOption == 14) {
+      if (PIDEnabled[VS_STEAM]) setPIDEnabled(VS_STEAM, 0);
+      else setPIDEnabled(VS_STEAM, 1);
+    }
     else if (lastOption == 15) {
-      PIDCycle[VS_STEAM] = getValue(STEAMCYCLE, PIDCycle[VS_STEAM], 3, 0, 255, SEC);
+      setPIDCycle(VS_STEAM, getValue(STEAMCYCLE, PIDCycle[VS_STEAM], 3, 0, 255, SEC));
       pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * 10 * PIDLIMIT_STEAM);
     } else if (lastOption == 16) {
-      setPIDGain("Steam PID Gain", pid[VS_STEAM]);
+      setPIDGain("Steam PID Gain", VS_STEAM);
     } else if (lastOption == 17) setSteamTgt(getValue(STEAMPRESS, getSteamTgt(), 3, 0, 255, PUNIT));
     else if (lastOption == 18) {
-      steamPSens = getValue(STEAMSENSOR, steamPSens, 4, 1, 9999, PSTR("mV/kPa"));
-      #ifdef USEMETRIC
-        pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
-      #else
-        pid[VS_STEAM].SetInputLimits(0, 7250 / steamPSens);
-      #endif
+      setSteamPSens(getValue(STEAMSENSOR, steamPSens, 4, 1, 9999, PSTR("mV/kPa")));
     } else if (lastOption == 19) {
       clearLCD();
       printLCD_P(0, 0, STEAMZERO);
       printLCD_P(1,2,PSTR("Calibrate Zero?"));
       strcpy_P(menuopts[0], CONTINUE);
       strcpy_P(menuopts[1], CANCEL);
-      if (getChoice(2, 3) == 0) steamZero = analogRead(STEAMPRESS_APIN);
+      if (getChoice(2, 3) == 0) setSteamZero(analogRead(STEAMPRESS_APIN));
     } else return;
   } 
 }
 
-void setPIDGain(char sTitle[], PID pidObject) {
-  byte retP = pidObject.GetP_Param();
-  byte retI = pidObject.GetI_Param();
-  byte retD = pidObject.GetD_Param();
+void setPIDGain(char sTitle[], byte vessel) {
+  byte retP = pid[vessel].GetP_Param();
+  byte retI = pid[vessel].GetI_Param();
+  byte retD = pid[vessel].GetD_Param();
   byte cursorPos = 0; //0 = p, 1 = i, 2 = d, 3 = OK
   boolean cursorState = 0; //0 = Unselected, 1 = Selected
   Encoder.setMin(0);
@@ -1676,7 +1719,9 @@ void setPIDGain(char sTitle[], PID pidObject) {
     }
     if (Encoder.ok()) {
       if (cursorPos == 3) {
-        pidObject.SetTunings(retP, retI, retD);
+        setPIDp(vessel, retP);
+        setPIDi(vessel, retI);
+        setPIDd(vessel, retD);
         return;
       }
       cursorState = cursorState ^ 1;
@@ -1754,14 +1799,8 @@ void volCalibMenu(byte vessel) {
     if (lastOption > 9) return; 
     else {
       if (calibVols[vessel][lastOption] > 0) {
-        if(confirmDel()) {
-          calibVals[vessel][lastOption] = 0;
-          calibVols[vessel][lastOption] = 0;
-        }
-      } else {
-        calibVols[vessel][lastOption] = getValue(PSTR("Current Volume:"), 0, 7, 3, 9999999, VOLUNIT);
-        calibVals[vessel][lastOption] = analogRead(vSensor[vessel]);
-      }
+        if(confirmDel()) setVolCalib(vessel, lastOption, 0, 0);
+      } else setVolCalib(vessel, lastOption, analogRead(vSensor[vessel]), getValue(PSTR("Current Volume:"), 0, 7, 3, 9999999, VOLUNIT));
     }
   }
 }
@@ -1786,7 +1825,7 @@ void cfgValves() {
     
     lastOption = scrollMenu("Valve Configuration", 14, lastOption);
     if (lastOption > 12) return;
-    else vlvConfig[lastOption] = cfgValveProfile(menuopts[lastOption], vlvConfig[lastOption]);
+    else setValveCfg(lastOption, cfgValveProfile(menuopts[lastOption], vlvConfig[lastOption]));
   }
 }
 
@@ -1853,6 +1892,7 @@ unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
     }
     
     if (Encoder.ok()) {
+      encValue = Encoder.getCount();
       if (encValue == encMax) return retValue;
       else if (encValue == encMax - 1) {
         setValves(VLV_ALL, 0);

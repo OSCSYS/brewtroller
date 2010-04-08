@@ -58,7 +58,6 @@ void pinInit() {
 #ifdef USESTEAM
   heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
 #endif
-  resetOutputs();  
 }
 
 void pidInit() {
@@ -105,7 +104,7 @@ void resetHeatOutput(byte vessel) {
 void setValves (unsigned long vlvBitMask, boolean value) {
 
   if (value) vlvBits |= vlvBitMask;
-  else vlvBits ^ (vlvBits & vlvBitMask);
+  else vlvBits = vlvBits ^ (vlvBits & vlvBitMask);
   setValveRecovery(vlvBits);
   
   #if MUXBOARDS > 0
