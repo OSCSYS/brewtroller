@@ -1,4 +1,4 @@
-#define BUILD 389 
+#define BUILD 390 
 /*  
    Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -445,7 +445,7 @@ unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
 
 
 const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "1.3";
+const char BTVER[] PROGMEM = "2.0";
 
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";
