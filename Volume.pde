@@ -22,11 +22,6 @@ Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
 Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
-
-Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
-With Sanguino Software v1.4 (http://code.google.com/p/sanguino/downloads/list)
-using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
-using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
 unsigned long volReadings[3][5];
@@ -34,14 +29,17 @@ unsigned long lastVolChk;
 byte volCount;
 
 void updateVols() {
-  //Check volume every 200 ms and update vol with average of 5 readings
-  if (millis() - lastVolChk > 200) {
+  //Check volume on VOLUME_READ_INTERVAL and update vol with average of VOLUME_READ_COUNT readings
+  if (millis() - lastVolChk > VOLUME_READ_INTERVAL) {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
       volReadings[i][volCount] = readVolume(vSensor[i], calibVols[i], calibVals[i]);
-      volAvg[i] = (volReadings[i][0] + volReadings[i][1] + volReadings[i][2] + volReadings[i][3] + volReadings[i][4]) / 5;
+	  unsigned long volAvgTemp = volReadings[i][0];
+	  for (byte j = 1; j < VOLUME_READ_COUNT; j++)
+	  volAvgTemp += volReadings[i][j];
+	  volAvg[i] = volAvgTemp / VOLUME_READ_COUNT; 
     }
     volCount++;
-    if (volCount > 4) volCount = 0;
+    if (volCount >= VOLUME_READ_COUNT) volCount = 0;
     lastVolChk = millis();
   }
 }
@@ -54,7 +52,6 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
     logField_P(PSTR("VOL_READ"));
     logFieldI(pin);
     logFieldI(aValue);
-    logFieldI(zeroValue);
   #endif
   
   byte upperCal = 0;

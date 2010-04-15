@@ -22,11 +22,6 @@ Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
 Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
-
-Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
-With Sanguino Software v1.4 (http://code.google.com/p/sanguino/downloads/list)
-using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
-using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
 #ifndef NOUI
@@ -45,25 +40,6 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //
 #define ENCODER_TYPE ALPS
 //#define ENCODER_TYPE CUI
-//**********************************************************************************
-
-//**********************************************************************************
-// LCD Timing Fix
-//**********************************************************************************
-// Some LCDs seem to have issues with displaying garbled characters but introducing
-// a delay seems to help or resolve completely. You may comment out the following
-// lines to remove this delay between a print of each character.
-//
-//#define LCD_DELAY_CURSOR 60
-//#define LCD_DELAY_CHAR 60
-//**********************************************************************************
-
-//**********************************************************************************
-// No Setup UI
-//**********************************************************************************
-// Remove system setup code to reduce compile size ( KB)
-//
-//#define UI_NO_SETUP
 //**********************************************************************************
 
 
@@ -593,11 +569,12 @@ void screenEnter(byte screen) {
         if (vlvConfigIsActive(VLV_DRAIN)) strcat_P(menuopts[3], PSTR(": On"));
         else strcat_P(menuopts[3], PSTR(": Off"));
         strcpy_P(menuopts[4], PSTR("Reset All"));
-        strcpy_P(menuopts[5], PSTR("System Setup"));
+        strcpy_P(menuopts[5], PSTR("System Info"));
+        strcpy_P(menuopts[6], PSTR("System Setup"));
         #ifdef UI_NO_SETUP
-          byte lastOption = scrollMenu("Main Menu", 5, 0);
-        #else
           byte lastOption = scrollMenu("Main Menu", 6, 0);
+        #else
+          byte lastOption = scrollMenu("Main Menu", 7, 0);
         #endif
         if (lastOption == 1) editProgramMenu();
         else if (lastOption == 2) startProgramMenu();
@@ -625,8 +602,9 @@ void screenEnter(byte screen) {
             clearTimer(TIMER_BOIL);
           }
         }
+        else if (lastOption == 5) UIsysInfo();
 #ifndef UI_NO_SETUP        
-        else if (lastOption == 5) menuSetup();
+        else if (lastOption == 6) menuSetup();
 #endif
         screenInit(activeScreen);
 
@@ -1473,6 +1451,29 @@ byte enc2ASCII(byte charin) {
   else if (charin >= 85 && charin <= 90) return charin + 6;
   else if (charin >= 91 && charin <= 94) return charin + 32;
 }
+
+void UIsysInfo() {
+  byte pos = 0;
+  byte line = 0;
+  for (byte address = 0; address < SYSINFO_SIZE; address++) {
+    //Prepend Line Number:
+    if (pos == 0) { 
+      strcpy(menuopts[line], "0");
+      itoa(line + 1, buf, 10);
+      if (strlen(buf) < 2) { strcpy(menuopts[line], "0"); strcat(menuopts[line], buf); }
+      else strcpy(menuopts[line], buf);
+      strcat(menuopts[line], ":"); 
+    }
+    itoa(sysInfo(address), buf, 16);
+    if (strlen(buf) < 2) strcat(menuopts[line], "0");
+    strcat(menuopts[line], buf);
+    //Increment line after 8 bytes (16 chars)
+    if (pos == 7) { line++; pos = 0; }
+    else pos ++;
+  }
+  scrollMenu("System Information", line + 1, 0);
+}
+
 //*****************************************************************************************************************************
 // System Setup Menus
 //*****************************************************************************************************************************

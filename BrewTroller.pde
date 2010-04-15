@@ -1,6 +1,6 @@
-#define BUILD 390 
+#define BUILD 391 
 /*  
-   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+  Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -23,11 +23,17 @@ Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
 Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
+*/
 
+/*
 Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
-With Sanguino Software v1.4 (http://code.google.com/p/sanguino/downloads/list)
-using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
-using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
+  With Sanguino Software v1.4 (http://code.google.com/p/sanguino/downloads/list)
+
+  Using the following libraries:
+    PID  v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
+    OneWire (http://www.arduino.cc/playground/Learning/OneWire)
+    Encoder by CodeRage ()
+    FastPin and modified LiquidCrystal with FastPin by CodeRage (http://www.brewtroller.com/forum/showthread.php?t=626)
 */
 
 //*****************************************************************************************************************************
@@ -49,11 +55,11 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 // Certain pins have moved from one board version to the next. Uncomment one of the
 // following definitions to to indifty what board you are using.
 // Use BTBOARD_1 for 1.0 - 2.1 boards without the pump/valve 3 & 4 remapping fix
-// Use BTBOARD_2.2 for 2.2 boards and earlier boards that have the PV 3-4 remapping
+// Use BTBOARD_22 for 2.2 boards and earlier boards that have the PV 3-4 remapping
 // Use BTBOARD_3 for 3.0 boards
 //
 //#define BTBOARD_1
-//#define BTBOARD_2.2
+//#define BTBOARD_22
 #define BTBOARD_3
 //**********************************************************************************
 
@@ -156,17 +162,6 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //#define PREBOIL_ALARM 205
 //**********************************************************************************
 
-//**********************************************************************************
-// Auto Boil Recirc
-//**********************************************************************************
-// AUTO_BOIL_RECIRC: Activates the BOIL RECIRC valve profile during the last minutes
-// of the AutoBrew Boil stage as defined below (ie AUTO_BOIL_RECIRC 20 will enable
-// BOIL RECIRC for the last twenty minutes of boil. Warning: if you do not have a
-// valve config that will reroute wort back to the kettle there is a great risk of
-// losing wort or causing personal injury when this profile is enabled
-
-//#define AUTO_BOIL_RECIRC 20
-//**********************************************************************************
 
 //**********************************************************************************
 // LOG INTERVAL
@@ -182,9 +177,11 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //**********************************************************************************
 // UI Support
 //**********************************************************************************
-// Uncomment the following line to disable built-in user interface 
+// NOUI: Disable built-in user interface 
+// UI_NO_SETUP: 'Light UI' removes system setup code to reduce compile size (~8 KB)
 //
 //#define NOUI
+//#define UI_NO_SETUP
 //**********************************************************************************
 
 
@@ -204,6 +201,25 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 // the last mash step. Use this option to automatically exit the mash hold step if
 // the boil zone is inactive.
 // #define AUTO_MASH_HOLD_EXIT
+
+// AUTO_BOIL_RECIRC: Activates the BOIL RECIRC valve profile during the last minutes
+// of the AutoBrew Boil stage as defined below (ie AUTO_BOIL_RECIRC 20 will enable
+// BOIL RECIRC for the last twenty minutes of boil. Warning: if you do not have a
+// valve config that will reroute wort back to the kettle there is a great risk of
+// losing wort or causing personal injury when this profile is enabled
+//#define AUTO_BOIL_RECIRC 20
+//**********************************************************************************
+
+
+//**********************************************************************************
+// Volume Averaging Settings
+//**********************************************************************************
+// VOLUME_READ_INTERVAL: Time in ms between volume readings
+// VOLUME_READ_COUNT: Number of individual volume readings to average when 
+// calculating a vessel's volume
+//
+#define VOLUME_READ_INTERVAL 200
+#define VOLUME_READ_COUNT 5
 //**********************************************************************************
 
 
@@ -214,7 +230,6 @@ using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 //
 //#define DEBUG
 //**********************************************************************************
-
 
 //*****************************************************************************************************************************
 // BEGIN CODE
@@ -245,7 +260,7 @@ void(* softReset) (void) = 0;
 
 
 
-//Enable Serial on BTBOARD_2.2+ boards or if DEBUG is set
+//Enable Serial on BTBOARD_22+ boards or if DEBUG is set
 #if !defined BTBOARD_1 || defined DEBUG
   #define USESERIAL
 #endif
@@ -269,7 +284,7 @@ void(* softReset) (void) = 0;
 #define VALVE1_PIN 6
 #define VALVE2_PIN 7
 
-#ifdef BTBOARD_2.2
+#ifdef BTBOARD_22
   #define VALVE3_PIN 25
   #define VALVE4_PIN 26
 #else
@@ -291,7 +306,7 @@ void(* softReset) (void) = 0;
 #define STEAMHEAT_PIN 6
 
 //Reverse pin swap on 2.x boards
-#ifdef BTBOARD_2.2
+#ifdef BTBOARD_22
   #define HLTVOL_APIN 2
   #define KETTLEVOL_APIN 0
 #else
@@ -377,6 +392,37 @@ void(* softReset) (void) = 0;
 
 //Events
 #define EVENT_STEPINIT 0
+
+//System Information 'Memory Addresses'
+#define SYSINFO_SIZE 27
+#define SYSINFO_BTBOARD 0
+#define SYSINFO_AUTOSTEP 1
+#define SYSINFO_BOILRECIRC 2
+#define SYSINFO_MUXBOARDS 3
+#define SYSINFO_PIDLIMIT_HLT 4
+#define SYSINFO_PIDLIMIT_MASH 5
+#define SYSINFO_PIDLIMIT_KETTLE 6
+#define SYSINFO_PIDLIMIT_STEAM 7
+#define SYSINFO_KETTLELID 8
+#define SYSINFO_PREBOILALARM 9
+#define SYSINFO_HLTMAX 10
+#define SYSINFO_MASH_HEATLOSS_1 11
+#define SYSINFO_MASH_HEATLOSS_2 12
+#define SYSINFO_MASH_HEATLOSS_3 13
+#define SYSINFO_MASH_HEATLOSS_4 14
+#define SYSINFO_HOPADD_DELAY_1 15
+#define SYSINFO_HOPADD_DELAY_2 16
+#define SYSINFO_STRIKEOFFSET_1 17
+#define SYSINFO_STRIKEOFFSET_2 18
+#define SYSINFO_STRIKEOFFSET_3 19
+#define SYSINFO_STRIKEOFFSET_4 20
+#define SYSINFO_LOGINTERVAL_1 21
+#define SYSINFO_LOGINTERVAL_2 22
+#define SYSINFO_UILEVEL 23
+#define SYSINFO_VOLINT_1 24
+#define SYSINFO_VOLINT_2 25
+#define SYSINFO_VOLCOUNT 26
+
 
 //Heat Output Pin Array
 pin heatPin[4], alarmPin;
