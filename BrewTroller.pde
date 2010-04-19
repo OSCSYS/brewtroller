@@ -1,4 +1,4 @@
-#define BUILD 391 
+#define BUILD 392 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -166,11 +166,15 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 //**********************************************************************************
 // LOG INTERVAL
 //**********************************************************************************
-// Specifies how often data is logged via serial in milliseconds. If real time
-// display of data is being used a smaller interval is best (1000 ms). A larger
-// interval can be used for logging applications to reduce log file size (5000 ms).
+// LOG_INTERVAL: Specifies how often data is logged via serial in milliseconds. If
+// real time display of data is being used a smaller interval is best (1000 ms). A
+// larger interval can be used for logging applications to reduce log file size 
+// (5000 ms).
+// LOG_INITSTATUS: Sets whether logging is enabled on bootup. Log status can be
+// toggled using the SET_LOGSTATUS command.
 
 #define LOG_INTERVAL 2000
+#define LOG_INITSTATUS 1
 //**********************************************************************************
 
 
@@ -474,7 +478,7 @@ unsigned long timerValue[2], lastTime[2];
 boolean timerStatus[2], alarmStatus;
 
 //Log Globals
-boolean logData = 0;
+boolean logData = LOG_INITSTATUS;
 boolean msgQueued;
 unsigned long lastLog;
 byte logCount, msgField;
