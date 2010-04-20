@@ -872,8 +872,9 @@ void startProgramMenu() {
       strcpy_P(menuopts[2], PSTR("Start"));
       strcpy_P(menuopts[3], PSTR("Delay Start"));
       strcpy_P(menuopts[4], PSTR("Cancel"));
-      getProgName(profile, buf);
-      byte lastOption = scrollMenu(buf, 5, 0);
+      char progName[20];
+      getProgName(profile, progName);
+      byte lastOption = scrollMenu(progName, 5, 0);
       if (lastOption == 0) editProgram(profile);
       else if (lastOption == 1) setGrainTemp(getValue(PSTR("Grain Temp"), getGrainTemp(), 3, 0, 255, TUNIT)); 
       else if (lastOption == 2 || lastOption == 3) {
@@ -1010,7 +1011,7 @@ void editMashSchedule(byte pgm) {
     lastOption = scrollMenu("Mash Schedule", 13, lastOption);
     if (lastOption == 0) setProgMashMins(pgm, MASH_DOUGHIN, getTimerValue(PSTR("Dough In"), getProgMashMins(pgm, MASH_DOUGHIN)));
     else if (lastOption == 1) setProgMashTemp(pgm, MASH_DOUGHIN, getValue(PSTR("Dough In"), getProgMashTemp(pgm, MASH_DOUGHIN), 3, 0, 255, TUNIT));
-    if (lastOption == 2) setProgMashMins(pgm, MASH_ACID, getTimerValue(PSTR("Acid Rest"), getProgMashMins(pgm, MASH_ACID)));
+    else if (lastOption == 2) setProgMashMins(pgm, MASH_ACID, getTimerValue(PSTR("Acid Rest"), getProgMashMins(pgm, MASH_ACID)));
     else if (lastOption == 3) setProgMashTemp(pgm, MASH_ACID, getValue(PSTR("Acid Rest"), getProgMashTemp(pgm, MASH_ACID), 3, 0, 255, TUNIT));
     else if (lastOption == 4) setProgMashMins(pgm, MASH_PROTEIN, getTimerValue(PSTR("Protein Rest"), getProgMashMins(pgm, MASH_PROTEIN)));
     else if (lastOption == 5) setProgMashTemp(pgm, MASH_PROTEIN, getValue(PSTR("Protein Rest"), getProgMashTemp(pgm, MASH_PROTEIN), 3, 0, 255, TUNIT));
