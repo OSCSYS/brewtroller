@@ -254,13 +254,13 @@ boolean chkMsg() {
         } else if(strcasecmp(msg[0], "SET_TIMERSTATUS") == 0) {
           byte timer = atoi(msg[1]);
           if (msgField == 2 && timer >= TIMER_MASH && timer <= TIMER_BOIL) {
-            setTimerStatus(timer, (boolean)atoi(msg[1]));
+            setTimerStatus(timer, (boolean)atoi(msg[2]));
             clearMsg();
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "SET_TIMERVALUE") == 0) {
           byte timer = atoi(msg[1]);
           if (msgField == 2 && timer >= TIMER_MASH && timer <= TIMER_BOIL) {
-            timerValue[timer] = strtoul(msg[1], NULL, 10);
+            timerValue[timer] = strtoul(msg[2], NULL, 10);
             lastTime[timer] = millis();
             clearMsg();
           } else rejectParam(LOGGLB);
