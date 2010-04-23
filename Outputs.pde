@@ -29,9 +29,10 @@ void pinInit() {
 
   #if MUXBOARDS > 0
     muxLatchPin.setup(MUX_LATCH_PIN, OUTPUT);
-    muxDataPin.setup(MUX_CLOCK_PIN, OUTPUT);
-    muxClockPin.setup(MUX_DATA_PIN, OUTPUT);
+    muxDataPin.setup(MUX_DATA_PIN, OUTPUT);
+    muxClockPin.setup(MUX_CLOCK_PIN, OUTPUT);
     muxOEPin.setup(MUX_OE_PIN, OUTPUT);
+    muxOEPin.set();
   #endif
   #ifdef ONBOARDPV
     valvePin[0].setup(VALVE1_PIN, OUTPUT);
@@ -104,7 +105,7 @@ void setValves (unsigned long vlvBitMask, boolean value) {
   
   #if MUXBOARDS > 0
   //MUX Valve Code
-    //Disable outputs (I'm not sure this is necessary; Removing for now) 
+    //Disable outputs
     //muxOEPin.set();
     //ground latchPin and hold low for as long as you are transmitting
     muxLatchPin.clear();

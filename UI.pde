@@ -1180,7 +1180,7 @@ boolean confirmAbort() {
   printLCD_P(1, 0, PSTR("reset setpoints,"));
   printLCD_P(2, 0, PSTR("timers and outputs?"));
   strcpy_P(menuopts[0], CANCEL);
-  strcpy_P(menuopts[1], EXIT);
+  strcpy_P(menuopts[1], PSTR("Reset"));
   if(getChoice(2, 3) == 1) return 1; else return 0;
 }
 

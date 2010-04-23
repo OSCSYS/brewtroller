@@ -1,4 +1,4 @@
-#define BUILD 399 
+#define BUILD 403 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -103,7 +103,7 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 // Kettle Lid Control
 //**********************************************************************************
 // The kettle lid Valve Profile can be used to automate covering of the boil kettle.
-// The kettle lid profile is activated in the Chill stage of AutoBrew when the
+// The kettle lid profile is activated in the Chill step of a program when the
 // kettle temperature is less than the threshhold specified below.
 //
 #ifdef USEMETRIC
@@ -164,7 +164,7 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 
 
 //**********************************************************************************
-// LOG INTERVAL
+// Serial Logging Options
 //**********************************************************************************
 // LOG_INTERVAL: Specifies how often data is logged via serial in milliseconds. If
 // real time display of data is being used a smaller interval is best (1000 ms). A
