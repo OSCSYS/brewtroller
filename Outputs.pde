@@ -198,7 +198,7 @@ void processAutoValve() {
     if (heatStatus[TS_MASH] && (!vlvConfigIsActive(VLV_MASHHEAT))) {
       setValves(vlvConfig[VLV_MASHIDLE], 0);
       setValves(vlvConfig[VLV_MASHHEAT], 1);
-    } else if (!heatStatus[TS_MASH] && (!vlvConfigIsActive(VLV_MASHIDLE))) {
+    } else if ((!heatStatus[TS_MASH]) && vlvConfigIsActive(VLV_MASHHEAT)) {
       setValves(vlvConfig[VLV_MASHHEAT], 0);
       setValves(vlvConfig[VLV_MASHIDLE], 1); 
     }

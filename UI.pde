@@ -1762,11 +1762,11 @@ void cfgVolumes() {
     if (lastOption == 0) setCapacity(VS_HLT, getValue(PSTR("HLT Capacity"), getCapacity(VS_HLT), 7, 3, 9999999, VOLUNIT));
     else if (lastOption == 1) setVolLoss(VS_HLT, getValue(PSTR("HLT Dead Space"), getVolLoss(VS_HLT), 5, 3, 65535, VOLUNIT));
     else if (lastOption == 2) volCalibMenu(TS_HLT);
-    else if (lastOption == 3) setCapacity(VS_MASH, getValue(PSTR("HLT Capacity"), getCapacity(VS_MASH), 7, 3, 9999999, VOLUNIT));
-    else if (lastOption == 4) setVolLoss(VS_MASH, getValue(PSTR("HLT Dead Space"), getVolLoss(VS_MASH), 5, 3, 65535, VOLUNIT));
+    else if (lastOption == 3) setCapacity(VS_MASH, getValue(PSTR("Mash Capacity"), getCapacity(VS_MASH), 7, 3, 9999999, VOLUNIT));
+    else if (lastOption == 4) setVolLoss(VS_MASH, getValue(PSTR("Mash Dead Space"), getVolLoss(VS_MASH), 5, 3, 65535, VOLUNIT));
     else if (lastOption == 5) volCalibMenu(VS_MASH);
-    else if (lastOption == 6) setCapacity(VS_KETTLE, getValue(PSTR("HLT Capacity"), getCapacity(VS_KETTLE), 7, 3, 9999999, VOLUNIT));
-    else if (lastOption == 7) setVolLoss(VS_KETTLE, getValue(PSTR("HLT Dead Space"), getVolLoss(VS_KETTLE), 5, 3, 65535, VOLUNIT));
+    else if (lastOption == 6) setCapacity(VS_KETTLE, getValue(PSTR("Kettle Capacity"), getCapacity(VS_KETTLE), 7, 3, 9999999, VOLUNIT));
+    else if (lastOption == 7) setVolLoss(VS_KETTLE, getValue(PSTR("Kettle Dead Space"), getVolLoss(VS_KETTLE), 5, 3, 65535, VOLUNIT));
     else if (lastOption == 8) volCalibMenu(VS_KETTLE);
     else if (lastOption == 9) setEvapRate(getValue(PSTR("Evaporation Rate"), getEvapRate(), 3, 0, 100, PSTR("%/hr")));
     else return;
