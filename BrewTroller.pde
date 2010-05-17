@@ -1,4 +1,4 @@
-#define BUILD 404 
+#define BUILD 411 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -153,6 +153,23 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 
 //**********************************************************************************
 
+
+//**********************************************************************************
+// Sparge Options
+//**********************************************************************************
+// BATCH_SPARGE: Uses batch sparge logic instead of fly sparge logic for programs.
+//#define BATCH_SPARGE
+
+// BATCH_VOLUME_OFFSET: Adjusts batch volume calculations to increase or reduce the
+// volume of batch sparges.
+//#define BATCH_VOLUME_OFFSET 0
+
+// BATCH_SPARGE_RECIRC: Specifies the number of seconds to run the Mash Heat valve
+// profile between batch sparges.
+//#define BATCH_SPARGE_RECIRC 60
+//**********************************************************************************
+
+
 //**********************************************************************************
 // Pre-Boil Alarm
 //**********************************************************************************
@@ -195,16 +212,40 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 // Uncomment the following line(s) to enable various steps to start/stop 
 // automatically 
 //
-// AUTO_FILL: This option will enable the Fill AutoValve logic at the start of the
-// Fill step. The Fill step will automatically exit once target volumes have been
-// reached.
-// #define AUTO_FILL
+// AUTO_FILL_START: This option will enable the Fill AutoValve logic at the start of
+// the Fill step. 
+//#define AUTO_FILL_START
+
+// AUTO_FILL_EXIT: This option will automatically exit the Fill step once target 
+// volumes have been reached.
+//#define AUTO_FILL_EXIT
+
+// AUTO_ML_XFER: This option will enable the Sparge In AutoValve logic at the start
+// of the Grain In step if the Mash Liquor Heat Source is set to HLT. This is used
+// to transfer preheated mash liquor from HLT to Mash Tun.
+//#define AUTO_ML_XFER
+
+// AUTO_GRAININ_EXIT: This option will automatically exit the Grain In step after
+// the specified number of seconds. Use this setting if your grain is automatically 
+// added to the mash tun using the Add Grain valve profile. You can also specify a
+// value of 0 to exit the Grain In step automatically with no additional delay.
+// The Grain In step will not process exit logic until the mash liquor transfer is
+// completed when the mash Liquor Heat Source is set to HLT.
+//#define AUTO_GRAININ_EXIT 0
 
 // AUTO_MASH_HOLD_EXIT: By default the user must manually exit the Mash Hold step.
 // This prevents the mash from cooling if the brewer is not present at the end of
 // the last mash step. Use this option to automatically exit the mash hold step if
 // the boil zone is inactive.
-// #define AUTO_MASH_HOLD_EXIT
+//#define AUTO_MASH_HOLD_EXIT
+
+// AUTO_SPARGE_START: This option will automatically enable batch or fly sparge
+// logic at the start of the sparge step.
+//#define AUTO_SPARGE_START
+
+// AUTO_SPARGE_EXIT: This option will automatically advance the sparge step when
+// target preboil volume is reached.
+//#define AUTO_SPARGE_EXIT
 
 // AUTO_BOIL_RECIRC: Activates the BOIL RECIRC valve profile during the last minutes
 // of the AutoBrew Boil stage as defined below (ie AUTO_BOIL_RECIRC 20 will enable
@@ -340,9 +381,11 @@ void(* softReset) (void) = 0;
 //Auto-Valve Modes
 #define AV_FILL 0
 #define AV_MASH 1
-#define AV_SPARGE 2
-#define AV_CHILL 3
-#define NUM_AV 4
+#define AV_SPARGEIN 2
+#define AV_SPARGEOUT 3
+#define AV_FLYSPARGE 4
+#define AV_CHILL 5
+#define NUM_AV 6
 
 //Valve Array Element Constants and Variables
 #define VLV_ALL 4294967295
@@ -522,9 +565,6 @@ void setup() {
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();
 
-  //Load last saved EEPROM value for valve configuration
-  setValves(getValveRecovery(), 1);
-  
   //Load global variable values stored in EEPROM (EEPROM.pde)
   loadSetup();
 

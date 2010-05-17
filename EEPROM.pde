@@ -300,10 +300,9 @@ unsigned int getBoilAddsTrig() { return PROMreadInt(307); }
 void setBoilAddsTrig(unsigned int adds) { PROMwriteInt(307, adds); }
 
 //**********************************************************************************
-//Valves (309-312)
+// ***OPEN*** (309-312)
 //**********************************************************************************
-unsigned long getValveRecovery() { return PROMreadLong(309); }
-void setValveRecovery(unsigned long value) { PROMwriteLong(309, value); }
+
 
 //**********************************************************************************
 //Step (313-327) NUM_BREW_STEPS (15)

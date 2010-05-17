@@ -283,7 +283,7 @@ void screenInit(byte screen) {
       printLCD_P(3, 10, PSTR("<"));
       printLCD_P(3, 3, AUTOFILL);
       Encoder.setMin(0);
-      Encoder.setMax(6);
+      Encoder.setMax(4);
       Encoder.setCount(0);
     }
     
@@ -335,7 +335,7 @@ void screenInit(byte screen) {
       printLCD_P(0, 19, PSTR("<"));
       printLCD_P(0, 9, SPARGEIN);
       Encoder.setMin(0);
-      Encoder.setMax(7);
+      Encoder.setMax(6);
       Encoder.setCount(0);
     }
     
@@ -415,13 +415,11 @@ void screenRefresh(byte screen) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
         printLCDRPad(3, 1, "", 9, ' ');
-        if (encValue == 0) printLCD_P(3, 3, AUTOFILL);
-        else if (encValue == 1) printLCD_P(3, 1, FILLHLT);
-        else if (encValue == 2) printLCD_P(3, 1, FILLMASH);
-        else if (encValue == 3) printLCD_P(3, 1, FILLBOTH);
-        else if (encValue == 4) printLCD_P(3, 2, ALLOFF);
-        else if (encValue == 5) printLCD_P(3, 1, CONTINUE);
-        else if (encValue == 6) printLCD_P(3, 3, PSTR("Menu"));
+        if (encValue == 0) printLCD_P(3, 1, FILLHLT);
+        else if (encValue == 1) printLCD_P(3, 1, FILLMASH);
+        else if (encValue == 2) printLCD_P(3, 1, FILLBOTH);
+        else if (encValue == 3) printLCD_P(3, 2, ALLOFF);
+        else if (encValue == 4) printLCD_P(3, 3, PSTR("Menu"));
       }
     }
     
@@ -473,8 +471,7 @@ void screenRefresh(byte screen) {
         else if (encValue == 3) printLCD_P(0, 9, MASHHEAT);
         else if (encValue == 4) printLCD_P(0, 9, MASHIDLE);
         else if (encValue == 5) printLCD_P(0, 11, ALLOFF);
-        else if (encValue == 6) printLCD_P(0, 10, CONTINUE);
-        else if (encValue == 7) printLCD_P(0, 12, ABORT);
+        else if (encValue == 6) printLCD_P(0, 12, PSTR("Menu"));
       }
     }
     
@@ -611,33 +608,33 @@ void screenEnter(byte screen) {
       } else if (screen == SCREEN_FILL) {
         //Sceeen Enter: Fill/Refill
         int encValue = Encoder.getCount();
-        if (encValue == 0) autoValve[AV_FILL] = 1;
-        else if (encValue == 1) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 1); setValves(vlvConfig[VLV_FILLMASH], 0);}
-        else if (encValue == 2) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 1);}
-        else if (encValue == 3) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 1); setValves(vlvConfig[VLV_FILLMASH], 1);}
-        else if (encValue == 4) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 0);}
-        else if (encValue == 5) {
-          byte brewstep = PROGRAM_IDLE;
-          if (stepIsActive(STEP_FILL)) brewstep = STEP_FILL;
-          else if (stepIsActive(STEP_REFILL)) brewstep = STEP_REFILL;
-          if(brewstep != PROGRAM_IDLE) {
-            if (stepAdvance(brewstep)) {
-              //Failed to advance step
-              stepAdvanceFailDialog();
-            }
-          } else {
-            activeScreen = SCREEN_MASH;
-            screenInit(activeScreen);
+        if (encValue == 0) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 1); setValves(vlvConfig[VLV_FILLMASH], 0);}
+        else if (encValue == 1) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 1);}
+        else if (encValue == 2) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 1); setValves(vlvConfig[VLV_FILLMASH], 1);}
+        else if (encValue == 3) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 0);}
+        else if (encValue == 4) {
+          strcpy_P(menuopts[0], PSTR("Auto Fill"));
+          strcpy_P(menuopts[1], PSTR("HLT Target"));
+          strcpy_P(menuopts[2], PSTR("Mash Target"));
+          strcpy_P(menuopts[3], PSTR("Continue"));
+          strcpy_P(menuopts[4], PSTR("Abort"));
+          strcpy_P(menuopts[5], PSTR("Cancel"));
+          byte lastOption = scrollMenu("Fill Menu", 6, 0);
+          if (lastOption == 0) { if(tgtVol[VS_HLT] || tgtVol[VS_MASH]) autoValve[AV_FILL] = 1; }
+          else if (lastOption == 1) tgtVol[VS_HLT] = getValue(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 7, 3, 9999999, VOLUNIT);
+          else if (lastOption == 2) tgtVol[VS_MASH] = getValue(PSTR("Mash Target Vol"), tgtVol[VS_MASH], 7, 3, 9999999, VOLUNIT);
+          else if (lastOption == 3) {
+            byte brewstep = PROGRAM_IDLE;
+            if (stepIsActive(STEP_FILL)) brewstep = STEP_FILL;
+            else if (stepIsActive(STEP_REFILL)) brewstep = STEP_REFILL;
+            if(brewstep != PROGRAM_IDLE) {
+              if (stepAdvance(brewstep)) {
+                //Failed to advance step
+                stepAdvanceFailDialog();
+              }
+            } else activeScreen = SCREEN_MASH;
           }
-        } else if (encValue == 6) { 
-          strcpy_P(menuopts[0], PSTR("HLT Target"));
-          strcpy_P(menuopts[1], PSTR("Mash Target"));
-          strcpy_P(menuopts[2], PSTR("Abort"));
-          strcpy_P(menuopts[3], PSTR("Cancel"));
-          byte lastOption = scrollMenu("Fill Menu", 4, 0);
-          if (lastOption == 0) tgtVol[VS_HLT] = getValue(PSTR("Grain Temp"), tgtVol[VS_HLT], 7, 3, 9999999, VOLUNIT);
-          else if (lastOption == 1) tgtVol[VS_MASH] = getValue(PSTR("Grain Temp"), tgtVol[VS_MASH], 7, 3, 9999999, VOLUNIT);
-          else if (lastOption == 2) {
+          else if (lastOption == 4) {
             if (confirmAbort()) {
               if (stepIsActive(STEP_FILL)) stepExit(STEP_FILL);
               else stepExit(STEP_REFILL); //Abort STEP_REFILL or manual operation
@@ -689,10 +686,7 @@ void screenEnter(byte screen) {
               //Failed to advance step
               stepAdvanceFailDialog();
             }
-          } else {
-            activeScreen = SCREEN_SPARGE;
-            screenInit(activeScreen);
-          }
+          } else activeScreen = SCREEN_SPARGE;
         } else if (lastOption == 6) {
           if (confirmAbort()) {
             if (stepIsActive(STEP_DELAY)) stepExit(STEP_DELAY);
@@ -711,33 +705,48 @@ void screenEnter(byte screen) {
       } else if (screen == SCREEN_SPARGE) {
         //Screen Enter: Sparge
         int encValue = Encoder.getCount();
-        if (encValue == 0) { setValves(vlvConfig[VLV_SPARGEIN], 1); setValves(vlvConfig[VLV_SPARGEOUT], 0); }
-        else if (encValue == 1) { setValves(vlvConfig[VLV_SPARGEIN], 0); setValves(vlvConfig[VLV_SPARGEOUT], 1); }
-        else if (encValue == 2) { setValves(vlvConfig[VLV_SPARGEIN], 1); setValves(vlvConfig[VLV_SPARGEOUT], 1); }
-        else if (encValue == 3) { setValves(vlvConfig[VLV_MASHHEAT], 1); setValves(vlvConfig[VLV_MASHIDLE], 0); }
-        else if (encValue == 4) { setValves(vlvConfig[VLV_MASHHEAT], 0); setValves(vlvConfig[VLV_MASHIDLE], 1); }
-        else if (encValue == 5) { setValves(vlvConfig[VLV_SPARGEIN], 0); setValves(vlvConfig[VLV_SPARGEOUT], 0); setValves(vlvConfig[VLV_MASHHEAT], 0); setValves(vlvConfig[VLV_MASHIDLE], 0); }
+        if (encValue == 0) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEIN], 1); }
+        else if (encValue == 1) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEOUT], 1); }
+        else if (encValue == 2) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEIN], 1); setValves(vlvConfig[VLV_SPARGEOUT], 1); }
+        else if (encValue == 3) { resetSpargeValves(); setValves(vlvConfig[VLV_MASHHEAT], 1); }
+        else if (encValue == 4) { resetSpargeValves();  setValves(vlvConfig[VLV_MASHIDLE], 1); }
+        else if (encValue == 5) { resetSpargeValves(); }
         else if (encValue == 6) {
-          byte brewstep = PROGRAM_IDLE;
-          if (stepIsActive(STEP_SPARGE)) brewstep = STEP_SPARGE;
-          else if (stepIsActive(STEP_ADDGRAIN)) brewstep = STEP_ADDGRAIN;
-          if(brewstep != PROGRAM_IDLE) {
-            if (stepAdvance(brewstep)) {
-              //Failed to advance step
-              stepAdvanceFailDialog();
-            }
-          } else {
-            activeScreen = SCREEN_BOIL;
-            screenInit(activeScreen);
+          strcpy_P(menuopts[0], PSTR("Auto In"));
+          strcpy_P(menuopts[1], PSTR("Auto Out"));
+          strcpy_P(menuopts[2], PSTR("Auto Fly"));
+          strcpy_P(menuopts[3], PSTR("HLT Target"));
+          strcpy_P(menuopts[4], PSTR("Kettle Target"));
+          strcpy_P(menuopts[5], PSTR("Continue"));
+          strcpy_P(menuopts[6], PSTR("Abort"));
+          strcpy_P(menuopts[7], PSTR("Cancel"));
+          byte lastOption = scrollMenu("Sparge Menu", 8, 0);
+          if (lastOption == 0) { resetSpargeValves(); if(tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 1; }
+          else if (lastOption == 1) { resetSpargeValves(); if(tgtVol[VS_KETTLE]) autoValve[AV_SPARGEOUT] = 1; }
+          else if (lastOption == 2) { resetSpargeValves(); if(tgtVol[VS_KETTLE]) autoValve[AV_FLYSPARGE] = 1; }
+          else if (lastOption == 3) tgtVol[VS_HLT] = getValue(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 7, 3, 9999999, VOLUNIT);
+          else if (lastOption == 4) tgtVol[VS_KETTLE] = getValue(PSTR("Kettle Target Vol"), tgtVol[VS_KETTLE], 7, 3, 9999999, VOLUNIT);
+          else if (lastOption == 5) {
+            byte brewstep = PROGRAM_IDLE;
+            if (stepIsActive(STEP_SPARGE)) brewstep = STEP_SPARGE;
+            else if (stepIsActive(STEP_ADDGRAIN)) brewstep = STEP_ADDGRAIN;
+            if(brewstep != PROGRAM_IDLE) {
+              if (stepAdvance(brewstep)) {
+                //Failed to advance step
+                stepAdvanceFailDialog();
+              }
+            } else activeScreen = SCREEN_BOIL;
           }
-        } else if (encValue == 7) {
-          if (confirmAbort()) {
-            if (stepIsActive(STEP_ADDGRAIN)) stepExit(STEP_ADDGRAIN);
-            else stepExit(STEP_SPARGE); //Abort STEP_SPARGE or manual operation
+          else if (lastOption == 6) {
+            if (confirmAbort()) {
+              if (stepIsActive(STEP_ADDGRAIN)) stepExit(STEP_ADDGRAIN);
+              else stepExit(STEP_SPARGE); //Abort STEP_SPARGE or manual operation
+            }
           }
           screenInit(activeScreen);
         }
-        
+       
+
       } else if (screen == SCREEN_BOIL) {
         //Screen Enter: Boil
         strcpy_P(menuopts[0], CANCEL);
@@ -808,6 +817,16 @@ void screenEnter(byte screen) {
       }
     }
   }
+}
+
+void resetSpargeValves() {
+  autoValve[AV_SPARGEIN] = 0;
+  autoValve[AV_SPARGEOUT] = 0;
+  autoValve[AV_FLYSPARGE] = 0;
+  setValves(vlvConfig[VLV_SPARGEIN], 0);
+  setValves(vlvConfig[VLV_SPARGEOUT], 0);
+  setValves(vlvConfig[VLV_MASHHEAT], 0);
+  setValves(vlvConfig[VLV_MASHIDLE], 0);
 }
 
 void printTimer(byte timer, byte iRow, byte iCol) {

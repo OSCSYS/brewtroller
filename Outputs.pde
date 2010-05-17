@@ -60,15 +60,18 @@ void pidInit() {
   pid[VS_HLT].SetInputLimits(0, 255);
   pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * 10 * PIDLIMIT_HLT);
   pid[VS_HLT].SetTunings(getPIDp(VS_HLT), getPIDi(VS_HLT), getPIDd(VS_HLT));
+  pid[VS_HLT].SetMode(AUTO);
 
   pid[VS_MASH].SetInputLimits(0, 255);
   pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * 10 * PIDLIMIT_MASH);
   pid[VS_MASH].SetTunings(getPIDp(VS_MASH), getPIDi(VS_MASH), getPIDd(VS_MASH));
-  
+  pid[VS_MASH].SetMode(AUTO);
+    
   pid[VS_KETTLE].SetInputLimits(0, 255);
   pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * 10 * PIDLIMIT_KETTLE);
   pid[VS_KETTLE].SetTunings(getPIDp(VS_KETTLE), getPIDi(VS_KETTLE), getPIDd(VS_KETTLE));
-  
+  pid[VS_KETTLE].SetMode(MANUAL);
+
   #ifdef USEMETRIC
     pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
   #else
@@ -76,6 +79,7 @@ void pidInit() {
   #endif
   pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * 10 * PIDLIMIT_STEAM);
   pid[VS_STEAM].SetTunings(getPIDp(VS_STEAM), getPIDi(VS_STEAM), getPIDd(VS_STEAM));
+  pid[VS_STEAM].SetMode(AUTO);
 }
 
 void resetOutputs() {
@@ -91,7 +95,6 @@ void resetOutputs() {
 
 void resetHeatOutput(byte vessel) {
   setSetpoint(vessel, 0);
-  pid[vessel].SetMode(MANUAL);
   PIDOutput[vessel] = 0;
   heatPin[vessel].set(LOW);
 }  
@@ -101,7 +104,6 @@ void setValves (unsigned long vlvBitMask, boolean value) {
 
   if (value) vlvBits |= vlvBitMask;
   else vlvBits = vlvBits ^ (vlvBits & vlvBitMask);
-  setValveRecovery(vlvBits);
   
   #if MUXBOARDS > 0
   //MUX Valve Code
@@ -203,6 +205,23 @@ void processAutoValve() {
       setValves(vlvConfig[VLV_MASHIDLE], 1); 
     }
   } 
+  if (autoValve[AV_SPARGEIN]) {
+    if (volAvg[VS_HLT] > tgtVol[VS_HLT]) setValves(vlvConfig[VLV_SPARGEIN], 1);
+      else setValves(vlvConfig[VLV_SPARGEIN], 0);
+  }
+  if (autoValve[AV_SPARGEOUT]) {
+    if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) setValves(vlvConfig[VLV_SPARGEOUT], 1);
+    else setValves(vlvConfig[VLV_SPARGEOUT], 0);
+  }
+  if (autoValve[AV_FLYSPARGE]) {
+    if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
+      setValves(vlvConfig[VLV_SPARGEIN], 1);
+      setValves(vlvConfig[VLV_SPARGEOUT], 1);
+    } else {
+      setValves(vlvConfig[VLV_SPARGEIN], 0);
+      setValves(vlvConfig[VLV_SPARGEOUT], 0);
+    }
+  }
   if (autoValve[AV_CHILL]) {
     //Needs work
     /*

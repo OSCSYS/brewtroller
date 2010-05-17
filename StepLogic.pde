@@ -24,7 +24,7 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-unsigned long lastHop;
+unsigned long lastHop, grainInStart;
 unsigned int boilAdds, triggered;
 
 boolean stepIsActive(byte brewStep) {
@@ -74,13 +74,13 @@ boolean stepInit(byte pgm, byte brewStep) {
   if (brewStep == STEP_FILL) {
   //Step Init: Fill
     //Set Target Volumes
-    tgtVol[TS_HLT] = calcSpargeVol(pgm);
-    tgtVol[TS_MASH] = calcMashVol(pgm);
+    tgtVol[VS_HLT] = calcSpargeVol(pgm);
+    tgtVol[VS_MASH] = calcMashVol(pgm);
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
       tgtVol[VS_HLT] = min(tgtVol[VS_HLT] + tgtVol[VS_MASH], getCapacity(VS_HLT));
       tgtVol[VS_MASH] = 0;
     }
-    #ifdef AUTO_FILL
+    #ifdef AUTO_FILL_START
       autoValve[AV_FILL] = 1;
     #endif
 
@@ -96,7 +96,7 @@ boolean stepInit(byte pgm, byte brewStep) {
       if (getProgMLHeatSrc(pgm) == VS_HLT) {
         setSetpoint(TS_HLT, calcStrikeTemp(pgm));
         #ifdef STRIKE_TEMP_OFFSET
-          setSetpoint(TS_HLT, setPoint[TS_HLT] + STRIKE_TEMP_OFFSET;
+          setSetpoint(TS_HLT, setpoint[TS_HLT] + STRIKE_TEMP_OFFSET;
         #endif
         setSetpoint(TS_MASH, 0);
       } else {
@@ -104,9 +104,6 @@ boolean stepInit(byte pgm, byte brewStep) {
         setSetpoint(TS_MASH, calcStrikeTemp(pgm));
       }
       setSetpoint(VS_STEAM, getSteamTgt());
-      pid[VS_HLT].SetMode(AUTO);
-      pid[VS_MASH].SetMode(AUTO);
-      pid[VS_STEAM].SetMode(AUTO);
     }
     preheated[VS_MASH] = 0;
     autoValve[AV_MASH] = 1;
@@ -120,7 +117,14 @@ boolean stepInit(byte pgm, byte brewStep) {
     resetHeatOutput(VS_MASH);
     setSetpoint(VS_STEAM, getSteamTgt());
     setValves(vlvConfig[VLV_ADDGRAIN], 1);
-
+    if(getProgMLHeatSrc(pgm) == VS_HLT) {
+      unsigned long spargeVol = calcSpargeVol(pgm);
+      unsigned long mashVol = calcMashVol(pgm);
+      tgtVol[VS_HLT] = (min(spargeVol + mashVol, getCapacity(VS_HLT))) - spargeVol;
+      #ifdef AUTO_ML_XFER
+         autoValve[AV_SPARGEIN] = 1;
+      #endif
+    }
   } else if (brewStep == STEP_REFILL) {
   //Step Init: Refill
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
@@ -133,9 +137,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_DOUGHIN));
     setSetpoint(VS_STEAM, getSteamTgt());
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    pid[VS_STEAM].SetMode(AUTO);
     preheated[VS_MASH] = 0;
     autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
@@ -148,8 +149,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_ACID));
     setSetpoint(VS_STEAM, getSteamTgt());
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
     preheated[VS_MASH] = 0;
     autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
@@ -162,8 +161,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_PROTEIN));
     setSetpoint(VS_STEAM, getSteamTgt());
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
     preheated[VS_MASH] = 0;
     autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
@@ -176,9 +173,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH));
     setSetpoint(VS_STEAM, getSteamTgt());
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    pid[VS_STEAM].SetMode(AUTO);
     preheated[VS_MASH] = 0;
     autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
@@ -191,8 +185,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH2));
     setSetpoint(VS_STEAM, getSteamTgt());
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
     preheated[VS_MASH] = 0;
     autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
@@ -205,9 +197,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_MASHOUT));
     setSetpoint(VS_STEAM, getSteamTgt());
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    pid[VS_STEAM].SetMode(AUTO);
     preheated[VS_MASH] = 0;
     autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
@@ -224,13 +213,17 @@ boolean stepInit(byte pgm, byte brewStep) {
       while (setpoint[TS_MASH] == 0 && i >= MASH_DOUGHIN && i <= MASH_MASHOUT) setSetpoint(TS_MASH, getProgMashTemp(pgm, i--));
     }
     setSetpoint(VS_STEAM, getSteamTgt());
-    pid[VS_HLT].SetMode(AUTO);
-    pid[VS_MASH].SetMode(AUTO);
-    pid[VS_STEAM].SetMode(AUTO);
 
   } else if (brewStep == STEP_SPARGE) {
   //Step Init: Sparge
-
+    #ifdef BATCH_SPARGE
+    
+    #else
+      tgtVol[VS_KETTLE] = calcPreboilVol(pgm);
+      #ifdef AUTO_SPARGE_START
+        autoValve[AV_FLYSPARGE] = 1;
+      #endif
+    #endif
 
   } else if (brewStep == STEP_BOIL) {
   //Step Init: Boil
@@ -255,14 +248,28 @@ boolean stepInit(byte pgm, byte brewStep) {
 
 void stepCore() {
   if (stepIsActive(STEP_FILL)) stepFill(STEP_FILL);
+
   if (stepIsActive(STEP_PREHEAT)) {
     if ((setpoint[VS_MASH] && temp[VS_MASH] >= setpoint[VS_MASH])
       || (!setpoint[VS_MASH] && temp[VS_HLT] >= setpoint[VS_HLT])
     ) stepAdvance(STEP_PREHEAT);
   }
+
   if (stepIsActive(STEP_DELAY)) if (timerValue[TIMER_MASH] == 0) stepAdvance(STEP_DELAY);
-  if (stepIsActive(STEP_ADDGRAIN)) { /*Nothing much happens*/ }
+
+  if (stepIsActive(STEP_ADDGRAIN)) {
+    #ifdef AUTO_GRAININ_EXIT
+      if(!autoValve[AV_SPARGEIN]) {
+        if (!grainInStart) grainInStart = millis();
+        else if ((millis() - grainInStart) / 1000 > AUTO_GRAININ_EXIT) stepAdvance(STEP_ADDGRAIN);
+      } 
+    #endif
+    //Turn off Sparge In AutoValve if tgtVol has been reached
+    if (autoValve[AV_SPARGEIN] && volAvg[VS_HLT] <= tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 0;
+  }
+
   if (stepIsActive(STEP_REFILL)) stepFill(STEP_REFILL);
+
   for (byte brewStep = STEP_DOUGHIN; brewStep <= STEP_MASHOUT; brewStep++) if (stepIsActive(brewStep)) stepMash(brewStep);
   
   if (stepIsActive(STEP_MASHHOLD)) {
@@ -275,7 +282,13 @@ void stepCore() {
   }
   
   if (stepIsActive(STEP_SPARGE)) { 
-
+    #ifdef BATCH_SPARGE
+    
+    #else
+      #ifdef AUTO_SPARGE_EXIT
+        stepAdvance(STEP_SPARGE);
+      #endif
+    #endif
   }
   
   if (stepIsActive(STEP_BOIL)) {
@@ -338,7 +351,7 @@ void stepCore() {
 
 //stepCore logic for Fill and Refill
 void stepFill(byte brewStep) {
-  #ifdef AUTO_FILL
+  #ifdef AUTO_FILL_EXIT
     if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH]) stepAdvance(brewStep);
   #endif
 }
@@ -397,7 +410,12 @@ void stepExit(byte brewStep) {
   
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Exit: Add Grain
-    setValves(vlvConfig[VLV_ADDGRAIN], 0);    
+    tgtVol[VS_HLT] = 0;
+    autoValve[AV_SPARGEIN] = 0;
+    setValves(vlvConfig[VLV_ADDGRAIN], 0);
+    setValves(vlvConfig[VLV_SPARGEIN], 0);
+    setValves(vlvConfig[VLV_MASHHEAT], 0);
+    setValves(vlvConfig[VLV_MASHIDLE], 0);
     resetHeatOutput(VS_HLT);
 #ifdef USESTEAM
     resetHeatOutput(VS_STEAM);
@@ -417,8 +435,14 @@ void stepExit(byte brewStep) {
 
   } else if (brewStep == STEP_SPARGE) {
   //Step Exit: Sparge
-    autoValve[AV_SPARGE] = 0;
-    setValves(vlvConfig[VLV_SPARGEIN], 0);    
+    tgtVol[VS_HLT] = 0;
+    tgtVol[VS_KETTLE] = 0;
+    autoValve[AV_SPARGEIN] = 0;
+    autoValve[AV_SPARGEOUT] = 0;
+    autoValve[AV_FLYSPARGE] = 0;
+    setValves(vlvConfig[VLV_MASHHEAT], 0);
+    setValves(vlvConfig[VLV_MASHIDLE], 0);
+    setValves(vlvConfig[VLV_SPARGEIN], 0);
     setValves(vlvConfig[VLV_SPARGEOUT], 0);    
 
   } else if (brewStep == STEP_BOIL) {
@@ -461,18 +485,27 @@ unsigned long calcMashVol(byte pgm) {
 }
 
 unsigned long calcSpargeVol(byte pgm) {
-  //Detrmine Total Water Needed (Evap + Deadspaces)
-  unsigned long retValue = round(getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0) + getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
+  //Determine Total Water Needed (Evap + Deadspaces)
+  unsigned long retValue = calcPreboilVol(pgm);
+
   //Add Water Lost in Spent Grain
-  #ifdef USEMETRIC
-    retValue += round(getProgGrain(pgm) * 1.7884);
-  #else
-    retValue += round(getProgGrain(pgm) * .2143);
-  #endif
+  retValue += calcGrainLoss(pgm);
 
   //Subtract mash volume
   retValue -= calcMashVol(pgm);
   return retValue;
+}
+
+unsigned long calcPreboilVol(byte pgm) {
+  return round(getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0) + getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
+}
+
+unsigned long calcGrainLoss(byte pgm) {
+  #ifdef USEMETRIC
+    return round(getProgGrain(pgm) * 1.7884);
+  #else
+    return round(getProgGrain(pgm) * .2143);
+  #endif
 }
 
 unsigned long calcGrainVolume(byte pgm) {
