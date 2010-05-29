@@ -44,8 +44,8 @@ void getDSAddr(byte addrRet[8]){
   byte scanAddr[8];
   ds.reset_search();
   byte limit = 0;
-  //Scan at most 10 sensors (In case the One Wire Search loop issue occurs)
-  while (limit <= 10) {
+  //Scan at most 20 sensors (In case the One Wire Search loop issue occurs)
+  while (limit <= 20) {
     if (!ds.search(scanAddr)) {
       //No Sensor found, Return
       ds.reset_search();
@@ -53,21 +53,20 @@ void getDSAddr(byte addrRet[8]){
     }
     boolean found = 0;
     for (byte i = TS_HLT; i <= TS_AUX3; i++) {
-      if (scanAddr[0] == tSensor[i][0] &&
-          scanAddr[1] == tSensor[i][1] &&
-          scanAddr[2] == tSensor[i][2] &&
-          scanAddr[3] == tSensor[i][3] &&
-          scanAddr[4] == tSensor[i][4] &&
-          scanAddr[5] == tSensor[i][5] &&
-          scanAddr[6] == tSensor[i][6] &&
-          scanAddr[7] == tSensor[i][7])
-      { 
-          found = 1;
+      boolean match = 1;
+      for (byte j = 0; j < 8; j++) {
+        if (scanAddr[j] != tSensor[i][j]) {
+          match = 0;
           break;
+        }
+      }
+      if (match) { 
+        found = 1;
+        break;
       }
     }
     if (!found) {
-      for (byte i = 0; i < 8; i++) addrRet[i] = scanAddr[i];
+      for (byte k = 0; k < 8; k++) addrRet[k] = scanAddr[k];
       return;
     }
     limit++;

@@ -66,9 +66,7 @@ const char CANCEL[] PROGMEM = "Cancel";
 const char EXIT[] PROGMEM = "Exit";
 const char SPACE[] PROGMEM = " ";
 const char INIT_EEPROM[] PROGMEM = "Initialize EEPROM";
-const char SKIPSTEP[] PROGMEM = "Skip Step";
 const char CONTINUE[] PROGMEM = "Continue";
-const char AUTOFILL[] PROGMEM = "Auto";
 const char FILLHLT[] PROGMEM = "Fill HLT";
 const char FILLMASH[] PROGMEM = "Fill Mash";
 const char FILLBOTH[] PROGMEM = "Fill Both";
@@ -281,7 +279,7 @@ void screenInit(byte screen) {
     if (screenLock) {
       printLCD_P(3, 0, PSTR(">"));
       printLCD_P(3, 10, PSTR("<"));
-      printLCD_P(3, 3, AUTOFILL);
+      printLCD_P(3, 1, FILLHLT);
       Encoder.setMin(0);
       Encoder.setMax(4);
       Encoder.setCount(0);
@@ -523,7 +521,7 @@ void screenRefresh(byte screen) {
         else if (encValue == 1) printLCD_P(3, 1, CHILLH2O);
         else if (encValue == 2) printLCD_P(3, 1, CHILLBEER);
         else if (encValue == 3) printLCD_P(3, 2, ALLOFF);
-        else if (encValue == 4) printLCD_P(3, 4, AUTOFILL);
+        else if (encValue == 4) printLCD_P(3, 4, PSTR("Auto"));
         else if (encValue == 5) printLCD_P(3, 2, CONTINUE);
         else if (encValue == 6) printLCD_P(3, 3, ABORT);
       }
@@ -616,9 +614,9 @@ void screenEnter(byte screen) {
           strcpy_P(menuopts[0], PSTR("Auto Fill"));
           strcpy_P(menuopts[1], PSTR("HLT Target"));
           strcpy_P(menuopts[2], PSTR("Mash Target"));
-          strcpy_P(menuopts[3], PSTR("Continue"));
-          strcpy_P(menuopts[4], PSTR("Abort"));
-          strcpy_P(menuopts[5], PSTR("Cancel"));
+          strcpy_P(menuopts[3], CONTINUE);
+          strcpy_P(menuopts[4], ABORT);
+          strcpy_P(menuopts[5], CANCEL);
           byte lastOption = scrollMenu("Fill Menu", 6, 0);
           if (lastOption == 0) { if(tgtVol[VS_HLT] || tgtVol[VS_MASH]) autoValve[AV_FILL] = 1; }
           else if (lastOption == 1) tgtVol[VS_HLT] = getValue(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 7, 3, 9999999, VOLUNIT);
@@ -645,32 +643,32 @@ void screenEnter(byte screen) {
 
       } else if (screen == SCREEN_MASH) {
         //Screen Enter: Preheat/Mash
-        strcpy_P(menuopts[0], CANCEL);
-        strcpy_P(menuopts[1], PSTR("HLT Setpoint: "));
-        strcat(menuopts[1], itoa(setpoint[VS_HLT], buf, 10));
+        strcpy_P(menuopts[0], PSTR("HLT Setpoint: "));
+        strcat(menuopts[0], itoa(setpoint[VS_HLT], buf, 10));
+        strcat_P(menuopts[0], TUNIT);
+        strcpy_P(menuopts[1], PSTR("Mash Setpoint: "));
+        strcat(menuopts[1], itoa(setpoint[VS_MASH], buf, 10));
         strcat_P(menuopts[1], TUNIT);
-        strcpy_P(menuopts[2], PSTR("Mash Setpoint: "));
-        strcat(menuopts[2], itoa(setpoint[VS_MASH], buf, 10));
-        strcat_P(menuopts[2], TUNIT);
-        strcpy_P(menuopts[3], PSTR("Set Timer"));
-        if (timerStatus[TIMER_MASH]) strcpy_P(menuopts[4], PSTR("Pause Timer"));
-        else strcpy_P(menuopts[4], PSTR("Start Timer"));
-        strcpy_P(menuopts[5], SKIPSTEP);
-        strcpy_P(menuopts[6], ABORT);
-        byte lastOption = scrollMenu("AutoBrew Mash Menu", 7, 0);
-        if (lastOption == 1) setSetpoint(VS_HLT, getValue(PSTR("HLT Setpoint"), setpoint[VS_HLT], 3, 0, 255, TUNIT));
-        else if (lastOption == 2) setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH], 3, 0, 255, TUNIT));
-        else if (lastOption == 3) { 
+        strcpy_P(menuopts[2], PSTR("Set Timer"));
+        if (timerStatus[TIMER_MASH]) strcpy_P(menuopts[3], PSTR("Pause Timer"));
+        else strcpy_P(menuopts[3], PSTR("Start Timer"));
+        strcpy_P(menuopts[4], CONTINUE);
+        strcpy_P(menuopts[5], ABORT);
+        strcpy_P(menuopts[6], CANCEL);
+        byte lastOption = scrollMenu("Mash Menu", 7, 0);
+        if (lastOption == 0) setSetpoint(VS_HLT, getValue(PSTR("HLT Setpoint"), setpoint[VS_HLT], 3, 0, 255, TUNIT));
+        else if (lastOption == 1) setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH], 3, 0, 255, TUNIT));
+        else if (lastOption == 2) { 
           setTimer(TIMER_MASH, getTimerValue(PSTR("Mash Timer"), timerValue[TIMER_MASH] / 60000));
           //Force Preheated
           preheated[VS_MASH] = 1;
         } 
-        else if (lastOption == 4) {
+        else if (lastOption == 3) {
           pauseTimer(TIMER_MASH);
           //Force Preheated
           preheated[VS_MASH] = 1;
         } 
-        else if (lastOption == 5) {
+        else if (lastOption == 4) {
           byte brewstep = PROGRAM_IDLE;
           if (stepIsActive(STEP_DELAY)) brewstep = STEP_DELAY;
           else if (stepIsActive(STEP_DOUGHIN)) brewstep = STEP_DOUGHIN;
@@ -687,7 +685,7 @@ void screenEnter(byte screen) {
               stepAdvanceFailDialog();
             }
           } else activeScreen = SCREEN_SPARGE;
-        } else if (lastOption == 6) {
+        } else if (lastOption == 5) {
           if (confirmAbort()) {
             if (stepIsActive(STEP_DELAY)) stepExit(STEP_DELAY);
             else if (stepIsActive(STEP_DOUGHIN)) stepExit(STEP_DOUGHIN);
@@ -749,43 +747,43 @@ void screenEnter(byte screen) {
 
       } else if (screen == SCREEN_BOIL) {
         //Screen Enter: Boil
-        strcpy_P(menuopts[0], CANCEL);
-        strcpy_P(menuopts[1], PSTR("Set Timer"));
-        if (timerStatus[TIMER_BOIL]) strcpy_P(menuopts[2], PSTR("Pause Timer"));
-        else strcpy_P(menuopts[2], PSTR("Start Timer"));
-        strcpy_P(menuopts[3], PSTR("Auto Boil"));
-        strcpy_P(menuopts[4], PSTR("Boil Temp: "));
-        strcat(menuopts[4], itoa(getBoilTemp(), buf, 10));
-        strcat_P(menuopts[4], TUNIT);
-        strcpy_P(menuopts[5], PSTR("Boil Power: "));
-        strcat(menuopts[5], itoa(boilPwr, buf, 10));
-        strcat(menuopts[5], "%");
-        strcpy_P(menuopts[6], BOILRECIRC);
-        if (vlvConfigIsActive(VLV_BOILRECIRC)) strcat_P(menuopts[6], PSTR(": On"));
-        else strcat_P(menuopts[6], PSTR(": Off"));
-        strcpy_P(menuopts[7], SKIPSTEP);
-        strcpy_P(menuopts[8], ABORT);
-        byte lastOption = scrollMenu("AutoBrew Boil Menu", 9, 0);
-        if (lastOption == 1) {
+        strcpy_P(menuopts[0], PSTR("Set Timer"));
+        if (timerStatus[TIMER_BOIL]) strcpy_P(menuopts[1], PSTR("Pause Timer"));
+        else strcpy_P(menuopts[1], PSTR("Start Timer"));
+        strcpy_P(menuopts[2], PSTR("Auto Boil"));
+        strcpy_P(menuopts[3], PSTR("Boil Temp: "));
+        strcat(menuopts[3], itoa(getBoilTemp(), buf, 10));
+        strcat_P(menuopts[3], TUNIT);
+        strcpy_P(menuopts[4], PSTR("Boil Power: "));
+        strcat(menuopts[4], itoa(boilPwr, buf, 10));
+        strcat(menuopts[4], "%");
+        strcpy_P(menuopts[5], BOILRECIRC);
+        if (vlvConfigIsActive(VLV_BOILRECIRC)) strcat_P(menuopts[5], PSTR(": On"));
+        else strcat_P(menuopts[5], PSTR(": Off"));
+        strcpy_P(menuopts[6], CONTINUE);
+        strcpy_P(menuopts[7], ABORT);
+        strcpy_P(menuopts[8], CANCEL);        
+        byte lastOption = scrollMenu("Boil Menu", 9, 0);
+        if (lastOption == 0) {
           setTimer(TIMER_BOIL, getTimerValue(PSTR("Boil Timer"), timerValue[TIMER_BOIL] / 60000));
           //Force Preheated
           preheated[VS_KETTLE] = 1;
         } 
-        else if (lastOption == 2) {
+        else if (lastOption == 1) {
           pauseTimer(TIMER_BOIL);
           //Force Preheated
           preheated[VS_KETTLE] = 1;
         } 
-        else if (lastOption == 3) doAutoBoil = 1;
-        else if (lastOption == 4) {
+        else if (lastOption == 2) doAutoBoil = 1;
+        else if (lastOption == 3) {
           setBoilTemp(getValue(PSTR("Boil Temp"), getBoilTemp(), 3, 0, 255, TUNIT));
           setSetpoint(VS_KETTLE, getBoilTemp());
         }
-        else if (lastOption == 5) setBoilPwr(getValue(PSTR("Boil Power"), boilPwr, 3, 0, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
-        else if (lastOption == 6) {
+        else if (lastOption == 4) setBoilPwr(getValue(PSTR("Boil Power"), boilPwr, 3, 0, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
+        else if (lastOption == 5) {
           if (vlvConfigIsActive(VLV_BOILRECIRC)) setValves(vlvConfig[VLV_BOILRECIRC], 0);
           else setValves(vlvConfig[VLV_BOILRECIRC], 1);
-        } else if (lastOption == 7) {
+        } else if (lastOption == 6) {
           byte brewstep = PROGRAM_IDLE;
           if (stepIsActive(STEP_BOIL)) brewstep = STEP_BOIL;
           if(brewstep != PROGRAM_IDLE) {
@@ -797,7 +795,7 @@ void screenEnter(byte screen) {
             activeScreen = SCREEN_CHILL;
             screenInit(activeScreen);
           }
-        } else if (lastOption == 8) { if (confirmAbort()) stepExit(STEP_BOIL); }
+        } else if (lastOption == 7) { if (confirmAbort()) stepExit(STEP_BOIL); }
         screenInit(activeScreen);
         
       } else if (screen == SCREEN_CHILL) {

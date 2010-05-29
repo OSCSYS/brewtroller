@@ -229,6 +229,7 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Boil
     setSetpoint(VS_KETTLE, getBoilTemp());
     preheated[VS_KETTLE] = 0;
+    boilAdds = getProgAdds(pgm);
     triggered = getBoilAddsTrig();
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_BOIL]) setTimer(TIMER_BOIL, getProgBoil(pgm));

@@ -1,4 +1,4 @@
-#define BUILD 411 
+#define BUILD 413 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -31,7 +31,7 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 
   Using the following libraries:
     PID  v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
-    OneWire (http://www.arduino.cc/playground/Learning/OneWire)
+    OneWire 2.0 (http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip)
     Encoder by CodeRage ()
     FastPin and modified LiquidCrystal with FastPin by CodeRage (http://www.brewtroller.com/forum/showthread.php?t=626)
 */
