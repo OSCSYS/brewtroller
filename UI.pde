@@ -606,7 +606,7 @@ void screenEnter(byte screen) {
       } else if (screen == SCREEN_FILL) {
         //Sceeen Enter: Fill/Refill
         int encValue = Encoder.getCount();
-        if (encValue == 0) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 1); setValves(vlvConfig[VLV_FILLMASH], 0);}
+        if (encValue == 0) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLMASH], 0); setValves(vlvConfig[VLV_FILLHLT], 1);}
         else if (encValue == 1) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 1);}
         else if (encValue == 2) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 1); setValves(vlvConfig[VLV_FILLMASH], 1);}
         else if (encValue == 3) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 0);}
@@ -803,7 +803,7 @@ void screenEnter(byte screen) {
 
         int encValue = Encoder.getCount();
         if (encValue == 0) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 1); setValves(vlvConfig[VLV_CHILLBEER], 1); }
-        else if (encValue == 1) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 1); setValves(vlvConfig[VLV_CHILLBEER], 0); }
+        else if (encValue == 1) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLBEER], 0); setValves(vlvConfig[VLV_CHILLH2O], 1); }
         else if (encValue == 2) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 0); setValves(vlvConfig[VLV_CHILLBEER], 1); }
         else if (encValue == 3) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 0); setValves(vlvConfig[VLV_CHILLBEER], 0); }
         else if (encValue == 4) autoValve[AV_CHILL] = 1;
