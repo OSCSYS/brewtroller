@@ -287,7 +287,7 @@ void stepCore() {
     
     #else
       #ifdef AUTO_SPARGE_EXIT
-        stepAdvance(STEP_SPARGE);
+         if (volAvg[VS_KETTLE] >= tgtVol[VS_KETTLE]) stepAdvance(STEP_SPARGE);
       #endif
     #endif
   }
