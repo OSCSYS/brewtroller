@@ -32,6 +32,10 @@ void brewCore() {
   //Volumes: Volume.pde
   updateVols();
   
+  #ifdef FLOWRATE_CALCS
+    updateFlowRates();
+  #endif
+  
   //Log: Log.pde
   updateLog();
   

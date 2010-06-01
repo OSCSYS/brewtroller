@@ -1,4 +1,4 @@
-#define BUILD 415 
+#define BUILD 416 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -269,6 +269,17 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 
 
 //**********************************************************************************
+// Flow Rate Calculation
+//**********************************************************************************
+// FLOWRATE_CALCS: Enables calculation of flow rates for each vessel based on
+// volume changes over a specified interval
+// FLOWRATE_READ_INTERVAL: Time in ms between flowrate calculation updates
+//
+#define FLOWRATE_CALCS
+#define FLOWRATE_READ_INTERVAL 1000
+//**********************************************************************************
+
+//**********************************************************************************
 // DEBUG
 //**********************************************************************************
 // Enables Serial Out with Additional Debug Data
@@ -492,6 +503,10 @@ float temp[9];
 //Volume
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
+
+#ifdef FLOWRATE_CALCS
+float flowRate[3];
+#endif
 
 //Valve Variables
 unsigned long vlvConfig[13], vlvBits;

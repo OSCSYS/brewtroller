@@ -24,8 +24,8 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-unsigned long volReadings[3][VOLUME_READ_COUNT];
-unsigned long lastVolChk;
+unsigned long volReadings[3][VOLUME_READ_COUNT], prevFlowVol[3];
+unsigned long lastVolChk, lastFlowChk;
 byte volCount;
 
 void updateVols() {
@@ -43,6 +43,19 @@ void updateVols() {
     lastVolChk = millis();
   }
 }
+
+#ifdef FLOWRATE_CALCS
+void updateFlowRates() {
+  //Check flowrate periodically (FLOWRATE_READ_INTERVAL)
+  if (millis() - lastFlowChk > FLOWRATE_READ_INTERVAL) {
+    for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+      flowRate[i] = (prevFlowVol[i] - volAvg[i]) / (millis() - lastFlowChk) * 60000;
+      prevFlowVol[i] = volAvg[i];
+    }
+    lastFlowChk = millis();
+  }
+}
+#endif
 
 unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned int calibrationValues[10] ) {
   unsigned int aValue = analogRead(pin);

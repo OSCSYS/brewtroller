@@ -382,6 +382,12 @@ void updateLog() {
         logFieldI(i);
         ftoa(volAvg[i]/1000.0, buf, 3);
         logField(buf);
+        #ifdef FLOWRATE_CALCS
+          ftoa(flowRate[i]/1000.0, buf, 3);
+          logField(buf);
+        #else
+          logFieldI(0);
+        #endif
         #ifdef USEMETRIC
           logFieldI(0);
         #else
