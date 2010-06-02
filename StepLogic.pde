@@ -230,11 +230,19 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(VS_KETTLE, getBoilTemp());
     preheated[VS_KETTLE] = 0;
     boilAdds = getProgAdds(pgm);
-    triggered = getBoilAddsTrig();
-    //Set timer only if empty (for purposed of power loss recovery)
-    if (!timerValue[TIMER_BOIL]) setTimer(TIMER_BOIL, getProgBoil(pgm));
+    
+    //Set timer only if empty (for purposes of power loss recovery)
+    if (!timerValue[TIMER_BOIL]) {
+      //Clean start of Boil
+      setTimer(TIMER_BOIL, getProgBoil(pgm));
+      triggered = 0;
+      setBoilAddsTrig(triggered);
+    } else {
+      //Assuming power loss recovery
+      triggered = getBoilAddsTrig();
+    }
     //Leave timer paused until preheated
-    timerStatus[TIMER_MASH] = 0;
+    timerStatus[TIMER_BOIL] = 0;
     lastHop = 0;
     doAutoBoil = 1;
     
@@ -298,13 +306,13 @@ void stepCore() {
       else PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * 10 * min(boilPwr, PIDLIMIT_KETTLE);
     }
     #ifdef PREBOIL_ALARM
-      if ((triggered ^ 32768) && temp[TS_KETTLE] >= PREBOIL_ALARM) {
+      if (!(triggered & 32768) && temp[TS_KETTLE] >= PREBOIL_ALARM) {
         setAlarm(1);
         triggered |= 32768; 
         setBoilAddsTrig(triggered);
       }
     #endif
-    if (!preheated[VS_KETTLE] && temp[TS_KETTLE] >= setpoint[TS_KETTLE] && setpoint[TS_KETTLE] > 0) {
+    if (!preheated[VS_KETTLE] && temp[TS_KETTLE] >= setpoint[VS_KETTLE] && setpoint[VS_KETTLE] > 0) {
       preheated[VS_KETTLE] = 1;
       //Unpause Timer
       if (!timerStatus[TIMER_BOIL]) pauseTimer(TIMER_BOIL);
