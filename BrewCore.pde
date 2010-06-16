@@ -52,4 +52,9 @@ void brewCore() {
   
   //Step Logic: StepLogic.pde
   stepCore();
+  
+  //BTPD Support
+  #ifdef BTPD_SUPPORT
+    updateBTPD();
+  #endif
 }

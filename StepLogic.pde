@@ -248,6 +248,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     
   } else if (brewStep == STEP_CHILL) {
   //Step Init: Chill
+    pitchTemp = getProgPitch(pgm);
   }
 
   //Call event handler

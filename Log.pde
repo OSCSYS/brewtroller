@@ -26,7 +26,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 void logInit() {
   #if defined USESERIAL
-    Serial.begin(9600);
+    Serial.begin(BAUD_RATE);
     Serial.println();
   #endif
   logStart_P(LOGSYS);

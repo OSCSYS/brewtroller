@@ -1,4 +1,4 @@
-#define BUILD 418 
+#define BUILD 419 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -183,14 +183,19 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 //**********************************************************************************
 // Serial Logging Options
 //**********************************************************************************
+// BAUD_RATE: The baud rate for the serial connection. Breviouis to BrewTroller 2.0
+// Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
+// was increased to 115200 but can be manually set using this compile option
+#define BAUD_RATE 115200
+
 // LOG_INTERVAL: Specifies how often data is logged via serial in milliseconds. If
 // real time display of data is being used a smaller interval is best (1000 ms). A
 // larger interval can be used for logging applications to reduce log file size 
 // (5000 ms).
+#define LOG_INTERVAL 2000
+
 // LOG_INITSTATUS: Sets whether logging is enabled on bootup. Log status can be
 // toggled using the SET_LOGSTATUS command.
-
-#define LOG_INTERVAL 2000
 #define LOG_INITSTATUS 1
 //**********************************************************************************
 
@@ -205,6 +210,50 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 //#define UI_NO_SETUP
 //**********************************************************************************
 
+
+//**********************************************************************************
+// BrewTroller PID Display (BTPD)
+//**********************************************************************************
+// BTPD is an external LED display developed by BrewTroller forum member vonnieda. 
+// It is a 2 line, 4 digit (8 digits total) LED display with one line red and one
+// line green. The digits are about a half inch high and can easily be seen across
+// the room. The display connects to the BrewTroller via the I2C header and can be
+// daisy chained to use as many as you like, theoretically up to 127 but in practice
+// probably 10 or so.
+
+// BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
+//#define BTPD_SUPPORT
+
+// BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds.
+#define BTPD_INTERVAL 1000
+
+// BTPD_HLT_TEMP: Displays HLT temp and setpoint on specified channel
+#define BTPD_HLT_TEMP 0
+
+// BTPD_MASH_TEMP: Displays Mash temp and setpoint on specified channel
+#define BTPD_MASH_TEMP 1
+
+// BTPD_KETTLE_TEMP: Displays Kettle temp and setpoint on specified channel
+#define BTPD_KETTLE_TEMP 2
+
+// BTPD_H2O_TEMPS: Displays H2O In and H2O Out temps on specified channels
+#define BTPD_H2O_TEMPS 3
+
+// BTPD_FERM_TEMP: Displays Beer Out temp and Pitch temp on specified channel
+#define BTPD_FERM_TEMP 4
+
+// BTPD_HLT_VOL: Displays current and target HLT volume
+#define BTPD_HLT_VOL 10
+
+// BTPD_MASH_VOL: Displays current and target Mash volume
+#define BTPD_MASH_VOL 11
+
+// BTPD_KETTLE_VOL: Displays current and target Kettle volume
+#define BTPD_KETTLE_VOL 12
+
+// BTPD_STEAM_PRESS: Displays current and target Steam pressure
+#define BTPD_STEAM_PRESS 13
+//**********************************************************************************
 
 //**********************************************************************************
 // Brew Step Automation
@@ -282,8 +331,7 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 //**********************************************************************************
 // DEBUG
 //**********************************************************************************
-// Enables Serial Out with Additional Debug Data
-//
+// DEBUG: Enables Serial Out with Additional Debug Data (Currently not much more)
 //#define DEBUG
 //**********************************************************************************
 
@@ -481,7 +529,6 @@ void(* softReset) (void) = 0;
 #define SYSINFO_VOLINT_2 25
 #define SYSINFO_VOLCOUNT 26
 
-
 //Heat Output Pin Array
 pin heatPin[4], alarmPin;
 
@@ -550,7 +597,7 @@ boolean preheated[4], doAutoBoil;
 
 //Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
 unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
-
+byte pitchTemp;
 
 const char BT[] PROGMEM = "BrewTroller";
 const char BTVER[] PROGMEM = "2.0";
@@ -575,6 +622,10 @@ void setup() {
   //User Interface Initialization (UI.pde)
   #ifndef NOUI
     uiInit();
+  #endif
+
+  #ifdef BTPD_SUPPORT
+    btpdInit();
   #endif
 
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)

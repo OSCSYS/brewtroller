@@ -48,6 +48,7 @@ void truncFloat(char string[], byte length) {
   }
 }
 
+#ifdef SYSINFO
 byte sysInfo(byte address) {
   byte retValue = 0;
   if (address == SYSINFO_BTBOARD) {
@@ -290,4 +291,4 @@ byte float2byte(float varFlt, byte pos) {
   convert.f_var = varFlt;
   return convert.b_var[pos];
 }
-
+#endif

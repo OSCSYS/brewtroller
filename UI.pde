@@ -564,12 +564,12 @@ void screenEnter(byte screen) {
         if (vlvConfigIsActive(VLV_DRAIN)) strcat_P(menuopts[3], PSTR(": On"));
         else strcat_P(menuopts[3], PSTR(": Off"));
         strcpy_P(menuopts[4], PSTR("Reset All"));
-        strcpy_P(menuopts[5], PSTR("System Info"));
-        strcpy_P(menuopts[6], PSTR("System Setup"));
+        //strcpy_P(menuopts[5], PSTR("System Info"));
+        strcpy_P(menuopts[5], PSTR("System Setup"));
         #ifdef UI_NO_SETUP
-          byte lastOption = scrollMenu("Main Menu", 6, 0);
+          byte lastOption = scrollMenu("Main Menu", 5, 0);
         #else
-          byte lastOption = scrollMenu("Main Menu", 7, 0);
+          byte lastOption = scrollMenu("Main Menu", 6, 0);
         #endif
         if (lastOption == 1) editProgramMenu();
         else if (lastOption == 2) startProgramMenu();
@@ -597,9 +597,11 @@ void screenEnter(byte screen) {
             clearTimer(TIMER_BOIL);
           }
         }
-        else if (lastOption == 5) UIsysInfo();
+#ifdef SYSINFO
+        //else if (lastOption == 5) UIsysInfo();
+#endif
 #ifndef UI_NO_SETUP        
-        else if (lastOption == 6) menuSetup();
+        else if (lastOption == 5) menuSetup();
 #endif
         screenInit(activeScreen);
 
@@ -1470,6 +1472,7 @@ byte enc2ASCII(byte charin) {
   else if (charin >= 91 && charin <= 94) return charin + 32;
 }
 
+#ifdef SYSINFO
 void UIsysInfo() {
   byte pos = 0;
   byte line = 0;
@@ -1491,6 +1494,7 @@ void UIsysInfo() {
   }
   scrollMenu("System Information", line + 1, 0);
 }
+#endif
 
 //*****************************************************************************************************************************
 // System Setup Menus
