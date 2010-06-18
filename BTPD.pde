@@ -24,6 +24,9 @@ void updateBTPD() {
     #ifdef BTPD_FERM_TEMP
       sendFloatsBTPD(BTPD_FERM_TEMP, pitchTemp, temp[TS_BEEROUT]);
     #endif
+    #ifdef BTPD_TIMERS
+      sendFloatsBTPD(BTPD_TIMERS, timer2Float(timerValue[TIMER_MASH]), timer2Float(timerValue[TIMER_BOIL]));
+    #endif
     #ifdef BTPD_HLT_VOL
       sendVsVol(BTPD_HLT_VOL, VS_HLT);
     #endif
@@ -57,5 +60,17 @@ void sendFloatsBTPD(byte chan, float line1, float line2) {
   Wire.endTransmission();
 }
 
+#ifdef BTPD_TIMERS
+float timer2Float(unsigned long value) {
+  value /= 1000;
+  if (value > 3600) {
+    byte hours = value / 3600;
+    return hours + (value - hours * 3600) / 100;
+  } else {
+    byte mins = value / 60;
+    return mins + (value - mins * 60) / 100;
+  }
+}
+#endif
 #endif
 
