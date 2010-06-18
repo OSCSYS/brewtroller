@@ -96,7 +96,7 @@ boolean stepInit(byte pgm, byte brewStep) {
       if (getProgMLHeatSrc(pgm) == VS_HLT) {
         setSetpoint(TS_HLT, calcStrikeTemp(pgm));
         #ifdef STRIKE_TEMP_OFFSET
-          setSetpoint(TS_HLT, setpoint[TS_HLT] + STRIKE_TEMP_OFFSET;
+          setSetpoint(TS_HLT, setpoint[TS_HLT] + STRIKE_TEMP_OFFSET);
         #endif
         setSetpoint(TS_MASH, 0);
       } else {

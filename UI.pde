@@ -130,15 +130,15 @@ const byte BMP3[] PROGMEM = {B11111, B11111, B10001, B00011, B01111, B11111, B11
 const byte BMP4[] PROGMEM = {B01111, B01110, B01100, B00001, B01111, B00111, B00011, B11101};
 const byte BMP5[] PROGMEM = {B11111, B00111, B00111, B11111, B11111, B11111, B11110, B11001};
 const byte BMP6[] PROGMEM = {B11111, B11111, B11110, B11101, B11011, B00111, B11111, B11111};
-//const byte UNLOCK_ICON[] PROGMEM = {B01110, B10001, B10001, B10000, B11111, B11111, B11111, B11111};
 const byte UNLOCK_ICON[] PROGMEM = {B00110, B01001, B01001, B01000, B01111, B01111, B01111, B00000};
 const byte PROG_ICON[] PROGMEM = {B00001, B11101, B10101, B11101, B10001, B10001, B00001, B11111};
+const byte BELL[] PROGMEM = {B00100, B01110, B01110, B01110, B11111, B00000, B00100, B00000};
 //**********************************************************************************
 // UI Globals
 //**********************************************************************************
 byte activeScreen;
 boolean screenLock;
-byte timerLastPrint;
+unsigned long timerLastPrint;
 
 //**********************************************************************************
 // uiInit:  One time intialization of all UI logic
@@ -237,6 +237,7 @@ void screenInit(byte screen) {
   if (screen != SCREEN_HOME) {
     lcdSetCustChar_P(6, PROG_ICON);
     lcdWriteCustChar(0, 0, 6);
+    lcdSetCustChar_P(5, BELL);
   }
   
   if (screen == SCREEN_HOME) {
@@ -483,7 +484,6 @@ void screenRefresh(byte screen) {
     }
     
     printTimer(TIMER_BOIL, 3, 0);
-    if (alarmStatus) printLCD_P(3, 5, PSTR("!")); else printLCD_P(3, 5, SPACE);
 
     ftoa(volAvg[VS_KETTLE]/1000.0, buf, 2);
     truncFloat(buf, 5);
@@ -837,8 +837,8 @@ void printTimer(byte timer, byte iRow, byte iCol) {
     byte timerSecs = (timerValue[timer] - timerHours * 3600000 - timerMins * 60000) / 1000;
 
     //Update LCD once per second
-    if (timerLastPrint != timerSecs) {
-      timerLastPrint = timerSecs;
+    if (millis() - timerLastPrint >= 1000) {
+      timerLastPrint = millis();
       printLCDRPad(iRow, iCol, "", 6, ' ');
       printLCD_P(iRow, iCol+2, PSTR(":"));
       if (timerHours > 0) {
@@ -848,7 +848,7 @@ void printTimer(byte timer, byte iRow, byte iCol) {
         printLCDLPad(iRow, iCol, itoa(timerMins, buf, 10), 2, '0');
         printLCDLPad(iRow, iCol+ 3, itoa(timerSecs, buf, 10), 2, '0');
       }
-      if (alarmStatus) printLCD(iRow, iCol + 5, "!");
+      if (alarmStatus) lcdWriteCustChar(iRow, iCol + 5, 5);
     }
   } else printLCDRPad(iRow, iCol, "", 6, ' ');
 }
