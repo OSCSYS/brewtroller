@@ -50,32 +50,37 @@ void pinInit() {
   
   heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
   heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
+#ifdef HLT_AS_KETTLE
+  heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
+#else
   heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
+#endif
+
 #ifdef USESTEAM
   heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
 #endif
 }
 
 void pidInit() {
-  pid[VS_HLT].SetInputLimits(0, 255);
+  pid[VS_HLT].SetInputLimits(0, 25500);
   pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * 10 * PIDLIMIT_HLT);
   pid[VS_HLT].SetTunings(getPIDp(VS_HLT), getPIDi(VS_HLT), getPIDd(VS_HLT));
   pid[VS_HLT].SetMode(AUTO);
 
-  pid[VS_MASH].SetInputLimits(0, 255);
+  pid[VS_MASH].SetInputLimits(0, 25500);
   pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * 10 * PIDLIMIT_MASH);
   pid[VS_MASH].SetTunings(getPIDp(VS_MASH), getPIDi(VS_MASH), getPIDd(VS_MASH));
   pid[VS_MASH].SetMode(AUTO);
     
-  pid[VS_KETTLE].SetInputLimits(0, 255);
+  pid[VS_KETTLE].SetInputLimits(0, 25500);
   pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * 10 * PIDLIMIT_KETTLE);
   pid[VS_KETTLE].SetTunings(getPIDp(VS_KETTLE), getPIDi(VS_KETTLE), getPIDd(VS_KETTLE));
   pid[VS_KETTLE].SetMode(MANUAL);
 
   #ifdef USEMETRIC
-    pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
+    pid[VS_STEAM].SetInputLimits(0, 50000000 / steamPSens);
   #else
-    pid[VS_STEAM].SetInputLimits(0, 7250 / steamPSens);
+    pid[VS_STEAM].SetInputLimits(0, 7250000 / steamPSens);
   #endif
   pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * 10 * PIDLIMIT_STEAM);
   pid[VS_STEAM].SetTunings(getPIDp(VS_STEAM), getPIDi(VS_STEAM), getPIDd(VS_STEAM));
@@ -171,8 +176,8 @@ void processHeatOutputs() {
           heatPin[i].set(HIGH);
         }
       } else {
-        if ((i != VS_STEAM && temp[i] > 0 && (float)(setpoint[i] - temp[i]) >= (float) hysteresis[i] / 10.0) 
-        || (i == VS_STEAM && (float)(setpoint[i] - steamPressure) >= (float) hysteresis[i] / 10.0)) {
+        if ((i != VS_STEAM && temp[i] > 0 && (setpoint[i] - temp[i]) >= hysteresis[i] * 10) 
+        || (i == VS_STEAM && (setpoint[i] - steamPressure) >= hysteresis[i] * 100)) {
           heatPin[i].set(HIGH);
           heatStatus[i] = 1;
         } else {

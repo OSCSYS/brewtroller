@@ -1,4 +1,4 @@
-#define BUILD 421 
+#define BUILD 425 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -87,6 +87,33 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 //#define USESTEAM
 //**********************************************************************************
 
+
+//**********************************************************************************
+// Vessel Options
+//**********************************************************************************
+// BrewTroller was designed to support three vessles (HLT, Mash and Kettle). This
+// sections provides support for specific systems that differ from this model.
+
+// HLT_AS_KETTLE: This option remaps the Kettle temp sensor, volume sensor and heat
+// output to the HLT's devices to  allow the HLT to be reused as a kettle.
+//#define HLT_AS_KETTLE
+
+// MASH_PREHEAT_SENSOR: This option allows for an alternate temperature sensor to
+// control the mash heat output during the Preheat step. This is used to control the
+// water temperature on dedicated HEX vessel during preheat. After preheat the
+// actual mash temperature sensor would be used to control the mash heat output.
+// aka 'Yorg Option 1'
+//#define MASH_PREHEAT_SENSOR TS_AUX1
+
+// MASH_PREHEAT_STRIKE/MASH_PREHEAT_STEP1: Use one of the following two options to
+// override the zero setpoint for the mash tun when the 'Heat Strike In' program 
+// option is set to HLT. STRIKE will use the calculated strike temp. STEP1 will use
+// the first mash step temp. aka 'Yorg Option 2'
+//#define MASH_PREHEAT_STRIKE
+//#define MASH_PREHEAT_STEP1
+//**********************************************************************************
+
+
 //**********************************************************************************
 // PID Output Power Limit
 //**********************************************************************************
@@ -143,14 +170,50 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 //**********************************************************************************
 
 //**********************************************************************************
+// OneWire Temperature Sensor Options
+//**********************************************************************************
+// TS_ONEWIRE: Enables use of OneWire Temperature Sensors (Future logic may
+// support alternatives temperature sensor options.)
+#define TS_ONEWIRE
+
+// TS_ONEWIRE_PPWR: Specifies whether parasite power is used for OneWire temperature
+// sensors. Parasite power allows sensors to obtain their power from the data line
+// but significantly increases the time required to read the temperature (94-750ms
+// based on resolution versus 10ms with dedicated power).
+#define TS_ONEWIRE_PPWR 0
+
+// TS_ONEWIRE_RES: OneWire Temperature Sensor Resolution (9-bit - 12-bit). Valid
+// options are: 9, 10, 11, 12). Unless parasite power is being used the recommended
+// setting is 12-bit. When using parasite power decreasing the resolution reduces
+// the temperature conversion time: 
+//   12-bit (0.0625C / 0.1125F) = 750ms 
+//   11-bit (0.125C  / 0.225F ) = 375ms 
+//   10-bit (0.25C   / 0.45F  ) = 188ms 
+//    9-bit (0.5C    / 0.9F   ) =  94ms   
+#define TS_ONEWIRE_RES 11
+//**********************************************************************************
+
+
+//**********************************************************************************
 // Strike Temperature Correction
 //**********************************************************************************
 // STRIKE_TEMP_OFFSET: Adjusts strike temperature to compensate for thermal mass of
 // mash tun. (Note: This option is used only when Mash Liquor Heat Source is set to
-// HLT.)
+// HLT.) Specify correction in whole degrees.
 
 //#define STRIKE_TEMP_OFFSET 1
 
+//**********************************************************************************
+
+
+//**********************************************************************************
+// Mash Temperature Adjustment
+//**********************************************************************************
+// MASH_AVG_AUXx: Uncomment one or more of the following lines to include averaging
+// of AUX1, AUX2 and/or AUX3 temp sensors with mash temp sensor.
+//#define MASH_AVG_AUX1
+//#define MASH_AVG_AUX2
+//#define MASH_AVG_AUX3
 //**********************************************************************************
 
 
@@ -365,11 +428,14 @@ void(* softReset) (void) = 0;
   #endif
 #endif
 
-
-
 //Enable Serial on BTBOARD_22+ boards or if DEBUG is set
 #if !defined BTBOARD_1 || defined DEBUG
   #define USESERIAL
+#endif
+
+//Enable Mash Avergaing Logic if any Mash_AVG_AUXx options were enabled
+#if defined MASH_AVG_AUX1 || defined MASH_AVG_AUX2 || defined MASH_AVG_AUX3
+  #define MASH_AVG
 #endif
 
 //Pin and Interrupt Definitions
@@ -434,6 +500,7 @@ void(* softReset) (void) = 0;
 #define TS_AUX1 6
 #define TS_AUX2 7
 #define TS_AUX3 8
+#define NUM_TS 9
 
 #define VS_HLT 0
 #define VS_MASH 1
@@ -502,36 +569,6 @@ void(* softReset) (void) = 0;
 //Events
 #define EVENT_STEPINIT 0
 
-//System Information 'Memory Addresses'
-#define SYSINFO_SIZE 27
-#define SYSINFO_BTBOARD 0
-#define SYSINFO_AUTOSTEP 1
-#define SYSINFO_BOILRECIRC 2
-#define SYSINFO_MUXBOARDS 3
-#define SYSINFO_PIDLIMIT_HLT 4
-#define SYSINFO_PIDLIMIT_MASH 5
-#define SYSINFO_PIDLIMIT_KETTLE 6
-#define SYSINFO_PIDLIMIT_STEAM 7
-#define SYSINFO_KETTLELID 8
-#define SYSINFO_PREBOILALARM 9
-#define SYSINFO_HLTMAX 10
-#define SYSINFO_MASH_HEATLOSS_1 11
-#define SYSINFO_MASH_HEATLOSS_2 12
-#define SYSINFO_MASH_HEATLOSS_3 13
-#define SYSINFO_MASH_HEATLOSS_4 14
-#define SYSINFO_HOPADD_DELAY_1 15
-#define SYSINFO_HOPADD_DELAY_2 16
-#define SYSINFO_STRIKEOFFSET_1 17
-#define SYSINFO_STRIKEOFFSET_2 18
-#define SYSINFO_STRIKEOFFSET_3 19
-#define SYSINFO_STRIKEOFFSET_4 20
-#define SYSINFO_LOGINTERVAL_1 21
-#define SYSINFO_LOGINTERVAL_2 22
-#define SYSINFO_UILEVEL 23
-#define SYSINFO_VOLINT_1 24
-#define SYSINFO_VOLINT_2 25
-#define SYSINFO_VOLCOUNT 26
-
 //Heat Output Pin Array
 pin heatPin[4], alarmPin;
 
@@ -544,18 +581,23 @@ pin heatPin[4], alarmPin;
 #endif
 
 //Volume Sensor Pin Array
-byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, KETTLEVOL_APIN};
+#ifdef HLT_AS_KETTLE
+  byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, HLTVOL_APIN};
+#else
+  byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, KETTLEVOL_APIN};
+#endif
 
 //8-byte Temperature Sensor Address x9 Sensors
 byte tSensor[9][8];
-float temp[9];
+int temp[9];
 
-//Volume
+//Volume in (thousandths of gal/l)
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
 
 #ifdef FLOWRATE_CALCS
-float flowRate[3];
+//Flowrate in thousandths of gal/l per minute
+long flowRate[3];
 #endif
 
 //Valve Variables
@@ -571,8 +613,9 @@ byte PIDCycle[4], hysteresis[4];
 unsigned long cycleStart[4];
 boolean heatStatus[4], PIDEnabled[4];
 unsigned int steamPSens, steamZero;
-float steamPressure;
-byte steamTgt, boilPwr;
+//Steam Pressure in thousandths
+unsigned long steamPressure;
+byte boilPwr;
 
 PID pid[4] = {
   PID(&PIDInput[VS_HLT], &PIDOutput[VS_HLT], &setpoint[VS_HLT], 3, 4, 1),
@@ -621,6 +664,8 @@ void setup() {
 
   //Pin initialization (Outputs.pde)
   pinInit();
+  
+  tempInit();
   
   //User Interface Initialization (UI.pde)
   #ifndef NOUI

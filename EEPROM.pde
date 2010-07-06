@@ -34,6 +34,9 @@ void loadSetup() {
   //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
   //**********************************************************************************
   for (byte i = TS_HLT; i <= TS_AUX3; i++) PROMreadBytes(i * 8, tSensor[i], 8);
+  #ifdef HLT_AS_KETTLE
+    PROMreadBytes(0, tSensor[TS_KETTLE], 8);
+  #endif
  
   //**********************************************************************************
   //PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam
@@ -60,7 +63,6 @@ void loadSetup() {
   //steamZero (114)
   //**********************************************************************************
   steamZero = PROMreadInt(114);
-  
   //**********************************************************************************
   //steamPSens (117-118)
   //**********************************************************************************
@@ -80,7 +82,7 @@ void loadSetup() {
   //**********************************************************************************
   //setpoints (299-301)
   //**********************************************************************************
-  for (byte i=TS_HLT; i<=TS_KETTLE; i++) { setpoint[i] = EEPROM.read(299 + i); }
+  for (byte i=TS_HLT; i<=TS_KETTLE; i++) { setpoint[i] = EEPROM.read(299 + i) * 100; }
   
   //**********************************************************************************
   //timers (302-305)
@@ -228,10 +230,7 @@ void setSteamZero(unsigned int value) {
 //**********************************************************************************
 //steamTgt (116)
 //**********************************************************************************
-void setSteamTgt(byte value) {
-  steamTgt = value;
-  EEPROM.write(116, steamTgt);
-}
+void setSteamTgt(byte value) { EEPROM.write(116, value); }
 byte getSteamTgt() { return EEPROM.read(116); }
 
 //**********************************************************************************
@@ -266,7 +265,7 @@ void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) 
 //setpoints (299-301)
 //**********************************************************************************
 void setSetpoint(byte vessel, byte value) { 
-  setpoint[vessel] = value;
+  setpoint[vessel] = value * 100;
   EEPROM.write(299 + vessel, value);
 }
 

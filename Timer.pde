@@ -70,7 +70,8 @@ void updateTimers() {
     //Update EEPROM once per minute
     if (timerMins != lastEEPROMWrite[timer]) {
       lastEEPROMWrite[timer] = timerMins;
-      setTimerRecovery(timer, timerValue[timer]/60000 + 1);
+      if (!timerValue[timer]) setTimerRecovery(timer, 0);
+      else setTimerRecovery(timer, timerValue[timer]/60000 + 1);
     }
   }
 }

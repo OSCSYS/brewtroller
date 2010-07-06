@@ -19,10 +19,10 @@ void updateBTPD() {
       sendVsTemp(BTPD_KETTLE_TEMP, VS_KETTLE);
     #endif
     #ifdef BTPD_H2O_TEMPS
-      sendFloatsBTPD(BTPD_H2O_TEMPS, temp[TS_H2OIN], temp[TS_H2OOUT]);
+      sendFloatsBTPD(BTPD_H2O_TEMPS, temp[TS_H2OIN] / 100.0, temp[TS_H2OOUT] / 100.0);
     #endif
     #ifdef BTPD_FERM_TEMP
-      sendFloatsBTPD(BTPD_FERM_TEMP, pitchTemp, temp[TS_BEEROUT]);
+      sendFloatsBTPD(BTPD_FERM_TEMP, pitchTemp, temp[TS_BEEROUT] / 100.0);
     #endif
     #ifdef BTPD_TIMERS
       sendFloatsBTPD(BTPD_TIMERS, timer2Float(timerValue[TIMER_MASH]), timer2Float(timerValue[TIMER_BOIL]));
@@ -37,13 +37,14 @@ void updateBTPD() {
       sendVsVol(BTPD_KETTLE_VOL, VS_KETTLE);
     #endif
     #ifdef BTPD_STEAM_PRESS
-      sendFloatsBTPD(BTPD_STEAM_PRESS, steamTgt, steamPressure);
+      sendFloatsBTPD(BTPD_STEAM_PRESS, steamTgt, steamPressure / 1000.0 );
     #endif
+    lastBTPD = millis();
   }
 }
 
 void sendVsTemp(byte chan, byte vessel) {
-  sendFloatsBTPD(chan, setpoint[vessel], temp[vessel]);  
+  sendFloatsBTPD(chan, setpoint[vessel], temp[vessel] / 100.0);  
 }
 
 void sendVsVol(byte chan, byte vessel) {
@@ -51,12 +52,11 @@ void sendVsVol(byte chan, byte vessel) {
 }
 
 void sendFloatsBTPD(byte chan, float line1, float line2) {
-  char sData[9];
-  ftoa(line1, sData, 1);
-  ftoa(line2, buf, 1);
-  strcat(sData, buf);
   Wire.beginTransmission(chan);
-  Wire.send(sData);
+  Wire.send(0xff);
+  Wire.send(0x00);
+  Wire.send((uint8_t *) &line1, 4);
+  Wire.send((uint8_t *) &line2, 4);
   Wire.endTransmission();
 }
 
@@ -73,4 +73,3 @@ float timer2Float(unsigned long value) {
 }
 #endif
 #endif
-

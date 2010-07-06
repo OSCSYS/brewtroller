@@ -380,11 +380,9 @@ void updateLog() {
         logStart_P(LOGDATA);
         logField_P(PSTR("VOL"));
         logFieldI(i);
-        ftoa(volAvg[i]/1000.0, buf, 3);
-        logField(buf);
+        logFieldI(volAvg[i]);
         #ifdef FLOWRATE_CALCS
-          ftoa(flowRate[i]/1000.0, buf, 3);
-          logField(buf);
+          logFieldI(flowRate[i]);
         #else
           logFieldI(0);
         #endif
@@ -399,8 +397,7 @@ void updateLog() {
         logStart_P(LOGDATA);
         logField_P(PSTR("TEMP"));
         logFieldI(i);
-        ftoa(temp[i], buf, 3);
-        logField(buf);
+        logFieldI(temp[i]);
         #ifdef USEMETRIC
           logFieldI(0);
         #else
@@ -410,8 +407,7 @@ void updateLog() {
       } else if (logCount == 14) {
         logStart_P(LOGDATA);
         logField_P(PSTR("STEAM"));
-        ftoa(steamPressure, buf, 3);
-        logField(buf);
+        logFieldI(steamPressure);
         #ifdef USEMETRIC
           logFieldI(0);
         #else
@@ -434,8 +430,7 @@ void updateLog() {
         logStart_P(LOGDATA);
         logField_P(PSTR("SETPOINT"));
         logFieldI(i);
-        ftoa(setpoint[i], buf, 0);
-        logField(buf);
+        logFieldI(setpoint[i] / 100);
         #ifdef USEMETRIC
           logFieldI(0);
         #else

@@ -91,25 +91,32 @@ boolean stepInit(byte pgm, byte brewStep) {
 
   } else if (brewStep == STEP_PREHEAT) {
   //Step Init: Preheat
-    //Find first temp and adjust for strike temp
-    {
-      if (getProgMLHeatSrc(pgm) == VS_HLT) {
-        setSetpoint(TS_HLT, calcStrikeTemp(pgm));
-        #ifdef STRIKE_TEMP_OFFSET
-          setSetpoint(TS_HLT, setpoint[TS_HLT] + STRIKE_TEMP_OFFSET);
-        #endif
-        setSetpoint(TS_MASH, 0);
-      } else {
-        setSetpoint(TS_HLT, getProgHLT(pgm));
+    if (getProgMLHeatSrc(pgm) == VS_HLT) {
+      setSetpoint(TS_HLT, calcStrikeTemp(pgm));
+      #ifdef STRIKE_TEMP_OFFSET
+        setSetpoint(TS_HLT, setpoint[TS_HLT] + STRIKE_TEMP_OFFSET);
+      #endif
+      setSetpoint(TS_MASH, 0);
+      #ifdef MASH_PREHEAT_STRIKE
         setSetpoint(TS_MASH, calcStrikeTemp(pgm));
-      }
-      setSetpoint(VS_STEAM, getSteamTgt());
+      #endif
+      #ifdef MASH_PREHEAT_STEP1
+        setSetpoint(TS_MASH, getFirstStepTemp(pgm));
+      #endif        
+    } else {
+      setSetpoint(TS_HLT, getProgHLT(pgm));
+      setSetpoint(TS_MASH, calcStrikeTemp(pgm));
+      autoValve[AV_MASH] = 1;
     }
+    setSetpoint(VS_STEAM, getSteamTgt());
+    preheated[VS_HLT] = 0;
     preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
     //No timer used for preheat
     clearTimer(TIMER_MASH);
-    
+    #ifdef MASH_PREHEAT_SENSOR
+    //Overwrite mash temp sensor address from EEPROM using the memory location of the specified sensor (sensor element number * 8 bytes)
+      PROMreadBytes(MASH_PREHEAT_SENSOR * 8, tSensor[TS_MASH], 8);
+    #endif
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Init: Add Grain
     //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
@@ -442,6 +449,10 @@ void stepExit(byte brewStep) {
 #ifdef USESTEAM
     resetHeatOutput(VS_STEAM);
 #endif
+    #ifdef MASH_PREHEAT_SENSOR
+    //Restore mash temp sensor address from EEPROM (address 8)
+      PROMreadBytes(8, tSensor[TS_MASH], 8);
+    #endif
 
   } else if (brewStep == STEP_SPARGE) {
   //Step Exit: Sparge
@@ -481,7 +492,7 @@ void stepExit(byte brewStep) {
 
 #ifdef SMART_HERMS_HLT
 void smartHERMSHLT() {
-  if (setpoint[VS_MASH] != 0) setpoint[VS_HLT] = constrain(setpoint[VS_MASH] * 2 - temp[TS_MASH], setpoint[VS_MASH] + MASH_HEAT_LOSS, HLT_MAX_TEMP);
+  if (setpoint[VS_MASH] != 0) setpoint[VS_HLT] = constrain(setpoint[VS_MASH] * 2 - temp[TS_MASH], setpoint[VS_MASH] + MASH_HEAT_LOSS * 100, HLT_MAX_TEMP * 100);
 }
 #endif
   
@@ -525,18 +536,23 @@ unsigned long calcGrainVolume(byte pgm) {
   #ifdef USEMETRIC
     #define GRAIN2VOL 1.25
   #else
-    #define GRAIN2VOL 0.15
+    #define GRAIN2VOL .15
   #endif
   return round (getProgGrain(pgm) * GRAIN2VOL);
 }
 
 byte calcStrikeTemp(byte pgm) {
-  byte strikeTemp = 0;
-  byte i = MASH_DOUGHIN;
-  while (strikeTemp == 0 && i <= MASH_MASHOUT) strikeTemp = getProgMashTemp(pgm, i++);
+  byte strikeTemp = getFirstStepTemp(pgm);
   #ifdef USEMETRIC
     return strikeTemp + round(.4 * (strikeTemp - getGrainTemp()) / (getProgRatio(pgm) / 100.0)) + 1.7;
   #else
     return strikeTemp + round(.192 * (strikeTemp - getGrainTemp()) / (getProgRatio(pgm) / 100.0)) + 3;
   #endif
+}
+
+byte getFirstStepTemp(byte pgm) {
+  byte firstStep = 0;
+  byte i = MASH_DOUGHIN;
+  while (firstStep == 0 && i <= MASH_MASHOUT) firstStep = getProgMashTemp(pgm, i++);
+  return firstStep;
 }

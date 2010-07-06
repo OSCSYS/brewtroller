@@ -49,7 +49,7 @@ void updateFlowRates() {
   //Check flowrate periodically (FLOWRATE_READ_INTERVAL)
   if (millis() - lastFlowChk > FLOWRATE_READ_INTERVAL) {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-      flowRate[i] = (prevFlowVol[i] - volAvg[i]) / (millis() - lastFlowChk) * 60000;
+      flowRate[i] = (prevFlowVol[i] - volAvg[i]) * (millis() - lastFlowChk) * 3 / 50;
       prevFlowVol[i] = volAvg[i];
     }
     lastFlowChk = millis();
@@ -122,12 +122,12 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
 }
 
 //Read Analog value of aPin and calculate kPA or psi based on unit and sensitivity (sens in tenths of mv per kpa)
-float readPressure( byte aPin, unsigned int sens, unsigned int zero) {
+unsigned long readPressure( byte aPin, unsigned int sens, unsigned int zero) {
   if (sens == 0) return 999;
-  float retValue = (analogRead(aPin) - zero) * .0049 / (sens / 10000.0);
+  unsigned long retValue = (analogRead(aPin) - zero) * 500000 / sens * 25 / 256;
   #ifdef USEMETRIC
     return retValue; 
   #else
-    return retValue * .145; 
+    return retValue * 29 / 200; 
   #endif
 }

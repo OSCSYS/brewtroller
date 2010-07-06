@@ -270,10 +270,10 @@ void screenInit(byte screen) {
     printLCD_P(0, 16, PSTR("Mash"));
     printLCD_P(1, 1, PSTR("Target"));
     printLCD_P(2, 1, PSTR("Actual"));
-    ftoa(tgtVol[VS_HLT]/1000.0, buf, 2);
+    vftoa(tgtVol[VS_HLT], buf, 3);
     truncFloat(buf, 5);
     printLCDLPad(1, 9, buf, 5, ' ');
-    ftoa(tgtVol[VS_MASH]/1000.0, buf, 2);
+    vftoa(tgtVol[VS_MASH], buf, 3);
     truncFloat(buf, 5);
     printLCDLPad(1, 15, buf, 5, ' ');
 
@@ -396,11 +396,11 @@ void screenRefresh(byte screen) {
     //Refresh Screen: Home
 
   } else if (screen == SCREEN_FILL) {
-    ftoa(volAvg[VS_HLT]/1000.0, buf, 2);
+    vftoa(volAvg[VS_HLT], buf, 3);
     truncFloat(buf, 5);
     printLCDLPad(2, 9, buf, 5, ' ');
 
-    ftoa(volAvg[VS_MASH]/1000.0, buf, 2);
+    vftoa(volAvg[VS_MASH], buf, 3);
     truncFloat(buf, 5);
     printLCDLPad(2, 15, buf, 5, ' ');
 
@@ -425,8 +425,8 @@ void screenRefresh(byte screen) {
   } else if (screen == SCREEN_MASH) {
     //Refresh Screen: Preheat/Mash
     for (byte i = VS_HLT; i <= VS_MASH; i++) {
-      printLCDLPad(1, i * 6 + 10, itoa(setpoint[i], buf, 10), 3, ' ');
-      if (temp[i] == -1) printLCD_P(2, i * 6 + 10, PSTR("---")); else printLCDLPad(2, i * 6 + 10, itoa(temp[i], buf, 10), 3, ' ');
+      printLCDLPad(1, i * 6 + 10, itoa(setpoint[i] / 100, buf, 10), 3, ' ');
+      if (temp[i] == -32768) printLCD_P(2, i * 6 + 10, PSTR("---")); else printLCDLPad(2, i * 6 + 10, itoa(temp[i] / 100, buf, 10), 3, ' ');
       byte pct;
       if (PIDEnabled[i]) {
         pct = PIDOutput[i] / PIDCycle[i] / 10;
@@ -447,15 +447,15 @@ void screenRefresh(byte screen) {
 
   } else if (screen == SCREEN_SPARGE) {
     //Refresh Screen: Sparge
-    ftoa(volAvg[VS_HLT]/1000.0, buf, 3);
+    vftoa(volAvg[VS_HLT], buf, 3);
     truncFloat(buf, 7);
     printLCDLPad(1, 13, buf, 7, ' ');
       
-    ftoa(volAvg[VS_MASH]/1000.0, buf, 3);
+    vftoa(volAvg[VS_MASH], buf, 3);
     truncFloat(buf, 7);
     printLCDLPad(2, 13, buf, 7, ' ');
       
-    ftoa(volAvg[VS_KETTLE]/1000.0, buf, 3);
+    vftoa(volAvg[VS_KETTLE], buf, 3);
     truncFloat(buf, 7);
     printLCDLPad(3, 13, buf, 7, ' ');
     
@@ -474,7 +474,7 @@ void screenRefresh(byte screen) {
       }
     }
     
-    for (byte i = TS_HLT; i <= TS_KETTLE; i++) if (temp[i] == -1) printLCD_P(i + 1, 8, PSTR("---")); else printLCDLPad(i + 1, 8, itoa(temp[i], buf, 10), 3, ' ');
+    for (byte i = TS_HLT; i <= TS_KETTLE; i++) if (temp[i] == -32768) printLCD_P(i + 1, 8, PSTR("---")); else printLCDLPad(i + 1, 8, itoa(temp[i] / 100, buf, 10), 3, ' ');
 
   } else if (screen == SCREEN_BOIL) {
     //Refresh Screen: Boil
@@ -485,7 +485,7 @@ void screenRefresh(byte screen) {
     
     printTimer(TIMER_BOIL, 3, 0);
 
-    ftoa(volAvg[VS_KETTLE]/1000.0, buf, 2);
+    vftoa(volAvg[VS_KETTLE], buf, 3);
     truncFloat(buf, 5);
     printLCDLPad(2, 15, buf, 5, ' ');
 
@@ -501,7 +501,7 @@ void screenRefresh(byte screen) {
     }
     printLCDLPad(3, 17, buf, 3, ' ');
     
-    if (temp[TS_KETTLE] == -1) printLCD_P(1, 16, PSTR("---")); else printLCDLPad(1, 16, itoa(temp[TS_KETTLE], buf, 10), 3, ' ');
+    if (temp[TS_KETTLE] == -32768) printLCD_P(1, 16, PSTR("---")); else printLCDLPad(1, 16, itoa(temp[TS_KETTLE] / 100, buf, 10), 3, ' ');
     if (screenLock) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
@@ -526,19 +526,21 @@ void screenRefresh(byte screen) {
         else if (encValue == 6) printLCD_P(3, 3, ABORT);
       }
     }
-    if (temp[TS_KETTLE] == -1) printLCD_P(1, 11, PSTR("---")); else printLCDLPad(1, 11, itoa(temp[TS_KETTLE], buf, 10), 3, ' ');
-    if (temp[TS_BEEROUT] == -1) printLCD_P(2, 11, PSTR("---")); else printLCDLPad(2, 11, itoa(temp[TS_BEEROUT], buf, 10), 3, ' ');
-    if (temp[TS_H2OIN] == -1) printLCD_P(1, 16, PSTR("---")); else printLCDLPad(1, 16, itoa(temp[TS_H2OIN], buf, 10), 3, ' ');
-    if (temp[TS_H2OOUT] == -1) printLCD_P(2, 16, PSTR("---")); else printLCDLPad(2, 16, itoa(temp[TS_H2OOUT], buf, 10), 3, ' ');
+    if (temp[TS_KETTLE] == -32768) printLCD_P(1, 11, PSTR("---")); else printLCDLPad(1, 11, itoa(temp[TS_KETTLE] / 100, buf, 10), 3, ' ');
+    if (temp[TS_BEEROUT] == -32768) printLCD_P(2, 11, PSTR("---")); else printLCDLPad(2, 11, itoa(temp[TS_BEEROUT] / 100, buf, 10), 3, ' ');
+    if (temp[TS_H2OIN] == -32768) printLCD_P(1, 16, PSTR("---")); else printLCDLPad(1, 16, itoa(temp[TS_H2OIN] / 100, buf, 10), 3, ' ');
+    if (temp[TS_H2OOUT] == -32768) printLCD_P(2, 16, PSTR("---")); else printLCDLPad(2, 16, itoa(temp[TS_H2OOUT] / 100, buf, 10), 3, ' ');
     if ((vlvBits & vlvConfig[VLV_CHILLBEER]) == vlvConfig[VLV_CHILLBEER]) printLCD_P(3, 12, PSTR(" On")); else printLCD_P(3, 12, PSTR("Off"));
     if ((vlvBits & vlvConfig[VLV_CHILLH2O]) == vlvConfig[VLV_CHILLH2O]) printLCD_P(3, 17, PSTR(" On")); else printLCD_P(3, 17, PSTR("Off"));
 
   } else if (screen == SCREEN_AUX) {
     //Screen Refresh: AUX
     for (byte i = TS_AUX1; i <= TS_AUX3; i++) {
-      ftoa(temp[i], buf, 1);
-      truncFloat(buf, 5);
-      printLCDLPad(i - 5, 6, buf, 5, ' ');
+      if (temp[i] == -32768) printLCD_P(i - 5, 6, PSTR("---.-")); else {
+        vftoa(temp[i], buf, 2);
+        truncFloat(buf, 5);
+        printLCDLPad(i - 5, 6, buf, 5, ' ');
+      }
     }
   }
 }
@@ -597,9 +599,6 @@ void screenEnter(byte screen) {
             clearTimer(TIMER_BOIL);
           }
         }
-#ifdef SYSINFO
-        //else if (lastOption == 5) UIsysInfo();
-#endif
 #ifndef UI_NO_SETUP        
         else if (lastOption == 5) menuSetup();
 #endif
@@ -646,10 +645,10 @@ void screenEnter(byte screen) {
       } else if (screen == SCREEN_MASH) {
         //Screen Enter: Preheat/Mash
         strcpy_P(menuopts[0], PSTR("HLT Setpoint: "));
-        strcat(menuopts[0], itoa(setpoint[VS_HLT], buf, 10));
+        strcat(menuopts[0], itoa(setpoint[VS_HLT] / 100, buf, 10));
         strcat_P(menuopts[0], TUNIT);
         strcpy_P(menuopts[1], PSTR("Mash Setpoint: "));
-        strcat(menuopts[1], itoa(setpoint[VS_MASH], buf, 10));
+        strcat(menuopts[1], itoa(setpoint[VS_MASH] / 100, buf, 10));
         strcat_P(menuopts[1], TUNIT);
         strcpy_P(menuopts[2], PSTR("Set Timer"));
         if (timerStatus[TIMER_MASH]) strcpy_P(menuopts[3], PSTR("Pause Timer"));
@@ -658,8 +657,8 @@ void screenEnter(byte screen) {
         strcpy_P(menuopts[5], ABORT);
         strcpy_P(menuopts[6], CANCEL);
         byte lastOption = scrollMenu("Mash Menu", 7, 0);
-        if (lastOption == 0) setSetpoint(VS_HLT, getValue(PSTR("HLT Setpoint"), setpoint[VS_HLT], 3, 0, 255, TUNIT));
-        else if (lastOption == 1) setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH], 3, 0, 255, TUNIT));
+        if (lastOption == 0) setSetpoint(VS_HLT, getValue(PSTR("HLT Setpoint"), setpoint[VS_HLT] / 100, 3, 0, 255, TUNIT));
+        else if (lastOption == 1) setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH] / 100, 3, 0, 255, TUNIT));
         else if (lastOption == 2) { 
           setTimer(TIMER_MASH, getTimerValue(PSTR("Mash Timer"), timerValue[TIMER_MASH] / 60000));
           //Force Preheated
@@ -940,16 +939,16 @@ void editProgram(byte pgm) {
     strcpy_P(menuopts[5], PSTR("Sparge Temp:"));
     strcpy_P(menuopts[6], PSTR("Pitch Temp:"));
     strcpy_P(menuopts[7], PSTR("Mash Schedule"));
-    strcpy_P(menuopts[8], PSTR("Heat Mash Liq:"));    
+    strcpy_P(menuopts[8], PSTR("Heat Strike In:"));    
     strcpy_P(menuopts[9], BOILADDS);    
     strcpy_P(menuopts[10], EXIT);
 
-    ftoa((float)getProgBatchVol(pgm)/1000, buf, 2);
+    vftoa(getProgBatchVol(pgm), buf, 3);
     truncFloat(buf, 5);
     strcat(menuopts[0], buf);
     strcat_P(menuopts[0], VOLUNIT);
 
-    ftoa((float)getProgGrain(pgm)/1000, buf, 3);
+    vftoa(getProgGrain(pgm), buf, 3);
     truncFloat(buf, 7);
     strcat(menuopts[1], buf);
     strcat_P(menuopts[1], WTUNIT);
@@ -957,7 +956,7 @@ void editProgram(byte pgm) {
     strncat(menuopts[2], itoa(getProgBoil(pgm), buf, 10), 3);
     strcat_P(menuopts[2], PSTR(" min"));
     
-    ftoa((float)getProgRatio(pgm)/100, buf, 2);
+    vftoa(getProgRatio(pgm), buf, 2);
     truncFloat(buf, 4);
     strcat(menuopts[3], buf);
     strcat_P(menuopts[3], PSTR(":1"));
@@ -1067,7 +1066,7 @@ unsigned int editHopSchedule (unsigned int sched) {
 byte MLHeatSrcMenu (byte MLHeatSrc) {
   strcpy_P(menuopts[0], HLTDESC);
   strcpy_P(menuopts[1], MASHDESC);
-  byte lastOption = scrollMenu("Heat Mash Liq In:", 2, MLHeatSrc);
+  byte lastOption = scrollMenu("Heat Strike In:", 2, MLHeatSrc);
   if (lastOption > 1) return MLHeatSrc;
   else return lastOption;
 }
@@ -1076,7 +1075,7 @@ void warnHLT(unsigned long spargeVol) {
   clearLCD();
   printLCD_P(0, 0, PSTR("HLT Capacity Issue"));
   printLCD_P(1, 0, PSTR("Sparge Vol:"));
-  ftoa(spargeVol/1000.0, buf, 2);
+  vftoa(spargeVol, buf, 3);
   truncFloat(buf, 5);
   printLCD(1, 11, buf);
   printLCD_P(1, 16, VOLUNIT);
@@ -1091,12 +1090,12 @@ void warnMash(unsigned long mashVol, unsigned long grainVol) {
   clearLCD();
   printLCD_P(0, 0, PSTR("Mash Capacity Issue"));
   printLCD_P(1, 0, PSTR("Strike Vol:"));
-  ftoa(mashVol/1000.0, buf, 2);
+  vftoa(mashVol, buf, 3);
   truncFloat(buf, 5);
   printLCD(1, 11, buf);
   printLCD_P(1, 16, VOLUNIT);
   printLCD_P(2, 0, PSTR("Grain Vol:"));
-  ftoa(grainVol / 1000.0, buf, 2);
+  vftoa(grainVol, buf, 3);
   truncFloat(buf, 5);
   printLCD(2, 11, buf);
   printLCD_P(2, 16, VOLUNIT);
@@ -1105,7 +1104,6 @@ void warnMash(unsigned long mashVol, unsigned long grainVol) {
   printLCD(3, 15, "<");
   while (!Encoder.ok()) brewCore();
 }
-
 
 
 //*****************************************************************************************************************************
@@ -1472,30 +1470,6 @@ byte enc2ASCII(byte charin) {
   else if (charin >= 91 && charin <= 94) return charin + 32;
 }
 
-#ifdef SYSINFO
-void UIsysInfo() {
-  byte pos = 0;
-  byte line = 0;
-  for (byte address = 0; address < SYSINFO_SIZE; address++) {
-    //Prepend Line Number:
-    if (pos == 0) { 
-      strcpy(menuopts[line], "0");
-      itoa(line + 1, buf, 10);
-      if (strlen(buf) < 2) { strcpy(menuopts[line], "0"); strcat(menuopts[line], buf); }
-      else strcpy(menuopts[line], buf);
-      strcat(menuopts[line], ":"); 
-    }
-    itoa(sysInfo(address), buf, 16);
-    if (strlen(buf) < 2) strcat(menuopts[line], "0");
-    strcat(menuopts[line], buf);
-    //Increment line after 8 bytes (16 chars)
-    if (pos == 7) { line++; pos = 0; }
-    else pos ++;
-  }
-  scrollMenu("System Information", line + 1, 0);
-}
-#endif
-
 //*****************************************************************************************************************************
 // System Setup Menus
 //*****************************************************************************************************************************
@@ -1805,7 +1779,7 @@ void volCalibMenu(byte vessel) {
   while(1) {
     for(byte i = 0; i < 10; i++) {
       if (calibVals[vessel][i] > 0) {
-        ftoa(calibVols[vessel][i] / 1000.0, buf, 3);
+        vftoa(calibVols[vessel][i], buf, 3);
         truncFloat(buf, 6);
         strcpy(menuopts[i], buf);
         strcat_P(menuopts[i], SPACE);

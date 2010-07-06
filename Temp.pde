@@ -23,24 +23,107 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
+#ifdef TS_ONEWIRE
+  #include <OneWire.h>
+  //One Wire Bus on 
+  OneWire ds(TEMP_PIN);
+  unsigned long convStart;
+  
+  #if TS_ONEWIRE_RES == 12
+    #define CONV_DELAY 750
+  #elif TS_ONEWIRE_RES == 11
+    #define CONV_DELAY 375
+  #elif TS_ONEWIRE_RES == 10
+    #define CONV_DELAY 188
+  #else //Default to 9-bit
+    #define CONV_DELAY 94
+  #endif
+#endif
 
+void tempInit() {
+  ds.reset();
+  ds.skip();
+  ds.write(0x4E, TS_ONEWIRE_PPWR); //Write to scratchpad
+  ds.write(0x4B, TS_ONEWIRE_PPWR); //Default value of TH reg (user byte 1)
+  ds.write(0x46, TS_ONEWIRE_PPWR); //Default value of TL reg (user byte 2)
 
-#include <OneWire.h>
-//One Wire Bus on 
-OneWire ds(TEMP_PIN);
-unsigned long convStart;
+  #if TS_ONEWIRE_RES == 12
+    ds.write(0x7F, TS_ONEWIRE_PPWR); //Config Reg (12-bit)
+  #elif TS_ONEWIRE_RES == 11
+    ds.write(0x5F, TS_ONEWIRE_PPWR); //Config Reg (11-bit)
+  #elif TS_ONEWIRE_RES == 10
+    ds.write(0x3F, TS_ONEWIRE_PPWR); //Config Reg (10-bit)
+  #else //Default to 9-bit
+    ds.write(0x1F, TS_ONEWIRE_PPWR); //Config Reg (9-bit)
+  #endif
+
+  ds.reset();
+  ds.skip();
+  ds.write(0x48, TS_ONEWIRE_PPWR); //Copy scratchpad to EEPROM
+}
+
 
 void updateTemps() {
+#ifdef TS_ONEWIRE
   if (convStart == 0) {
-    convertAll();
-    convStart = millis();
-  } else if (millis() - convStart >= 750) {
+    ds.reset();
+    ds.skip();
+    ds.write(0x44, TS_ONEWIRE_PPWR); //Start conversion
+    convStart = millis();   
+  } else if (tsReady() || millis() - convStart >= CONV_DELAY) {
+    #ifdef DEBUG
+      convStart = millis() - convStart;
+      logStart_P(LOGDEBUG);
+      logField_P(PSTR("TEMP_CONV_T"));
+      logFieldI(convStart);
+      logEnd();
+    #endif
     for (byte i = TS_HLT; i <= TS_AUX3; i++) temp[i] = read_temp(tSensor[i]);
     convStart = 0;
+    
+    #if defined MASH_AVG
+      mashAvg();
+    #endif
   }
+#endif
+}
+
+#if defined MASH_AVG
+void mashAvg() {
+  byte sensorCount = 1;
+  unsigned long avgTemp = temp[TS_MASH];
+  #if defined MASH_AVG_AUX1
+    if (temp[TS_AUX1] != -32768) {
+      avgTemp += temp[TS_AUX1];
+      sensorCount++;
+    }
+  #endif
+  #if defined MASH_AVG_AUX2
+    if (temp[TS_AUX2] != -32768) {
+      avgTemp += temp[TS_AUX2];
+      sensorCount++;
+    }
+  #endif
+  #if defined MASH_AVG_AUX3
+    if (temp[TS_AUX3] != -32768) {
+      avgTemp += temp[TS_AUX3];
+      sensorCount++;
+    }
+  #endif
+  temp[TS_MASH] = avgTemp / sensorCount;
+}
+#endif
+
+boolean tsReady() {
+  #if TS_ONEWIRE_PPWR == 0 //Poll if parasite power is disabled
+    if (ds.read() == 0xFF) return 1;
+  #endif
+  return 0;
 }
 
 void getDSAddr(byte addrRet[8]){
+//Leaving stub for external functions (serial and setup) that use this function
+#ifdef TS_ONEWIRE
   byte scanAddr[8];
   ds.reset_search();
   byte limit = 0;
@@ -71,29 +154,29 @@ void getDSAddr(byte addrRet[8]){
     }
     limit++;
   }
+#endif
 }
 
-void convertAll() {
-  ds.reset();
-  ds.skip();
-  ds.write(0x44,1);         // start conversion, with parasite power on at the end
-}
-
-float read_temp(byte* addr) {
-  float temp;
-  int rawtemp;
-  byte data[12];
+#ifdef TS_ONEWIRE
+//Returns Int representing hundreths of degree
+int read_temp(byte* addr) {
+  int tempOut;
+  byte data[9];
   ds.reset();
   ds.select(addr);   
-  ds.write(0xBE);         // Read Scratchpad
+  ds.write(0xBE, TS_ONEWIRE_PPWR); //Read Scratchpad
   for (byte i = 0; i < 9; i++) data[i] = ds.read();
-  if ( OneWire::crc8( data, 8) != data[8]) return -1;
+  if (OneWire::crc8( data, 8) != data[8]) return -32768;
   
-  rawtemp = (data[1] << 8) + data[0];
-  if ( addr[0] != 0x28) temp = (float)rawtemp * 0.5; else temp = (float)rawtemp * 0.0625;
+  tempOut = (data[1] << 8) + data[0];
+
+  if ( addr[0] == 0x10) tempOut = tempOut * 50; //9-bit DS18S20
+  else tempOut = tempOut * 25 / 4; //12-bit DS18B20, etc.
+  
   #ifdef USEMETRIC
-    return temp;  
+    return tempOut;  
   #else
-    return (temp * 1.8) + 32.0;
+    return (tempOut * 9 / 5) + 3200;
   #endif
 }
+#endif
