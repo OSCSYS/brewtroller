@@ -44,7 +44,7 @@ void updateBTPD() {
 }
 
 void sendVsTemp(byte chan, byte vessel) {
-  sendFloatsBTPD(chan, setpoint[vessel], temp[vessel] / 100.0);  
+  sendFloatsBTPD(chan, setpoint[vessel] / 100.0, temp[vessel] / 100.0);  
 }
 
 void sendVsVol(byte chan, byte vessel) {

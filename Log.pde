@@ -176,7 +176,7 @@ boolean chkMsg() {
           byte program = atoi(msg[1]);
           if (msgField == 22 && program >= 0 && program < 21) {
             setProgName(program, msg[2]);
-            for (byte i = STEP_DOUGHIN; i <= STEP_MASHOUT; i++) {
+            for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
               setProgMashTemp(program, i, atoi(msg[i * 2 + 3]));
               setProgMashMins(program, i, atoi(msg[i * 2 + 4]));
             }
@@ -539,7 +539,7 @@ void logProgram(byte program) {
   getProgName(program, buf);
   logField(buf);
   
-  for (byte i = STEP_DOUGHIN; i <= STEP_MASHOUT; i++) {
+  for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
     logFieldI(getProgMashTemp(program, i));
     logFieldI(getProgMashMins(program, i));
   }
