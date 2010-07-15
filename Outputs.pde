@@ -71,7 +71,7 @@ void pidInit() {
   pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * 10 * PIDLIMIT_MASH);
   pid[VS_MASH].SetTunings(getPIDp(VS_MASH), getPIDi(VS_MASH), getPIDd(VS_MASH));
   pid[VS_MASH].SetMode(AUTO);
-    
+
   pid[VS_KETTLE].SetInputLimits(0, 25500);
   pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * 10 * PIDLIMIT_KETTLE);
   pid[VS_KETTLE].SetTunings(getPIDp(VS_KETTLE), getPIDi(VS_KETTLE), getPIDd(VS_KETTLE));
@@ -85,6 +85,10 @@ void pidInit() {
   pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * 10 * PIDLIMIT_STEAM);
   pid[VS_STEAM].SetTunings(getPIDp(VS_STEAM), getPIDi(VS_STEAM), getPIDd(VS_STEAM));
   pid[VS_STEAM].SetMode(AUTO);
+
+#ifdef DEBUG_PID_GAIN
+  for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) logDebugPIDGain(vessel);
+#endif
 }
 
 void resetOutputs() {

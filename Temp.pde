@@ -71,7 +71,7 @@ void updateTemps() {
     ds.write(0x44, TS_ONEWIRE_PPWR); //Start conversion
     convStart = millis();   
   } else if (tsReady() || millis() - convStart >= CONV_DELAY) {
-    #ifdef DEBUG
+    #ifdef DEBUG_TEMP_CONV_T
       convStart = millis() - convStart;
       logStart_P(LOGDEBUG);
       logField_P(PSTR("TEMP_CONV_T"));

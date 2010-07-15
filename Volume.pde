@@ -60,7 +60,7 @@ void updateFlowRates() {
 unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned int calibrationValues[10] ) {
   unsigned int aValue = analogRead(pin);
   unsigned long retValue;
-  #ifdef DEBUG
+  #ifdef DEBUG_VOL_READ
     logStart_P(LOGDEBUG);
     logField_P(PSTR("VOL_READ"));
     logFieldI(pin);
@@ -88,7 +88,7 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
     }
   }
   
-  #ifdef DEBUG
+  #ifdef DEBUG_VOL_READ
     logFieldI(aValue);
     logFieldI(upperCal);
     logFieldI(lowerCal);
@@ -114,7 +114,7 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
   //Otherwise plot value between lower and greater calibrations
   else retValue = round((float) (aValue - calibrationValues[lowerCal]) / (float) (calibrationValues[upperCal] - calibrationValues[lowerCal]) * (calibrationVols[upperCal] - calibrationVols[lowerCal])) + calibrationVols[lowerCal];
 
-  #ifdef DEBUG
+  #ifdef DEBUG_VOL_READ
     logFieldI(retValue);
     logEnd();
   #endif

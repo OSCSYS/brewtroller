@@ -1,4 +1,4 @@
-#define BUILD 426 
+#define BUILD 427 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -397,8 +397,14 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 //**********************************************************************************
 // DEBUG
 //**********************************************************************************
-// DEBUG: Enables Serial Out with Additional Debug Data (Currently not much more)
-//#define DEBUG
+// DEBUG_TEMP_CONV_T: Enables logging of OneWire temperature sensor ADC time.
+//#define DEBUG_TEMP_CONV_T
+
+// DEBUG_VOL_READ: Enables logging of additional detail used in calculating volume.
+//#define DEBUG_VOL_READ
+
+// DEBUG_PID_GAIN: Enables logging of PID Gain settings as they are set.
+//#define DEBUG_PID_GAIN
 //**********************************************************************************
 
 //*****************************************************************************************************************************
@@ -429,7 +435,7 @@ void(* softReset) (void) = 0;
 #endif
 
 //Enable Serial on BTBOARD_22+ boards or if DEBUG is set
-#if !defined BTBOARD_1 || defined DEBUG
+#if !defined BTBOARD_1
   #define USESERIAL
 #endif
 

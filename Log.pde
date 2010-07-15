@@ -554,4 +554,15 @@ void logProgram(byte program) {
   logEnd();
 }
 
+#ifdef DEBUG_PID_GAIN
+void logDebugPIDGain(byte vessel) {
+  logStart_P(LOGDEBUG);
+  logField_P(PSTR("PID_GAIN"));
+  logFieldI(vessel);
+  logFieldI(pid[vessel].GetP_Param());
+  logFieldI(pid[vessel].GetI_Param());
+  logFieldI(pid[vessel].GetD_Param());
+  logEnd();
+}
+#endif
 #endif

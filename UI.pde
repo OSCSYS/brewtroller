@@ -1719,6 +1719,9 @@ void setPIDGain(char sTitle[], byte vessel) {
         setPIDp(vessel, retP);
         setPIDi(vessel, retI);
         setPIDd(vessel, retD);
+#ifdef DEBUG_PID_GAIN
+        logDebugPIDGain(vessel);
+#endif
         return;
       }
       cursorState = cursorState ^ 1;
