@@ -444,7 +444,14 @@ boolean checkConfig() {
   if (BTFinger != 252 || cfgVersion == 255) return 1;
 
   //In the future, incremental EEPROM settings will be included here
-  
+  switch(cfgVersion) {
+    case 0:
+      //Supported PID cycle is changing from 1-255 to .1-25.5
+      //All current PID cycle settings will be multiplied by 10 to represent tenths (s)
+      for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
+      //Set cfgVersion = 1
+      EEPROM.write(2047, 1);
+  }
   return 0;
 }
 

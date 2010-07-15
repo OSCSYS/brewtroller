@@ -63,17 +63,17 @@ void pinInit() {
 
 void pidInit() {
   pid[VS_HLT].SetInputLimits(0, 25500);
-  pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * 10 * PIDLIMIT_HLT);
+  pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * PIDLIMIT_HLT);
   pid[VS_HLT].SetTunings(getPIDp(VS_HLT), getPIDi(VS_HLT), getPIDd(VS_HLT));
   pid[VS_HLT].SetMode(AUTO);
 
   pid[VS_MASH].SetInputLimits(0, 25500);
-  pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * 10 * PIDLIMIT_MASH);
+  pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * PIDLIMIT_MASH);
   pid[VS_MASH].SetTunings(getPIDp(VS_MASH), getPIDi(VS_MASH), getPIDd(VS_MASH));
   pid[VS_MASH].SetMode(AUTO);
 
   pid[VS_KETTLE].SetInputLimits(0, 25500);
-  pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * 10 * PIDLIMIT_KETTLE);
+  pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE);
   pid[VS_KETTLE].SetTunings(getPIDp(VS_KETTLE), getPIDi(VS_KETTLE), getPIDd(VS_KETTLE));
   pid[VS_KETTLE].SetMode(MANUAL);
 
@@ -82,7 +82,7 @@ void pidInit() {
   #else
     pid[VS_STEAM].SetInputLimits(0, 7250000 / steamPSens);
   #endif
-  pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * 10 * PIDLIMIT_STEAM);
+  pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * PIDLIMIT_STEAM);
   pid[VS_STEAM].SetTunings(getPIDp(VS_STEAM), getPIDi(VS_STEAM), getPIDd(VS_STEAM));
   pid[VS_STEAM].SetMode(AUTO);
 
@@ -165,7 +165,7 @@ void processHeatOutputs() {
         }
       }
       if (cycleStart[i] == 0) cycleStart[i] = millis();
-      if (millis() - cycleStart[i] > PIDCycle[i] * 1000) cycleStart[i] += PIDCycle[i] * 1000;
+      if (millis() - cycleStart[i] > PIDCycle[i] * 100) cycleStart[i] += PIDCycle[i] * 100;
       if (PIDOutput[i] > millis() - cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
       if (PIDOutput[i] == 0)  heatStatus[i] = 0; else heatStatus[i] = 1;
     } else {

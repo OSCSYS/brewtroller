@@ -417,7 +417,7 @@ void updateLog() {
       } else if (logCount >= 15 && logCount <= 18) {
         byte pct;
         byte i = logCount - 15;
-        if (PIDEnabled[i]) pct = PIDOutput[i] / PIDCycle[i] / 10;
+        if (PIDEnabled[i]) pct = PIDOutput[i] / PIDCycle[i];
         else if (heatStatus[i]) pct = 100;
         else pct = 0;
         logStart_P(LOGDATA);

@@ -310,8 +310,8 @@ void stepCore() {
   
   if (stepIsActive(STEP_BOIL)) {
     if (doAutoBoil) {
-      if(temp[TS_KETTLE] < setpoint[TS_KETTLE]) PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * 10 * PIDLIMIT_KETTLE;
-      else PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * 10 * min(boilPwr, PIDLIMIT_KETTLE);
+      if(temp[TS_KETTLE] < setpoint[TS_KETTLE]) PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE;
+      else PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * min(boilPwr, PIDLIMIT_KETTLE);
     }
     #ifdef PREBOIL_ALARM
       if (!(triggered & 32768) && temp[TS_KETTLE] >= PREBOIL_ALARM) {

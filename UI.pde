@@ -429,7 +429,7 @@ void screenRefresh(byte screen) {
       if (temp[i] == -32768) printLCD_P(2, i * 6 + 10, PSTR("---")); else printLCDLPad(2, i * 6 + 10, itoa(temp[i] / 100, buf, 10), 3, ' ');
       byte pct;
       if (PIDEnabled[i]) {
-        pct = PIDOutput[i] / PIDCycle[i] / 10;
+        pct = PIDOutput[i] / PIDCycle[i];
         if (pct == 0) strcpy_P(buf, PSTR("Off"));
         else if (pct == 100) strcpy_P(buf, PSTR(" On"));
         else { itoa(pct, buf, 10); strcat(buf, "%"); }
@@ -490,7 +490,7 @@ void screenRefresh(byte screen) {
     printLCDLPad(2, 15, buf, 5, ' ');
 
     if (PIDEnabled[TS_KETTLE]) {
-      byte pct = PIDOutput[TS_KETTLE] / PIDCycle[TS_KETTLE] / 10;
+      byte pct = PIDOutput[TS_KETTLE] / PIDCycle[TS_KETTLE];
       if (pct == 0) strcpy_P(buf, PSTR("Off"));
       else if (pct == 100) strcpy_P(buf, PSTR(" On"));
       else { itoa(pct, buf, 10); strcat(buf, "%"); }
@@ -506,9 +506,9 @@ void screenRefresh(byte screen) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
         doAutoBoil = 0;
-        PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * 10 * encValue;
+        PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * encValue;
       }
-      if (doAutoBoil) Encoder.setCount(PIDOutput[VS_KETTLE] / PIDCycle[VS_KETTLE] / 10);
+      if (doAutoBoil) Encoder.setCount(PIDOutput[VS_KETTLE] / PIDCycle[VS_KETTLE]);
     }
     
   } else if (screen == SCREEN_CHILL) {
@@ -1605,8 +1605,8 @@ void cfgOutputs() {
       else setPIDEnabled(VS_HLT, 1);
     }
     else if (lastOption == 1) {
-      setPIDCycle(VS_HLT, getValue(HLTCYCLE, PIDCycle[VS_HLT], 3, 0, 255, SEC));
-      pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * 10 * PIDLIMIT_HLT);
+      setPIDCycle(VS_HLT, getValue(HLTCYCLE, PIDCycle[VS_HLT], 3, 1, 255, SEC));
+      pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * PIDLIMIT_HLT);
     } else if (lastOption == 2) {
       setPIDGain("HLT PID Gain", VS_HLT);
     } else if (lastOption == 3) setHysteresis(VS_HLT, getValue(HLTHY, hysteresis[VS_HLT], 3, 1, 255, TUNIT));
@@ -1615,8 +1615,8 @@ void cfgOutputs() {
       else setPIDEnabled(VS_MASH, 1);
     }
     else if (lastOption == 5) {
-      setPIDCycle(VS_MASH, getValue(MASHCYCLE, PIDCycle[VS_MASH], 3, 0, 255, SEC));
-      pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * 10 * PIDLIMIT_MASH);
+      setPIDCycle(VS_MASH, getValue(MASHCYCLE, PIDCycle[VS_MASH], 3, 1, 255, SEC));
+      pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * PIDLIMIT_MASH);
     } else if (lastOption == 6) {
       setPIDGain("Mash PID Gain", VS_MASH);
     } else if (lastOption == 7) setHysteresis(VS_MASH, getValue(MASHHY, hysteresis[VS_MASH], 3, 1, 255, TUNIT));
@@ -1625,8 +1625,8 @@ void cfgOutputs() {
       else setPIDEnabled(VS_KETTLE, 1);
     }
     else if (lastOption == 9) {
-      setPIDCycle(VS_KETTLE, getValue(KETTLECYCLE, PIDCycle[VS_KETTLE], 3, 0, 255, SEC));
-      pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * 10 * PIDLIMIT_KETTLE);
+      setPIDCycle(VS_KETTLE, getValue(KETTLECYCLE, PIDCycle[VS_KETTLE], 3, 1, 255, SEC));
+      pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE);
     } else if (lastOption == 10) {
       setPIDGain("Kettle PID Gain", VS_KETTLE);
     } else if (lastOption == 11) setHysteresis(VS_KETTLE, getValue(KETTLEHY, hysteresis[VS_KETTLE], 3, 1, 255, TUNIT));
@@ -1637,8 +1637,8 @@ void cfgOutputs() {
       else setPIDEnabled(VS_STEAM, 1);
     }
     else if (lastOption == 15) {
-      setPIDCycle(VS_STEAM, getValue(STEAMCYCLE, PIDCycle[VS_STEAM], 3, 0, 255, SEC));
-      pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * 10 * PIDLIMIT_STEAM);
+      setPIDCycle(VS_STEAM, getValue(STEAMCYCLE, PIDCycle[VS_STEAM], 3, 1, 255, SEC));
+      pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * PIDLIMIT_STEAM);
     } else if (lastOption == 16) {
       setPIDGain("Steam PID Gain", VS_STEAM);
     } else if (lastOption == 17) setSteamTgt(getValue(STEAMPRESS, getSteamTgt(), 3, 0, 255, PUNIT));
