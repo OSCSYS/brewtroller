@@ -176,7 +176,7 @@ int read_temp(byte* addr) {
   #ifdef USEMETRIC
     return tempOut;  
   #else
-    return (tempOut * 9 / 5) + 3200;
+    return (tempOut / 5 * 9) + 3200;
   #endif
 }
 #endif
