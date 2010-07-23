@@ -160,7 +160,7 @@ void getDSAddr(byte addrRet[8]){
 #ifdef TS_ONEWIRE
 //Returns Int representing hundreths of degree
 int read_temp(byte* addr) {
-  int tempOut;
+  long tempOut;
   byte data[9];
   ds.reset();
   ds.select(addr);   
@@ -174,9 +174,9 @@ int read_temp(byte* addr) {
   else tempOut = tempOut * 25 / 4; //12-bit DS18B20, etc.
   
   #ifdef USEMETRIC
-    return tempOut;  
+    return int(tempOut);  
   #else
-    return (tempOut / 5 * 9) + 3200;
+    return int((tempOut * 9 / 5) + 3200);
   #endif
 }
 #endif
