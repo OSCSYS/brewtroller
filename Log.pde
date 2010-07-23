@@ -118,7 +118,7 @@ boolean chkMsg() {
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "GET_VLVCFG") == 0) {
           byte profile = atoi(msg[1]);
-          if (msgField == 1 && profile >= VLV_FILLHLT && profile <= VLV_CHILLBEER) {
+          if (msgField == 1 && profile >= VLV_FILLHLT && profile <= VLV_DRAIN) {
             logVlvProfile(profile);
             clearMsg();
           } else rejectParam(LOGGLB);
@@ -202,7 +202,7 @@ boolean chkMsg() {
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "SET_VLVCFG") == 0) {
           byte profile = atoi(msg[1]);
-          if (msgField == 2 && profile >= VS_HLT && profile <= VS_KETTLE) {
+          if (msgField == 2 && profile >= VLV_FILLHLT && profile <= VLV_DRAIN) {
             setValveCfg(profile, strtoul(msg[2], NULL, 10));
             clearMsg();
             logVlvProfile(profile);
