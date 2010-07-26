@@ -658,7 +658,10 @@ void screenEnter(byte screen) {
         strcpy_P(menuopts[6], CANCEL);
         byte lastOption = scrollMenu("Mash Menu", 7, 0);
         if (lastOption == 0) setSetpoint(VS_HLT, getValue(PSTR("HLT Setpoint"), setpoint[VS_HLT] / 100, 3, 0, 255, TUNIT));
-        else if (lastOption == 1) setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH] / 100, 3, 0, 255, TUNIT));
+        else if (lastOption == 1) {
+          setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH] / 100, 3, 0, 255, TUNIT));
+          if (setpoint[VS_MASH]) autoValve[AV_MASH] = 1;
+        }  
         else if (lastOption == 2) { 
           setTimer(TIMER_MASH, getTimerValue(PSTR("Mash Timer"), timerValue[TIMER_MASH] / 60000));
           //Force Preheated
