@@ -24,6 +24,9 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
+#include "Config.h"
+#include "Enum.h"
+
 unsigned long lastHop, grainInStart;
 unsigned int boilAdds, triggered;
 
@@ -106,7 +109,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     } else {
       setSetpoint(TS_HLT, getProgHLT(pgm));
       setSetpoint(TS_MASH, calcStrikeTemp(pgm));
-      autoValve[AV_MASH] = 1;
     }
     setSetpoint(VS_STEAM, getSteamTgt());
     preheated[VS_HLT] = 0;
@@ -145,7 +147,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_DOUGHIN));
     setSetpoint(VS_STEAM, getSteamTgt());
     preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_DOUGHIN)); 
     //Leave timer paused until preheated
@@ -157,7 +158,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_ACID));
     setSetpoint(VS_STEAM, getSteamTgt());
     preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_ACID)); 
     //Leave timer paused until preheated
@@ -169,7 +169,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_PROTEIN));
     setSetpoint(VS_STEAM, getSteamTgt());
     preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_PROTEIN)); 
     //Leave timer paused until preheated
@@ -181,7 +180,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH));
     setSetpoint(VS_STEAM, getSteamTgt());
     preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH)); 
     //Leave timer paused until preheated
@@ -193,7 +191,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH2));
     setSetpoint(VS_STEAM, getSteamTgt());
     preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH2)); 
     //Leave timer paused until preheated
@@ -205,7 +202,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_MASHOUT));
     setSetpoint(VS_STEAM, getSteamTgt());
     preheated[VS_MASH] = 0;
-    autoValve[AV_MASH] = 1;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_MASHOUT)); 
     //Leave timer paused until preheated
@@ -441,7 +437,6 @@ void stepExit(byte brewStep) {
   } else if (brewStep == STEP_PREHEAT || (brewStep >= STEP_DOUGHIN && brewStep <= STEP_MASHHOLD)) {
   //Step Exit: Preheat/Mash
     clearTimer(TIMER_MASH);
-    autoValve[AV_MASH] = 0;
     setValves(vlvConfig[VLV_MASHHEAT], 0);    
     setValves(vlvConfig[VLV_MASHIDLE], 0);   
     resetHeatOutput(VS_HLT);

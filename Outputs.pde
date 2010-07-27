@@ -24,6 +24,9 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
+#include "Config.h"
+#include "Enum.h"
+
 void pinInit() {
   alarmPin.setup(ALARM_PIN, OUTPUT);
 
@@ -110,7 +113,10 @@ void resetHeatOutput(byte vessel) {
 
 //Sets the specified valves On or Off
 void setValves (unsigned long vlvBitMask, boolean value) {
-
+  
+  //Nothing to do with an empty valve profile
+  if(!vlvBitMask) return;
+  
   if (value) vlvBits |= vlvBitMask;
   else vlvBits = vlvBits ^ (vlvBits & vlvBitMask);
   
@@ -143,7 +149,7 @@ void setValves (unsigned long vlvBitMask, boolean value) {
   #endif
   #ifdef ONBOARDPV
   //Original 11 Valve Code
-  for (byte i = 0; i < 11; i++) { if (vlvBits & 1<<i) valvePin[i].set(); else valvePin[i].clear(); }
+  for (byte i = 0; i < 11; i++) { if (vlvBits & (1<<i)) valvePin[i].set(); else valvePin[i].clear(); }
   #endif
 }
 
@@ -193,7 +199,9 @@ void processHeatOutputs() {
 }
 
 boolean vlvConfigIsActive(byte profile) {
-  if (vlvBits & vlvConfig[profile] == vlvConfig[profile]) return 1; else return 0;
+  //An empty valve profile cannot be active
+  if (!vlvConfig[profile]) return 0;
+  if ((vlvBits & vlvConfig[profile]) == vlvConfig[profile]) return 1; else return 0;
 }
 
 void processAutoValve() {
@@ -206,7 +214,7 @@ void processAutoValve() {
       else setValves(vlvConfig[VLV_FILLMASH], 0);
   } 
   if (autoValve[AV_MASH]) {
-    if (heatStatus[TS_MASH]) {
+    if (heatStatus[VS_MASH]) {
       if (vlvConfigIsActive(VLV_MASHIDLE)) setValves(vlvConfig[VLV_MASHIDLE], 0);
       if (!vlvConfigIsActive(VLV_MASHHEAT)) setValves(vlvConfig[VLV_MASHHEAT], 1);
     } else {

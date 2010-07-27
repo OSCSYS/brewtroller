@@ -24,6 +24,9 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
+#include "Config.h"
+#include "Enum.h"
+
 void logInit() {
   #if defined USESERIAL
     Serial.begin(BAUD_RATE);
@@ -242,7 +245,7 @@ boolean chkMsg() {
           if (msgField == 1) {
             byte actModes = atoi(msg[1]);
             for (byte i = AV_FILL; i <= AV_CHILL; i++) 
-              autoValve[i] = actModes & 1<<i;
+              autoValve[i] = (actModes & (1<<i));
             clearMsg();
           } else rejectParam(LOGGLB);
         } else if(strcasecmp(msg[0], "SET_SETPOINT") == 0) {
@@ -274,7 +277,7 @@ boolean chkMsg() {
             setValves(VLV_ALL, 0);
             unsigned long actProfiles = strtoul(msg[1], NULL, 10);
             for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
-              if ((actProfiles & 1<<i)) setValves(vlvConfig[i], atoi(msg[2]));
+              if ((actProfiles & (1<<i))) setValves(vlvConfig[i], atoi(msg[2]));
             clearMsg();
           } else rejectParam(LOGGLB);
 

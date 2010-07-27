@@ -25,6 +25,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 #ifndef NOUI
+#include "Config.h"
+#include "Enum.h"
 #include <LiquidCrystalFP.h>
 
 //*****************************************************************************************************************************

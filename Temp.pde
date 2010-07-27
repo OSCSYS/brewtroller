@@ -23,6 +23,10 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
+
+#include "Config.h"
+#include "Enum.h"
+
 #ifdef TS_ONEWIRE
   #include <OneWire.h>
   //One Wire Bus on 

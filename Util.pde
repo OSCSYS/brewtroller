@@ -24,6 +24,9 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
+#include "Config.h"
+#include "Enum.h"
+
 //Converts a "Virtual Float" (fixed deciaml value represented in tenths, hundredths, thousandths, etc.) to a string
 void vftoa(unsigned long val, char retStr[], byte precision) {
   char lbuf[11];

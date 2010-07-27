@@ -24,7 +24,8 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-
+#include "Config.h"
+#include "Enum.h"
 #include <avr/eeprom.h>
 #include <EEPROM.h>
 
@@ -82,8 +83,10 @@ void loadSetup() {
   //**********************************************************************************
   //setpoints (299-301)
   //**********************************************************************************
-  for (byte i=VS_HLT; i<=VS_KETTLE; i++) { setpoint[i] = EEPROM.read(299 + i) * 100; }
-  if (setpoint[VS_MASH]) autoValve[AV_MASH] = 1;
+  for (byte i=VS_HLT; i<=VS_KETTLE; i++) { 
+    setpoint[i] = EEPROM.read(299 + i) * 100;
+    eventHandler(EVENT_SETPOINT, i);
+  }
   
   //**********************************************************************************
   //timers (302-305)
@@ -268,6 +271,7 @@ void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) 
 void setSetpoint(byte vessel, byte value) { 
   setpoint[vessel] = value * 100;
   EEPROM.write(299 + vessel, value);
+  eventHandler(EVENT_SETPOINT, vessel);
 }
 
 //**********************************************************************************
