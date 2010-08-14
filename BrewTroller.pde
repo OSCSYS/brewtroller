@@ -1,4 +1,4 @@
-#define BUILD 435 
+#define BUILD 442 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -658,8 +658,8 @@ const char BTVER[] PROGMEM = "2.0";
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";
 const char LOGDEBUG[] PROGMEM = "DEBUG";
-const char LOGSYS[] PROGMEM = "SYSTEM";
-const char LOGGLB[] PROGMEM = "GLOBAL";
+const char LOGSYS[] PROGMEM = "SYS";
+const char LOGCFG[] PROGMEM = "CFG";
 const char LOGDATA[] PROGMEM = "DATA";
 
 void setup() {
