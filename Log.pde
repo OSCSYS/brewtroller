@@ -94,7 +94,7 @@ boolean chkMsg() {
           if (msgField == 1 && val >= VS_HLT && val <= VS_KETTLE) {
             logVolCalib(val);
             clearMsg();
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "GET_EVAP") == 0) {
           logEvap();
           clearMsg();
@@ -103,31 +103,31 @@ boolean chkMsg() {
           if (msgField == 1 && val >= VS_HLT && val <= VS_STEAM) {
             logOSet(val);
             clearMsg();
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "GET_PROG") == 0) {
           byte program = atoi(msg[1]);
           if (msgField == 1 && program >= 0 && program < 30) {
             logProgram(program);
             clearMsg();
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if (strcasecmp(msg[0], "GET_TS") == 0) {
           byte val = atoi(msg[1]);
           if (msgField == 1 && val >= TS_HLT && val <= TS_AUX3) {
             logTSensor(val);
             clearMsg();
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "GET_VLVCFG") == 0) {
           byte profile = atoi(msg[1]);
           if (msgField == 1 && profile >= VLV_FILLHLT && profile <= VLV_DRAIN) {
             logVlvConfig(profile);
             clearMsg();
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "GET_VSET") == 0) {
           byte val = atoi(msg[1]);
           if (msgField == 1 && val >= VS_HLT && val <= VS_KETTLE) {
             logVSet(val);
             clearMsg();
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "INIT_EEPROM") == 0) {
           clearMsg();
           initEEPROM();
@@ -145,21 +145,21 @@ boolean chkMsg() {
             setBoilTemp(val);
             clearMsg();
             logBoil();
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_CAL") == 0) {
           byte vessel = atoi(msg[1]);
           if (msgField == 21 && vessel >= VS_HLT && vessel <= VS_KETTLE) {
             for (byte i = 0; i < 10; i++) setVolCalib(vessel, i, atol(msg[i * 2 + 3]), strtoul(msg[i * 2 + 2], NULL, 10));
             clearMsg();
             logVolCalib(vessel);
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_EVAP") == 0) {
           byte val = atoi(msg[1]);
           if (msgField == 1 && val >= 0 && val <= 100) {
             setEvapRate(val);
             clearMsg();
             logEvap();
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_OSET") == 0) {
           byte val = atoi(msg[1]);
           if (msgField == 7 && val >= VS_HLT && val <= VS_STEAM) {
@@ -171,7 +171,7 @@ boolean chkMsg() {
             setHysteresis(val, (byte)atoi(msg[7]));
             clearMsg();
             logOSet(val);
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_PROG") == 0) {
           byte program = atoi(msg[1]);
           if (msgField == 22 && program >= 0 && program < 21) {
@@ -190,7 +190,7 @@ boolean chkMsg() {
             setProgAdds(program, atol(msg[22]));
             clearMsg();
             logProgram(program);
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_TS") == 0) {
           byte val = atoi(msg[1]);
           if (msgField == 9 && val >= TS_HLT && val <= TS_AUX3) {
@@ -199,14 +199,14 @@ boolean chkMsg() {
             setTSAddr(val, addr);
             clearMsg();
             logTSensor(val);
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_VLVCFG") == 0) {
           byte profile = atoi(msg[1]);
           if (msgField == 2 && profile >= VLV_FILLHLT && profile <= VLV_DRAIN) {
             setValveCfg(profile, strtoul(msg[2], NULL, 10));
             clearMsg();
             logVlvConfig(profile);
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_VSET") == 0) {
           byte val = atoi(msg[1]);
           if (msgField == 3 && val >= VS_HLT && val <= VS_STEAM) {
@@ -214,29 +214,29 @@ boolean chkMsg() {
             setVolLoss(val, atol(msg[3]));
             clearMsg();
             logVSet(val);
-          } else rejectParam(LOGCFG);
+          } else rejectParam();
 
         //Data Class (DATA) Commands
         } else if(strcasecmp(msg[0], "ADV_STEP") == 0) {
           if (msgField == 1) {
             stepAdvance((byte)atoi(msg[1]));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "EXIT_STEP") == 0) {
           if (msgField == 1) {
             stepExit((byte)atoi(msg[1]));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "INIT_STEP") == 0) {
           if (msgField == 2) {
             stepInit((byte)atoi(msg[1]), (byte)atoi(msg[2]));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_ALARM") == 0) {
           if (msgField == 1) {
             setAlarm((boolean)atoi(msg[1]));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_AUTOVLV") == 0) {
           byte avSet = atoi(msg[1]);
           if (msgField == 1) {
@@ -244,31 +244,31 @@ boolean chkMsg() {
             for (byte i = AV_FILL; i <= AV_CHILL; i++) 
               autoValve[i] = (actModes & (1<<i));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_SETPOINT") == 0) {
           byte vessel = atoi(msg[1]);
           if (msgField == 2 && vessel <= VS_KETTLE) {
             setSetpoint(vessel, (byte)atoi(msg[2]));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_TIMERSTATUS") == 0) {
           byte timer = atoi(msg[1]);
           if (msgField == 2 && timer >= TIMER_MASH && timer <= TIMER_BOIL) {
             setTimerStatus(timer, (boolean)atoi(msg[2]));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_TIMERVALUE") == 0) {
           byte timer = atoi(msg[1]);
           if (msgField == 2 && timer >= TIMER_MASH && timer <= TIMER_BOIL) {
             timerValue[timer] = strtoul(msg[2], NULL, 10);
             lastTime[timer] = millis();
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_VLV") == 0) {
           if (msgField == 2) {
             setValves(strtoul(msg[1], NULL, 10), atoi(msg[2]));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_VLVPRF") == 0) {
           if (msgField == 2) {
             setValves(VLV_ALL, 0);
@@ -276,7 +276,7 @@ boolean chkMsg() {
             for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
               if ((actProfiles & (1<<i))) setValves(vlvConfig[i], atoi(msg[2]));
             clearMsg();
-          } else rejectParam(LOGDATA);
+          } else rejectParam();
 
         //System Class (SYS) Commands
         } else if(strcasecmp(msg[0], "RESET") == 0) {
@@ -293,12 +293,12 @@ boolean chkMsg() {
               logEnd();
               softReset();
             }
-          } else rejectParam(LOGSYS);
+          } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_LOGSTATUS") == 0) {
           if (msgField == 1) {
             logData = (boolean)atoi(msg[1]);
             clearMsg();
-          } else rejectParam(LOGSYS);
+          } else rejectParam();
 
         //End of Commands
         }
@@ -333,19 +333,17 @@ void clearMsg() {
   for (byte i = 0; i < 20; i++) msg[i][0] = '\0';
 }
 
-void rejectMsg(const char *handler) {
+void rejectMsg() {
   logStart_P(LOGCMD);
   logField_P(PSTR("UNKNOWN_CMD"));
-  logField_P(handler);
   for (byte i = 0; i < msgField; i++) logField(msg[i]);
   logEnd();
   clearMsg();
 }
 
-void rejectParam(const char *handler) {
+void rejectParam() {
   logStart_P(LOGCMD);
   logField_P(PSTR("BAD_PARAM"));
-  logField_P(handler);
   for (byte i = 0; i <= msgField; i++) logField(msg[i]);
   logEnd();
   clearMsg();
@@ -465,7 +463,7 @@ void updateLog() {
     }
   }
   // if logData is false && chkMsg() is false - should we pass the LOGCFG constant into rejectMsg?
-  if (chkMsg()) rejectMsg(LOGCFG);   // old value: LOGGLB
+  if (chkMsg()) rejectMsg();   // old value: LOGGLB
 }
 
 #if defined USESERIAL
