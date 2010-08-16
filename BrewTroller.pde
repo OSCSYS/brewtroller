@@ -78,7 +78,7 @@ void(* softReset) (void) = 0;
 
 
 //**********************************************************************************
-// Gloabls
+// Globals
 //**********************************************************************************
 
 //Heat Output Pin Array
@@ -163,8 +163,8 @@ const char BTVER[] PROGMEM = "2.1";
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";
 const char LOGDEBUG[] PROGMEM = "DEBUG";
-const char LOGSYS[] PROGMEM = "SYSTEM";
-const char LOGGLB[] PROGMEM = "GLOBAL";
+const char LOGSYS[] PROGMEM = "SYS";
+const char LOGCFG[] PROGMEM = "CFG";
 const char LOGDATA[] PROGMEM = "DATA";
 
 
