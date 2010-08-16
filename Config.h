@@ -335,6 +335,15 @@
 //#define AUTO_BOIL_RECIRC 20
 //**********************************************************************************
 
+//**********************************************************************************
+// Volume Sensor Settings
+//**********************************************************************************
+// VOLUME_MANUAL: Modifies the user interface to show target volumes instead of
+// current volumes for people who are not using volume sensors. The target
+// volume information will be shown during Add Grain and during Sparge.
+//
+#define VOLUME_MANUAL
+//**********************************************************************************
 
 //**********************************************************************************
 // Volume Averaging Settings
@@ -373,3 +382,4 @@
 //**********************************************************************************
 
 #endif
+

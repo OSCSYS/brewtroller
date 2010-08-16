@@ -449,17 +449,32 @@ void screenRefresh(byte screen) {
 
   } else if (screen == SCREEN_SPARGE) {
     //Refresh Screen: Sparge
-    vftoa(volAvg[VS_HLT], buf, 3);
-    truncFloat(buf, 7);
-    printLCDLPad(1, 13, buf, 7, ' ');
-      
-    vftoa(volAvg[VS_MASH], buf, 3);
-    truncFloat(buf, 7);
-    printLCDLPad(2, 13, buf, 7, ' ');
-      
-    vftoa(volAvg[VS_KETTLE], buf, 3);
-    truncFloat(buf, 7);
-    printLCDLPad(3, 13, buf, 7, ' ');
+    #ifdef VOLUME_MANUAL
+      // In manual volume mode show the target volumes instead of the current volumes
+      vftoa(tgtVol[VS_HLT], buf, 3);
+      truncFloat(buf, 7);
+      printLCDLPad(1, 13, buf, 7, ' ');
+        
+      vftoa(tgtVol[VS_MASH], buf, 3);
+      truncFloat(buf, 7);
+      printLCDLPad(2, 13, buf, 7, ' ');
+        
+      vftoa(tgtVol[VS_KETTLE], buf, 3);
+      truncFloat(buf, 7);
+      printLCDLPad(3, 13, buf, 7, ' ');
+    #else
+      vftoa(volAvg[VS_HLT], buf, 3);
+      truncFloat(buf, 7);
+      printLCDLPad(1, 13, buf, 7, ' ');
+        
+      vftoa(volAvg[VS_MASH], buf, 3);
+      truncFloat(buf, 7);
+      printLCDLPad(2, 13, buf, 7, ' ');
+        
+      vftoa(volAvg[VS_KETTLE], buf, 3);
+      truncFloat(buf, 7);
+      printLCDLPad(3, 13, buf, 7, ' ');
+    #endif
     
     if (screenLock) {
       int encValue = Encoder.change();
