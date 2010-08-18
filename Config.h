@@ -342,7 +342,7 @@
 // current volumes for people who are not using volume sensors. The target
 // volume information will be shown during Add Grain and during Sparge.
 //
-#define VOLUME_MANUAL
+//#define VOLUME_MANUAL
 //**********************************************************************************
 
 //**********************************************************************************
