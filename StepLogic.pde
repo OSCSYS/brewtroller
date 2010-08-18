@@ -126,7 +126,8 @@ boolean stepInit(byte pgm, byte brewStep) {
     if(getProgMLHeatSrc(pgm) == VS_HLT) {
       unsigned long spargeVol = calcSpargeVol(pgm);
       unsigned long mashVol = calcMashVol(pgm);
-      tgtVol[VS_HLT] = (min(spargeVol + mashVol, getCapacity(VS_HLT))) - spargeVol;
+      //tgtVol[VS_HLT] = (min(spargeVol + mashVol, getCapacity(VS_HLT))) - spargeVol;
+      tgtVol[VS_HLT] = (min(spargeVol, getCapacity(VS_HLT)));
       #ifdef AUTO_ML_XFER
          autoValve[AV_SPARGEIN] = 1;
       #endif
