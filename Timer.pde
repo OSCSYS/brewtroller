@@ -33,6 +33,7 @@ void setTimer(byte timer, unsigned int minutes) {
   timerValue[timer] = minutes * 60000;
   lastTime[timer] = millis();
   timerStatus[timer] = 1;
+  setTimerStatus(timer, 1);
   setTimerRecovery(timer, minutes);
 }
 
@@ -45,11 +46,13 @@ void pauseTimer(byte timer) {
     timerStatus[timer] = 1;
     lastTime[timer] = millis();
   }
+  setTimerStatus(timer, timerStatus[timer]);
 }
 
 void clearTimer(byte timer) {
   timerValue[timer] = 0;
   timerStatus[timer] = 0;
+  setTimerStatus(timer, 0);
   setTimerRecovery(timer, 0);
 }
 
@@ -60,8 +63,15 @@ void updateTimers() {
       if (timerValue[timer] > now - lastTime[timer]) {
         timerValue[timer] -= now - lastTime[timer];
       } else {
+        #ifdef DEBUG_TIMERALARM
+          logStart_P(LOGDEBUG);
+          if(timer == TIMER_MASH) logField("MASH_TIMER has expired"); else logField("BOIL_TIMER has expired");
+          logEnd();
+        #endif
         timerValue[timer] = 0;
         timerStatus[timer] = 0;
+        setTimerStatus(timer, 0);
+        setTimerRecovery(timer, 0);  // KM - Moved this from below to be event driven
         setAlarm(1);
       }
       lastTime[timer] = now;
@@ -73,8 +83,7 @@ void updateTimers() {
     //Update EEPROM once per minute
     if (timerMins != lastEEPROMWrite[timer]) {
       lastEEPROMWrite[timer] = timerMins;
-      if (!timerValue[timer]) setTimerRecovery(timer, 0);
-      else setTimerRecovery(timer, timerValue[timer]/60000 + 1);
+      if (timerValue[timer]) setTimerRecovery(timer, timerValue[timer]/60000 + 1);
     }
   }
 }

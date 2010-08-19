@@ -379,6 +379,9 @@
 
 // DEBUG_PID_GAIN: Enables logging of PID Gain settings as they are set.
 //#define DEBUG_PID_GAIN
+
+// DEBUG_TIMERALARM: Enables logging of Timer and Alarm values
+//#define DEBUG_TIMERALARM
 //**********************************************************************************
 
 #endif
