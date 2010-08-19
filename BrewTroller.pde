@@ -1,4 +1,4 @@
-#define BUILD 446 
+#define BUILD 449 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -405,6 +405,9 @@ Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
 
 // DEBUG_PID_GAIN: Enables logging of PID Gain settings as they are set.
 //#define DEBUG_PID_GAIN
+
+// DEBUG_TIMERALARM: Enables logging of Timer and Alarm values
+//#define DEBUG_TIMERALARM
 //**********************************************************************************
 
 //*****************************************************************************************************************************

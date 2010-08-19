@@ -95,14 +95,23 @@ void loadSetup() {
   //**********************************************************************************
   //Timer/Alarm Status (306)
   //**********************************************************************************
-  {
-    byte options = EEPROM.read(306);
-    for (byte i = TIMER_MASH; i <= TIMER_BOIL; i++) {
-      timerStatus[i] = bitRead(options, i);
-      lastTime[i] = millis();
-    }
-    alarmStatus = bitRead(options, 2);
+  byte options = EEPROM.read(306);
+  for (byte i = TIMER_MASH; i <= TIMER_BOIL; i++) {
+    timerStatus[i] = bitRead(options, i);
+    lastTime[i] = millis();
   }
+  alarmStatus = bitRead(options, 2);
+  alarmPin.set(alarmStatus);
+  
+  #ifdef DEBUG_TIMERALARM
+    logStart_P(LOGDEBUG);
+    logField("TimerAlarmStatus");
+    logFieldI(bitRead(options, 0));
+    logFieldI(bitRead(options, 1));
+    logFieldI(bitRead(options, 2));
+    logEnd();
+  #endif
+  
 
   //**********************************************************************************
   //Step (313-327) NUM_BREW_STEPS (15)
@@ -286,12 +295,31 @@ void setTimerStatus(byte timer, boolean value) {
   byte options = EEPROM.read(306);
   bitWrite(options, timer, value);
   EEPROM.write(306, options);
+  
+  #ifdef DEBUG_TIMERALARM
+    logStart_P(LOGDEBUG);
+    logField("setTimerStatus");
+    logFieldI(value);
+    options = EEPROM.read(306);
+    logFieldI(bitRead(options, timer));    
+    logEnd();
+  #endif
 }
+
 void setAlarmStatus(boolean value) {
   alarmStatus = value;
   byte options = EEPROM.read(306);
   bitWrite(options, 2, value);
   EEPROM.write(306, options);
+  
+  #ifdef DEBUG_TIMERALARM
+    logStart_P(LOGDEBUG);
+    logField("setAlarmStatus");
+    logFieldI(value);
+    options = EEPROM.read(306);
+    logFieldI(bitRead(options, 2));
+    logEnd();
+  #endif
 }
 
 
