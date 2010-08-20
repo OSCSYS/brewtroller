@@ -32,11 +32,7 @@ void logInit() {
     Serial.begin(BAUD_RATE);
     Serial.println();
   #endif
-  logStart_P(LOGSYS);
-  logField_P(PSTR("VER"));
-  logField_P(BTVER);
-  logField(itoa(BUILD, buf, 10));
-  logEnd();
+  logVersion();
 }
 
 void logString_P (const char *sType, const char *sText) {
@@ -280,6 +276,9 @@ boolean chkMsg() {
               if ((actProfiles & (1<<i))) setValves(vlvConfig[i], atoi(msg[2]));
             clearMsg();
           } else rejectParam();
+        } else if(strcasecmp(msg[0], "GET_LOG") == 0) {
+          getLog();
+          clearMsg();
 
         //System Class (SYS) Commands
         } else if(strcasecmp(msg[0], "RESET") == 0) {
@@ -302,6 +301,9 @@ boolean chkMsg() {
             logData = (boolean)atoi(msg[1]);
             clearMsg();
           } else rejectParam();
+        } else if(strcasecmp(msg[0], "GET_VER") == 0) {
+          logVersion();
+          clearMsg();        
 
         //End of Commands
         }
@@ -357,116 +359,120 @@ void updateLog() {
   //Log 1 of 6 chunks per cycle to improve responsiveness to calling function
   if (logData) {
     if (millis() - lastLog > LOG_INTERVAL) {
-      if (logCount == 0) {
-        logStart_P(LOGDATA);
-        logField_P(PSTR("STEPPRG"));
-        for (byte i = 0; i < NUM_BREW_STEPS; i++)
-          logFieldI(stepProgram[i]);
-        logEnd();
-      } else if (logCount == 1) {
-        for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
-          logStart_P(LOGDATA);
-          logField_P(PSTR("TIMER"));
-          logFieldI(timer);
-          logFieldI(timerValue[timer]);
-          logFieldI(timerStatus[timer]);
-          logEnd();
-        }
-        logStart_P(LOGDATA);
-        logField_P(PSTR("ALARM"));
-        logFieldI(alarmStatus);
-        logEnd();
-      } else if (logCount >= 2 && logCount <= 4) {
-        byte i = logCount - 2;
-        logStart_P(LOGDATA);
-        logField_P(PSTR("VOL"));
-        logFieldI(i);
-        logFieldI(volAvg[i]);
-        #ifdef FLOWRATE_CALCS
-          logFieldI(flowRate[i]);
-        #else
-          logFieldI(0);
-        #endif
-        #ifdef USEMETRIC
-          logFieldI(0);
-        #else
-          logFieldI(1);
-        #endif
-        logEnd();
-      } else if (logCount >= 5 && logCount <= 13) {
-        byte i = logCount - 5;
-        logStart_P(LOGDATA);
-        logField_P(PSTR("TEMP"));
-        logFieldI(i);
-        logFieldI(temp[i]);
-        #ifdef USEMETRIC
-          logFieldI(0);
-        #else
-          logFieldI(1);
-        #endif
-        logEnd();
-      } else if (logCount == 14) {
-        logStart_P(LOGDATA);
-        logField_P(PSTR("STEAM"));
-        logFieldI(steamPressure);
-        #ifdef USEMETRIC
-          logFieldI(0);
-        #else
-          logFieldI(1);
-        #endif
-        logEnd();
-      } else if (logCount >= 15 && logCount <= 18) {
-        byte pct;
-        byte i = logCount - 15;
-        if (PIDEnabled[i]) pct = PIDOutput[i] / PIDCycle[i];
-        else if (heatStatus[i]) pct = 100;
-        else pct = 0;
-        logStart_P(LOGDATA);
-        logField_P(PSTR("HEATPWR"));
-        logFieldI(i);
-        logFieldI(pct);
-        logEnd();
-      } else if (logCount >= 19 && logCount <= 22) {
-        byte i = logCount - 19;
-        logStart_P(LOGDATA);
-        logField_P(PSTR("SETPOINT"));
-        logFieldI(i);
-        logFieldI(setpoint[i] / 100);
-        #ifdef USEMETRIC
-          logFieldI(0);
-        #else
-          logFieldI(1);
-        #endif
-        logEnd();
-      } else if (logCount == 23) {
-        logStart_P(LOGDATA);
-        logField_P(PSTR("AUTOVLV"));
-        byte modeMask = 0;
-        for (byte i = AV_FILL; i <= AV_CHILL; i++)
-          if (autoValve[i]) modeMask |= 1<<i;
-        logFieldI(modeMask);
-        logEnd();
-        logStart_P(LOGDATA);
-        logField_P(PSTR("VLVBITS"));
-        logFieldI(vlvBits);
-        logEnd();
-      } else if (logCount == 24) {
-        logStart_P(LOGDATA);
-        logField_P(PSTR("VLVPRF"));
-        unsigned int profileMask = 0;
-        for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
-          if (vlvConfig[i] != 0 && (vlvBits & vlvConfig[i]) == vlvConfig[i]) profileMask |= 1<<i;
-        logFieldI(profileMask);
-        logEnd();
-        //Logic below times start of log to start of log. Interval is reset if exceeds two intervals.
-        if (millis() - lastLog > LOG_INTERVAL * 2) lastLog = millis(); else lastLog += LOG_INTERVAL;
-      }
-      logCount++;
-      if (logCount > 24) logCount = 0;
+      getLog();
     }
   }
   // if logData is false && chkMsg() is false - should we pass the LOGCFG constant into rejectMsg?
   if (chkMsg()) rejectMsg();   // old value: LOGGLB
+}
+
+void getLog() {
+  if (logCount == 0) {
+    logStart_P(LOGDATA);
+    logField_P(PSTR("STEPPRG"));
+    for (byte i = 0; i < NUM_BREW_STEPS; i++)
+      logFieldI(stepProgram[i]);
+    logEnd();
+  } else if (logCount == 1) {
+    for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
+      logStart_P(LOGDATA);
+      logField_P(PSTR("TIMER"));
+      logFieldI(timer);
+      logFieldI(timerValue[timer]);
+      logFieldI(timerStatus[timer]);
+      logEnd();
+    }
+    logStart_P(LOGDATA);
+    logField_P(PSTR("ALARM"));
+    logFieldI(alarmStatus);
+    logEnd();
+  } else if (logCount >= 2 && logCount <= 4) {
+    byte i = logCount - 2;
+    logStart_P(LOGDATA);
+    logField_P(PSTR("VOL"));
+    logFieldI(i);
+    logFieldI(volAvg[i]);
+    #ifdef FLOWRATE_CALCS
+      logFieldI(flowRate[i]);
+    #else
+      logFieldI(0);
+    #endif
+    #ifdef USEMETRIC
+      logFieldI(0);
+    #else
+      logFieldI(1);
+    #endif
+    logEnd();
+  } else if (logCount >= 5 && logCount <= 13) {
+    byte i = logCount - 5;
+    logStart_P(LOGDATA);
+    logField_P(PSTR("TEMP"));
+    logFieldI(i);
+    logFieldI(temp[i]);
+    #ifdef USEMETRIC
+      logFieldI(0);
+    #else
+      logFieldI(1);
+    #endif
+    logEnd();
+  } else if (logCount == 14) {
+    logStart_P(LOGDATA);
+    logField_P(PSTR("STEAM"));
+    logFieldI(steamPressure);
+    #ifdef USEMETRIC
+      logFieldI(0);
+    #else
+      logFieldI(1);
+    #endif
+    logEnd();
+  } else if (logCount >= 15 && logCount <= 18) {
+    byte pct;
+    byte i = logCount - 15;
+    if (PIDEnabled[i]) pct = PIDOutput[i] / PIDCycle[i];
+    else if (heatStatus[i]) pct = 100;
+    else pct = 0;
+    logStart_P(LOGDATA);
+    logField_P(PSTR("HEATPWR"));
+    logFieldI(i);
+    logFieldI(pct);
+    logEnd();
+  } else if (logCount >= 19 && logCount <= 22) {
+    byte i = logCount - 19;
+    logStart_P(LOGDATA);
+    logField_P(PSTR("SETPOINT"));
+    logFieldI(i);
+    logFieldI(setpoint[i] / 100);
+    #ifdef USEMETRIC
+      logFieldI(0);
+    #else
+      logFieldI(1);
+    #endif
+    logEnd();
+  } else if (logCount == 23) {
+    logStart_P(LOGDATA);
+    logField_P(PSTR("AUTOVLV"));
+    byte modeMask = 0;
+    for (byte i = AV_FILL; i <= AV_CHILL; i++)
+      if (autoValve[i]) modeMask |= 1<<i;
+    logFieldI(modeMask);
+    logEnd();
+    logStart_P(LOGDATA);
+    logField_P(PSTR("VLVBITS"));
+    logFieldI(vlvBits);
+    logEnd();
+  } else if (logCount == 24) {
+    logStart_P(LOGDATA);
+    logField_P(PSTR("VLVPRF"));
+    unsigned int profileMask = 0;
+    for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
+      if (vlvConfig[i] != 0 && (vlvBits & vlvConfig[i]) == vlvConfig[i]) profileMask |= 1<<i;
+    logFieldI(profileMask);
+    logEnd();
+    //Logic below times start of log to start of log. Interval is reset if exceeds two intervals.
+    if (millis() - lastLog > LOG_INTERVAL * 2) lastLog = millis(); else lastLog += LOG_INTERVAL;
+  }
+  logCount++;
+  if (logCount > 24) logCount = 0;  
 }
 
 #if defined USESERIAL
@@ -500,6 +506,14 @@ void logBoil() {
   #else
     logFieldI(1);
   #endif 
+  logEnd();
+}
+
+void logVersion() {
+  logStart_P(LOGSYS);
+  logField_P(PSTR("VER"));
+  logField_P(BTVER);
+  logField(itoa(BUILD, buf, 10));
   logEnd();
 }
 
