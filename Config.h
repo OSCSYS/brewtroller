@@ -233,9 +233,11 @@
 //**********************************************************************************
 // NOUI: Disable built-in user interface 
 // UI_NO_SETUP: 'Light UI' removes system setup code to reduce compile size (~8 KB)
+// UI_LCD_I2C: Enables the I2C LCD interface instead of the 4 bit interface
 //
 //#define NOUI
 //#define UI_NO_SETUP
+//#define UI_LCD_I2C
 //**********************************************************************************
 
 
@@ -355,7 +357,6 @@
 #define VOLUME_READ_INTERVAL 200
 #define VOLUME_READ_COUNT 5
 //**********************************************************************************
-
 
 //**********************************************************************************
 // Flow Rate Calculation

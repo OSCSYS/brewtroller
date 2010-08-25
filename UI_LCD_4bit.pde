@@ -25,6 +25,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 #ifndef NOUI
+#ifndef UI_LCD_I2C
 #include "Config.h"
 #include "Enum.h"
 #include <LiquidCrystalFP.h>
@@ -168,4 +169,5 @@ void lcdWriteCustChar(byte iRow, byte iCol, byte slot) {
   lcd.write(slot);
 }
 
+#endif
 #endif
