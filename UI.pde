@@ -63,7 +63,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //**********************************************************************************
 // UI Strings
 //**********************************************************************************
-const char CANCEL[] PROGMEM = "Cancel";
+const char CANCEL[] PROGMEM = "Cancel"; //test checkin
 const char EXIT[] PROGMEM = "Exit";
 const char SPACE[] PROGMEM = " ";
 const char INIT_EEPROM[] PROGMEM = "Initialize EEPROM";
