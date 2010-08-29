@@ -574,50 +574,65 @@ void screenEnter(byte screen) {
     else if (!screenLock) lockUI();
     else {
       if (screen == SCREEN_HOME) {
-        //Screen Enter: Home
-        strcpy_P(menuopts[0], CANCEL);
-        strcpy_P(menuopts[1], PSTR("Edit Program"));
-        strcpy_P(menuopts[2], PSTR("Start Program"));
-        strcpy_P(menuopts[3], DRAIN);
-        if (vlvConfigIsActive(VLV_DRAIN)) strcat_P(menuopts[3], PSTR(": On"));
-        else strcat_P(menuopts[3], PSTR(": Off"));
-        strcpy_P(menuopts[4], PSTR("Reset All"));
-        //strcpy_P(menuopts[5], PSTR("System Info"));
-        strcpy_P(menuopts[5], PSTR("System Setup"));
-        #ifdef UI_NO_SETUP
-          byte lastOption = scrollMenu("Main Menu", 5, 0);
-        #else
-          byte lastOption = scrollMenu("Main Menu", 6, 0);
-        #endif
-        if (lastOption == 1) editProgramMenu();
-        else if (lastOption == 2) startProgramMenu();
-        else if (lastOption == 3) {
-          //Drain
-          if (vlvConfigIsActive(VLV_DRAIN)) setValves(vlvConfig[VLV_DRAIN], 0);
-          else {
-            if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL)) {
-              clearLCD();
-              printLCD_P(0, 0, PSTR("Cannot drain while"));
-              printLCD_P(1, 0, PSTR("mash or boil zone"));
-              printLCD_P(2, 0, PSTR("is active"));
-              printLCD(3, 4, ">");
-              printLCD_P(3, 6, CONTINUE);
-              printLCD(3, 15, "<");
-              while (!Encoder.ok()) brewCore();
-            } else setValves(vlvConfig[VLV_DRAIN], 1);
+        byte lastOption = 0;
+        while(1) {
+          //Screen Enter: Home
+          strcpy_P(menuopts[0], CANCEL);
+          strcpy_P(menuopts[1], PSTR("Edit Program"));
+          strcpy_P(menuopts[2], PSTR("Start Program"));
+          strcpy_P(menuopts[3], DRAIN);
+          if (vlvConfigIsActive(VLV_DRAIN)) strcat_P(menuopts[3], PSTR(": On"));
+          else strcat_P(menuopts[3], PSTR(": Off"));
+          strcpy_P(menuopts[4], PSTR("Reset All"));
+          //strcpy_P(menuopts[5], PSTR("System Info"));
+          strcpy_P(menuopts[5], PSTR("System Setup"));
+          #ifdef UI_NO_SETUP
+            lastOption = scrollMenu("Main Menu", 5, 0);
+          #else
+            lastOption = scrollMenu("Main Menu", 6, 0);
+          #endif
+          if (lastOption == 1) editProgramMenu();
+          else if (lastOption == 2) {
+              startProgramMenu();
+              if (activeScreen == SCREEN_FILL) {
+                screenInit(activeScreen);
+                break;
+              }
           }
-        }
-        else if (lastOption == 4) {
-          //Reset All
-          if (confirmAbort()) {
-            resetOutputs();
-            clearTimer(TIMER_MASH);
-            clearTimer(TIMER_BOIL);
+          else if (lastOption == 3) {
+            //Drain
+            if (vlvConfigIsActive(VLV_DRAIN)) setValves(vlvConfig[VLV_DRAIN], 0);
+            else {
+              if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL)) {
+                clearLCD();
+                printLCD_P(0, 0, PSTR("Cannot drain while"));
+                printLCD_P(1, 0, PSTR("mash or boil zone"));
+                printLCD_P(2, 0, PSTR("is active"));
+                printLCD(3, 4, ">");
+                printLCD_P(3, 6, CONTINUE);
+                printLCD(3, 15, "<");
+                while (!Encoder.ok()) brewCore();
+              } else setValves(vlvConfig[VLV_DRAIN], 1);
+            }
           }
-        }
+          else if (lastOption == 4) {
+            //Reset All
+            if (confirmAbort()) {
+              resetOutputs();
+              clearTimer(TIMER_MASH);
+              clearTimer(TIMER_BOIL);
+            }
+          }
 #ifndef UI_NO_SETUP        
-        else if (lastOption == 5) menuSetup();
+          else if (lastOption == 5) menuSetup();
 #endif
+          else if (lastOption == 0){
+            //On exit of the Main menu go back to Splash/Home screen.
+            activeScreen = SCREEN_HOME;
+            screenInit(activeScreen);
+            break;
+          }
+        }
         screenInit(activeScreen);
 
       } else if (screen == SCREEN_FILL) {
