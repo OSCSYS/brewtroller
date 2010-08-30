@@ -95,14 +95,7 @@ void pidInit() {
 }
 
 void resetOutputs() {
-  #ifdef USESTEAM
-    #define LAST_HEAT_OUTPUT VS_STEAM
-  #else
-    #define LAST_HEAT_OUTPUT VS_KETTLE
-  #endif
-  for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++) resetHeatOutput(i);
-  for (byte i = AV_FILL; i <= AV_CHILL; i++) autoValve[i] = 0;
-  setValves(VLV_ALL, 0);
+  for (byte i = STEP_FILL; i <= STEP_CHILL; i++) stepExit(i); //Go through each step's exit functions to quit clean.
 }
 
 void resetHeatOutput(byte vessel) {
