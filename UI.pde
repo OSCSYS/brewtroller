@@ -1598,6 +1598,7 @@ void assignSensor() {
       Encoder.setCount(encValue);
       redraw = 1;
     }
+    brewCore();
   }
 }
 
@@ -1683,6 +1684,7 @@ void cfgOutputs() {
       strcpy_P(menuopts[1], CANCEL);
       if (getChoice(2, 3) == 0) setSteamZero(analogRead(STEAMPRESS_APIN));
     } else return;
+    brewCore();
   } 
 }
 
@@ -1753,7 +1755,7 @@ void setPIDGain(char sTitle[], byte vessel) {
 #ifdef DEBUG_PID_GAIN
         logDebugPIDGain(vessel);
 #endif
-        return;
+        break;
       }
       cursorState = cursorState ^ 1;
       if (cursorState) {
@@ -1767,8 +1769,10 @@ void setPIDGain(char sTitle[], byte vessel) {
         Encoder.setMax(3);
         Encoder.setCount(cursorPos);
       }
-    } else if (Encoder.cancel()) return;
+    } else if (Encoder.cancel()) break;
+    brewCore();
   }
+  brewCore();
 }
 
 void cfgVolumes() {
@@ -1938,6 +1942,7 @@ unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
         for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) printLCD_P(1, i - firstBit + 1, PSTR("1")); else printLCD_P(1, i - firstBit + 1, PSTR("0"));
       }
     } else if (Encoder.cancel()) return defValue;
+    brewCore();
   }
 }
 #endif
