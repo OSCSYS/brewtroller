@@ -1582,7 +1582,7 @@ void assignSensor() {
           strcpy_P(menuopts[0], CONTINUE);
           strcpy_P(menuopts[1], CANCEL);
           if (getChoice(2, 3) == 0) {
-            byte addr[8];
+            byte addr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
             getDSAddr(addr);
             setTSAddr(encValue, addr);
           }
