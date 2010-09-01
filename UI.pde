@@ -1390,7 +1390,7 @@ unsigned int getTimerValue(const char *sTitle, unsigned int defMins) {
       cursorState = cursorState ^ 1;
       if (cursorState) {
         Encoder.setMin(0);
-        Encoder.setMax(99);
+        Encoder.setMax(60);
         if (cursorPos) Encoder.setCount(mins); else Encoder.setCount(hours);
       } else {
         Encoder.setMin(0);
