@@ -215,8 +215,8 @@
 // When the BUZZER_CYCLE_TIME is zero there is no modulation so the buzzer will buz  
 // a steady sound
 
-#define BUZZER_CYCLE_TIME 1200 //the value is in millisecondes for the ON and OFF buzzer cycle
-#define BUZZER_ON_TIME 500     //the duration in millisecondes where the alarm will stay on
+#define BUZZER_CYCLE_TIME 1200 //the value is in milli seconds for the ON and OFF buzzer cycle
+#define BUZZER_ON_TIME 500     //the duration in milli seconds where the alarm will stay on
 //**********************************************************************************
 
 

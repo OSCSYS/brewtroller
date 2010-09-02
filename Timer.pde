@@ -90,11 +90,6 @@ void updateTimers() {
   }
 }
 
-void setAlarm(boolean value) {
-  setAlarmStatus(value);
-  alarmPin.set(value);
-}
-
 //This function allows modulation of buzzer when the alarm is on.
 void updateBuzzer() {
   //Retreive the status of the alarm.
