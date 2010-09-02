@@ -27,6 +27,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Config.h"
 #include "Enum.h"
 
+unsigned long buzzerCycleStart = millis(); //last time the alarm went on
+
 byte lastEEPROMWrite[2];
 
 void setTimer(byte timer, unsigned int minutes) {
@@ -91,4 +93,46 @@ void updateTimers() {
 void setAlarm(boolean value) {
   setAlarmStatus(value);
   alarmPin.set(value);
+}
+
+//This function allows modulation of buzzer when the alarm is on.
+void updateBuzzer() {
+  //Retreive the status of the alarm.
+  byte alarmStatus = bitRead(EEPROM.read(306), 2);
+  //Set the buzzer according the user custom buzzer modulation 
+  setBuzzer(alarmStatus); 
+}
+
+void setAlarm(boolean alarmON) {
+  setAlarmStatus(alarmON);
+  setBuzzer(alarmON);  
+}
+
+//This function allow to modulate the sound of the buzzer when the alarm is ON. 
+//The modulation varies according the custom parameters.
+//The modulation occurs when the buzzerCycleTime value is larger than the buzzerOnDuration
+void setBuzzer(boolean alarmON) {
+  unsigned long now = millis(); //What time is it? :-))
+
+  if (alarmON) {
+    //Alarm status is ON, Buzzer will go ON or OFF based on modulation.
+    //The buzzer go OFF for every moment passed in the OFF window (low duty cycle). 
+    
+    //Now, by elimation, identify scenarios where the buzzer will go off. 
+    if (now < buzzerCycleStart + BUZZER_CYCLE_TIME) {
+      //At this moment ("now"), the buzzer is in the OFF window (low duty cycle). 
+      if (now > buzzerCycleStart + BUZZER_ON_TIME) {
+        //At this moment ("now"), the buzzer is NOT within the ON window (duty cycle) allowed inside the buzzer cycle window.
+        //Set or keep the buzzer off
+        alarmPin.set(0); 
+      }
+    } else {
+      //The buzzer go ON for every moment where buzzerCycleStart < "now" < buzzerCycleStart + buzzerOnDuration
+      alarmPin.set(1); //Set the buzzer On 
+      buzzerCycleStart = now; //Set a new reference time for the begining of the buzzer cycle.
+    }
+  } else {
+    //Alarm status is OFF, Buzzer goes Off
+    alarmPin.set(0);
+  }
 }

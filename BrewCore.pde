@@ -31,23 +31,26 @@ void brewCore() {
   //Timers: Timer.pde
   updateTimers();
   
+   //temps: Temp.pde
+  updateTemps();
+ 
+  //Alarm update allows to have a beeping alarm
+  updateBuzzer();
+ 
+  //Heat Outputs: Outputs.pde
+  processHeatOutputs();
+  
   //Volumes: Volume.pde
   updateVols();
-  
+
+  //Log: Log.pde
+  updateLog();  
+
   #ifdef FLOWRATE_CALCS
     updateFlowRates();
   #endif
   
-  //Log: Log.pde
-  updateLog();
-  
-  //temps: Temp.pde
-  updateTemps();
-  
   steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
-  
-  //Heat Outputs: Outputs.pde
-  processHeatOutputs();
   
   //Auto Valve Logic: Outputs.pde
   processAutoValve();
