@@ -212,11 +212,11 @@
 //**********************************************************************************
 // These parameters allow to modulate the sound of the alarm. 
 // The modulation occurs when the BUZZER_CYCLE_TIME value is larger than the BUZZER_ON_TIME
-// When the BUZZER_CYCLE_TIME is zero there is no modulation so the buzzer will buz  
+// When the BUZZER_CYCLE_TIME is zero there is no modulation so the buzzer will buzz  
 // a steady sound
 
-#define BUZZER_CYCLE_TIME 1200 //the value is in milli seconds for the ON and OFF buzzer cycle
-#define BUZZER_ON_TIME 500     //the duration in milli seconds where the alarm will stay on
+#define BUZZER_CYCLE_TIME 1200 //the value is in milliseconds for the ON and OFF buzzer cycle
+#define BUZZER_ON_TIME 500     //the duration in milliseconds where the alarm will stay on
 //**********************************************************************************
 
 

@@ -1549,19 +1549,26 @@ void assignSensor() {
   strcpy_P(dispTitle[7], PSTR("AUX 2"));
   strcpy_P(dispTitle[8], PSTR("AUX 3"));
   boolean redraw = 1;
+  int encValue, oldEncValue;
   
   while (1) {
-    int encValue;
     if (redraw) {
+      //First time entry or back from the sub-menu.
       redraw = 0;
       encValue = Encoder.getCount();
-    }
-    else encValue = Encoder.change();
+    } else encValue = Encoder.change();
+    
     if (encValue >= 0) {
+      //The user has navigated toward a new temperature probe screen.
+      oldEncValue = encValue;  //Will allow partial screen refresh when viewing the same screen.
       clearLCD();
       printLCD_P(0, 0, PSTR("Assign Temp Sensor"));
       printLCDCenter(1, 0, dispTitle[encValue], 20);
       for (byte i=0; i<8; i++) printLCDLPad(2,i*2+2,itoa(tSensor[encValue][i], buf, 16), 2, '0');  
+      displayAssignSensorTemp(encValue);
+    } else {
+      //The user is still viewing the same screen (no change on the static data but refresh the temperature value).
+        displayAssignSensorTemp(oldEncValue);  //Only refresh the current screen.
     }
     if (Encoder.cancel()) return;
     else if (Encoder.ok()) {
@@ -1598,6 +1605,15 @@ void assignSensor() {
       redraw = 1;
     }
     brewCore();
+  }
+}
+
+void displayAssignSensorTemp(int encValue) {
+  printLCD_P(3, 10, TUNIT); 
+  if (temp[encValue] == -32768) {
+    printLCD_P(3, 7, PSTR("---"));
+  } else {
+    printLCDLPad(3, 7, itoa(temp[encValue] / 100, buf, 10), 3, ' ');
   }
 }
 
