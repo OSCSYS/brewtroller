@@ -908,11 +908,13 @@ void startProgramMenu() {
   if (profile < 20) {
     while(1) {
       unsigned long spargeVol = calcSpargeVol(profile);
-      unsigned long mashVol = calcMashVol(profile);
+      unsigned long mashVol = calcStrikeVol(profile);
       unsigned long grainVol = calcGrainVolume(profile);
+      unsigned long preboilVol = calcPreboilVol(profile);
       if (spargeVol > getCapacity(TS_HLT)) warnHLT(spargeVol);
       if (mashVol + grainVol > getCapacity(TS_MASH)) warnMash(mashVol, grainVol);
-        
+      if (preboilVol > getCapacity(TS_KETTLE)) warnBoil(preboilVol);
+      
       strcpy_P(menuopts[0], PSTR("Edit Program"));
       strcpy_P(menuopts[1], PSTR("Grain Temp:"));
         strncat(menuopts[1], itoa(getGrainTemp(), buf, 10), 3);
@@ -1024,10 +1026,12 @@ void editProgram(byte pgm) {
     else if (lastOption == 9) setProgAdds(pgm, editHopSchedule(getProgAdds(pgm)));
     else return;
     unsigned long spargeVol = calcSpargeVol(pgm);
-    unsigned long mashVol = calcMashVol(pgm);
+    unsigned long mashVol = calcStrikeVol(pgm);
     unsigned long grainVol = calcGrainVolume(pgm);
+    unsigned long preboilVol = calcPreboilVol(pgm);
     if (spargeVol > getCapacity(TS_HLT)) warnHLT(spargeVol);
     if (mashVol + grainVol > getCapacity(TS_MASH)) warnMash(mashVol, grainVol);
+    if (preboilVol > getCapacity(TS_KETTLE)) warnBoil(preboilVol);
   }
 }
 
@@ -1137,6 +1141,19 @@ void warnMash(unsigned long mashVol, unsigned long grainVol) {
   while (!Encoder.ok()) brewCore();
 }
 
+void warnBoil(unsigned long preboilVol) {
+  clearLCD();
+  printLCD_P(0, 0, PSTR("Boil Capacity Issue"));
+  printLCD_P(1, 0, PSTR("Preboil Vol:"));
+  vftoa(preboilVol, buf, 3);
+  truncFloat(buf, 5);
+  printLCD(1, 12, buf);
+  printLCD_P(1, 17, VOLUNIT);
+  printLCD(3, 4, ">");
+  printLCD_P(3, 6, CONTINUE);
+  printLCD(3, 15, "<");
+  while (!Encoder.ok()) brewCore();
+}
 
 //*****************************************************************************************************************************
 //Generic Menu Functions

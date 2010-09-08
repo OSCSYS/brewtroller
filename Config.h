@@ -145,17 +145,18 @@
 // sensors. Parasite power allows sensors to obtain their power from the data line
 // but significantly increases the time required to read the temperature (94-750ms
 // based on resolution versus 10ms with dedicated power).
-#define TS_ONEWIRE_PPWR 0
+#define TS_ONEWIRE_PPWR 1
 
 // TS_ONEWIRE_RES: OneWire Temperature Sensor Resolution (9-bit - 12-bit). Valid
 // options are: 9, 10, 11, 12). Unless parasite power is being used the recommended
-// setting is 12-bit. When using parasite power decreasing the resolution reduces
-// the temperature conversion time: 
+// setting is 12-bit (for DS18B20 sensors). DS18S20 sensors can only operate at a max
+// of 9 bit. When using parasite power decreasing the resolution reduces the 
+// temperature conversion time: 
 //   12-bit (0.0625C / 0.1125F) = 750ms 
 //   11-bit (0.125C  / 0.225F ) = 375ms 
 //   10-bit (0.25C   / 0.45F  ) = 188ms 
 //    9-bit (0.5C    / 0.9F   ) =  94ms   
-#define TS_ONEWIRE_RES 11
+#define TS_ONEWIRE_RES 9
 //**********************************************************************************
 
 
@@ -395,6 +396,14 @@
 
 // DEBUG_TIMERALARM: Enables logging of Timer and Alarm values
 //#define DEBUG_TIMERALARM
+
+// DEBUG_VOLCALIB: Enables logging of Volume Calibration values
+//#define DEBUG_VOLCALIB
+
+// DEBUG_PROG_CALC_VOLS: Enables logging of PreBoil, Sparge, and Total water calcs 
+// based on the running program
+//#define DEBUG_PROG_CALC_VOLS
+
 //**********************************************************************************
 
 #endif

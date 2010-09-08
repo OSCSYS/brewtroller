@@ -609,4 +609,14 @@ void logVolCalib(char* logText, int value) {
 }
 #endif
 
+#ifdef DEBUG_PROG_CALC_VOLS
+void logProgCalcVols(char* logText, unsigned long value)
+{
+  logStart_P(LOGDEBUG);
+  logField(logText);
+  logFieldI(value);  
+  logEnd();
+}
+#endif
+
 #endif

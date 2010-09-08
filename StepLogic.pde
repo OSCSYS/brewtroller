@@ -78,7 +78,7 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Fill
     //Set Target Volumes
     tgtVol[VS_HLT] = calcSpargeVol(pgm);
-    tgtVol[VS_MASH] = calcMashVol(pgm);
+    tgtVol[VS_MASH] = calcStrikeVol(pgm);
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
       tgtVol[VS_HLT] = min(tgtVol[VS_HLT] + tgtVol[VS_MASH], getCapacity(VS_HLT));
       tgtVol[VS_MASH] = 0;
@@ -128,7 +128,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     setValves(vlvConfig[VLV_ADDGRAIN], 1);
     if(getProgMLHeatSrc(pgm) == VS_HLT) {
       unsigned long spargeVol = calcSpargeVol(pgm);
-      unsigned long mashVol = calcMashVol(pgm);
+      unsigned long mashVol = calcStrikeVol(pgm);
       tgtVol[VS_HLT] = (min(spargeVol, getCapacity(VS_HLT)));
       #ifdef VOLUME_MANUAL
         // In manual volume mode show the target mash volume as a guide to the user
@@ -368,6 +368,14 @@ void stepCore() {
 
 //stepCore logic for Fill and Refill
 void stepFill(byte brewStep) {
+  //Skip unnecessary refills
+  if (brewStep == STEP_REFILL) {
+    byte pgm = stepProgram[brewStep];
+    unsigned long HLTFillVol = calcSpargeVol(pgm);
+    if (getProgMLHeatSrc(pgm) == VS_HLT) HLTFillVol += calcStrikeVol(pgm);
+    if (HLTFillVol <= getCapacity(VS_HLT)) stepAdvance(brewStep);
+  }
+
   #ifdef AUTO_FILL_EXIT
     if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH]) stepAdvance(brewStep);
   #endif
@@ -495,37 +503,66 @@ void smartHERMSHLT() {
 }
 #endif
   
-unsigned long calcMashVol(byte pgm) {
-  unsigned long retValue = round(getProgGrain(pgm) * getProgRatio(pgm) / 100.0);
+unsigned long calcStrikeVol(byte pgm) {
+  unsigned long retValue = round((getProgGrain(pgm) * getProgRatio(pgm) / 100.0) + getVolLoss(TS_MASH));
   //Convert qts to gal for US
   #ifndef USEMETRIC
     retValue = round(retValue / 4.0);
   #endif
+  
+  #ifdef DEBUG_PROG_CALC_VOLS
+  logProgCalcVols("Strike:", retValue);
+  #endif
+  
   return retValue;
 }
 
 unsigned long calcSpargeVol(byte pgm) {
-  //Determine Total Water Needed (Evap + Deadspaces)
+  //Determine Preboil Volume Needed (Batch + Evap + Deadspace + Thermo Shrinkage)
   unsigned long retValue = calcPreboilVol(pgm);
 
   //Add Water Lost in Spent Grain
   retValue += calcGrainLoss(pgm);
+  
+  //Add Loss from other Vessels
+  retValue += (getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
 
-  //Subtract mash volume
-  retValue -= calcMashVol(pgm);
+  //Subtract Strike Water Volume
+  retValue -= calcStrikeVol(pgm);
+  
+  #ifdef DEBUG_PROG_CALC_VOLS
+  logProgCalcVols("Sparge:", retValue);
+  #endif
+  
   return retValue;
 }
 
 unsigned long calcPreboilVol(byte pgm) {
-  return round(getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0) + getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
+  // Pre-Boil Volume is the total volume needed in the kettle to ensure you can collect your anticipated batch volume
+  // It is (((batch volume + kettle loss) / thermo shrinkage factor ) / evap loss factor )
+  //unsigned long retValue = (getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0)) + getVolLoss(TS_KETTLE); // old logic 
+  unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0));
+  
+  #ifdef DEBUG_PROG_CALC_VOLS
+  logProgCalcVols("Preboil", round(retValue));
+  #endif
+  
+  return round(retValue);
 }
 
 unsigned long calcGrainLoss(byte pgm) {
+  unsigned long retValue;
   #ifdef USEMETRIC
-    return round(getProgGrain(pgm) * 1.7884);
+    retValue = round(getProgGrain(pgm) * 1.7884);
   #else
-    return round(getProgGrain(pgm) * .2143);
+    retValue = round(getProgGrain(pgm) * .2143); // This is pretty conservative (err on more absorbtion) - Ray Daniels suggests .20 - Denny Conn suggest .10
   #endif
+  
+  #ifdef DEBUG_PROG_CALC_VOLS
+  logProgCalcVols("Grain Loss:", retValue);
+  #endif
+  
+  return retValue;
 }
 
 unsigned long calcGrainVolume(byte pgm) {
