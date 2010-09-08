@@ -1,4 +1,4 @@
-#define BUILD 517 
+#define BUILD 518 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -145,7 +145,7 @@ boolean logData = LOG_INITSTATUS;
 boolean msgQueued;
 unsigned long lastLog;
 byte logCount, msgField;
-char msg[25][21];
+char msg[CMD_MSG_FIELDS][CMD_FIELD_CHARS];
 
 //Brew Step Logic Globals
 //Active program for each brew step

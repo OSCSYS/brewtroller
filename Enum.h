@@ -135,4 +135,8 @@
 #define EVENT_STEPINIT 0
 #define EVENT_SETPOINT 1
 
+//Log Constants
+#define CMD_MSG_FIELDS 25
+#define CMD_FIELD_CHARS 21
+
 #endif

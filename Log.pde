@@ -27,14 +27,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Config.h"
 #include "Enum.h"
 
-#define CMD_MSG_FIELDS 25
-#define CMD_FIELD_CHARS 21
-
-boolean msgQueued;
-unsigned long lastLog;
-byte logCount, msgField;
-char msg[CMD_MSG_FIELDS][CMD_FIELD_CHARS];
-
 void logInit() {
   #if defined USESERIAL
     Serial.begin(BAUD_RATE);
