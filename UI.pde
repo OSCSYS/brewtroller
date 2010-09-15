@@ -589,9 +589,9 @@ void screenEnter(byte screen) {
           //strcpy_P(menuopts[5], PSTR("System Info"));
           strcpy_P(menuopts[5], PSTR("System Setup"));
           #ifdef UI_NO_SETUP
-            lastOption = scrollMenu("Main Menu", 5, 0);
+            lastOption = scrollMenu("Main Menu", 5, lastOption);
           #else
-            lastOption = scrollMenu("Main Menu", 6, 0);
+            lastOption = scrollMenu("Main Menu", 6, lastOption);
           #endif
           if (lastOption == 1) editProgramMenu();
           else if (lastOption == 2) {
@@ -652,7 +652,7 @@ void screenEnter(byte screen) {
           strcpy_P(menuopts[3], CONTINUE);
           strcpy_P(menuopts[4], ABORT);
           strcpy_P(menuopts[5], CANCEL);
-          byte lastOption = scrollMenu("Fill Menu", 6, 0);
+          byte lastOption = scrollMenu("Fill Menu", 6, lastOption);
           if (lastOption == 0) { if(tgtVol[VS_HLT] || tgtVol[VS_MASH]) autoValve[AV_FILL] = 1; }
           else if (lastOption == 1) tgtVol[VS_HLT] = getValue(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 7, 3, 9999999, VOLUNIT);
           else if (lastOption == 2) tgtVol[VS_MASH] = getValue(PSTR("Mash Target Vol"), tgtVol[VS_MASH], 7, 3, 9999999, VOLUNIT);
@@ -680,7 +680,7 @@ void screenEnter(byte screen) {
         strcpy_P(menuopts[4], CONTINUE);
         strcpy_P(menuopts[5], ABORT);
         strcpy_P(menuopts[6], CANCEL);
-        byte lastOption = scrollMenu("Mash Menu", 7, 0);
+        byte lastOption = scrollMenu("Mash Menu", 7, lastOption);
         if (lastOption == 0) setSetpoint(VS_HLT, getValue(PSTR("HLT Setpoint"), setpoint[VS_HLT] / 100, 3, 0, 255, TUNIT));
         else if (lastOption == 1) setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH] / 100, 3, 0, 255, TUNIT));
         else if (lastOption == 2) { 
@@ -744,7 +744,7 @@ void screenEnter(byte screen) {
           strcpy_P(menuopts[5], PSTR("Continue"));
           strcpy_P(menuopts[6], PSTR("Abort"));
           strcpy_P(menuopts[7], PSTR("Cancel"));
-          byte lastOption = scrollMenu("Sparge Menu", 8, 0);
+          byte lastOption = scrollMenu("Sparge Menu", 8, lastOption);
           if (lastOption == 0) { resetSpargeValves(); if(tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 1; }
           else if (lastOption == 1) { resetSpargeValves(); if(tgtVol[VS_KETTLE]) autoValve[AV_SPARGEOUT] = 1; }
           else if (lastOption == 2) { resetSpargeValves(); if(tgtVol[VS_KETTLE]) autoValve[AV_FLYSPARGE] = 1; }
@@ -779,7 +779,7 @@ void screenEnter(byte screen) {
         strcpy_P(menuopts[6], CONTINUE);
         strcpy_P(menuopts[7], ABORT);
         strcpy_P(menuopts[8], CANCEL);        
-        byte lastOption = scrollMenu("Boil Menu", 9, 0);
+        byte lastOption = scrollMenu("Boil Menu", 9, lastOption);
         if (lastOption == 0) {
           setTimer(TIMER_BOIL, getTimerValue(PSTR("Boil Timer"), timerValue[TIMER_BOIL] / 60000));
           //Force Preheated
@@ -906,6 +906,7 @@ void startProgramMenu() {
   for (byte i = 0; i < 20; i++) getProgName(i, menuopts[i]);
   byte profile = scrollMenu("Start Program", 20, 0);
   if (profile < 20) {
+    byte lastOption = 0; 
     while(1) {
       unsigned long spargeVol = calcSpargeVol(profile);
       unsigned long mashVol = calcStrikeVol(profile);
@@ -924,7 +925,7 @@ void startProgramMenu() {
       strcpy_P(menuopts[4], PSTR("Cancel"));
       char progName[20];
       getProgName(profile, progName);
-      byte lastOption = scrollMenu(progName, 5, 0);
+      lastOption = scrollMenu(progName, 5, lastOption);
       if (lastOption == 0) editProgram(profile);
       else if (lastOption == 1) setGrainTemp(getValue(PSTR("Grain Temp"), getGrainTemp(), 3, 0, 255, TUNIT)); 
       else if (lastOption == 2 || lastOption == 3) {
@@ -1099,7 +1100,7 @@ unsigned int editHopSchedule (unsigned int sched) {
   }
 }
 
-byte MLHeatSrcMenu (byte MLHeatSrc) {
+byte MLHeatSrcMenu(byte MLHeatSrc) {
   strcpy_P(menuopts[0], HLTDESC);
   strcpy_P(menuopts[1], MASHDESC);
   byte lastOption = scrollMenu("Heat Strike In:", 2, MLHeatSrc);
@@ -1166,27 +1167,24 @@ byte scrollMenu(char sTitle[], byte numOpts, byte defOption) {
   byte topItem = numOpts;
   boolean redraw = 1;
   
+  int encValue;
   while(1) {
-    int encValue;
     if (redraw) {
-            redraw = 0;
-            encValue = Encoder.getCount();
-    }
-    else encValue = Encoder.change();
+      redraw = 0;
+      encValue = Encoder.getCount();
+    } else encValue = Encoder.change();
+    
     if (encValue >= 0) {
+      //There is a new value for the encoder.
       if (encValue < topItem) {
-        clearLCD();
-        if (sTitle != NULL) printLCD(0, 0, sTitle);
-        if (numOpts <= 3) topItem = 0;
-        else topItem = encValue;
-        drawItems(numOpts, topItem);
+        //Scrolling the menu up!
+        topItem = encValue; //The first menu item to display.
       } else if (encValue > topItem + 2) {
-        clearLCD();
-        if (sTitle != NULL) printLCD(0, 0, sTitle);
-        topItem = encValue - 2;
-        drawItems(numOpts, topItem);
+        //Scrolling the menu down!
+        topItem = encValue - 2; //Scroll the menu down by only one new menu item.
       }
-      for (byte i = 1; i <= 3; i++) if (i == encValue - topItem + 1) printLCD(i, 0, ">"); else printLCD(i, 0, " ");
+      //Display a new menu or refresh the cursor location (encoder).
+      drawMenu(sTitle, numOpts, topItem, encValue);
     }
     
     //If Enter
@@ -1199,11 +1197,35 @@ byte scrollMenu(char sTitle[], byte numOpts, byte defOption) {
   }
 }
 
-void drawItems(byte numOpts, byte topItem) {
+void drawMenu(char sTitle[], byte numOpts, byte topItem, int encValue) {
+  clearLCD();
+  if (sTitle != NULL) printLCD(0, 0, sTitle);
+  drawItems(numOpts, topItem, encValue);
+}
+
+void drawItems(byte numOpts, byte topItem, int encValue) {
+  //numOpts: Total of menu items for that menu.
+  //topItem: The first menu item to display using the list numeric value (from 0 - X) (not the position in the menu from 1 to X).
   //Uses Global menuopts[][20]
-  byte maxOpt = topItem + 2;
-  if (maxOpt > numOpts - 1) maxOpt = numOpts - 1;
+  byte maxOpt;
+  
+  if (numOpts < 3) {
+    //Only two of less menu item to display.
+    topItem = 0;
+    maxOpt = numOpts - 1; 
+  } else if (topItem > numOpts - 3){
+    //The first item to display is at the bottom of the list. Move the selection sightly up do display a full page of menu items, meaning the last three.
+    topItem = numOpts - 3; //Select a new top item to display in order to display a full page of menu items.
+    maxOpt = topItem + 2;
+  } else {
+    //Will only display the first 3 menu items that includes the "topItem".
+    maxOpt = topItem + 2;
+  }
+  //Display menu items.
   for (byte i = topItem; i <= maxOpt; i++) printLCD(i-topItem+1, 1, menuopts[i]);
+
+  //Display encoder position ">".
+  for (byte i = 1; i <= 3; i++) if (i == encValue - topItem + 1) printLCD(i, 0, ">"); else printLCD(i, 0, " "); 
 }
 
 byte getChoice(byte numChoices, byte iRow) {

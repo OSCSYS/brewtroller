@@ -125,6 +125,7 @@ boolean tsReady() {
   return 0;
 }
 
+//This function search for an address that is not currently assigned!
 void getDSAddr(byte addrRet[8]){
 //Leaving stub for external functions (serial and setup) that use this function
 #ifdef TS_ONEWIRE
@@ -142,6 +143,7 @@ void getDSAddr(byte addrRet[8]){
     for (byte i = TS_HLT; i <= TS_AUX3; i++) {
       boolean match = 1;
       for (byte j = 0; j < 8; j++) {
+        //Try to confirm a match by checking every byte of the scanned address with those of each sensor.
         if (scanAddr[j] != tSensor[i][j]) {
           match = 0;
           break;
@@ -157,7 +159,7 @@ void getDSAddr(byte addrRet[8]){
       return;
     }
     limit++;
-  }
+  }      
 #endif
 }
 

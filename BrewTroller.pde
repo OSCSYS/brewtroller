@@ -1,4 +1,4 @@
-#define BUILD 520 
+#define BUILD 522 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -26,8 +26,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 /*
-Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
-  With Sanguino Software v1.4 (http://code.google.com/p/sanguino/downloads/list)
+Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
+  With Sanguino Software "Sanguino-0018r2_1_4.zip" (http://code.google.com/p/sanguino/downloads/list)
 
   Using the following libraries:
     PID  v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
