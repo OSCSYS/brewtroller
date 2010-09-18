@@ -63,6 +63,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //**********************************************************************************
 // UI Strings
 //**********************************************************************************
+const char OK[] PROGMEM = "Ok";
 const char CANCEL[] PROGMEM = "Cancel";
 const char EXIT[] PROGMEM = "Exit";
 const char SPACE[] PROGMEM = " ";
@@ -684,7 +685,7 @@ void screenEnter(byte screen) {
         if (lastOption == 0) setSetpoint(VS_HLT, getValue(PSTR("HLT Setpoint"), setpoint[VS_HLT] / 100, 3, 0, 255, TUNIT));
         else if (lastOption == 1) setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH] / 100, 3, 0, 255, TUNIT));
         else if (lastOption == 2) { 
-          setTimer(TIMER_MASH, getTimerValue(PSTR("Mash Timer"), timerValue[TIMER_MASH] / 60000));
+          setTimer(TIMER_MASH, getTimerValue(PSTR("Mash Timer"), timerValue[TIMER_MASH] / 60000, 1));
           //Force Preheated
           preheated[VS_MASH] = 1;
         } 
@@ -781,7 +782,7 @@ void screenEnter(byte screen) {
         strcpy_P(menuopts[8], CANCEL);        
         byte lastOption = scrollMenu("Boil Menu", 9, lastOption);
         if (lastOption == 0) {
-          setTimer(TIMER_BOIL, getTimerValue(PSTR("Boil Timer"), timerValue[TIMER_BOIL] / 60000));
+          setTimer(TIMER_BOIL, getTimerValue(PSTR("Boil Timer"), timerValue[TIMER_BOIL] / 60000, 2));
           //Force Preheated
           preheated[VS_KETTLE] = 1;
         } 
@@ -858,30 +859,6 @@ void resetSpargeValves() {
   setValves(vlvConfig[VLV_MASHIDLE], 0);
 }
 
-void printTimer(byte timer, byte iRow, byte iCol) {
-  if (timerValue[timer] > 0 && !timerStatus[timer]) printLCD(iRow, iCol, "PAUSED");
-  else if (alarmStatus || timerStatus[timer]) {
-    byte timerHours = timerValue[timer] / 3600000;
-    byte timerMins = (timerValue[timer] - timerHours * 3600000) / 60000;
-    byte timerSecs = (timerValue[timer] - timerHours * 3600000 - timerMins * 60000) / 1000;
-
-    //Update LCD once per second
-    if (millis() - timerLastPrint >= 1000) {
-      timerLastPrint = millis();
-      printLCDRPad(iRow, iCol, "", 6, ' ');
-      printLCD_P(iRow, iCol+2, PSTR(":"));
-      if (timerHours > 0) {
-        printLCDLPad(iRow, iCol, itoa(timerHours, buf, 10), 2, '0');
-        printLCDLPad(iRow, iCol + 3, itoa(timerMins, buf, 10), 2, '0');
-      } else {
-        printLCDLPad(iRow, iCol, itoa(timerMins, buf, 10), 2, '0');
-        printLCDLPad(iRow, iCol+ 3, itoa(timerSecs, buf, 10), 2, '0');
-      }
-      if (alarmStatus) lcdWriteCustChar(iRow, iCol + 5, 5);
-    }
-  } else printLCDRPad(iRow, iCol, "", 6, ' ');
-}
-
 void stepAdvanceFailDialog() {
   clearLCD();
   printLCD_P(0, 0, PSTR("Failed to advance"));
@@ -941,7 +918,7 @@ void startProgramMenu() {
         } else {
           if (lastOption == 3) {
             //Delay Start
-            setDelayMins(getTimerValue(PSTR("Delay Start"), 0));
+            setDelayMins(getTimerValue(PSTR("Delay Start"), getDelayMins(), 23));
           }
           if (stepInit(profile, STEP_FILL)) {
             clearLCD();
@@ -1011,7 +988,7 @@ void editProgram(byte pgm) {
     lastOption = scrollMenu("Program Parameters", 11, lastOption);
     if (lastOption == 0) setProgBatchVol(pgm, getValue(PSTR("Batch Volume"), getProgBatchVol(pgm), 7, 3, 9999999, VOLUNIT));
     else if (lastOption == 1) setProgGrain(pgm, getValue(PSTR("Grain Weight"), getProgGrain(pgm), 7, 3, 9999999, WTUNIT));
-    else if (lastOption == 2) setProgBoil(pgm, getTimerValue(PSTR("Boil Length"), getProgBoil(pgm)));
+    else if (lastOption == 2) setProgBoil(pgm, getTimerValue(PSTR("Boil Length"), getProgBoil(pgm), 2));
     else if (lastOption == 3) { 
       #ifdef USEMETRIC
         setProgRatio(pgm, getValue(PSTR("Mash Ratio"), getProgRatio(pgm), 3, 2, 999, PSTR(" l/kg"))); 
@@ -1054,7 +1031,7 @@ void editMashSchedule(byte pgm) {
     strcpy_P(menuopts[12], EXIT);
 
     for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {  
-      strncat(menuopts[i * 2], itoa(getProgMashMins(pgm, i), buf, 10), 2);
+      strncat(menuopts[i * 2], itoa(getProgMashMins(pgm, i), buf, 10), 3);
       strcat(menuopts[i * 2], " min");
 
       strncat(menuopts[i * 2 + 1], itoa(getProgMashTemp(pgm, i), buf, 10), 3);
@@ -1062,17 +1039,17 @@ void editMashSchedule(byte pgm) {
     }
     
     lastOption = scrollMenu("Mash Schedule", 13, lastOption);
-    if (lastOption == 0) setProgMashMins(pgm, MASH_DOUGHIN, getTimerValue(PSTR("Dough In"), getProgMashMins(pgm, MASH_DOUGHIN)));
+    if (lastOption == 0) setProgMashMins(pgm, MASH_DOUGHIN, getTimerValue(PSTR("Dough In"), getProgMashMins(pgm, MASH_DOUGHIN), 1));
     else if (lastOption == 1) setProgMashTemp(pgm, MASH_DOUGHIN, getValue(PSTR("Dough In"), getProgMashTemp(pgm, MASH_DOUGHIN), 3, 0, 255, TUNIT));
-    else if (lastOption == 2) setProgMashMins(pgm, MASH_ACID, getTimerValue(PSTR("Acid Rest"), getProgMashMins(pgm, MASH_ACID)));
+    else if (lastOption == 2) setProgMashMins(pgm, MASH_ACID, getTimerValue(PSTR("Acid Rest"), getProgMashMins(pgm, MASH_ACID), 1));
     else if (lastOption == 3) setProgMashTemp(pgm, MASH_ACID, getValue(PSTR("Acid Rest"), getProgMashTemp(pgm, MASH_ACID), 3, 0, 255, TUNIT));
-    else if (lastOption == 4) setProgMashMins(pgm, MASH_PROTEIN, getTimerValue(PSTR("Protein Rest"), getProgMashMins(pgm, MASH_PROTEIN)));
+    else if (lastOption == 4) setProgMashMins(pgm, MASH_PROTEIN, getTimerValue(PSTR("Protein Rest"), getProgMashMins(pgm, MASH_PROTEIN), 1));
     else if (lastOption == 5) setProgMashTemp(pgm, MASH_PROTEIN, getValue(PSTR("Protein Rest"), getProgMashTemp(pgm, MASH_PROTEIN), 3, 0, 255, TUNIT));
-    else if (lastOption == 6) setProgMashMins(pgm, MASH_SACCH, getTimerValue(PSTR("Sacch Rest"), getProgMashMins(pgm, MASH_SACCH)));
+    else if (lastOption == 6) setProgMashMins(pgm, MASH_SACCH, getTimerValue(PSTR("Sacch Rest"), getProgMashMins(pgm, MASH_SACCH), 1));
     else if (lastOption == 7) setProgMashTemp(pgm, MASH_SACCH, getValue(PSTR("Sacch Rest"), getProgMashTemp(pgm, MASH_SACCH), 3, 0, 255, TUNIT));
-    else if (lastOption == 8) setProgMashMins(pgm, MASH_SACCH2, getTimerValue(PSTR("Sacch2 Rest"), getProgMashMins(pgm, MASH_SACCH2)));
+    else if (lastOption == 8) setProgMashMins(pgm, MASH_SACCH2, getTimerValue(PSTR("Sacch2 Rest"), getProgMashMins(pgm, MASH_SACCH2), 1));
     else if (lastOption == 9) setProgMashTemp(pgm, MASH_SACCH2, getValue(PSTR("Sacch2 Rest"), getProgMashTemp(pgm, MASH_SACCH2), 3, 0, 255, TUNIT));
-    else if (lastOption == 10) setProgMashMins(pgm, MASH_MASHOUT, getTimerValue(PSTR("Mash Out"), getProgMashMins(pgm, MASH_MASHOUT)));
+    else if (lastOption == 10) setProgMashMins(pgm, MASH_MASHOUT, getTimerValue(PSTR("Mash Out"), getProgMashMins(pgm, MASH_MASHOUT), 1));
     else if (lastOption == 11) setProgMashTemp(pgm, MASH_MASHOUT, getValue(PSTR("Mash Out"), getProgMashTemp(pgm, MASH_MASHOUT), 3, 0, 255, TUNIT));
     else return;
   }
@@ -1300,7 +1277,7 @@ unsigned long getValue(const char *sTitle, unsigned long defValue, byte digits, 
   clearLCD();
   printLCD_P(0, 0, sTitle);
   printLCD_P(1, (20 - digits + 1) / 2 + digits + 1, dispUnit);
-  printLCD(3, 9, "OK");
+  printLCD_P(3, 9, OK);
   unsigned long whole, frac;
   boolean redraw = 1;
   
@@ -1377,7 +1354,27 @@ unsigned long getValue(const char *sTitle, unsigned long defValue, byte digits, 
   return retValue;
 }
 
-unsigned int getTimerValue(const char *sTitle, unsigned int defMins) {
+void printTimer(byte timer, byte iRow, byte iCol) {
+  if (timerValue[timer] > 0 && !timerStatus[timer]) printLCD(iRow, iCol, "PAUSED");
+  else if (alarmStatus || timerStatus[timer]) {
+    byte hours = timerValue[timer] / 3600000;
+    byte mins = (timerValue[timer] - hours * 3600000) / 60000;
+    byte secs = (timerValue[timer] - hours * 3600000 - mins * 60000) / 1000;
+
+    //Update LCD once per second
+    if (millis() - timerLastPrint >= 1000) {
+      timerLastPrint = millis();
+      printLCDRPad(iRow, iCol, "", 6, ' ');
+      printLCD_P(iRow, iCol+2, PSTR(":  :"));
+      printLCDLPad(iRow, iCol, itoa(hours, buf, 10), 2, '0');
+      printLCDLPad(iRow, iCol + 3, itoa(mins, buf, 10), 2, '0');
+      printLCDLPad(iRow, iCol + 6, itoa(secs, buf, 10), 2, '0');
+      if (alarmStatus) lcdWriteCustChar(iRow, iCol + 5, 5);
+    }
+  } else printLCDRPad(iRow, iCol, "", 6, ' ');
+}
+
+int getTimerValue(const char *sTitle, int defMins, byte maxHours) {
   byte hours = defMins / 60;
   byte mins = defMins - hours * 60;
   byte cursorPos = 0; //0 = Hours, 1 = Mins, 2 = OK
@@ -1388,56 +1385,68 @@ unsigned int getTimerValue(const char *sTitle, unsigned int defMins) {
   
   clearLCD();
   printLCD_P(0,0,sTitle);
-  printLCD(1, 9, ":");
-  printLCD(1, 13, "(hh:mm)");
-  printLCD(3, 8, "OK");
+  printLCD(1, 7, "(hh:mm)");
+  printLCD(2, 10, ":");
+  printLCD_P(3, 9, OK);
   boolean redraw = 1;
+  int encValue;
+ 
   while(1) {
-    int encValue;
     if (redraw) {
       redraw = 0;
       encValue = Encoder.getCount();
-    }
-    else encValue = Encoder.change();
+    } else encValue = Encoder.change();
     if (encValue >= 0) {
       if (cursorState) {
         if (cursorPos) mins = encValue; else hours = encValue;
       } else {
         cursorPos = encValue;
-        if (cursorPos == 0) {
-            printLCD(1, 6, ">");
-            printLCD(1, 12, " ");
-            printLCD(3, 7, " ");
-            printLCD(3, 10, " ");
-        } else if (cursorPos == 1) {
-            printLCD(1, 6, " ");
-            printLCD(1, 12, "<");
-            printLCD(3, 7, " ");
-            printLCD(3, 10, " ");
-        } else if (cursorPos == 2) {
-          printLCD(1, 6, " ");
-            printLCD(1, 12, " ");
-            printLCD(3, 7, ">");
-            printLCD(3, 10, "<");
+        switch (cursorPos) {
+          case 0: //hours
+            printLCD(2, 7, ">");
+            printLCD(2, 13, " ");
+            printLCD(3, 8, " ");
+            printLCD(3, 11, " ");
+            break;
+          case 1: //mins
+            printLCD(2, 7, " ");
+            printLCD(2, 13, "<");
+            printLCD(3, 8, " ");
+            printLCD(3, 11, " ");
+            break;
+          case 2: //OK
+            printLCD(2, 7, " ");
+            printLCD(2, 13, " ");
+            printLCD(3, 8, ">");
+            printLCD(3, 11, "<");
+            break;
         }
       }
-      printLCDLPad(1, 7, itoa(hours, buf, 10), 2, '0');
-      printLCDLPad(1, 10, itoa(mins, buf, 10), 2, '0');
+      printLCDLPad(2, 8, itoa(hours, buf, 10), 2, '0');
+      printLCDLPad(2, 11, itoa(mins, buf, 10), 2, '0');
     }
     
     if (Encoder.ok()) {
       if (cursorPos == 2) return hours * 60 + mins;
-      cursorState = cursorState ^ 1;
+      cursorState = cursorState ^ 1; //Toggles between value editing mode and cursor navigation.
       if (cursorState) {
+        //Edition mode
         Encoder.setMin(0);
-        Encoder.setMax(60);
-        if (cursorPos) Encoder.setCount(mins); else Encoder.setCount(hours);
+        if (cursorPos) {
+          //Editing minutes
+          Encoder.setMax(59);
+          Encoder.setCount(mins); 
+        } else {
+          //Editing hours
+          Encoder.setMax(maxHours);
+          Encoder.setCount(hours);
+        }
       } else {
         Encoder.setMin(0);
         Encoder.setMax(2);
         Encoder.setCount(cursorPos);
       }
-    } else if (Encoder.cancel()) return NULL;
+    } else if (Encoder.cancel()) return -1; //This value will be validated in SetTimerValue. SetTimerValue will reject the storage of the timer value. 
     brewCore();
   }
 }
@@ -1467,7 +1476,7 @@ void getString(const char *sTitle, char defValue[], byte chars) {
   
   clearLCD();
   printLCD_P(0,0,sTitle);
-  printLCD(3, 9, "OK");
+  printLCD_P(3, 9, OK);
   boolean redraw = 1;
   while(1) {
     int encValue;
@@ -1757,7 +1766,7 @@ void setPIDGain(char sTitle[], byte vessel) {
   clearLCD();
   printLCD(0,0,sTitle);
   printLCD_P(1, 0, PSTR("P:     I:     D:    "));
-  printLCD_P(3, 8, PSTR("OK"));
+  printLCD_P(3, 8, OK);
   boolean redraw = 1;
   while(1) {
     int encValue;

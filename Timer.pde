@@ -31,12 +31,15 @@ unsigned long buzzerCycleStart = millis(); //last time the alarm went on
 
 byte lastEEPROMWrite[2];
 
-void setTimer(byte timer, unsigned int minutes) {
-  timerValue[timer] = minutes * 60000;
-  lastTime[timer] = millis();
-  timerStatus[timer] = 1;
-  setTimerStatus(timer, 1);
-  setTimerRecovery(timer, minutes);
+void setTimer(byte timer, int minutes) {
+  if (minutes != -1) {
+    //A cancel action as not been selected!
+    timerValue[timer] = minutes * 60000;
+    lastTime[timer] = millis();
+    timerStatus[timer] = 1;
+    setTimerStatus(timer, 1);
+    setTimerRecovery(timer, minutes);
+  }
 }
 
 void pauseTimer(byte timer) {

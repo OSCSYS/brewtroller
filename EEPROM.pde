@@ -286,7 +286,9 @@ void setSetpoint(byte vessel, byte value) {
 //**********************************************************************************
 //timers (302-305)
 //**********************************************************************************
-void setTimerRecovery(byte timer, unsigned int newMins) { PROMwriteInt(302 + timer * 2, newMins); }
+void setTimerRecovery(byte timer, unsigned int newMins) { 
+  if(newMins != -1) PROMwriteInt(302 + timer * 2, newMins); 
+}
 
 //**********************************************************************************
 //Timer/Alarm Status (306)
@@ -352,7 +354,9 @@ void setProgramStep(byte brewStep, byte actPgm) {
 //Delay Start (Mins) (398-399)
 //**********************************************************************************
 unsigned int getDelayMins() { return PROMreadInt(398); }
-void setDelayMins(unsigned int mins) { PROMwriteInt(398, mins); }
+void setDelayMins(unsigned int mins) { 
+  if(mins != -1) PROMwriteInt(398, mins); 
+}
 
 //**********************************************************************************
 //Grain Temp (400)
@@ -399,7 +403,9 @@ byte getProgSparge(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset
 //**********************************************************************************
 //Boil Mins (P:22-23)
 //**********************************************************************************
-void setProgBoil(byte preset, unsigned int boilMins) { PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22, boilMins); }
+void setProgBoil(byte preset, int boilMins) { 
+  if (boilMins != -1) PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22, boilMins); 
+}
 unsigned int getProgBoil(byte preset) { return PROMreadInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22); }
 
 //**********************************************************************************
@@ -417,7 +423,13 @@ byte getProgMashTemp(byte preset, byte mashStep) { return EEPROM.read(PROGRAM_ST
 //**********************************************************************************
 //Mash Times (P:32-37)
 //**********************************************************************************
-void setProgMashMins(byte preset, byte mashStep, byte mashMins) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep, mashMins); }
+void setProgMashMins(byte preset, byte mashStep, byte mashMins) { 
+  //This one is very tricky. Since it is better to avoid memory allocation changes. Here is the trick. 
+  //setProgMashMins is not supposed to received a value larger than 119 unless someone change it. But it can receive -1 
+  //when the user CANCEL its action of editing the mashing time value. -1 is converted as 255 (in a byte format). That is why
+  //the condition is set on 255 instead of -1. 
+  if (mashMins != 255) EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep, mashMins); 
+}
 byte getProgMashMins(byte preset, byte mashStep) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep); }
 
 //**********************************************************************************
