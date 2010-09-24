@@ -1,4 +1,4 @@
-#define BUILD 523 
+#define BUILD 524 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
