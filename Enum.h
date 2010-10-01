@@ -19,24 +19,24 @@
 #define MUX_DATA_PIN 14
 #define MUX_OE_PIN 10
 
-#define VALVE1_PIN 6
-#define VALVE2_PIN 7
+#define VALVE1_PIN 6 //Pin 4
+#define VALVE2_PIN 7 //Pin 3
 
 #ifdef BTBOARD_22
   #define VALVE3_PIN 25
   #define VALVE4_PIN 26
 #else
-  #define VALVE3_PIN 8
-  #define VALVE4_PIN 9
+  #define VALVE3_PIN 8 //Pin 6
+  #define VALVE4_PIN 9 //Pin 7
 #endif
 
-#define VALVE5_PIN 10
-#define VALVE6_PIN 12
-#define VALVE7_PIN 13
-#define VALVE8_PIN 14
-#define VALVE9_PIN 24
-#define VALVEA_PIN 18
-#define VALVEB_PIN 16
+#define VALVE5_PIN 10 //Pin 8
+#define VALVE6_PIN 12 //Pin 7
+#define VALVE7_PIN 13 //Pin 10
+#define VALVE8_PIN 14 //Pin 9
+#define VALVE9_PIN 24 //Pin 12
+#define VALVEA_PIN 18 //Pin 11
+#define VALVEB_PIN 16 //Pin 14
 
 #define HLTHEAT_PIN 0
 #define MASHHEAT_PIN 1
