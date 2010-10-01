@@ -1369,9 +1369,9 @@ void printTimer(byte timer, byte iRow, byte iCol) {
       printLCDLPad(iRow, iCol, itoa(hours, buf, 10), 2, '0');
       printLCDLPad(iRow, iCol + 3, itoa(mins, buf, 10), 2, '0');
       printLCDLPad(iRow, iCol + 6, itoa(secs, buf, 10), 2, '0');
-      if (alarmStatus) lcdWriteCustChar(iRow, iCol + 5, 5);
+      if (alarmStatus) lcdWriteCustChar(iRow, iCol + 8, 5);
     }
-  } else printLCDRPad(iRow, iCol, "", 6, ' ');
+  } else printLCDRPad(iRow, iCol, "", 9, ' ');
 }
 
 int getTimerValue(const char *sTitle, int defMins, byte maxHours) {
