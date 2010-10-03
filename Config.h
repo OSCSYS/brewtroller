@@ -224,9 +224,9 @@
 //**********************************************************************************
 // Serial Logging Options
 //**********************************************************************************
-// BAUD_RATE: The baud rate for the serial connection. Breviouis to BrewTroller 2.0
+// BAUD_RATE: The baud rate for the serial connection. Previous to BrewTroller 2.0
 // Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
-// was increased to 115200 but can be manually set using this compile option
+// was increased to 115200 but can be manually set using this compile option.
 #define BAUD_RATE 115200
 
 // LOG_INTERVAL: Specifies how often data is logged via serial in milliseconds. If
