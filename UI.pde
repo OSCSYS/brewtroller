@@ -633,6 +633,7 @@ void screenEnter(byte screen) {
             //On exit of the Main menu go back to Splash/Home screen.
             activeScreen = SCREEN_HOME;
             screenInit(activeScreen);
+            unlockUI();
             break;
           }
         }
@@ -1257,6 +1258,7 @@ boolean confirmDel() {
   strcpy_P(menuopts[1], PSTR("Delete"));
   if(getChoice(2, 3) == 1) return 1; else return 0;
 }
+
 
 unsigned long getValue(const char *sTitle, unsigned long defValue, byte digits, byte precision, unsigned long maxValue, const char *dispUnit) {
   unsigned long retValue = defValue;
@@ -1898,30 +1900,64 @@ void volCalibMenu(byte vessel) {
     lastOption = scrollMenu(sTitle, 11, lastOption);
     if (lastOption > 9) return; 
     else {
-      if (calibVols[vessel][lastOption] > 0) {
-        if(confirmDel()) setVolCalib(vessel, lastOption, 0, 0);
-      } 
-      /* OLD WAY - Took the reading upon entering the screen 
-      else {
-        #ifdef DEBUG_VOLCALIB
-        logVolCalib("Value before dialog:", analogRead(vSensor[vessel]));
-        #endif
-        setVolCalib(vessel, lastOption, analogRead(vSensor[vessel]), getValue(PSTR("Current Volume:"), 0, 7, 3, 9999999, VOLUNIT));
-        #ifdef DEBUG_VOLCALIB
-        logVolCalib("Value that was saved:", PROMreadInt(239 + vessel * 20 + lastOption * 2));
-        #endif
-      } */
-      else { // NEW WAY - Takes the reading upon exiting the screen
+      if (calibVals[vessel][lastOption] > 0) {
+        //There is already a value saved for that volume. 
+        //Review the saved value for the selected volume value.
+          volCalibEntryMenu(vessel, lastOption);
+      } else {
          #ifdef DEBUG_VOLCALIB
         logVolCalib("Value before dialog:", analogRead(vSensor[vessel]));
         #endif
         unsigned long currVol = getValue(PSTR("Current Volume:"), 0, 7, 3, 9999999, VOLUNIT);
-        setVolCalib(vessel, lastOption, analogRead(vSensor[vessel]), currVol); 
+        setVolCalib(vessel, lastOption, 0, currVol); //Set temporary the value to zero. It will be updated in the next step.
+        volCalibEntryMenu(vessel, lastOption);
         #ifdef DEBUG_VOLCALIB
         logVolCalib("Value that was saved:", PROMreadInt(239 + vessel * 20 + lastOption * 2));
         #endif
       } 
     }
+  }
+}
+
+//This function manages the volume value to calibrate. 
+//The value can be updated or deleted. 
+//Users can skip all actions by exiting. 
+void volCalibEntryMenu(byte vessel, byte entry) {
+  byte lastOption = 0;
+  char sTitle[20] ="";
+  
+  while(1) {
+    vftoa(calibVols[vessel][entry], buf, 3);
+    truncFloat(buf, 6);
+    strcpy_P(sTitle, PSTR("Calibrate"));
+    strcat_P(sTitle, SPACE);
+    strcat(sTitle, buf);
+    strcat_P(sTitle, SPACE);
+    strcat_P(sTitle, VOLUNIT);
+      
+    unsigned int newSensorValue = analogRead(vSensor[vessel]);
+    
+    strcpy_P(menuopts[0], PSTR("Update "));
+    strcat(menuopts[0], itoa(calibVals[vessel][entry], buf, 10)); //Show the currently saved value which can be zero.
+    strcat_P(menuopts[0], PSTR(" To "));
+    strcat(menuopts[0], itoa(newSensorValue, buf, 10)); //Show the value to be saved. So users know what to expect.
+    strcpy_P(menuopts[1], PSTR("Delete"));
+    strcpy_P(menuopts[2], EXIT);
+    
+    lastOption = scrollMenu(sTitle, 3, lastOption);
+
+    if (lastOption == 0) {
+      //Update the volume value.
+      calibVals[vessel][entry] = newSensorValue;
+      return;
+    } else if (lastOption == 1) {
+      //Delete the volume and value.
+      if(confirmDel()) {
+        calibVals[vessel][entry] = 0;
+        calibVols[vessel][entry] = 0;
+        return;
+      } 
+    } else break;
   }
 }
 
