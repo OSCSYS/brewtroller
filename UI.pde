@@ -580,7 +580,7 @@ void screenEnter(byte screen) {
         byte lastOption = 0;
         while(1) {
           //Screen Enter: Home
-          strcpy_P(menuopts[0], CANCEL);
+          strcpy_P(menuopts[0], EXIT);
           strcpy_P(menuopts[1], PSTR("Edit Program"));
           strcpy_P(menuopts[2], PSTR("Start Program"));
           strcpy_P(menuopts[3], DRAIN);
@@ -653,7 +653,7 @@ void screenEnter(byte screen) {
           strcpy_P(menuopts[2], PSTR("Mash Target"));
           strcpy_P(menuopts[3], CONTINUE);
           strcpy_P(menuopts[4], ABORT);
-          strcpy_P(menuopts[5], CANCEL);
+          strcpy_P(menuopts[5], EXIT);
           byte lastOption = scrollMenu("Fill Menu", 6, lastOption);
           if (lastOption == 0) { if(tgtVol[VS_HLT] || tgtVol[VS_MASH]) autoValve[AV_FILL] = 1; }
           else if (lastOption == 1) tgtVol[VS_HLT] = getValue(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 7, 3, 9999999, VOLUNIT);
@@ -681,7 +681,7 @@ void screenEnter(byte screen) {
         else strcpy_P(menuopts[3], PSTR("Start Timer"));
         strcpy_P(menuopts[4], CONTINUE);
         strcpy_P(menuopts[5], ABORT);
-        strcpy_P(menuopts[6], CANCEL);
+        strcpy_P(menuopts[6], EXIT);
         byte lastOption = scrollMenu("Mash Menu", 7, lastOption);
         if (lastOption == 0) setSetpoint(VS_HLT, getValue(PSTR("HLT Setpoint"), setpoint[VS_HLT] / 100, 3, 0, 255, TUNIT));
         else if (lastOption == 1) setSetpoint(VS_MASH, getValue(PSTR("Mash Setpoint"), setpoint[VS_MASH] / 100, 3, 0, 255, TUNIT));
@@ -745,7 +745,7 @@ void screenEnter(byte screen) {
           strcpy_P(menuopts[4], PSTR("Kettle Target"));
           strcpy_P(menuopts[5], PSTR("Continue"));
           strcpy_P(menuopts[6], PSTR("Abort"));
-          strcpy_P(menuopts[7], PSTR("Cancel"));
+          strcpy_P(menuopts[7], EXIT);
           byte lastOption = scrollMenu("Sparge Menu", 8, lastOption);
           if (lastOption == 0) { resetSpargeValves(); if(tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 1; }
           else if (lastOption == 1) { resetSpargeValves(); if(tgtVol[VS_KETTLE]) autoValve[AV_SPARGEOUT] = 1; }
@@ -780,7 +780,7 @@ void screenEnter(byte screen) {
         else strcat_P(menuopts[5], PSTR(": Off"));
         strcpy_P(menuopts[6], CONTINUE);
         strcpy_P(menuopts[7], ABORT);
-        strcpy_P(menuopts[8], CANCEL);        
+        strcpy_P(menuopts[8], EXIT);        
         byte lastOption = scrollMenu("Boil Menu", 9, lastOption);
         if (lastOption == 0) {
           setTimer(TIMER_BOIL, getTimerValue(PSTR("Boil Timer"), timerValue[TIMER_BOIL] / 60000, 2));
@@ -900,7 +900,7 @@ void startProgramMenu() {
         strcat_P(menuopts[1], TUNIT);
       strcpy_P(menuopts[2], PSTR("Start"));
       strcpy_P(menuopts[3], PSTR("Delay Start"));
-      strcpy_P(menuopts[4], PSTR("Cancel"));
+      strcpy_P(menuopts[4], EXIT);
       char progName[20];
       getProgName(profile, progName);
       lastOption = scrollMenu(progName, 5, lastOption);
