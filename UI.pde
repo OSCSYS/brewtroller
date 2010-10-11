@@ -1935,7 +1935,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     strcat_P(sTitle, SPACE);
     strcat_P(sTitle, VOLUNIT);
       
-    unsigned int newSensorValue = analogRead(vSensor[vessel]);
+    unsigned int newSensorValue = GetCalibrationValue(vessel);
     
     strcpy_P(menuopts[0], PSTR("Update "));
     strcat(menuopts[0], itoa(calibVals[vessel][entry], buf, 10)); //Show the currently saved value which can be zero.

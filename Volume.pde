@@ -52,7 +52,8 @@ void updateFlowRates() {
   //Check flowrate periodically (FLOWRATE_READ_INTERVAL)
   if (millis() - lastFlowChk > FLOWRATE_READ_INTERVAL) {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-      flowRate[i] = (prevFlowVol[i] - volAvg[i]) * (millis() - lastFlowChk) * 3 / 50;
+      // note that the * 60000 is from converting thousands of a gallon / miliseoncds to thousands of a gallon / minutes 
+      flowRate[i] = round(((float)(((float)volAvg[i] - (float)prevFlowVol[i])) / (float)((float)millis() - (float)lastFlowChk)) * 60000);
       prevFlowVol[i] = volAvg[i];
     }
     lastFlowChk = millis();
@@ -133,4 +134,14 @@ unsigned long readPressure( byte aPin, unsigned int sens, unsigned int zero) {
   #else
     return retValue * 29 / 200; 
   #endif
+}
+
+unsigned int GetCalibrationValue(byte vessel){
+  unsigned int newSensorValueAverage;
+  
+  for(byte i = 0; i < VOLUME_READ_COUNT; i++){
+    newSensorValueAverage += analogRead(vSensor[vessel]);
+  }
+  
+  return(newSensorValueAverage = round((float)newSensorValueAverage / VOLUME_READ_COUNT));
 }

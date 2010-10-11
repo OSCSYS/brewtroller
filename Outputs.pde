@@ -27,6 +27,23 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Config.h"
 #include "Enum.h"
 
+// set what the PID cycle time should be based on how fast the temp sensors will respond
+#if TS_ONEWIRE_RES == 12
+  #define PID_CYCLE_TIME 750
+#elif TS_ONEWIRE_RES == 11
+  #define PID_CYCLE_TIME 375
+#elif TS_ONEWIRE_RES == 10
+  #define PID_CYCLE_TIME 188
+#elif TS_ONEWIRE_RES == 9
+  #define PID_CYCLE_TIME 94
+#else
+  // should not be this value, fail the compile
+  #ERROR
+#endif
+
+
+
+
 void pinInit() {
   alarmPin.setup(ALARM_PIN, OUTPUT);
 
@@ -69,16 +86,19 @@ void pidInit() {
   pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * PIDLIMIT_HLT);
   pid[VS_HLT].SetTunings(getPIDp(VS_HLT), getPIDi(VS_HLT), getPIDd(VS_HLT));
   pid[VS_HLT].SetMode(AUTO);
+  pid[VS_HLT].SetSampleTime(PID_CYCLE_TIME);
 
   pid[VS_MASH].SetInputLimits(0, 25500);
   pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * PIDLIMIT_MASH);
   pid[VS_MASH].SetTunings(getPIDp(VS_MASH), getPIDi(VS_MASH), getPIDd(VS_MASH));
   pid[VS_MASH].SetMode(AUTO);
+  pid[VS_MASH].SetSampleTime(PID_CYCLE_TIME);
 
   pid[VS_KETTLE].SetInputLimits(0, 25500);
   pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE);
   pid[VS_KETTLE].SetTunings(getPIDp(VS_KETTLE), getPIDi(VS_KETTLE), getPIDd(VS_KETTLE));
   pid[VS_KETTLE].SetMode(MANUAL);
+  pid[VS_KETTLE].SetSampleTime(PID_CYCLE_TIME);
 
   #ifdef USEMETRIC
     pid[VS_STEAM].SetInputLimits(0, 50000000 / steamPSens);
@@ -88,6 +108,7 @@ void pidInit() {
   pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * PIDLIMIT_STEAM);
   pid[VS_STEAM].SetTunings(getPIDp(VS_STEAM), getPIDi(VS_STEAM), getPIDd(VS_STEAM));
   pid[VS_STEAM].SetMode(AUTO);
+  pid[VS_STEAM].SetSampleTime(PID_CYCLE_TIME);
 
 #ifdef DEBUG_PID_GAIN
   for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) logDebugPIDGain(vessel);
