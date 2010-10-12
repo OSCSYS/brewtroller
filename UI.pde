@@ -1942,16 +1942,20 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     strcat(menuopts[0], itoa(calibVals[vessel][entry], buf, 10)); //Show the currently saved value which can be zero.
     strcat_P(menuopts[0], PSTR(" To "));
     strcat(menuopts[0], itoa(newSensorValue, buf, 10)); //Show the value to be saved. So users know what to expect.
-    strcpy_P(menuopts[1], PSTR("Delete"));
-    strcpy_P(menuopts[2], EXIT);
+    strcpy_P(menuopts[1], PSTR("Manual Entry"));
+    strcpy_P(menuopts[2], PSTR("Delete"));
+    strcpy_P(menuopts[3], EXIT);
     
-    lastOption = scrollMenu(sTitle, 3, lastOption);
+    lastOption = scrollMenu(sTitle, 4, lastOption);
 
     if (lastOption == 0) {
       //Update the volume value.
       calibVals[vessel][entry] = newSensorValue;
       return;
     } else if (lastOption == 1) {
+      calibVals[vessel][entry] = getValue(PSTR("Manual Volume Entry"), calibVals[vessel][entry], 4, 0, 1000, PSTR(""));
+      return;    
+    } else if (lastOption == 2) {
       //Delete the volume and value.
       if(confirmDel()) {
         calibVals[vessel][entry] = 0;
