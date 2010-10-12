@@ -66,6 +66,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 const char OK[] PROGMEM = "Ok";
 const char CANCEL[] PROGMEM = "Cancel";
 const char EXIT[] PROGMEM = "Exit";
+const char MENU[] PROGMEM = "Menu";
 const char SPACE[] PROGMEM = " ";
 const char INIT_EEPROM[] PROGMEM = "Initialize EEPROM";
 const char CONTINUE[] PROGMEM = "Continue";
@@ -155,7 +156,7 @@ void uiInit() {
     clearLCD();
     printLCD_P(0, 0, PSTR("Missing Config"));
     strcpy_P(menuopts[0], INIT_EEPROM);
-    strcpy_P(menuopts[1], CANCEL);
+    strcpy_P(menuopts[1], EXIT);
     if (getChoice(2, 3) == 0) {
       clearLCD();
       printLCD_P(1, 0, INIT_EEPROM);
@@ -421,7 +422,7 @@ void screenRefresh(byte screen) {
         else if (encValue == 2) printLCD_P(3, 1, FILLMASH);
         else if (encValue == 3) printLCD_P(3, 1, FILLBOTH);
         else if (encValue == 4) printLCD_P(3, 2, ALLOFF);
-        else if (encValue == 5) printLCD_P(3, 3, PSTR("Menu"));
+        else if (encValue == 5) printLCD_P(3, 3, MENU);
       }
     }
     
@@ -489,7 +490,7 @@ void screenRefresh(byte screen) {
         else if (encValue == 4) printLCD_P(0, 9, MASHHEAT);
         else if (encValue == 5) printLCD_P(0, 9, MASHIDLE);
         else if (encValue == 6) printLCD_P(0, 11, ALLOFF);
-        else if (encValue == 7) printLCD_P(0, 12, PSTR("Menu"));
+        else if (encValue == 7) printLCD_P(0, 12, MENU);
       }
     }
     
@@ -1543,13 +1544,13 @@ byte ASCII2enc(byte charin) {
 
 byte enc2ASCII(byte charin) {
   if (charin == 0) return 32;
-  else if (charin >= 1 && charin <= 26) return charin + 64;
-  else if (charin >= 27 && charin <= 52) return charin + 70;
-  else if (charin >= 53 && charin <= 62) return charin - 5;
-  else if (charin >= 63 && charin <= 77) return charin - 30;
-  else if (charin >= 78 && charin <= 84) return charin - 20;
-  else if (charin >= 85 && charin <= 90) return charin + 6;
-  else if (charin >= 91 && charin <= 94) return charin + 32;
+  else if (charin >= 1 && charin <= 26) return charin + 64;  //Scan uper case alphabet
+  else if (charin >= 27 && charin <= 52) return charin + 70; //Scan lower case alphabet
+  else if (charin >= 53 && charin <= 62) return charin - 5;  //Scan number
+  else if (charin >= 63 && charin <= 77) return charin - 30; //Scan special character from space
+  else if (charin >= 78 && charin <= 84) return charin - 20; //Scan special character :
+  else if (charin >= 85 && charin <= 90) return charin + 6;  //Scan special character from [
+  else if (charin >= 91 && charin <= 94) return charin + 32; //Scan special character from {
 }
 
 //*****************************************************************************************************************************
@@ -1628,7 +1629,7 @@ void assignSensor() {
       //Pop-Up Menu
       strcpy_P(menuopts[0], PSTR("Scan Bus"));
       strcpy_P(menuopts[1], PSTR("Delete Address"));
-      strcpy_P(menuopts[2], PSTR("Close Menu"));
+      strcpy_P(menuopts[2], CANCEL);
       strcpy_P(menuopts[3], EXIT);
       byte selected = scrollMenu(dispTitle[encValue], 4, 0);
       if (selected == 0) {
