@@ -1904,16 +1904,17 @@ void volCalibMenu(byte vessel) {
       if (calibVals[vessel][lastOption] > 0) {
         //There is already a value saved for that volume. 
         //Review the saved value for the selected volume value.
-          volCalibEntryMenu(vessel, lastOption);
-      } else {
-         #ifdef DEBUG_VOLCALIB
-        logVolCalib("Value before dialog:", analogRead(vSensor[vessel]));
-        #endif
-        unsigned long currVol = getValue(PSTR("Current Volume:"), 0, 7, 3, 9999999, VOLUNIT);
-        setVolCalib(vessel, lastOption, 0, currVol); //Set temporary the value to zero. It will be updated in the next step.
         volCalibEntryMenu(vessel, lastOption);
+      } else {
         #ifdef DEBUG_VOLCALIB
-        logVolCalib("Value that was saved:", PROMreadInt(239 + vessel * 20 + lastOption * 2));
+          logVolCalib("Value before dialog:", analogRead(vSensor[vessel]));
+        #endif
+
+        setVolCalib(vessel, lastOption, 0, getValue(PSTR("Current Volume:"), 0, 7, 3, 9999999, VOLUNIT)); //Set temporary the value to zero. It will be updated in the next step.
+        volCalibEntryMenu(vessel, lastOption);
+
+        #ifdef DEBUG_VOLCALIB
+          logVolCalib("Value that was saved:", PROMreadInt(239 + vessel * 20 + lastOption * 2));
         #endif
       } 
     }
@@ -1959,8 +1960,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     } else if (lastOption == 2) {
       //Delete the volume and value.
       if(confirmDel()) {
-        calibVals[vessel][entry] = 0;
-        calibVols[vessel][entry] = 0;
+        setVolCalib(vessel, entry, 0, 0); 
         return;
       } 
     } else return;
