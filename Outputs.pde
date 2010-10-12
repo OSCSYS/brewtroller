@@ -122,6 +122,10 @@ void resetOutputs() {
 void resetHeatOutput(byte vessel) {
   setSetpoint(vessel, 0);
   PIDOutput[vessel] = 0;
+  #ifdef PID_FEED_FORWARD
+  if(vessel == VS_MASH)
+    FFBias = 0;
+  #endif
   heatPin[vessel].set(LOW);
 }  
 
@@ -180,7 +184,13 @@ void processHeatOutputs() {
         PIDOutput[i] = 0;
       } else {
         if (pid[i].GetMode() == AUTO) {
-          if (i == VS_STEAM) PIDInput[i] = steamPressure; else PIDInput[i] = temp[i];
+          if (i == VS_STEAM) PIDInput[i] = steamPressure; 
+          else { 
+            PIDInput[i] = temp[i];
+  #ifdef PID_FEED_FORWARD
+            if(i == VS_MASH) FFBias = temp[FEED_FORWARD_SENSOR];
+  #endif
+          }
           pid[i].Compute();
         }
       }

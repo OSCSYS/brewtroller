@@ -89,6 +89,18 @@
 #define PIDLIMIT_MASH 100
 #define PIDLIMIT_KETTLE 100
 #define PIDLIMIT_STEAM 100
+
+//**********************************************************************************
+// PID Feed Forward control
+//**********************************************************************************
+// This #define enables feed forward on the mash PID loop. The feed forward can be set to any 
+// number of different temp sensors by using the #define for it below, to see sensor #defines see Enum.h 
+// under TSensor and output (0-2) Array Element Constants 
+// NOTE: not a good idea to use any sensor you average into the MASH sensor as your feed forward
+//
+#define PID_FEED_FORWARD
+#define FEED_FORWARD_SENSOR TS_AUX1
+
 //**********************************************************************************
 
 //**********************************************************************************
@@ -131,7 +143,7 @@
 
 //#define SMART_HERMS_HLT
 #define MASH_HEAT_LOSS 0
-#define HLT_MAX_TEMP 180
+#define HLT_MAX_TEMP 190
 //**********************************************************************************
 
 //**********************************************************************************
@@ -145,7 +157,7 @@
 // sensors. Parasite power allows sensors to obtain their power from the data line
 // but significantly increases the time required to read the temperature (94-750ms
 // based on resolution versus 10ms with dedicated power).
-#define TS_ONEWIRE_PPWR 1
+#define TS_ONEWIRE_PPWR 0
 
 // TS_ONEWIRE_RES: OneWire Temperature Sensor Resolution (9-bit - 12-bit). Valid
 // options are: 9, 10, 11, 12). Unless parasite power is being used the recommended
@@ -156,7 +168,7 @@
 //   11-bit (0.125C  / 0.225F ) = 375ms 
 //   10-bit (0.25C   / 0.45F  ) = 188ms 
 //    9-bit (0.5C    / 0.9F   ) =  94ms   
-#define TS_ONEWIRE_RES 9
+#define TS_ONEWIRE_RES 12
 //**********************************************************************************
 
 
@@ -205,7 +217,7 @@
 // PREBOIL_ALARM: Triggers the alarm during the boil stage when the defined
 // temperature is reached
 
-//#define PREBOIL_ALARM 205
+#define PREBOIL_ALARM 190
 //**********************************************************************************
 
 //**********************************************************************************
@@ -309,16 +321,16 @@
 //
 // AUTO_FILL_START: This option will enable the Fill AutoValve logic at the start of
 // the Fill step. 
-//#define AUTO_FILL_START
+#define AUTO_FILL_START
 
 // AUTO_FILL_EXIT: This option will automatically exit the Fill step once target 
 // volumes have been reached.
-//#define AUTO_FILL_EXIT
+#define AUTO_FILL_EXIT
 
 // AUTO_ML_XFER: This option will enable the Sparge In AutoValve logic at the start
 // of the Grain In step if the Mash Liquor Heat Source is set to HLT. This is used
 // to transfer preheated mash liquor from HLT to Mash Tun.
-//#define AUTO_ML_XFER
+#define AUTO_ML_XFER
 
 // AUTO_GRAININ_EXIT: This option will automatically exit the Grain In step after
 // the specified number of seconds. Use this setting if your grain is automatically 
@@ -326,28 +338,28 @@
 // value of 0 to exit the Grain In step automatically with no additional delay.
 // The Grain In step will not process exit logic until the mash liquor transfer is
 // completed when the mash Liquor Heat Source is set to HLT.
-//#define AUTO_GRAININ_EXIT 0
+#define AUTO_GRAININ_EXIT 0
 
 // AUTO_MASH_HOLD_EXIT: By default the user must manually exit the Mash Hold step.
 // This prevents the mash from cooling if the brewer is not present at the end of
 // the last mash step. Use this option to automatically exit the mash hold step if
 // the boil zone is inactive.
-//#define AUTO_MASH_HOLD_EXIT
+#define AUTO_MASH_HOLD_EXIT
 
 // AUTO_SPARGE_START: This option will automatically enable batch or fly sparge
 // logic at the start of the sparge step.
-//#define AUTO_SPARGE_START
+#define AUTO_SPARGE_START
 
 // AUTO_SPARGE_EXIT: This option will automatically advance the sparge step when
 // target preboil volume is reached.
-//#define AUTO_SPARGE_EXIT
+#define AUTO_SPARGE_EXIT
 
 // AUTO_BOIL_RECIRC: Activates the BOIL RECIRC valve profile during the last minutes
 // of the AutoBrew Boil stage as defined below (ie AUTO_BOIL_RECIRC 20 will enable
 // BOIL RECIRC for the last twenty minutes of boil. Warning: if you do not have a
 // valve config that will reroute wort back to the kettle there is a great risk of
 // losing wort or causing personal injury when this profile is enabled
-//#define AUTO_BOIL_RECIRC 20
+//#define AUTO_BOIL_RECIRC 90
 //**********************************************************************************
 
 //**********************************************************************************
@@ -367,8 +379,8 @@
 // VOLUME_READ_COUNT: Number of individual volume readings to average when 
 // calculating a vessel's volume
 //
-#define VOLUME_READ_INTERVAL 200
-#define VOLUME_READ_COUNT 5
+#define VOLUME_READ_INTERVAL 1
+#define VOLUME_READ_COUNT 32
 //**********************************************************************************
 
 //**********************************************************************************
@@ -379,7 +391,7 @@
 // FLOWRATE_READ_INTERVAL: Time in ms between flowrate calculation updates
 //
 #define FLOWRATE_CALCS
-#define FLOWRATE_READ_INTERVAL 1000
+#define FLOWRATE_READ_INTERVAL 100
 //**********************************************************************************
 
 //**********************************************************************************

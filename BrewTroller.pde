@@ -121,6 +121,9 @@ char menuopts[21][20], buf[20];
 
 //Output Globals
 double PIDInput[4], PIDOutput[4], setpoint[4];
+#ifdef PID_FEED_FORWARD
+double FFBias;
+#endif
 byte PIDCycle[4], hysteresis[4];
 unsigned long cycleStart[4];
 boolean heatStatus[4], PIDEnabled[4];
@@ -131,7 +134,11 @@ byte boilPwr;
 
 PID pid[4] = {
   PID(&PIDInput[VS_HLT], &PIDOutput[VS_HLT], &setpoint[VS_HLT], 3, 4, 1),
+  #ifdef PID_FEED_FORWARD
+  PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], &FFBias, 3, 4, 1),
+  #else
   PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
+  #endif
   PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
   PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
 };
