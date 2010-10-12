@@ -1950,10 +1950,11 @@ void volCalibEntryMenu(byte vessel, byte entry) {
 
     if (lastOption == 0) {
       //Update the volume value.
-      calibVals[vessel][entry] = newSensorValue;
+      setVolCalib(vessel, entry, newSensorValue, calibVols[vessel][entry]); 
       return;
     } else if (lastOption == 1) {
-      calibVals[vessel][entry] = getValue(PSTR("Manual Volume Entry"), calibVals[vessel][entry], 4, 0, 1000, PSTR(""));
+      newSensorValue = (unsigned int) getValue(PSTR("Manual Volume Entry"), calibVals[vessel][entry], 4, 0, 1000, PSTR(""));
+      setVolCalib(vessel, entry, newSensorValue, calibVols[vessel][entry]); 
       return;    
     } else if (lastOption == 2) {
       //Delete the volume and value.
@@ -1962,7 +1963,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
         calibVols[vessel][entry] = 0;
         return;
       } 
-    } else break;
+    } else return;
   }
 }
 
