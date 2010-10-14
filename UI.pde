@@ -1876,12 +1876,12 @@ void cfgVolumes() {
 
 void volCalibMenu(byte vessel) {
   byte lastOption = 0;
-  char sVessel[7];
-  char sTitle[20];
-  if (vessel == TS_HLT) strcpy_P(sVessel, PSTR("HLT"));
-  else if (vessel == TS_MASH) strcpy_P(sVessel, PSTR("Mash"));
-  else if (vessel == TS_KETTLE) strcpy_P(sVessel, PSTR("Kettle"));
-
+  char sTitle[21];
+  if (vessel == TS_HLT) strcpy_P(sTitle, PSTR("HLT"));
+  else if (vessel == TS_MASH) strcpy_P(sTitle, PSTR("Mash"));
+  else if (vessel == TS_KETTLE) strcpy_P(sTitle, PSTR("Kettle"));
+  strcat_P(sTitle, PSTR(" Calibration"));
+    
   while(1) {
     for(byte i = 0; i < 10; i++) {
       if (calibVals[vessel][i] > 0) {
@@ -1896,8 +1896,6 @@ void volCalibMenu(byte vessel) {
       } else strcpy_P(menuopts[i], PSTR("OPEN"));
     }
     strcpy_P(menuopts[10], EXIT);
-    strcpy(sTitle, sVessel);
-    strcat_P(sTitle, PSTR(" Calibration"));
     lastOption = scrollMenu(sTitle, 11, lastOption);
     if (lastOption > 9) return; 
     else {
@@ -1926,7 +1924,7 @@ void volCalibMenu(byte vessel) {
 //Users can skip all actions by exiting. 
 void volCalibEntryMenu(byte vessel, byte entry) {
   byte lastOption = 0;
-  char sTitle[20] ="";
+  char sTitle[21] ="";
   
   while(1) {
     vftoa(calibVols[vessel][entry], buf, 3);
