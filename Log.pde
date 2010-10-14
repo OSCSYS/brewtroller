@@ -22,6 +22,9 @@ Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
 Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
+
+  Update 9/22/2010 to support enhanced functions and mutiple schemas.
+  
 */
 
 //**********************************************************************************
@@ -29,8 +32,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //**********************************************************************************
 // Specifies the communication schema being used. 
 //  0 = BT 2.0 ASCII Message schema
-//  1 = BT 2.1 ASCII Message schema
-//
+//  1 = BT 2.1 Enhanced ASCII schema 
+//      Steam, Calc Vol & Temp, BoilPower, Grain Temp, Delay Start, MLT Heat Source
 //**********************************************************************************
 #define COMSCHEMA 0
 
@@ -316,9 +319,6 @@ boolean chkMsg() {
               if ((actProfiles & (1<<i))) setValves(vlvConfig[i], atoi(msg[2]));
             sendOK();
           } else rejectParam();
-        } else if(strcasecmp(msg[0], "GET_LOG") == 0) {
-          getLog();
-          clearMsg();
 
         //System Class (SYS) Commands
         } else if(strcasecmp(msg[0], "RESET") == 0) {
@@ -348,6 +348,15 @@ boolean chkMsg() {
 // Schema 1 Functions
 //
 #if COMSCHEMA > 0
+        } else if(strcasecmp(msg[0], "GET_LOG") == 0) {
+          if (msgField == 1) {
+            logCount = atoi(msg[1]);
+            getLog();
+            clearMsg();
+          } else rejectParam();
+        } else if(strcasecmp(msg[0], "GET_ALARM") == 0) {
+          logAlarm();
+          clearMsg();        
         } else if(strcasecmp(msg[0], "GET_BOILPWR") == 0) {
           logBoilPower();
           clearMsg();
@@ -422,7 +431,7 @@ boolean chkMsg() {
 
 void sendOK() {
   #if COMSCHEMA > 0
-    logStart_P(LOGSYS);
+    logStart_P(LOGCMD);
     logField_P(PSTR("OK"));
     logEnd();
   #endif
@@ -452,12 +461,24 @@ void rejectParam() {
 }
 
 void updateLog() {
-  //Log data every 2s
-  //Log 1 of 6 chunks per cycle to improve responsiveness to calling function
+  // All data is logged every 2s. A total of 28 records are sent. The 
+  //  records are sent on consecutive scans.
   if (logData) {
     if (millis() - lastLog > LOG_INTERVAL) {
       getLog();
-    }
+      if (logCount == 24) 
+      {
+        //Logic below times start of log to start of log. Interval is reset if exceeds two intervals.
+        if (millis() - lastLog > LOG_INTERVAL * 2) 
+          lastLog = millis(); 
+        else 
+          lastLog += LOG_INTERVAL;
+      }
+      logCount++;
+      if (logCount > 24)
+        logCount = 0;  
+    }    
+
   }
   // if logData is false && chkMsg() is false - should we pass the LOGCFG constant into rejectMsg?
   if (chkMsg()) rejectMsg();   // old value: LOGGLB
@@ -479,10 +500,10 @@ void getLog() {
       logFieldI(timerStatus[timer]);
       logEnd();
     }
-    logStart_P(LOGDATA);        //***************************************
-    logField_P(PSTR("ALARM"));  // Should be #2 but it never get called 
-    logFieldI(alarmStatus);     //  because end of loop jumps to 2
-    logEnd();                   //***************************************
+    logStart_P(LOGDATA);
+    logField_P(PSTR("ALARM"));
+    logFieldI(alarmStatus);
+    logEnd();
   } else if (logCount >= 2 && logCount <= 4) {
     byte i = logCount - 2;
     logStart_P(LOGDATA);
@@ -573,11 +594,7 @@ void getLog() {
       if (vlvConfig[i] != 0 && (vlvBits & vlvConfig[i]) == vlvConfig[i]) profileMask |= 1<<i;
     logFieldI(profileMask);
     logEnd();
-    //Logic below times start of log to start of log. Interval is reset if exceeds two intervals.
-    if (millis() - lastLog > LOG_INTERVAL * 2) lastLog = millis(); else lastLog += LOG_INTERVAL;
   }
-  logCount++;
-  if (logCount > 24) logCount = 0;  
 }
 
 #if defined USESERIAL
@@ -676,6 +693,13 @@ void logEvap() {
   logStart_P(LOGCFG);
   logField_P(PSTR("EVAP_RATE"));
   logFieldI(getEvapRate());
+  logEnd();
+}
+
+void logAlarm() {
+  logStart_P(LOGDATA);
+  logField_P(PSTR("ALARM"));
+  logFieldI(alarmStatus);
   logEnd();
 }
 
