@@ -1,4 +1,4 @@
-#define BUILD 565 
+#define BUILD 572 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -149,10 +149,6 @@ boolean timerStatus[2], alarmStatus;
 
 //Log Globals
 boolean logData = LOG_INITSTATUS;
-boolean msgQueued;
-unsigned long lastLog;
-byte logCount, msgField;
-char msg[CMD_MSG_FIELDS][CMD_FIELD_CHARS];
 
 //Brew Step Logic Globals
 //Active program for each brew step
@@ -173,7 +169,6 @@ const char LOGDEBUG[] PROGMEM = "DEBUG";
 const char LOGSYS[] PROGMEM = "SYS";
 const char LOGCFG[] PROGMEM = "CFG";
 const char LOGDATA[] PROGMEM = "DATA";
-
 
 //**********************************************************************************
 // Setup
