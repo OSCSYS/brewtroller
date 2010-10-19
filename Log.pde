@@ -23,8 +23,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 
-  Update 9/22/2010 to support enhanced functions and mutiple schemas.
-  
 */
 
 //**********************************************************************************
@@ -37,23 +35,37 @@ void logInit() {
   #if defined USESERIAL
     Serial.begin(BAUD_RATE);
     //Always identify
-    logVersion();
+    if (logData)
+      logASCIIVersion();
   #endif
 }
 
-void logVersion() {
-  logStart_P(LOGSYS);
-  logField_P(PSTR("VER"));
-  logField_P(BTVER);
-  logField(itoa(BUILD, buf, 10));
+#if defined USESERIAL
+void logASCIIVersion() {
+  logFieldUL(millis());
+  logFieldPS(LOGSYS);
+  Serial.print("VER\t");
+  logFieldPS(BTVER);
+  logFieldUL(BUILD);
   #if COMSCHEMA > 0 
-    logField(itoa(COMSCHEMA, buf, 10));
+    logFieldUL(COMSCHEMA);
     #ifdef USEMETRIC
-      logFieldI(0);
+      Serial.print("0");
     #else
-      logFieldI(1);
+      Serial.print("1");
     #endif
   #endif
-  logEnd();
+  Serial.println();
 }
 
+void logFieldUL (unsigned long uLong) {
+  Serial.print(uLong, DEC);
+  Serial.print("\t");
+}
+
+void logFieldPS (const char *sText) {
+  while (pgm_read_byte(sText) != 0) Serial.print(pgm_read_byte(sText++));
+  Serial.print("\t");
+}
+
+#endif

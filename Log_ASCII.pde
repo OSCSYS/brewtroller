@@ -451,6 +451,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     clearMsg();
   }
   
+  void logVersion() { logASCIIVersion(); }
+
   void updateLog() {
     // All data is logged every 2s. A total of 28 records are sent. The 
     //  records are sent on consecutive scans.

@@ -237,13 +237,14 @@
 // Serial Logging Options
 //**********************************************************************************
 // COMSCHEMA: Specifies the communication schema being used. 
-//  0 = BT 2.0 ASCII Message schema
-//  1 = BT 2.1 Enhanced ASCII schema 
-//      Steam, Calc Vol & Temp, BoilPower, Grain Temp, Delay Start, MLT Heat Source
-//  2 = Non-Broadcasting, Single Byte Command ASCII Message Schema
-//  3 = COMSCHEMA 2 + CRC (CRC Not Implemented)
+//   0 = BT 2.0 ASCII Message schema
+//   1 = BT 2.1 Enhanced ASCII schema 
+//       Steam, Calc Vol & Temp, BoilPower, Grain Temp, Delay Start, MLT Heat Source
+//  10 = Binary schema
+//  20 = Non-Broadcasting, Single Byte Command ASCII Message Schema
+//  21 = COMSCHEMA 20 + CRC (CRC Not Implemented)
 //**********************************************************************************
-#define COMSCHEMA 0
+#define COMSCHEMA 20
 
 // BAUD_RATE: The baud rate for the serial connection. Previous to BrewTroller 2.0
 // Build 419 this was hard coded to 9600. Starting with Build 419 the default rate

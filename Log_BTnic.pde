@@ -27,7 +27,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   
 */
 
-#if COMSCHEMA == 2 || COMSCHEMA == 3
+#if COMSCHEMA == 20 || COMSCHEMA == 21
+
   // Using Values 65-90 & 97-122 for command codes to make terminal input easier 
   // but any value between 0-255 can be used with the following exceptions
   // Command Field Char		9	(Tab)
@@ -35,65 +36,65 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   // Command Term Char		13	(Carriage Return)
 
   //Command codes for special responses
-  #define CMD_REJECT		33	//!
-  #define CMD_REJECT_PARAM	35	//#
-  #define CMD_REJECT_CRC	42	//*
+  #define CMD_REJECT        33	//!
+  #define CMD_REJECT_PARAM  35	//#
+  #define CMD_REJECT_CRC     42	//*
 
-  #define CMD_GET_BOIL		65 	//A
-  #define CMD_GET_CAL		66 	//B
-  #define CMD_GET_EVAP		67 	//C
-  #define CMD_GET_OSET		68 	//D
-  #define CMD_GET_PROG		69 	//E
-  #define CMD_GET_TS		70 	//F
-  #define CMD_GET_VLVCFG	71 	//G
-  #define CMD_GET_VSET		72 	//H
-  #define CMD_INIT_EEPROM	73 	//I
-  #define CMD_SCAN_TS		74 	//J
-  #define CMD_SET_BOIL		75 	//K
-  #define CMD_SET_CAL		76 	//L
-  #define CMD_SET_EVAP		77 	//M
-  #define CMD_SET_OSET		78 	//N
-  #define CMD_SET_PROG		79 	//O
-  #define CMD_SET_TS		80 	//P
-  #define CMD_SET_VLVCFG	81 	//Q
-  #define CMD_SET_VSET		82 	//R
-  #define CMD_ADV_STEP		83 	//S
-  #define CMD_EXIT_STEP		84 	//T
-  #define CMD_INIT_STEP		85 	//U
-  #define CMD_SET_ALARM		86 	//V
-  #define CMD_SET_AUTOVLV	87 	//W
-  #define CMD_SET_SETPOINT	88 	//X
+  #define CMD_GET_BOIL		    65 	//A
+  #define CMD_GET_CAL		      66 	//B
+  #define CMD_GET_EVAP		    67 	//C
+  #define CMD_GET_OSET		    68 	//D
+  #define CMD_GET_PROG		    69 	//E
+  #define CMD_GET_TS		      70 	//F
+  #define CMD_GET_VER		      71 	//G
+  #define CMD_GET_VSET		    72 	//H
+  #define CMD_INIT_EEPROM	    73 	//I
+  #define CMD_SCAN_TS		      74 	//J
+  #define CMD_SET_BOIL		    75 	//K
+  #define CMD_SET_CAL		      76 	//L
+  #define CMD_SET_EVAP		    77 	//M
+  #define CMD_SET_OSET		    78 	//N
+  #define CMD_SET_PROG		    79 	//O
+  #define CMD_SET_TS		      80 	//P
+  #define CMD_SET_VLVCFG	    81 	//Q
+  #define CMD_SET_VSET		    82 	//R
+  #define CMD_ADV_STEP		    83 	//S
+  #define CMD_EXIT_STEP		    84 	//T
+  #define CMD_INIT_STEP		    85 	//U
+  #define CMD_SET_ALARM		    86 	//V
+  #define CMD_SET_AUTOVLV	    87 	//W
+  #define CMD_SET_SETPOINT	  88 	//X
   #define CMD_SET_TIMRERSTATUS	89 	//Y
   #define CMD_SET_TIMERVALUE	90 	//Z
-  #define CMD_SET_VLV		97 	//a
-  #define CMD_SET_VLVPRF	98 	//b
-  #define CMD_RESET		99 	//c
-  #define CMD_GET_VER		100 	//d
-  #define CMD_GET_ALARM		101 	//e
-  #define CMD_GET_BOILPWR	102 	//f
-  #define CMD_GET_DELAYTIME	103 	//g
-  #define CMD_GET_GRAINTEMP	104 	//h
-  #define CMD_SET_BOILPWR	105 	//i
-  #define CMD_SET_DELAYTIME	106 	//j
-  #define CMD_SET_GRAINTEMP	107 	//k
-  #define CMD_GET_CALCTEMPS	108 	//l
-  #define CMD_GET_CALCVOLS	109 	//m
-  #define CMD_STEPPRG		110 	//n
-  #define CMD_TIMER		111 	//o
-  #define CMD_VOL		112 	//p
-  #define CMD_TEMP		113 	//q
-  #define CMD_STEAM		114 	//r
-  #define CMD_HEATPWR		115 	//s
-  #define CMD_SETPOINT		116 	//t
-  #define CMD_AUTOVLV		117 	//u
-  #define CMD_VLVBITS		118 	//v
-  #define CMD_VLVPRF		119 	//w
+  #define CMD_SET_VLV		      97 	//a
+  #define CMD_SET_VLVPRF	    98 	//b
+  #define CMD_RESET		        99 	//c
+  #define CMD_GET_VLVCFG	    100 //d
+  #define CMD_GET_ALARM		    101 	//e
+  #define CMD_GET_BOILPWR	    102 	//f
+  #define CMD_GET_DELAYTIME	  103 	//g
+  #define CMD_GET_GRAINTEMP	  104 	//h
+  #define CMD_SET_BOILPWR	    105 	//i
+  #define CMD_SET_DELAYTIME	  106 	//j
+  #define CMD_SET_GRAINTEMP	  107 	//k
+  #define CMD_GET_CALCTEMPS	  108 	//l
+  #define CMD_GET_CALCVOLS	  109 	//m
+  #define CMD_STEPPRG		      110 	//n
+  #define CMD_TIMER		        111 	//o
+  #define CMD_VOL		          112 	//p
+  #define CMD_TEMP		        113 	//q
+  #define CMD_STEAM		        114 	//r
+  #define CMD_HEATPWR		      115 	//s
+  #define CMD_SETPOINT		    116 	//t
+  #define CMD_AUTOVLV		      117 	//u
+  #define CMD_VLVBITS		      118 	//v
+  #define CMD_VLVPRF		      119 	//w
   
   #include "Config.h"
   #include "Enum.h"
 
   char cmdBuffer[255];
-  byte cmdBufLen;
+  byte cmdBufLen = 0;
   
   void updateLog() {
   #if defined USESERIAL
@@ -158,7 +159,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     while (pgm_read_byte(string) != 0) cmdBuffer[cmdBufLen++] = pgm_read_byte(string++);
   }
   
-  #if COMSCHEMA == 3
+  #if COMSCHEMA == 21
   boolean chkCRC() {
     //Trunc CRC Field
     return 0;
@@ -171,13 +172,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     return paramCount;
   }
   
-  void getCmdParam(byte paramNum, char retStr[], byte limit) {
+  char* getCmdParam(byte paramNum, char retStr[], byte limit) {
     byte pos = 0;
     byte param = 0;
     while (pos < cmdBufLen && param < paramNum) { if (cmdBuffer[pos++] == 0x09) param++; }
     byte retPos = 0;
     while (pos < cmdBufLen && cmdBuffer[pos] != 0x09 && retPos < limit) { retStr[retPos++] = cmdBuffer[pos++]; }
     retStr[retPos] = '\0';
+    return retStr;
   }
   
   unsigned long getCmdParamNum(byte paramNum) {
@@ -187,7 +189,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   
   //Check and process command. Return error code (0 if OK)
   byte chkCmd() {
-    #if COMSCHEMA == 3
+    #if COMSCHEMA == 21
       if(chkCRC()) return CMD_REJECT_CRC;
     #endif
     
@@ -196,12 +198,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       || cmdBuffer[0] == CMD_GET_EVAP
       || cmdBuffer[0] == CMD_INIT_EEPROM
       || cmdBuffer[0] == CMD_SCAN_TS
-      || cmdBuffer[0] == CMD_GET_VER
       || cmdBuffer[0] == CMD_GET_ALARM
       || cmdBuffer[0] == CMD_GET_BOILPWR
       || cmdBuffer[0] == CMD_GET_DELAYTIME
       || cmdBuffer[0] == CMD_GET_GRAINTEMP
-      || cmdBuffer[0] == CMD_SET_BOILPWR
       || cmdBuffer[0] == CMD_STEPPRG
       || cmdBuffer[0] == CMD_STEAM
       || cmdBuffer[0] == CMD_VLVBITS
@@ -218,12 +218,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         getDSAddr(tsAddr);
         for (byte i=0; i<8; i++) logFieldI(tsAddr[i]);
       }
-      else if (cmdBuffer[0] == CMD_GET_VER) logVersion();
       else if (cmdBuffer[0] == CMD_GET_ALARM) logFieldI(alarmStatus);
-      else if (cmdBuffer[0] == CMD_GET_BOILPWR) logFieldI(getBoilTemp());
+      else if (cmdBuffer[0] == CMD_GET_BOILPWR) logFieldI(boilPwr);
       else if (cmdBuffer[0] == CMD_GET_DELAYTIME) logFieldI(getDelayMins());
       else if (cmdBuffer[0] == CMD_GET_GRAINTEMP) logFieldI(getGrainTemp());
-      else if (cmdBuffer[0] == CMD_SET_BOILPWR) logFieldI(boilPwr);
       else if (cmdBuffer[0] == CMD_STEPPRG) { for (byte i = 0; i < NUM_BREW_STEPS; i++) logFieldI(stepProgram[i]); }
       else if (cmdBuffer[0] == CMD_STEAM) logFieldI(steamPressure);
       else if (cmdBuffer[0] == CMD_VLVBITS) logFieldI(vlvBits);
@@ -244,6 +242,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     
     //1 Param, No check, SendOK
     else if (cmdBuffer[0] == CMD_SET_BOIL
+      || cmdBuffer[0] == CMD_SET_BOILPWR
       || cmdBuffer[0] == CMD_SET_ALARM
       || cmdBuffer[0] == CMD_SET_AUTOVLV
       || cmdBuffer[0] == CMD_SET_EVAP
@@ -253,6 +252,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     ) {
       if (getCmdParamCount() != 1) return CMD_REJECT_PARAM;
       if (cmdBuffer[0] == CMD_SET_BOIL) setBoilTemp(getCmdParamNum(1));
+      else if (cmdBuffer[0] == CMD_SET_BOILPWR) setBoilPwr(getCmdParamNum(1));
       else if (cmdBuffer[0] == CMD_SET_ALARM) setAlarm(getCmdParamNum(1));
       else if (cmdBuffer[0] == CMD_SET_AUTOVLV) {
         byte actModes = getCmdParamNum(1);
@@ -524,7 +524,30 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       sendOK();
       
     } 
-    else return CMD_REJECT; //Reject Command Code (CMD_REJECT);
+
+    // log ASCII version "GET_VER"
+    else if (strcasecmp(getCmdParam(0, buf, 20), "GET_VER") == 0) {
+      logASCIIVersion();
+      cmdBufLen = 0;
+    }
+
+    // log BTNic Version "G"
+    else if (cmdBuffer[0] == CMD_GET_VER) {
+      cmdBufLen = 1; //Reuse CMD code
+      logField_P(BTVER);
+      logFieldI(BUILD);
+      logFieldI(COMSCHEMA);
+      #ifdef USEMETRIC
+        logFieldI(0);
+      #else
+        logFieldI(1);
+      #endif
+      logEnd();
+    }
+    
+   else
+      return CMD_REJECT; //Reject Command Code (CMD_REJECT);
+
     return 0;
   }
 #endif
