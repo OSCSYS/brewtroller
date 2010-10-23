@@ -27,7 +27,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   
 */
 
-#if COMSCHEMA == 0 || COMSCHEMA == 1
+#if COMTYPE == 0
 
   #include "Config.h"
   #include "Enum.h"

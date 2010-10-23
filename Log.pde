@@ -42,14 +42,15 @@ void logInit() {
 
 #if defined USESERIAL
 void logASCIIVersion() {
-  logFieldUL(millis());
-  logFieldPS(LOGSYS);
-  Serial.print("VER\t");
-  logFieldPS(BTVER);
-  logFieldUL(BUILD);
-  #if COMSCHEMA > 0 
-    logFieldUL(COMSCHEMA);
-    #ifdef USEMETRIC
+  printFieldUL(millis());   // timestamp
+  printFieldPS(LOGSYS);     // keyword "SYS"
+  Serial.print("VER\t");  // Version record
+  printFieldPS(BTVER);      // BT Version
+  printFieldUL(BUILD);      // Build #
+  #if COMTYPE > 0 || COMSCHEMA > 0
+    printFieldUL(COMTYPE);  // Protocol Type
+    printFieldUL(COMSCHEMA);// Protocol Schema
+    #ifdef USEMETRIC      // Metric or US units
       Serial.print("0");
     #else
       Serial.print("1");
@@ -58,12 +59,12 @@ void logASCIIVersion() {
   Serial.println();
 }
 
-void logFieldUL (unsigned long uLong) {
+void printFieldUL (unsigned long uLong) {
   Serial.print(uLong, DEC);
   Serial.print("\t");
 }
 
-void logFieldPS (const char *sText) {
+void printFieldPS (const char *sText) {
   while (pgm_read_byte(sText) != 0) Serial.print(pgm_read_byte(sText++));
   Serial.print("\t");
 }

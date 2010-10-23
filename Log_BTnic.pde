@@ -27,7 +27,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   
 */
 
-#if COMSCHEMA == 20 || COMSCHEMA == 21
+#if COMTYPE == 1
 
   // Using Values 65-90 & 97-122 for command codes to make terminal input easier 
   // but any value between 0-255 can be used with the following exceptions
@@ -380,7 +380,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       byte program = getCmdParamNum(1);
       if (getCmdParamCount() != 1 || program > 20) return CMD_REJECT_PARAM;
       cmdBufLen = 1; //Reuse CMD code
-      if (CMD_GET_PROG) {
+      if (cmdBuffer[0] == CMD_GET_PROG) {
         logFieldI(program);
         getProgName(program, buf);
         logField(buf);
@@ -536,7 +536,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       cmdBufLen = 1; //Reuse CMD code
       logField_P(BTVER);
       logFieldI(BUILD);
-      logFieldI(COMSCHEMA);
+      logFieldI(COMTYPE);  // Protocol Type
+      logFieldI(COMSCHEMA);// Protocol Schema
       #ifdef USEMETRIC
         logFieldI(0);
       #else
