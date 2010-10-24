@@ -125,7 +125,11 @@ double PIDInput[4], PIDOutput[4], setpoint[4];
 double FFBias;
 #endif
 byte PIDCycle[4], hysteresis[4];
-unsigned long cycleStart[4];
+#ifdef PWM_BY_TIMER
+unsigned int cycleStart[4] = {0,0,0,0};
+#else
+unsigned long cycleStart[4] = {0,0,0,0};
+#endif
 boolean heatStatus[4], PIDEnabled[4];
 unsigned int steamPSens, steamZero;
 //Steam Pressure in thousandths
@@ -170,6 +174,12 @@ const char LOGSYS[] PROGMEM = "SYS";
 const char LOGCFG[] PROGMEM = "CFG";
 const char LOGDATA[] PROGMEM = "DATA";
 
+//PWM by timer globals
+#ifdef PWM_BY_TIMER
+unsigned int timer1_overflow_count = 0;
+unsigned int PIDOutputCountEquivalent[4][2] = {{0,0},{0,0},{0,0},{0,0}};
+#endif
+
 //**********************************************************************************
 // Setup
 //**********************************************************************************
@@ -203,6 +213,10 @@ void setup() {
 
   //PID Initialization (Outputs.pde)
   pidInit();
+
+  #ifdef PWM_BY_TIMER
+  pwmInit();
+  #endif
 
 }
 

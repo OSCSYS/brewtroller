@@ -102,6 +102,21 @@
 #define FEED_FORWARD_SENSOR TS_AUX1
 
 //**********************************************************************************
+// PWM ouputs controled by timer rather than brew core loop
+//**********************************************************************************
+// This #define enables the PWM outputs to be controled by timer rather than the brew core loop.
+// This means that we can have a higher frequency output, and that the timings of the PWM signal are more 
+// accurate. This is required if you are goign to attempt to control a pump with a PWM output. 
+// NOTE: The counter/timer is set to work with a 16mhz input frequency and is set to run at 8khz PWM output 
+// frequency as the fastest possible frequency, (also note that the period cannot exceed 8.19 seconds). Also
+// only two PWM outputs can run at 8khz, all the rest must run at a lower frequency as defiend above. The 
+// two PWM outputs which will be 8khz can be defined below, comment them both out if none are that high. 
+//#define PWM_BY_TIMER
+//#define PWM_8K_1 VS_PUMP
+//#define PWM_8K_2 VS_MASH
+
+
+//**********************************************************************************
 
 //**********************************************************************************
 // Kettle Lid Control

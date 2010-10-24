@@ -23,9 +23,33 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
+#include "wiring_private.h"
 
 #include "Config.h"
 #include "Enum.h"
+
+#ifdef USESTEAM
+  #define LAST_HEAT_OUTPUT VS_STEAM
+#else
+  #define LAST_HEAT_OUTPUT VS_KETTLE
+#endif
+
+#ifdef PWM_8K_1
+ #ifndef PWM_BY_TIMER
+  #ERROR // cannot have this defined and not have PWM_BY_TIMER on
+ #endif
+ #ifdef PWM_8K_2
+  #if PWM_8K_2 == PWM_8K_1
+   #ERROR // fail the build as they cannot equal eachother
+  #endif
+ #endif
+#endif
+
+#ifdef PWM_8K_2
+ #ifndef PWM_BY_TIMER
+  #ERROR // cannot have this defined and not have PWM_BY_TIMER on
+ #endif
+#endif
 
 // set what the PID cycle time should be based on how fast the temp sensors will respond
 #if TS_ONEWIRE_RES == 12
@@ -41,7 +65,119 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #ERROR
 #endif
 
+#ifdef PWM_BY_TIMER
+// note there are some assumptions here, we assume that the COM1A1, COM1B1, COM1A0, and COM1B0 
+// bits are all 0 (as they should be on power up)
+void pwmInit( void )
+{
+    // set timer 1 prescale factor to 0
+    sbi(TCCR1B, CS11);
+    cbi(TCCR1B, CS12);
+    cbi(TCCR1B, CS10);
 
+    //clear timer 1 out of 8 bit phase correct PWM mode from sanguino init
+    cbi(TCCR1A, WGM10);
+    //set timer 1 into 16 bit phase and frequency correct PWM mode with ICR1 as TOP
+    sbi(TCCR1A, WGM13);
+    //set TOP as 1000, which makes the overflow on return to bottom for this mode happen ever 
+    // 125uS given a 16mhz input clock, aka 8khz PWM frequency, the overflow ISR will handle 
+    // the PWM outputs that are slower than 8khz, and the OCR1A/B ISR will handle the 8khz PWM outputs
+    ICR1 = 1000; 
+
+    //enable timer 1 overflow interrupt (in this mode overflow happens when the timer counds down to BOTTOM
+    // after counting UP from BOTTOM to TOP. 
+    sbi(TIMSK1, TOIE1);
+
+    #ifdef PWM_8K_1
+    //enable timer 1 output compare A interrupt
+    sbi(TIMSK1, OCIE1A);
+    #endif
+
+    #ifdef PWM_8K_2
+    //enable timer 1 output compare B interrupt
+    sbi(TIMSK1, OCIE1B);
+    #endif
+}
+
+//note that the code in any SIGNAL function is an ISR, and the code needs to kept short and fast
+// it is important to avoid divides by non power of 2 numbers, remainder (mod) calculations, wait loops,
+// or calls to functions that have wait loops. It's also not a good idea to write into any global that may be 
+// used else where in the code inside here without interrupt protecting all accesses to that variable in 
+// non ISR code, or making sure that if we do write to it in the ISR, we dont write/read to it in non ISR code
+// (for example, below the heatPin objects are not written to if PIDEnable[i] = 1;
+//
+// Also the below ISR is set to nonblock so that interrupts are enabled as we enter the function
+// this is done to make sure that we can run low counts in the compare registers, for example, 
+// a count of 1 could cause an interrupts 1 processor clock cycle after this interrupt is called 
+// sense it's called at bottom, and sense this has a fair amount of code in it, it's good to let the 
+// compare interrupts interrupt this interrupt (same with the UART and timer0 interrupts)
+ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
+{
+    //count the number of times this has been called 
+    timer1_overflow_count++;
+    for(byte i = 0; i < LAST_HEAT_OUTPUT; i++)
+    {
+        // if PID is enabled, and NOT one of the 8khz PWM outputs then we can use this
+        if(PIDEnabled[i] 
+            #ifdef PWM_8K_1
+            && i != PWM_8K_1
+            #endif
+            #ifdef PWM_8K_2
+            && i != PWM_8K_2
+            #endif
+          )
+        {
+            //init the cyclestart counter if needed
+            if(cycleStart[i] == 0 ) cycleStart[i] = timer1_overflow_count; 
+            //if our period just ended, update to when the next period ends
+            if((timer1_overflow_count - cycleStart[i]) > PIDOutputCountEquivalent[i][0]) 
+                cycleStart[i] += PIDOutputCountEquivalent[i][0];
+            //check to see if the pin should be high or low (note when our 16 bit integer wraps we will have 1 period where 
+            // the PWM % if cut short, because from the time of wrap until the next period 
+            if (PIDOutputCountEquivalent[i][1] > timer1_overflow_count - cycleStart[i]) 
+                heatPin[i].set(HIGH); else heatPin[i].set(LOW);
+        }
+    }
+}
+
+#ifdef PWM_8K_1
+ISR(TIMER1_COMPA_vect, ISR_BLOCK )
+{
+	if(PIDEnabled[PWM_8K_1])
+	{
+		//if the output is 1000, we need to set the pin to low 
+		if(PIDOutput[PWM_8K_1] == 1000) heatPin[PWM_8K_1].set(LOW);
+		//if the output is its maxiumum then we just set the pin high 
+		else if(PIDOutput[PWM_8K_1] == 0) heatPin[PWM_8K_1].set(HIGH);
+		// else we need to toggle the pin from its previous state
+		else
+		{
+			if(heatPin[PWM_8K_1].get()) heatPin[PWM_8K_1].set(LOW);
+			else heatPin[PWM_8K_1].set(HIGH);
+		}
+	}
+}
+#endif
+
+#ifdef PWM_8K_2
+ISR(TIMER1_COMPB_vect, ISR_BLOCK)
+{
+    if(PIDEnabled[PWM_8K_2])
+    {
+        //if the output is 1000, we need to set the pin to low 
+        if(PIDOutput[PWM_8K_2] == 1000) heatPin[PWM_8K_2].set(LOW);
+        //if the output is its maxiumum then we just set the pin high 
+        else if(PIDOutput[PWM_8K_2] == 0) heatPin[PWM_8K_2].set(HIGH);
+        // else we need to toggle the pin from its previous state
+        else
+        {
+            if(heatPin[PWM_8K_2].get()) heatPin[PWM_8K_2].set(LOW);
+            else heatPin[PWM_8K_2].set(HIGH);
+        }
+    }
+}
+#endif
+#endif
 
 
 void pinInit() {
@@ -82,6 +218,13 @@ void pinInit() {
 }
 
 void pidInit() {
+  #ifdef PWM_8K_1
+  PIDCycle[PWM_8K_1] = 1000;
+  #endif
+  #ifdef PWM_8K_2
+  PIDCycle[PWM_8K_2] = 1000;
+  #endif
+  
   pid[VS_HLT].SetInputLimits(0, 25500);
   pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * PIDLIMIT_HLT);
   pid[VS_HLT].SetTunings(getPIDp(VS_HLT), getPIDi(VS_HLT), getPIDd(VS_HLT));
@@ -120,13 +263,25 @@ void resetOutputs() {
 }
 
 void resetHeatOutput(byte vessel) {
+  #ifdef PWM_BY_TIMER
+  uint8_t oldSREG;
+  #endif
   setSetpoint(vessel, 0);
   PIDOutput[vessel] = 0;
   #ifdef PID_FEED_FORWARD
   if(vessel == VS_MASH)
     FFBias = 0;
   #endif
+  #ifdef PWM_BY_TIMER
+  // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
+  oldSREG = SREG;
+  cli();
+  PIDOutputCountEquivalent[vessel][1] = 1000;
+  #endif
   heatPin[vessel].set(LOW);
+  #ifdef PWM_BY_TIMER
+  SREG = oldSREG; // restore interrupts
+  #endif
 }  
 
 //Sets the specified valves On or Off
@@ -173,11 +328,10 @@ void setValves (unsigned long vlvBitMask, boolean value) {
 
 void processHeatOutputs() {
   //Process Heat Outputs
-  #ifdef USESTEAM
-    #define LAST_HEAT_OUTPUT VS_STEAM
-  #else
-    #define LAST_HEAT_OUTPUT VS_KETTLE
+  #ifdef PWM_BY_TIMER
+  uint8_t oldSREG;
   #endif
+  
   for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++) {
     if (PIDEnabled[i]) {
       if (i != VS_STEAM && i != VS_KETTLE && temp[i] <= 0) {
@@ -194,9 +348,43 @@ void processHeatOutputs() {
           pid[i].Compute();
         }
       }
+      #ifndef PWM_BY_TIMER
       if (cycleStart[i] == 0) cycleStart[i] = millis();
       if (millis() - cycleStart[i] > PIDCycle[i] * 100) cycleStart[i] += PIDCycle[i] * 100;
       if (PIDOutput[i] > millis() - cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
+      #else
+      //here we do as much math as we can OUT SIDE the ISR, we calculate the PWM cycle time in counter/timer counts
+      // and place it in the [i][0] value, then calculate the timer counts to get the desired PWM % and place it in [i][1]
+      if( 1
+      #ifdef PWM_8K_1
+          && i != PWM_8K_1
+      #endif
+      #ifdef PWM_8K_2
+          && i != PWM_8K_2
+      #endif
+        )
+      {
+         // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
+         oldSREG = SREG;
+         cli();
+         PIDOutputCountEquivalent[i][0] = PIDCycle[i] * 800;
+         PIDOutputCountEquivalent[i][1] = PIDOutput[i] * 800;
+         SREG = oldSREG; // restore interrupts
+      }
+      else
+      {
+         //note that the subtract from 1000 part is here because the way the counter timer works by toggeling the output bit
+         // and the fact that the starting state of said bit is always 0 causes us to have to invert the logic. If we didnt subtract
+         // the value from 1000 the bit would be set high at say PIDOutput = 20 and left high until we counted up to 1000, then down 
+         // from 1000 to 20 then get set low again, thus 20 is your 20/2000 = 1% time low, not time on as is expected. 
+      #ifdef PWM_8K_1
+         if(i == PWM_8K_1) OCR1A = 1000 - (unsigned int)PIDOutput[i];
+      #endif
+      #ifdef PWM_8K_2 
+         if(i == PWM_8K_2) OCR1B = 1000 - (unsigned int)PIDOutput[i];
+      #endif
+      }
+      #endif
       if (PIDOutput[i] == 0)  heatStatus[i] = 0; else heatStatus[i] = 1;
     } else {
       if (heatStatus[i]) {

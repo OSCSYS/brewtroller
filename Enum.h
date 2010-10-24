@@ -42,6 +42,7 @@
 #define MASHHEAT_PIN 1
 #define KETTLEHEAT_PIN 3
 #define STEAMHEAT_PIN 6
+#define PWMPUMP_PIN 6
 
 //Reverse pin swap on 2.x boards
 #ifdef BTBOARD_22
@@ -71,6 +72,7 @@
 #define VS_MASH 1
 #define VS_KETTLE 2
 #define VS_STEAM 3
+#define VS_PUMP 3
 
 //Auto-Valve Modes
 #define AV_FILL 0
