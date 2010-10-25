@@ -146,9 +146,9 @@ ISR(TIMER1_COMPA_vect, ISR_BLOCK )
 	if(PIDEnabled[PWM_8K_1])
 	{
 		//if the output is 1000, we need to set the pin to low 
-		if(PIDOutput[PWM_8K_1] == 1000) heatPin[PWM_8K_1].set(LOW);
+		if(PIDOutputCountEquivalent[PWM_8K_1][1] == 1000) heatPin[PWM_8K_1].set(LOW);
 		//if the output is its maxiumum then we just set the pin high 
-		else if(PIDOutput[PWM_8K_1] == 0) heatPin[PWM_8K_1].set(HIGH);
+		else if(PIDOutputCountEquivalent[PWM_8K_1][1] == 0) heatPin[PWM_8K_1].set(HIGH);
 		// else we need to toggle the pin from its previous state
 		else
 		{
@@ -165,9 +165,9 @@ ISR(TIMER1_COMPB_vect, ISR_BLOCK)
     if(PIDEnabled[PWM_8K_2])
     {
         //if the output is 1000, we need to set the pin to low 
-        if(PIDOutput[PWM_8K_2] == 1000) heatPin[PWM_8K_2].set(LOW);
+        if(PIDOutputCountEquivalent[PWM_8K_2][i] == 1000) heatPin[PWM_8K_2].set(LOW);
         //if the output is its maxiumum then we just set the pin high 
-        else if(PIDOutput[PWM_8K_2] == 0) heatPin[PWM_8K_2].set(HIGH);
+        else if(PIDOutputCountEquivalent[PWM_8K_2][i] == 0) heatPin[PWM_8K_2].set(HIGH);
         // else we need to toggle the pin from its previous state
         else
         {
@@ -378,10 +378,18 @@ void processHeatOutputs() {
          // the value from 1000 the bit would be set high at say PIDOutput = 20 and left high until we counted up to 1000, then down 
          // from 1000 to 20 then get set low again, thus 20 is your 20/2000 = 1% time low, not time on as is expected. 
       #ifdef PWM_8K_1
-         if(i == PWM_8K_1) OCR1A = 1000 - (unsigned int)PIDOutput[i];
+         if(i == PWM_8K_1)
+         {
+            OCR1A = 1000 - (unsigned int)PIDOutput[i];
+            PIDOutputCountEquivalent[i][1] = 1000 - PIDOutput[i];
+         }
       #endif
       #ifdef PWM_8K_2 
-         if(i == PWM_8K_2) OCR1B = 1000 - (unsigned int)PIDOutput[i];
+         if(i == PWM_8K_2)
+         {
+            OCR1B = 1000 - (unsigned int)PIDOutput[i];
+            PIDOutputCountEquivalent[i][1] = 1000 - PIDOutput[i];
+         }
       #endif
       }
       #endif
