@@ -134,7 +134,8 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
                 cycleStart[i] += PIDOutputCountEquivalent[i][0];
             //check to see if the pin should be high or low (note when our 16 bit integer wraps we will have 1 period where 
             // the PWM % if cut short, because from the time of wrap until the next period 
-            if (PIDOutputCountEquivalent[i][1] >= timer1_overflow_count - cycleStart[i]) 
+            if (PIDOutputCountEquivalent[i][1] >= timer1_overflow_count - cycleStart[i] 
+                  && timer1_overflow_count != cycleStart[i]) 
                 heatPin[i].set(HIGH); else heatPin[i].set(LOW);
         }
     }
@@ -331,6 +332,7 @@ void setValves (unsigned long vlvBitMask, boolean value) {
 
 void processHeatOutputs() {
   //Process Heat Outputs
+  unsigned long millistemp;
   #ifdef PWM_BY_TIMER
   uint8_t oldSREG;
   #endif
@@ -352,9 +354,11 @@ void processHeatOutputs() {
         }
       }
       #ifndef PWM_BY_TIMER
-      if (cycleStart[i] == 0) cycleStart[i] = millis();
-      if (millis() - cycleStart[i] > PIDCycle[i] * 100) cycleStart[i] += PIDCycle[i] * 100;
-      if (PIDOutput[i] >= millis() - cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
+      //only 1 call to millis needed here, and if we get hit with an interrupt we still want to calculate based on the first read value of it
+      millistemp = millis();
+      if (cycleStart[i] == 0) cycleStart[i] = millistemp;
+      if (millistemp - cycleStart[i] > PIDCycle[i] * 100) cycleStart[i] += PIDCycle[i] * 100;
+      if (PIDOutput[i] >= millistemp - cycleStart[i] && millistemp != cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
       #else
       //here we do as much math as we can OUT SIDE the ISR, we calculate the PWM cycle time in counter/timer counts
       // and place it in the [i][0] value, then calculate the timer counts to get the desired PWM % and place it in [i][1]
