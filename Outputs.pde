@@ -165,9 +165,9 @@ ISR(TIMER1_COMPB_vect, ISR_BLOCK)
     if(PIDEnabled[PWM_8K_2])
     {
         //if the output is 1000, we need to set the pin to low 
-        if(PIDOutputCountEquivalent[PWM_8K_2][i] == 1000) heatPin[PWM_8K_2].set(LOW);
+        if(PIDOutputCountEquivalent[PWM_8K_2][1] == 1000) heatPin[PWM_8K_2].set(LOW);
         //if the output is its maxiumum then we just set the pin high 
-        else if(PIDOutputCountEquivalent[PWM_8K_2][i] == 0) heatPin[PWM_8K_2].set(HIGH);
+        else if(PIDOutputCountEquivalent[PWM_8K_2][1] == 0) heatPin[PWM_8K_2].set(HIGH);
         // else we need to toggle the pin from its previous state
         else
         {
@@ -218,11 +218,14 @@ void pinInit() {
 }
 
 void pidInit() {
+  //note that the PIDCycle for the 8khz outputs is set to 10 because the TOP of the counter/timer is set to 1000
+  // this means that after it is multiplied by the PIDLIMIT it will be the proper value to give you the desired % output
+  // it also makes the % calculations work properly in the log, UI, and other area's. 
   #ifdef PWM_8K_1
-  PIDCycle[PWM_8K_1] = 1000;
+  PIDCycle[PWM_8K_1] = 10;
   #endif
   #ifdef PWM_8K_2
-  PIDCycle[PWM_8K_2] = 1000;
+  PIDCycle[PWM_8K_2] = 10;
   #endif
   
   pid[VS_HLT].SetInputLimits(0, 25500);

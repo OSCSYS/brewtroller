@@ -1705,8 +1705,18 @@ void cfgOutputs() {
       else setPIDEnabled(VS_HLT, 1);
     }
     else if (lastOption == 1) {
-      setPIDCycle(VS_HLT, getValue(HLTCYCLE, PIDCycle[VS_HLT], 3, 1, 255, SEC));
-      pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * PIDLIMIT_HLT);
+      if(1
+          #ifdef PWM_8K_1
+          && PWM_8K_1 != VS_HLT
+          #endif
+          #ifdef PWM_8K_2
+          && PWM_8K_2 != VS_HLT
+          #endif
+        )
+      {
+        setPIDCycle(VS_HLT, getValue(HLTCYCLE, PIDCycle[VS_HLT], 3, 1, 255, SEC));
+        pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * PIDLIMIT_HLT);
+      }
     } else if (lastOption == 2) {
       setPIDGain("HLT PID Gain", VS_HLT);
     } else if (lastOption == 3) setHysteresis(VS_HLT, getValue(HLTHY, hysteresis[VS_HLT], 3, 1, 255, TUNIT));
@@ -1715,8 +1725,18 @@ void cfgOutputs() {
       else setPIDEnabled(VS_MASH, 1);
     }
     else if (lastOption == 5) {
-      setPIDCycle(VS_MASH, getValue(MASHCYCLE, PIDCycle[VS_MASH], 3, 1, 255, SEC));
-      pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * PIDLIMIT_MASH);
+      if(1
+          #ifdef PWM_8K_1
+          && PWM_8K_1 != VS_MASH
+          #endif
+          #ifdef PWM_8K_2
+          && PWM_8K_2 != VS_MASH
+          #endif
+        )
+      {
+        setPIDCycle(VS_MASH, getValue(MASHCYCLE, PIDCycle[VS_MASH], 3, 1, 255, SEC));
+        pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * PIDLIMIT_MASH);
+      }
     } else if (lastOption == 6) {
       setPIDGain("Mash PID Gain", VS_MASH);
     } else if (lastOption == 7) setHysteresis(VS_MASH, getValue(MASHHY, hysteresis[VS_MASH], 3, 1, 255, TUNIT));
@@ -1725,8 +1745,18 @@ void cfgOutputs() {
       else setPIDEnabled(VS_KETTLE, 1);
     }
     else if (lastOption == 9) {
-      setPIDCycle(VS_KETTLE, getValue(KETTLECYCLE, PIDCycle[VS_KETTLE], 3, 1, 255, SEC));
-      pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE);
+      if(1
+          #ifdef PWM_8K_1
+          && PWM_8K_1 != VS_KETTLE
+          #endif
+          #ifdef PWM_8K_2
+          && PWM_8K_2 != VS_KETTLE
+          #endif
+        )
+      {
+        setPIDCycle(VS_KETTLE, getValue(KETTLECYCLE, PIDCycle[VS_KETTLE], 3, 1, 255, SEC));
+        pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE);
+      }
     } else if (lastOption == 10) {
       setPIDGain("Kettle PID Gain", VS_KETTLE);
     } else if (lastOption == 11) setHysteresis(VS_KETTLE, getValue(KETTLEHY, hysteresis[VS_KETTLE], 3, 1, 255, TUNIT));
@@ -1737,8 +1767,18 @@ void cfgOutputs() {
       else setPIDEnabled(VS_STEAM, 1);
     }
     else if (lastOption == 15) {
-      setPIDCycle(VS_STEAM, getValue(STEAMCYCLE, PIDCycle[VS_STEAM], 3, 1, 255, SEC));
-      pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * PIDLIMIT_STEAM);
+      if(1
+          #ifdef PWM_8K_1
+          && PWM_8K_1 != VS_STEAM
+          #endif
+          #ifdef PWM_8K_2
+          && PWM_8K_2 != VS_STEAM
+          #endif
+        )
+      {
+        setPIDCycle(VS_STEAM, getValue(STEAMCYCLE, PIDCycle[VS_STEAM], 3, 1, 255, SEC));
+        pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * PIDLIMIT_STEAM);
+      }
     } else if (lastOption == 16) {
       setPIDGain("Steam PID Gain", VS_STEAM);
     } else if (lastOption == 17) setSteamTgt(getValue(STEAMPRESS, getSteamTgt(), 3, 0, 255, PUNIT));
