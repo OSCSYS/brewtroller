@@ -134,7 +134,7 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
                 cycleStart[i] += PIDOutputCountEquivalent[i][0];
             //check to see if the pin should be high or low (note when our 16 bit integer wraps we will have 1 period where 
             // the PWM % if cut short, because from the time of wrap until the next period 
-            if (PIDOutputCountEquivalent[i][1] > timer1_overflow_count - cycleStart[i]) 
+            if (PIDOutputCountEquivalent[i][1] >= timer1_overflow_count - cycleStart[i]) 
                 heatPin[i].set(HIGH); else heatPin[i].set(LOW);
         }
     }
@@ -354,7 +354,7 @@ void processHeatOutputs() {
       #ifndef PWM_BY_TIMER
       if (cycleStart[i] == 0) cycleStart[i] = millis();
       if (millis() - cycleStart[i] > PIDCycle[i] * 100) cycleStart[i] += PIDCycle[i] * 100;
-      if (PIDOutput[i] > millis() - cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
+      if (PIDOutput[i] >= millis() - cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
       #else
       //here we do as much math as we can OUT SIDE the ISR, we calculate the PWM cycle time in counter/timer counts
       // and place it in the [i][0] value, then calculate the timer counts to get the desired PWM % and place it in [i][1]
@@ -383,15 +383,23 @@ void processHeatOutputs() {
       #ifdef PWM_8K_1
          if(i == PWM_8K_1)
          {
+            // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
+            oldSREG = SREG;
+            cli();
             OCR1A = 1000 - (unsigned int)PIDOutput[i];
             PIDOutputCountEquivalent[i][1] = 1000 - PIDOutput[i];
+            SREG = oldSREG;
          }
       #endif
       #ifdef PWM_8K_2 
          if(i == PWM_8K_2)
          {
+            // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
+            oldSREG = SREG;
+            cli();
             OCR1B = 1000 - (unsigned int)PIDOutput[i];
             PIDOutputCountEquivalent[i][1] = 1000 - PIDOutput[i];
+            SREG = oldSREG;
          }
       #endif
       }
