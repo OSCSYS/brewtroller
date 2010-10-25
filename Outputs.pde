@@ -280,7 +280,18 @@ void resetHeatOutput(byte vessel) {
   // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
   oldSREG = SREG;
   cli();
-  PIDOutputCountEquivalent[vessel][1] = 1000;
+  //if we are not a 8K output then we can set it to 0, but if we are we need to set it to 1000 to make the duty cycle 0
+  if(1
+    #ifdef PWM_8K_1
+      && vessel != PWM_8K_1
+    #endif
+    #ifdef PWM_8K_2
+      %+&& vessel != PWM_8K_2
+    #endif
+    ) 
+    PIDOutputCountEquivalent[vessel][1] = 0;
+  else
+    PIDOutputCountEquivalent[vessel][1] = 1000;
   #endif
   heatPin[vessel].set(LOW);
   #ifdef PWM_BY_TIMER
@@ -391,7 +402,7 @@ void processHeatOutputs() {
             oldSREG = SREG;
             cli();
             OCR1A = 1000 - (unsigned int)PIDOutput[i];
-            PIDOutputCountEquivalent[i][1] = 1000 - PIDOutput[i];
+            PIDOutputCountEquivalent[i][1] = 1000 - (unsigned int)PIDOutput[i];
             SREG = oldSREG;
          }
       #endif
@@ -402,7 +413,7 @@ void processHeatOutputs() {
             oldSREG = SREG;
             cli();
             OCR1B = 1000 - (unsigned int)PIDOutput[i];
-            PIDOutputCountEquivalent[i][1] = 1000 - PIDOutput[i];
+            PIDOutputCountEquivalent[i][1] = 1000 - (unsigned int)PIDOutput[i];
             SREG = oldSREG;
          }
       #endif
