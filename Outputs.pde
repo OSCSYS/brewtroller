@@ -358,7 +358,8 @@ void processHeatOutputs() {
           else { 
             PIDInput[i] = temp[i];
   #ifdef PID_FEED_FORWARD
-            if(i == VS_MASH) FFBias = temp[FEED_FORWARD_SENSOR];
+            if(i == VS_MASH && setpoint[i] != 0) FFBias = temp[FEED_FORWARD_SENSOR];
+            else FFBias = 0; // found a bug where the mash output could be turned on if setpoint was 0 but FFBias was not 0. 
   #endif
           }
           pid[i].Compute();
