@@ -34,7 +34,14 @@ void eventHandler(byte eventID, int eventParam) {
   }
   else if (eventID == EVENT_SETPOINT) {
     //Setpoint Change (Update AutoValve Logic)
-    if (eventParam == VS_MASH) { 
+    if (eventParam == VS_HLT) { 
+      if (setpoint[VS_HLT]) autoValve[AV_HLT] = 1; 
+      else { 
+        autoValve[AV_HLT] = 0; 
+        if (vlvConfigIsActive(VLV_HLTHEAT)) setValves(vlvConfig[VLV_HLTHEAT], 0); 
+      } 
+    }
+    else if (eventParam == VS_MASH) { 
       if (setpoint[VS_MASH]) autoValve[AV_MASH] = 1; 
       else { 
         autoValve[AV_MASH] = 0; 

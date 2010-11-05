@@ -120,9 +120,9 @@ void loadSetup() {
   for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepInit(EEPROM.read(313 + brewStep), brewStep);
 
   //**********************************************************************************
-  //401-452 Valve Profiles
+  //401-456 Valve Profiles
   //**********************************************************************************
-  for (byte profile = VLV_FILLHLT; profile <= VLV_DRAIN; profile++) vlvConfig[profile] = PROMreadLong(401 + profile * 4);
+  for (byte profile = VLV_FILLHLT; profile <= VLV_HLTHEAT; profile++) vlvConfig[profile] = PROMreadLong(401 + profile * 4);
 
 }
 
@@ -365,7 +365,7 @@ void setGrainTemp(byte grainTemp) { EEPROM.write(400, grainTemp); }
 byte getGrainTemp() { return EEPROM.read(400); }
 
 //*****************************************************************************************************************************
-// Valve Profile Configuration (401-452; 453-785 Reserved)
+// Valve Profile Configuration (401-456; 457-785 Reserved)
 //*****************************************************************************************************************************
 void setValveCfg(byte profile, unsigned long value) {
   vlvConfig[profile] = value;

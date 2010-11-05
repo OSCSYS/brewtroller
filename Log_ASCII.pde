@@ -123,7 +123,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
             } else rejectParam();
           } else if(strcasecmp(msg[0], "GET_VLVCFG") == 0) {
             byte profile = atoi(msg[1]);
-            if (msgField == 1 && profile >= VLV_FILLHLT && profile <= VLV_DRAIN) {
+            if (msgField == 1 && profile >= VLV_FILLHLT && profile <= VLV_HLTHEAT) {
               logVlvConfig(profile);
               clearMsg();
             } else rejectParam();
@@ -235,7 +235,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
             } else rejectParam();
           } else if(strcasecmp(msg[0], "SET_VLVCFG") == 0) {
             byte profile = atoi(msg[1]);
-            if (msgField == 2 && profile >= VLV_FILLHLT && profile <= VLV_DRAIN) {
+            if (msgField == 2 && profile >= VLV_FILLHLT && profile <= VLV_HLTHEAT) {
               setValveCfg(profile, strtoul(msg[2], NULL, 10));
               clearMsg();
               logVlvConfig(profile);
@@ -306,7 +306,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
             if (msgField == 2) {
               setValves(VLV_ALL, 0);
               unsigned long actProfiles = strtoul(msg[1], NULL, 10);
-              for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
+              for (byte i = VLV_FILLHLT; i <= VLV_HLTHEAT; i++) 
                 if ((actProfiles & (1<<i))) setValves(vlvConfig[i], atoi(msg[2]));
               sendOK();
             } else rejectParam();
@@ -571,7 +571,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       logStart_P(LOGDATA);
       logField_P(PSTR("AUTOVLV"));
       byte modeMask = 0;
-      for (byte i = AV_FILL; i <= AV_CHILL; i++)
+      for (byte i = AV_FILL; i <= AV_HLT; i++)
         if (autoValve[i]) modeMask |= 1<<i;
       logFieldI(modeMask);
       logEnd();
@@ -583,7 +583,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       logStart_P(LOGDATA);
       logField_P(PSTR("VLVPRF"));
       unsigned int profileMask = 0;
-      for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
+      for (byte i = VLV_FILLHLT; i <= VLV_HLTHEAT; i++) 
         if (vlvConfig[i] != 0 && (vlvBits & vlvConfig[i]) == vlvConfig[i]) profileMask |= 1<<i;
       logFieldI(profileMask);
       logEnd();

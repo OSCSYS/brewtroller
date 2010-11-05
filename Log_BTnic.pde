@@ -227,13 +227,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       else if (cmdBuffer[0] == CMD_VLVBITS) logFieldI(vlvBits);
       else if (cmdBuffer[0] == CMD_AUTOVLV) {
         byte modeMask = 0;
-        for (byte i = AV_FILL; i <= AV_CHILL; i++)
+        for (byte i = AV_FILL; i <= AV_HLT; i++)
           if (autoValve[i]) modeMask |= 1<<i;
         logFieldI(modeMask);
       } 
       else if (cmdBuffer[0] == CMD_VLVPRF) {
         unsigned int profileMask = 0;
-        for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
+        for (byte i = VLV_FILLHLT; i <= VLV_HLTHEAT; i++) 
           if (vlvConfig[i] != 0 && (vlvBits & vlvConfig[i]) == vlvConfig[i]) profileMask |= 1<<i;
         logFieldI(profileMask);
       }
@@ -256,7 +256,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       else if (cmdBuffer[0] == CMD_SET_ALARM) setAlarm(getCmdParamNum(1));
       else if (cmdBuffer[0] == CMD_SET_AUTOVLV) {
         byte actModes = getCmdParamNum(1);
-        for (byte i = AV_FILL; i <= AV_CHILL; i++) 
+        for (byte i = AV_FILL; i <= AV_HLT; i++) 
           autoValve[i] = (actModes & (1<<i));
       }
       else if (cmdBuffer[0] == CMD_SET_EVAP) setEvapRate(min(getCmdParamNum(1), 100));
@@ -453,7 +453,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     } 
     else if (cmdBuffer[0] == CMD_GET_VLVCFG) {
       byte profile = getCmdParamNum(1);
-      if (getCmdParamCount() != 1 || profile > VLV_DRAIN) return CMD_REJECT_PARAM;
+      if (getCmdParamCount() != 1 || profile > VLV_HLTHEAT) return CMD_REJECT_PARAM;
       cmdBufLen = 1; //Reuse CMD code
       logFieldI(profile);
       logFieldI(vlvConfig[profile]);  
@@ -461,7 +461,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     } 
     else if (cmdBuffer[0] == CMD_SET_VLVCFG) {
       byte profile = getCmdParamNum(1);
-      if (getCmdParamCount() != 2 || profile > VLV_DRAIN) return CMD_REJECT_PARAM;
+      if (getCmdParamCount() != 2 || profile > VLV_HLTHEAT) return CMD_REJECT_PARAM;
       setValveCfg(profile, getCmdParamNum(2));
       sendOK();
     } 
@@ -519,7 +519,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       setValves(VLV_ALL, 0);
       unsigned long actProfiles = getCmdParamNum(1);
       boolean value = getCmdParamNum(2);
-      for (byte i = VLV_FILLHLT; i <= VLV_DRAIN; i++) 
+      for (byte i = VLV_FILLHLT; i <= VLV_HLTHEAT; i++) 
         if ((actProfiles & (1<<i))) setValves(vlvConfig[i], value);
       sendOK();
       

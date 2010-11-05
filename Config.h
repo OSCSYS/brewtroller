@@ -263,7 +263,7 @@
 //  2 = Binary Messages
 //      0 = Original implementation
 //**********************************************************************************
-#define COMTYPE   0
+#define COMTYPE   1
 #define COMSCHEMA 0
 
 // BAUD_RATE: The baud rate for the serial connection. Previous to BrewTroller 2.0

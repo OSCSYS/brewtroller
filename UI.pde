@@ -87,6 +87,7 @@ const char CHILLH2O[] PROGMEM = "Chill H2O";
 const char CHILLBEER[] PROGMEM = "Chill Beer";
 const char BOILRECIRC[] PROGMEM = "Boil Recirc";
 const char DRAIN[] PROGMEM = "Drain";
+const char HLTHEAT[] PROGMEM = "HLT Heat";
 
 #ifndef UI_NO_SETUP
 const char HLTCYCLE[] PROGMEM = "HLT PID Cycle";
@@ -387,6 +388,7 @@ void screenInit(byte screen) {
     printLCD_P(2, 11, TUNIT);
     printLCD_P(3, 11, TUNIT);
   }
+  
   //Write Unlock symbol to upper right corner
   if (!screenLock) lcdWriteCustChar(0, 19, 7);
 }
@@ -2010,22 +2012,28 @@ void cfgValves() {
   while (1) {
     strcpy_P(menuopts[0], FILLHLT);
     strcpy_P(menuopts[1], FILLMASH);
-    strcpy_P(menuopts[2], ADDGRAIN);    
-    strcpy_P(menuopts[3], MASHHEAT);
-    strcpy_P(menuopts[4], MASHIDLE);
-    strcpy_P(menuopts[5], SPARGEIN);
-    strcpy_P(menuopts[6], SPARGEOUT);
-    strcpy_P(menuopts[7], BOILADDS);
-    strcpy_P(menuopts[8], PSTR("Kettle Lid"));
-    strcpy_P(menuopts[9], CHILLH2O);
-    strcpy_P(menuopts[10], CHILLBEER);
-    strcpy_P(menuopts[11], BOILRECIRC);
-    strcpy_P(menuopts[12], DRAIN);
-    strcpy_P(menuopts[13], EXIT);
+    strcpy_P(menuopts[2], HLTHEAT);    
+    strcpy_P(menuopts[3], ADDGRAIN);    
+    strcpy_P(menuopts[4], MASHHEAT);
+    strcpy_P(menuopts[5], MASHIDLE);
+    strcpy_P(menuopts[6], SPARGEIN);
+    strcpy_P(menuopts[7], SPARGEOUT);
+    strcpy_P(menuopts[8], BOILADDS);
+    strcpy_P(menuopts[9], PSTR("Kettle Lid"));
+    strcpy_P(menuopts[10], CHILLH2O);
+    strcpy_P(menuopts[11], CHILLBEER);
+    strcpy_P(menuopts[12], BOILRECIRC);
+    strcpy_P(menuopts[13], DRAIN);
+    strcpy_P(menuopts[14], EXIT);
     
-    lastOption = scrollMenu("Valve Configuration", 14, lastOption);
-    if (lastOption > 12) return;
-    else setValveCfg(lastOption, cfgValveProfile(menuopts[lastOption], vlvConfig[lastOption]));
+    lastOption = scrollMenu("Valve Configuration", 15, lastOption);
+    if (lastOption > 13) return;
+    else {
+      byte vc = lastOption;
+      if (vc == 2) vc = 13; /* Map HLTHEAT to vlvConfig[13] */
+      else if (vc > 2) vc--; /* Subtract 1 for Add Grain - Drain to map to vlvConfig[2] - vlvConfig[12] */
+      setValveCfg(vc, cfgValveProfile(menuopts[lastOption], vlvConfig[vc]));
+    }
   }
 }
 

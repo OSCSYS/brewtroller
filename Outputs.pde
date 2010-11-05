@@ -460,6 +460,13 @@ void processAutoValve() {
     if (volAvg[VS_MASH] < tgtVol[VS_MASH]) setValves(vlvConfig[VLV_FILLMASH], 1);
       else setValves(vlvConfig[VLV_FILLMASH], 0);
   } 
+  if (autoValve[AV_HLT]) {
+    if (heatStatus[VS_HLT]) {
+      if (!vlvConfigIsActive(VLV_HLTHEAT)) setValves(vlvConfig[VLV_HLTHEAT], 1);
+    } else {
+      if (vlvConfigIsActive(VLV_HLTHEAT)) setValves(vlvConfig[VLV_HLTHEAT], 0);
+    }
+  }
   if (autoValve[AV_MASH]) {
     if (heatStatus[VS_MASH]) {
       if (vlvConfigIsActive(VLV_MASHIDLE)) setValves(vlvConfig[VLV_MASHIDLE], 0);
