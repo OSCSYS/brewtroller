@@ -391,7 +391,21 @@ Documentation, Forums and more information available at http://www.brewtroller.c
               logCalcVols(program);
               clearMsg();
             } else rejectParam();
-  #endif
+          } else if(strcasecmp(msg[0], "GET_EEPROM") == 0) {
+          if (msgField == 2) {
+            int address = atoi(msg[1]);
+            int length = atoi(msg[2]);
+            if (address >= 0 && address < 2048 &&
+                length > 0 && length <= 64)
+            {
+              getEEPROM(address, length);
+              clearMsg();
+            }
+          } else rejectParam();
+        } else if(strcasecmp(msg[0], "SET_EEPROM") == 0) {
+            setEEPROM();
+            clearMsg();
+#endif
   
           //End of Commands
           }
@@ -728,7 +742,171 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   
   // Schema 1 Functions
   //
-  #if COMSCHEMA > 0
+
+#if COMSCHEMA > 0
+
+// read values from EEPROM
+//
+void getEEPROM(int address, int dataLen) 
+{
+  byte checksum = 0;
+
+  logStart_P(LOGCFG);
+  logField_P(PSTR("EEPROM"));
+  
+  // address & data length
+  checksum += printHex8(byte(address>>8));
+  checksum += printHex8(byte(address));
+  Serial.print('\t');
+  checksum += printHex8(dataLen);
+  
+  // EEPROM data
+  for (int i=0; i < dataLen; i++)
+  {
+    if (i % 8 == 0) 
+      Serial.print('\t');
+    checksum += printHex8(EEPROM.read(address++));
+  }
+
+  // checksum
+  Serial.print('\t');
+  checksum = (~checksum) + 1;
+  printHex8(checksum);
+
+  Serial.print('\t');
+  logEnd();
+}
+
+//  write values to EEPROM
+//
+//
+bool setEEPROM() {
+  byte* btBuf = (byte*)&msg;  // msg buffer will be used to store data to write in EEPROM
+  byte msgIndex = 2;          // msg[3] is first chunk of data
+  byte checksum = 0;
+
+  // get address and data length
+  //
+  int address = hex2Int(msg[1], 0, 4);
+  checksum += byte(address>>8);
+  checksum += byte(address);
+  byte dataLen = hex2Int(msg[2], 0, 2);
+  checksum += dataLen;
+
+  // data loop
+  //
+  byte i;
+  for (i=0; i < dataLen; i++)
+  {
+    byte chIndex = 2 * (i & 0x07); // character index (i % 8)
+    // check for start of next msg[]
+    if (chIndex == 0) {
+      msgIndex++;
+    }
+    // get data and put in buffer
+    btBuf[i] = (byte)hex2Int(msg[msgIndex], chIndex, 2);
+    checksum += btBuf[i]; 
+  }
+
+  // get checksum
+  //
+  msgIndex++;
+  btBuf[i] = (byte)hex2Int(msg[msgIndex], 0, 2);
+  checksum += btBuf[i];
+
+  // checksum check (should be 0 if valid)
+  //
+  if (checksum != 0)
+  {
+    returnChecksumError();
+    return false;
+  }
+
+  // write values to EEPROM
+  //
+  for (byte i=0; i < dataLen; i++)
+  {
+    EEPROM.write(address+i, btBuf[i]);
+  }
+
+  getEEPROM(address, dataLen);
+  //testSetEEPROM(address, dataLen);
+
+  return true;
+}
+
+void returnChecksumError() {
+  logStart_P(LOGCMD);
+  logField_P(PSTR("CHECKSUM_ERROR"));
+  logEnd();
+  clearMsg();
+}
+
+int hex2Int(char chBuf[], byte offset, byte length) {
+
+  int iVal=0;
+  for (byte i=0; i<length; i++) 
+  {
+    iVal <<= 4;
+    char hexChar = chBuf[offset+i];
+    
+    // make upper case
+    if (hexChar >= 0x60) 
+      hexChar -= 0x20;  
+    
+    // convert to value
+    if (hexChar >= '0' && hexChar <= '9')
+      iVal += hexChar - '0';
+    else if (hexChar >= 'A' && hexChar <= 'F')
+      iVal += hexChar - 0x41 + 10;
+    else
+      return -1;
+  }
+  return iVal;
+}
+
+byte printHex8(byte btVal) // prints 8-bit data in hex with leading zeroes
+{
+  if (btVal<0x10) 
+    Serial.print("0");
+  Serial.print(btVal,HEX);
+  return btVal;
+}
+
+//void testSetEEPROM(int address, int dataLen) 
+//{
+//  byte* btBuf = (byte*)msg;
+//  byte checksum = 0;
+//
+//  logStart_P(LOGCFG);
+//  logField_P(PSTR("EEPROM"));
+//  
+//  // address
+//  checksum += printHex8(byte(address>>8));
+//  checksum += printHex8(byte(address));
+//
+//  // data length
+//  Serial.print('\t');
+//  checksum += printHex8(dataLen);
+//  
+//  // EEPROM data
+//  for (int i=0; i < dataLen; i++)
+//  {
+//    if (i % 8 == 0) 
+//      Serial.print('\t');
+//    checksum += printHex8(btBuf[address++]);
+//  }
+//
+//  // checksum
+//  Serial.print('\t');
+//  checksum = (~checksum) + 1;
+//  printHex8(checksum);
+//
+//  Serial.print('\t');
+//  logEnd();
+//}
+
+
     void logBoilPower() {
       logStart_P(LOGCFG);
       logField_P(PSTR("BOIL_PWR"));
