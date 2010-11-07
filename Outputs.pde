@@ -251,9 +251,11 @@ void pidInit() {
   // it also makes the % calculations work properly in the log, UI, and other area's. 
   #ifdef PWM_8K_1
   PIDCycle[PWM_8K_1] = 10;
+  PIDOutputCountEquivalent[PWM_8K_1][1] = 1000; // this sets the output to 0 duty cycle, to make sure we dont pulse the pin high before we do our first PID calculation with a setpoint of 0
   #endif
   #ifdef PWM_8K_2
   PIDCycle[PWM_8K_2] = 10;
+  PIDOutputCountEquivalent[PWM_8K_2][1] = 1000; // this sets the output to 0 duty cycle, to make sure we dont pulse the pin high before we do our first PID calculation with a setpoint of 0
   #endif
   
   pid[VS_HLT].SetInputLimits(0, 25500);
