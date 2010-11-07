@@ -223,7 +223,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       else if (cmdBuffer[0] == CMD_GET_DELAYTIME) logFieldI(getDelayMins());
       else if (cmdBuffer[0] == CMD_GET_GRAINTEMP) logFieldI(getGrainTemp());
       else if (cmdBuffer[0] == CMD_STEPPRG) { for (byte i = 0; i < NUM_BREW_STEPS; i++) logFieldI(stepProgram[i]); }
+	  #ifdef PID_FLOW_CONTROL
+	  else if (cmdBuffer[0] == CMD_STEAM) logFieldI(flowRate[VS_MASH]);
+	  #else
       else if (cmdBuffer[0] == CMD_STEAM) logFieldI(steamPressure);
+	  #endif
       else if (cmdBuffer[0] == CMD_VLVBITS) logFieldI(vlvBits);
       else if (cmdBuffer[0] == CMD_AUTOVLV) {
         byte modeMask = 0;
@@ -324,8 +328,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         logFieldI(getPIDd(vessel));
         if (vessel == VS_STEAM) {
           logFieldI(getSteamTgt());
+          #ifndef PID_FLOW_CONTROL
           logFieldI(steamZero);
           logFieldI(steamPSens);
+          #endif
         } 
         else {
           logFieldI(hysteresis[vessel]);

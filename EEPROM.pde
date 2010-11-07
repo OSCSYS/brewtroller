@@ -251,10 +251,12 @@ byte getSteamTgt() { return EEPROM.read(116); }
 //**********************************************************************************
 void setSteamPSens(unsigned int value) {
   steamPSens = value;
+  #ifndef PID_FLOW_CONTROL
   #ifdef USEMETRIC
     pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
   #else
     pid[VS_STEAM].SetInputLimits(0, 7250 / steamPSens);
+  #endif
   #endif
   PROMwriteInt(117, value);
 }

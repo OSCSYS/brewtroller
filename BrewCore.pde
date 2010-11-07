@@ -49,8 +49,10 @@ void brewCore() {
   #ifdef FLOWRATE_CALCS
     updateFlowRates();
   #endif
-  
+
+  #ifndef PID_FLOW_CONTROL
   steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
+  #endif
   
   //Auto Valve Logic: Outputs.pde
   processAutoValve();

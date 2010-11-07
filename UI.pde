@@ -99,11 +99,18 @@ const char MASHHY[] PROGMEM = "Mash Hysteresis";
 const char KETTLECYCLE[] PROGMEM = "Kettle PID Cycle";
 const char KETTLEGAIN[] PROGMEM = "Kettle PID Gain";
 const char KETTLEHY[] PROGMEM = "Kettle Hysteresis";
+#ifdef PID_FLOW_CONTROL
+const char PUMPCYCLE[] PROGMEM = "Pump PID Cycle";
+const char PUMPGAIN[] PROGMEM = "Pump PID Gain";
+const char PUMPFLOW[] PROGMEM = "Pump Flow Rate";
+const char NOUSE[] PROGMEM = " ";
+#else
 const char STEAMCYCLE[] PROGMEM = "Steam PID Cycle";
 const char STEAMGAIN[] PROGMEM = "Steam PID Gain";
 const char STEAMPRESS[] PROGMEM = "Steam Target";
 const char STEAMSENSOR[] PROGMEM = "Steam Sensor Sens";
 const char STEAMZERO[] PROGMEM = "Steam Zero Calib";
+#endif
 #endif
 
 const char HLTDESC[] PROGMEM = "Hot Liquor Tank";
@@ -1693,6 +1700,13 @@ void cfgOutputs() {
     strcpy_P(menuopts[13], PSTR("Boil Power: "));
     strcat(menuopts[13], itoa(boilPwr, buf, 10));
     strcat(menuopts[13], "%");
+    #ifdef PID_FLOW_CONTROL
+    if (PIDEnabled[VS_STEAM]) strcpy_P(menuopts[14], PSTR("Sparge Pump Mode: PID")); else strcpy_P(menuopts[14], PSTR("Sparge Pump Mode: On/Off"));
+    strcpy_P(menuopts[15], PUMPCYCLE);
+    strcpy_P(menuopts[16], PUMPGAIN);
+    strcpy_P(menuopts[17], PUMPFLOW);
+    strcpy_P(menuopts[20], EXIT);
+    #else
     if (PIDEnabled[VS_STEAM]) strcpy_P(menuopts[14], PSTR("Steam Mode: PID")); else strcpy_P(menuopts[14], PSTR("Steam Mode: On/Off"));
     strcpy_P(menuopts[15], STEAMCYCLE);
     strcpy_P(menuopts[16], STEAMGAIN);
@@ -1700,6 +1714,7 @@ void cfgOutputs() {
     strcpy_P(menuopts[18], STEAMSENSOR);
     strcpy_P(menuopts[19], STEAMZERO);
     strcpy_P(menuopts[20], EXIT);
+    #endif
 
     lastOption = scrollMenu("Configure Outputs", 21, lastOption);
     if (lastOption == 0) {
@@ -1771,28 +1786,52 @@ void cfgOutputs() {
     else if (lastOption == 15) {
       if(1
           #ifdef PWM_8K_1
-          && PWM_8K_1 != VS_STEAM
+          && PWM_8K_1 != VS_STEAM // this also covers the VS_PUMP case
           #endif
           #ifdef PWM_8K_2
           && PWM_8K_2 != VS_STEAM
           #endif
         )
       {
+        #ifndef PID_FLOW_CONTROL
         setPIDCycle(VS_STEAM, getValue(STEAMCYCLE, PIDCycle[VS_STEAM], 3, 1, 255, SEC));
         pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * PIDLIMIT_STEAM);
+        #endif
       }
     } else if (lastOption == 16) {
+      #ifdef PID_FLOW_CONTROL
+      setPIDGain("PUMP PID Gain", VS_PUMP);
+      #else
       setPIDGain("Steam PID Gain", VS_STEAM);
+      #endif
+    #ifdef PID_FLOW_CONTROL
+    } else if (lastOption == 17) setSteamTgt(getValue(PUMPFLOW, getSteamTgt(), 3, 0, 255, PUNIT));
+    #else
     } else if (lastOption == 17) setSteamTgt(getValue(STEAMPRESS, getSteamTgt(), 3, 0, 255, PUNIT));
+    #endif
     else if (lastOption == 18) {
-      setSteamPSens(getValue(STEAMSENSOR, steamPSens, 4, 1, 9999, PSTR("mV/kPa")));
+      if(1
+         #ifdef PWM_8K_1
+         && PWM_8K_1 != VS_STEAM // this also covers the VS_PUMP case
+         #endif
+         #ifdef PWM_8K_2
+         && PWM_8K_2 != VS_STEAM
+         #endif
+        )
+      {
+        #ifndef PID_FLOW_CONTROL
+        setSteamPSens(getValue(STEAMSENSOR, steamPSens, 4, 1, 9999, PSTR("mV/kPa")));
+        #endif
+      }
     } else if (lastOption == 19) {
+      #ifndef PID_FLOW_CONTROL
       clearLCD();
       printLCD_P(0, 0, STEAMZERO);
       printLCD_P(1,2,PSTR("Calibrate Zero?"));
       strcpy_P(menuopts[0], CONTINUE);
       strcpy_P(menuopts[1], CANCEL);
       if (getChoice(2, 3) == 0) setSteamZero(analogRead(STEAMPRESS_APIN));
+      #endif
     } else return;
     brewCore();
   } 

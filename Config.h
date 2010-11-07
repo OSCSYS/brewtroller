@@ -88,7 +88,7 @@
 #define PIDLIMIT_HLT 100
 #define PIDLIMIT_MASH 100
 #define PIDLIMIT_KETTLE 100
-#define PIDLIMIT_STEAM 100
+#define PIDLIMIT_STEAM 100 // note this is also the PID limit for the pump PWM output if PID_FLOW_CONTROL is enabled
 
 //**********************************************************************************
 // PID Feed Forward control
@@ -111,11 +111,30 @@
 // frequency as the fastest possible frequency, (also note that the period cannot exceed 8.19 seconds). Also
 // only two PWM outputs can run at 8khz, all the rest must run at a lower frequency as defiend above. The 
 // two PWM outputs which will be 8khz can be defined below, comment them both out if none are that high. 
+// Also, the reported period for the 8khz outputs is going to look like 1 seconds in both the UI and the log. 
+// You will not however be able to set the the PWM frequency from the UI because it is set at 8khz, the value
+// given in the UI will be ignored. The % output however will be reported properly through the UI and log. 
 //#define PWM_BY_TIMER
 //#define PWM_8K_1 VS_PUMP
 //#define PWM_8K_2 VS_MASH
+//**********************************************************************************
 
-
+//**********************************************************************************
+// Flow rate calcs fed into PID controller for auto fly sparge
+//**********************************************************************************
+// This #define enables the feeding of the flow rate calcs based on the pressure sensors to be fed into the 
+// PID code to control a pump for fly sparge to get a desired flow rate. Note that the PWM output used to 
+// control the pump takes over the steam output, and thus the steam output cannot be used for steam. 
+// Note: This code is designed to work with PWM_BY_TIMER with one of the PWM_8K outputs set to VS_PUMP
+// if you dont use it that way it may not work as intended. 
+// Note2: Given our current 10 bit dac and the average pressure sensor resolution for volume you only get about 
+// 7 ADC clicks per quart, thus if you have your flow rate calcs set to happen to fast you'll always show a 0 flow 
+// rate. You'll need at least 20 seconds between flow rate calcs to be able to measure this slow of a flow rate. 
+// Note3: the Pump output must be set to PID for this to work as well, and the PID cycle is always set to what
+// will appear to be 10 seconds, but in reality it's 8khz = 125uS. 
+// Note4: In the UI when you enter the Pump flow rate it's entered in 10ths of a quart per minute, so 1 quart per
+// minute would be 10. 
+//#define PID_FLOW_CONTROL
 //**********************************************************************************
 
 //**********************************************************************************
@@ -351,7 +370,7 @@
 //
 // AUTO_FILL_START: This option will enable the Fill AutoValve logic at the start of
 // the Fill step. 
-//#define AUTO_FILL_START
+//define AUTO_FILL_START
 
 // AUTO_FILL_EXIT: This option will automatically exit the Fill step once target 
 // volumes have been reached.

@@ -28,10 +28,34 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Config.h"
 #include "Enum.h"
 
+#ifdef PID_FLOW_CONTROL 
+  #define LAST_HEAT_OUTPUT VS_PUMP // not this is mostly done for code readability as VS_PUMP = VS_STEAM
+  
+  #ifndef PWM_8K_1
+    #ifndef PWM_8k_2
+      #ERROR //fail build, we need at least 1 8k outputs for the pump and it must match the pump output
+    #else
+      #if PWM_8K_2 != VS_PUMP
+        #ERROR //fail build, if only PWM_8k_2 is defined, it MUST equal the pump to pass here
+      #endif
+    #endif
+  #else
+    #ifndef PWM_8K_2
+      #if PWM_8K_1 != VS_PUMP
+        #ERROR //fail build, if only PWM_8k_1 is defined, it MUST equal the pump to pass here
+      #endif
+    #else
+      #if !(PWM_8K_1 != VS_PUMP || PWM_8K_2 != VS_PUMP)
+        #ERROR //fail build, if both are defined one of them must be VS_PUMP
+      #endif
+    #endif
+  #endif
+#else
 #ifdef USESTEAM
   #define LAST_HEAT_OUTPUT VS_STEAM
 #else
   #define LAST_HEAT_OUTPUT VS_KETTLE
+#endif
 #endif
 
 #ifdef PWM_8K_1
@@ -216,6 +240,9 @@ void pinInit() {
 #ifdef USESTEAM
   heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
 #endif
+#ifdef PID_FLOW_CONTROL
+  heatPin[VS_PUMP].setup(PWMPUMP_PIN, OUTPUT);
+#endif
 }
 
 void pidInit() {
@@ -247,6 +274,18 @@ void pidInit() {
   pid[VS_KETTLE].SetMode(MANUAL);
   pid[VS_KETTLE].SetSampleTime(PID_CYCLE_TIME);
 
+#ifdef PID_FLOW_CONTROL
+#ifdef USEMETRIC
+  pid[VS_PUMP].SetInputLimits(0, 60000); // equivalent of 60 LPM
+#else
+  pid[VS_PUMP].SetInputLimits(0, 15000); // equivalent of 15 GPM
+#endif
+pid[VS_PUMP].SetOutputLimits(0, PIDCycle[VS_PUMP] * PIDLIMIT_STEAM);
+pid[VS_PUMP].SetTunings(getPIDp(VS_PUMP), getPIDi(VS_PUMP), getPIDd(VS_PUMP));
+pid[VS_PUMP].SetMode(AUTO);
+pid[VS_PUMP].SetSampleTime(FLOWRATE_READ_INTERVAL);
+
+#else
   #ifdef USEMETRIC
     pid[VS_STEAM].SetInputLimits(0, 50000000 / steamPSens);
   #else
@@ -256,6 +295,7 @@ void pidInit() {
   pid[VS_STEAM].SetTunings(getPIDp(VS_STEAM), getPIDi(VS_STEAM), getPIDd(VS_STEAM));
   pid[VS_STEAM].SetMode(AUTO);
   pid[VS_STEAM].SetSampleTime(PID_CYCLE_TIME);
+#endif
 
 #ifdef DEBUG_PID_GAIN
   for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) logDebugPIDGain(vessel);
@@ -286,7 +326,7 @@ void resetHeatOutput(byte vessel) {
       && vessel != PWM_8K_1
     #endif
     #ifdef PWM_8K_2
-      %+&& vessel != PWM_8K_2
+      && vessel != PWM_8K_2
     #endif
     ) 
     PIDOutputCountEquivalent[vessel][1] = 0;
@@ -354,7 +394,11 @@ void processHeatOutputs() {
         PIDOutput[i] = 0;
       } else {
         if (pid[i].GetMode() == AUTO) {
-          if (i == VS_STEAM) PIDInput[i] = steamPressure; 
+      #ifdef PID_FLOW_CONTROL
+        if(i == VS_PUMP) PIDInput[i] = flowRate[VS_MASH];
+      #else
+        if (i == VS_STEAM) PIDInput[i] = steamPressure; 
+      #endif
           else { 
             PIDInput[i] = temp[i];
   #ifdef PID_FEED_FORWARD

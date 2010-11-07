@@ -546,8 +546,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       logEnd();
     } else if (logCount == 14) {
       logStart_P(LOGDATA);
+      #ifdef PID_FLOW_CONTROL
+      logField_P(PSTR("PUMP"));
+      logFieldI(flowRate[VS_MASH]);
+      #else
       logField_P(PSTR("STEAM"));
       logFieldI(steamPressure);
+      #endif
       #if COMSCHEMA == 0
         #ifdef USEMETRIC
           logFieldI(0);
@@ -627,8 +632,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     #else
       if (vessel == VS_STEAM) {
     	  logFieldI(getSteamTgt());
+		  #ifndef PID_FLOW_CONTROL
     	  logFieldI(steamZero);
     	  logFieldI(steamPSens);
+		  #endif
       } else {
         logFieldI(hysteresis[vessel]);
     	  logFieldI(0);

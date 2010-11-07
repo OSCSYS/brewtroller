@@ -1,4 +1,4 @@
-#define BUILD 609
+#define BUILD 611
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -109,7 +109,7 @@ unsigned int calibVals[3][10];
 
 #ifdef FLOWRATE_CALCS
 //Flowrate in thousandths of gal/l per minute
-long flowRate[3];
+long flowRate[3] = {0,0,0};
 #endif
 
 //Valve Variables
@@ -144,7 +144,11 @@ PID pid[4] = {
   PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
   #endif
   PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
+  #ifdef PID_FLOW_CONTROL
+  PID(&PIDInput[VS_PUMP], &PIDOutput[VS_PUMP], &setpoint[VS_PUMP], 3, 4, 1)
+  #else
   PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
+  #endif
 };
 
 //Timer Globals

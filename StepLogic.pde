@@ -110,7 +110,9 @@ boolean stepInit(byte pgm, byte brewStep) {
       setSetpoint(TS_HLT, getProgHLT(pgm));
       setSetpoint(TS_MASH, calcStrikeTemp(pgm));
     }
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_HLT] = 0;
     preheated[VS_MASH] = 0;
     //No timer used for preheat
@@ -124,7 +126,9 @@ boolean stepInit(byte pgm, byte brewStep) {
     //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
     resetHeatOutput(VS_HLT);
     resetHeatOutput(VS_MASH);
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     setValves(vlvConfig[VLV_ADDGRAIN], 1);
     if(getProgMLHeatSrc(pgm) == VS_HLT) {
       unsigned long spargeVol = calcSpargeVol(pgm);
@@ -149,7 +153,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Dough In
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_DOUGHIN));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_DOUGHIN)); 
@@ -160,7 +166,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Acid Rest
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_ACID));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_ACID)); 
@@ -171,7 +179,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Protein
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_PROTEIN));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_PROTEIN)); 
@@ -182,7 +192,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Sacch
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH)); 
@@ -193,7 +205,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Sacch2
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH2));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH2)); 
@@ -204,7 +218,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Mash Out
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_MASHOUT));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_MASHOUT)); 
@@ -219,7 +235,9 @@ boolean stepInit(byte pgm, byte brewStep) {
       byte i = MASH_MASHOUT;
       while (setpoint[TS_MASH] == 0 && i >= MASH_DOUGHIN && i <= MASH_MASHOUT) setSetpoint(TS_MASH, getProgMashTemp(pgm, i--));
     }
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
 
   } else if (brewStep == STEP_SPARGE) {
   //Step Init: Sparge
@@ -230,10 +248,22 @@ boolean stepInit(byte pgm, byte brewStep) {
       #ifdef AUTO_SPARGE_START
         autoValve[AV_FLYSPARGE] = 1;
       #endif
+      #ifdef PID_FLOW_CONTROL
+      #ifdef USEMETRIC
+      // value is given in 10ths of a liter per min, so 1 liter/min would be 10, and 10 * 100 = 1000 which is 1 liter/min in flow rate calcs
+      setSetpoint(VS_PUMP, (getSteamTgt() * 100));
+      #else
+      //value is given in 10ths of a quart per min, so 1 quart/min would be 10, and 10 *25 = 250 which is 1 quart/min in flow rate calcs (1000ths of a gallon/min)
+      setSetpoint(VS_PUMP, getSteamTgt()*25);
+      #endif
+      #endif
     #endif
 
   } else if (brewStep == STEP_BOIL) {
   //Step Init: Boil
+    #ifdef PID_FLOW_CONTROL
+    resetHeatOutput(VS_PUMP); // turn off the pump if we are moving to boil. 
+    #endif
     setSetpoint(VS_KETTLE, getBoilTemp());
     preheated[VS_KETTLE] = 0;
     boilAdds = getProgAdds(pgm);
