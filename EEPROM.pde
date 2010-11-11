@@ -80,6 +80,14 @@ void loadSetup() {
     }
   }
 
+  //Load HLT calibrations to kettle
+  #ifdef HLT_AS_KETTLE
+    for (byte slot = 0; slot < 10; slot++) {
+      calibVols[VS_KETTLE][slot] = PROMreadLong(119 + VS_HLT * 40 + slot * 4);
+      calibVals[VS_KETTLE][slot] = PROMreadInt(239 + VS_HLT * 20 + slot * 2);
+    }
+  #endif
+
   //**********************************************************************************
   //setpoints (299-301)
   //**********************************************************************************
@@ -268,6 +276,19 @@ void setSteamPSens(unsigned int value) {
 void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) {
   calibVols[vessel][slot] = vol;
   calibVals[vessel][slot] = value;
+  #ifdef HLT_AS_KETTLE
+    if (vessel == VS_HLT) {
+      //Also copy HLT setting to Kettle
+      calibVols[VS_KETTLE][slot] = vol;
+      calibVals[VS_KETTLE][slot] = value;  
+    }
+    if (vessel == VS_KETTLE) {
+      //Store actual calibration in HLT EEPROM Table
+      vessel = VS_HLT;
+      calibVols[vessel][slot] = vol;
+      calibVals[vessel][slot] = value;  
+    } 
+  #endif
   PROMwriteLong(119 + vessel * 40 + slot * 4, vol);
   PROMwriteInt(239 + vessel * 20 + slot * 2, value);
 }

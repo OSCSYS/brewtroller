@@ -391,6 +391,9 @@ void processHeatOutputs() {
   #endif
   
   for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++) {
+    #ifdef HLT_AS_KETTLE
+      if (i == VS_KETTLE && setpoint[VS_HLT]) continue;
+    #endif
     if (PIDEnabled[i]) {
       if (i != VS_STEAM && i != VS_KETTLE && temp[i] <= 0) {
         PIDOutput[i] = 0;
