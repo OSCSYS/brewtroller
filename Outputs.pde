@@ -397,7 +397,7 @@ void processHeatOutputs() {
       } else {
         if (pid[i].GetMode() == AUTO) {
       #ifdef PID_FLOW_CONTROL
-        if(i == VS_PUMP) PIDInput[i] = flowRate[VS_MASH];
+        if(i == VS_PUMP) PIDInput[i] = flowRate[VS_KETTLE];
       #else
         if (i == VS_STEAM) PIDInput[i] = steamPressure; 
       #endif
