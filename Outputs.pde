@@ -535,7 +535,22 @@ void processAutoValve() {
   }
   if (autoValve[AV_FLYSPARGE]) {
     if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
+      #ifdef SPARGE_IN_PUMP_CONTROL
+      if(volAvg[VS_KETTLE] - prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
+      {
+         setValves(vlvConfig[VLV_SPARGEIN], 1);
+         prevSpargeVol[0] = volAvg[VS_KETTLE];
+         prevSpargeVol[1] = volAvg[VS_HLT];
+      }
+      else if(prevSpargeVol[1] - volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS)
+      {
+         setValves(vlvConfig[VLV_SPARGEIN], 0);
+         prevSpargeVol[1] = volAvg[VS_HLT];
+      }
+      
+      #else
       setValves(vlvConfig[VLV_SPARGEIN], 1);
+      #endif
       setValves(vlvConfig[VLV_SPARGEOUT], 1);
     } else {
       setValves(vlvConfig[VLV_SPARGEIN], 0);

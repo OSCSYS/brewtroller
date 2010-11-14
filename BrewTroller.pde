@@ -1,4 +1,4 @@
-#define BUILD 614
+#define BUILD 615
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -106,6 +106,9 @@ int temp[9];
 //Volume in (thousandths of gal/l)
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
+#ifdef SPARGE_IN_PUMP_CONTROL
+unsigned long prevSpargeVol[2] = {0,0xFFFFFFFF};
+#endif
 
 #ifdef FLOWRATE_CALCS
 //Flowrate in thousandths of gal/l per minute

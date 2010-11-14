@@ -84,7 +84,11 @@ boolean stepInit(byte pgm, byte brewStep) {
       tgtVol[VS_MASH] = 0;
     }
     #ifdef AUTO_FILL_START
-      autoValve[AV_FILL] = 1;
+    autoValve[AV_FILL] = 1;
+    #endif
+
+    #ifdef SPARGE_IN_PUMP_CONTROL
+    prevSpargeVol[1] = 0xFFFFFFFF; // need to set to 0 when starting a new program so that the logic works properly
     #endif
 
   } else if (brewStep == STEP_DELAY) {

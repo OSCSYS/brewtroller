@@ -138,6 +138,18 @@
 //**********************************************************************************
 
 //**********************************************************************************
+// Fly sparge pump control to turn the sparge in pump on/off based on a hysteresis from volume of sparge out
+//**********************************************************************************
+// This #define will turn the fly sparge in valve config on when the hysteresis amount of fluid has been pumped
+// into the kettle from the MLT. It will then shut off the pump when that equal amount of sparge water has been
+// pumped out of the HLT. 
+// Note: SPARGE_IN_HYSTERSIS is in 1000ths of a gallon or liter. 
+// Note2: This code also has no way to work with HLT_AS_KETTLE at the moment
+//#define SPARGE_IN_PUMP_CONTROL
+//#define SPARGE_IN_HYSTERESIS 250
+//**********************************************************************************
+
+//**********************************************************************************
 // Kettle Lid Control
 //**********************************************************************************
 // The kettle lid Valve Profile can be used to automate covering of the boil kettle.
