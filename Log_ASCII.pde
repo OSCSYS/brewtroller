@@ -298,16 +298,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
               sendOK();
             } else rejectParam();
           } else if(strcasecmp(msg[0], "SET_VLV") == 0) {
-            if (msgField == 2) {
-              setValves(strtoul(msg[1], NULL, 10), atoi(msg[2]));
-              sendOK();
-            } else rejectParam();
+            rejectParam(); //Command no longer supported
           } else if(strcasecmp(msg[0], "SET_VLVPRF") == 0) {
             if (msgField == 2) {
-              setValves(VLV_ALL, 0);
-              unsigned long actProfiles = strtoul(msg[1], NULL, 10);
-              for (byte i = VLV_FILLHLT; i <= VLV_HLTHEAT; i++) 
-                if ((actProfiles & (1<<i))) setValves(vlvConfig[i], atoi(msg[2]));
+              if (msg[2]) actProfiles |= strtoul(msg[1], NULL, 10);
+              else actProfiles &= ~strtoul(msg[1], NULL, 10);
               sendOK();
             } else rejectParam();
   
@@ -596,15 +591,12 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       logEnd();
       logStart_P(LOGDATA);
       logField_P(PSTR("VLVBITS"));
-      logFieldI(vlvBits);
+      logFieldI(computeValveBits());
       logEnd();
     } else if (logCount == 24) {
       logStart_P(LOGDATA);
       logField_P(PSTR("VLVPRF"));
-      unsigned int profileMask = 0;
-      for (byte i = VLV_FILLHLT; i <= VLV_HLTHEAT; i++) 
-        if (vlvConfig[i] != 0 && (vlvBits & vlvConfig[i]) == vlvConfig[i]) profileMask |= 1<<i;
-      logFieldI(profileMask);
+      logFieldI(actProfiles);
       logEnd();
     }
   }

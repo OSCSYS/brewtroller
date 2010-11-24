@@ -38,15 +38,15 @@ void eventHandler(byte eventID, int eventParam) {
       if (setpoint[VS_HLT]) autoValve[AV_HLT] = 1; 
       else { 
         autoValve[AV_HLT] = 0; 
-        if (vlvConfigIsActive(VLV_HLTHEAT)) setValves(vlvConfig[VLV_HLTHEAT], 0); 
+        if (vlvConfigIsActive(VLV_HLTHEAT)) bitClear(actProfiles, VLV_HLTHEAT);
       } 
     }
     else if (eventParam == VS_MASH) { 
       if (setpoint[VS_MASH]) autoValve[AV_MASH] = 1; 
       else { 
         autoValve[AV_MASH] = 0; 
-        if (vlvConfigIsActive(VLV_MASHIDLE)) setValves(vlvConfig[VLV_MASHIDLE], 0); 
-        if (vlvConfigIsActive(VLV_MASHHEAT)) setValves(vlvConfig[VLV_MASHHEAT], 0); 
+        if (vlvConfigIsActive(VLV_MASHIDLE)) bitClear(actProfiles, VLV_MASHIDLE);
+        if (vlvConfigIsActive(VLV_MASHHEAT)) bitClear(actProfiles, VLV_MASHHEAT);
       } 
     }
   }

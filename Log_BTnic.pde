@@ -228,7 +228,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 	  #else
       else if (cmdBuffer[0] == CMD_STEAM) logFieldI(steamPressure);
 	  #endif
-      else if (cmdBuffer[0] == CMD_VLVBITS) logFieldI(vlvBits);
+      else if (cmdBuffer[0] == CMD_VLVBITS) logFieldI(computeValveBits());
       else if (cmdBuffer[0] == CMD_AUTOVLV) {
         byte modeMask = 0;
         for (byte i = AV_FILL; i <= AV_HLT; i++)
@@ -236,10 +236,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         logFieldI(modeMask);
       } 
       else if (cmdBuffer[0] == CMD_VLVPRF) {
-        unsigned int profileMask = 0;
-        for (byte i = VLV_FILLHLT; i <= VLV_HLTHEAT; i++) 
-          if (vlvConfig[i] != 0 && (vlvBits & vlvConfig[i]) == vlvConfig[i]) profileMask |= 1<<i;
-        logFieldI(profileMask);
+        logFieldI(actProfiles);
       }
       logEnd();
     }
@@ -516,19 +513,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       logEnd();
     } 
     else if (cmdBuffer[0] == CMD_SET_VLV) {
-      if (getCmdParamCount() != 2) return CMD_REJECT_PARAM;
-      setValves(getCmdParamNum(1), getCmdParamNum(2));
-      sendOK();
+      return CMD_REJECT_PARAM; //Command no longer supported
     } 
     else if (cmdBuffer[0] == CMD_SET_VLVPRF) {
       if (getCmdParamCount() != 2) return CMD_REJECT_PARAM;
-      setValves(VLV_ALL, 0);
-      unsigned long actProfiles = getCmdParamNum(1);
-      boolean value = getCmdParamNum(2);
-      for (byte i = VLV_FILLHLT; i <= VLV_HLTHEAT; i++) 
-        if ((actProfiles & (1<<i))) setValves(vlvConfig[i], value);
+      //Check param 2 (value) and set/unset specified active profiles
+      if (getCmdParamNum(2)) actProfiles |= getCmdParamNum(1);
+      else actProfiles &= ~getCmdParamNum(1);
       sendOK();
-      
     } 
 
     // log ASCII version "GET_VER"

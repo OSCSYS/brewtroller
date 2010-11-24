@@ -54,11 +54,14 @@ void brewCore() {
   steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
   #endif
   
+  //Step Logic: StepLogic.pde
+  stepCore();
+
   //Auto Valve Logic: Outputs.pde
   processAutoValve();
   
-  //Step Logic: StepLogic.pde
-  stepCore();
+  //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
+  updateValves();
   
   //BTPD Support
   #ifdef BTPD_SUPPORT

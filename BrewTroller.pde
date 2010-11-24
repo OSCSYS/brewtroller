@@ -1,4 +1,4 @@
-#define BUILD 616
+#define BUILD 620
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -116,7 +116,7 @@ long flowRate[3] = {0,0,0};
 #endif
 
 //Valve Variables
-unsigned long vlvConfig[NUM_VLVCFGS], vlvBits;
+unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
 
 //Shared buffers

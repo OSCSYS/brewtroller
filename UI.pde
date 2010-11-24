@@ -416,10 +416,10 @@ void screenRefresh(byte screen) {
     truncFloat(buf, 5);
     printLCDLPad(2, 15, buf, 5, ' ');
 
-    if (vlvConfig[VLV_FILLHLT] != 0 && (vlvBits & vlvConfig[VLV_FILLHLT]) == vlvConfig[VLV_FILLHLT]) printLCD_P(3, 11, PSTR("On "));
+    if (vlvConfigIsActive(VLV_FILLHLT)) printLCD_P(3, 11, PSTR("On "));
     else printLCD_P(3, 11, PSTR("Off"));
 
-    if (vlvConfig[VLV_FILLMASH] != 0 && (vlvBits & vlvConfig[VLV_FILLMASH]) == vlvConfig[VLV_FILLMASH]) printLCD_P(3, 17, PSTR(" On"));
+    if (vlvConfigIsActive(VLV_FILLMASH)) printLCD_P(3, 17, PSTR(" On"));
     else printLCD_P(3, 17, PSTR("Off"));
     
     if (screenLock) {
@@ -559,8 +559,8 @@ void screenRefresh(byte screen) {
     if (temp[TS_BEEROUT] == -32768) printLCD_P(2, 11, PSTR("---")); else printLCDLPad(2, 11, itoa(temp[TS_BEEROUT] / 100, buf, 10), 3, ' ');
     if (temp[TS_H2OIN] == -32768) printLCD_P(1, 16, PSTR("---")); else printLCDLPad(1, 16, itoa(temp[TS_H2OIN] / 100, buf, 10), 3, ' ');
     if (temp[TS_H2OOUT] == -32768) printLCD_P(2, 16, PSTR("---")); else printLCDLPad(2, 16, itoa(temp[TS_H2OOUT] / 100, buf, 10), 3, ' ');
-    if ((vlvBits & vlvConfig[VLV_CHILLBEER]) == vlvConfig[VLV_CHILLBEER]) printLCD_P(3, 12, PSTR(" On")); else printLCD_P(3, 12, PSTR("Off"));
-    if ((vlvBits & vlvConfig[VLV_CHILLH2O]) == vlvConfig[VLV_CHILLH2O]) printLCD_P(3, 17, PSTR(" On")); else printLCD_P(3, 17, PSTR("Off"));
+    if (vlvConfigIsActive(VLV_CHILLBEER)) printLCD_P(3, 12, PSTR(" On")); else printLCD_P(3, 12, PSTR("Off"));
+    if (vlvConfigIsActive(VLV_CHILLH2O)) printLCD_P(3, 17, PSTR(" On")); else printLCD_P(3, 17, PSTR("Off"));
 
   } else if (screen == SCREEN_AUX) {
     //Screen Refresh: AUX
@@ -614,7 +614,7 @@ void screenEnter(byte screen) {
           }
           else if (lastOption == 3) {
             //Drain
-            if (vlvConfigIsActive(VLV_DRAIN)) setValves(vlvConfig[VLV_DRAIN], 0);
+            if (vlvConfigIsActive(VLV_DRAIN)) bitClear(actProfiles, VLV_DRAIN);
             else {
               if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL)) {
                 clearLCD();
@@ -625,7 +625,7 @@ void screenEnter(byte screen) {
                 printLCD_P(3, 6, CONTINUE);
                 printLCD(3, 15, "<");
                 while (!Encoder.ok()) brewCore();
-              } else setValves(vlvConfig[VLV_DRAIN], 1);
+              } else bitSet(actProfiles, VLV_DRAIN);
             }
           }
           else if (lastOption == 4) {
@@ -653,10 +653,10 @@ void screenEnter(byte screen) {
         //Sceeen Enter: Fill/Refill
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
-        else if (encValue == 1) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLMASH], 0); setValves(vlvConfig[VLV_FILLHLT], 1);}
-        else if (encValue == 2) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 1);}
-        else if (encValue == 3) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 1); setValves(vlvConfig[VLV_FILLMASH], 1);}
-        else if (encValue == 4) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 0);}
+        else if (encValue == 1) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLMASH); bitSet(actProfiles, VLV_FILLHLT);}
+        else if (encValue == 2) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLHLT); bitSet(actProfiles, VLV_FILLMASH);}
+        else if (encValue == 3) { autoValve[AV_FILL] = 0; bitSet(actProfiles, VLV_FILLHLT); bitSet(actProfiles, VLV_FILLMASH);}
+        else if (encValue == 4) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLHLT); bitClear(actProfiles, VLV_FILLMASH);}
         else if (encValue == 5) {
           strcpy_P(menuopts[0], PSTR("Auto Fill"));
           strcpy_P(menuopts[1], PSTR("HLT Target"));
@@ -741,11 +741,11 @@ void screenEnter(byte screen) {
         //Screen Enter: Sparge
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
-        else if (encValue == 1) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEIN], 1); }
-        else if (encValue == 2) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEOUT], 1); }
-        else if (encValue == 3) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEIN], 1); setValves(vlvConfig[VLV_SPARGEOUT], 1); }
-        else if (encValue == 4) { resetSpargeValves(); setValves(vlvConfig[VLV_MASHHEAT], 1); }
-        else if (encValue == 5) { resetSpargeValves();  setValves(vlvConfig[VLV_MASHIDLE], 1); }
+        else if (encValue == 1) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEIN); }
+        else if (encValue == 2) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEOUT); }
+        else if (encValue == 3) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEIN); bitSet(actProfiles, VLV_SPARGEOUT); }
+        else if (encValue == 4) { resetSpargeValves(); bitSet(actProfiles, VLV_MASHHEAT); }
+        else if (encValue == 5) { resetSpargeValves(); bitSet(actProfiles, VLV_MASHIDLE); }
         else if (encValue == 6) { resetSpargeValves(); }
         else if (encValue == 7) {
           strcpy_P(menuopts[0], PSTR("Auto In"));
@@ -809,8 +809,8 @@ void screenEnter(byte screen) {
         }
         else if (lastOption == 4) setBoilPwr(getValue(PSTR("Boil Power"), boilPwr, 3, 0, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
         else if (lastOption == 5) {
-          if (vlvConfigIsActive(VLV_BOILRECIRC)) setValves(vlvConfig[VLV_BOILRECIRC], 0);
-          else setValves(vlvConfig[VLV_BOILRECIRC], 1);
+          if (vlvConfigIsActive(VLV_BOILRECIRC)) bitClear(actProfiles, VLV_BOILRECIRC);
+          else bitSet(actProfiles, VLV_BOILRECIRC);
         } else if (lastOption == 6) {
           byte brewstep = PROGRAM_IDLE;
           if (stepIsActive(STEP_BOIL)) brewstep = STEP_BOIL;
@@ -835,10 +835,10 @@ void screenEnter(byte screen) {
           activeScreen = SCREEN_HOME;
           screenInit(activeScreen);
         }
-        else if (encValue == 1) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 1); setValves(vlvConfig[VLV_CHILLBEER], 1); }
-        else if (encValue == 2) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLBEER], 0); setValves(vlvConfig[VLV_CHILLH2O], 1); }
-        else if (encValue == 3) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 0); setValves(vlvConfig[VLV_CHILLBEER], 1); }
-        else if (encValue == 4) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 0); setValves(vlvConfig[VLV_CHILLBEER], 0); }
+        else if (encValue == 1) { autoValve[AV_CHILL] = 0; bitSet(actProfiles, VLV_CHILLH2O); bitSet(actProfiles, VLV_CHILLBEER); }
+        else if (encValue == 2) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLBEER); bitSet(actProfiles, VLV_CHILLH2O); }
+        else if (encValue == 3) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLH2O); bitSet(actProfiles, VLV_CHILLBEER); }
+        else if (encValue == 4) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLH2O); bitClear(actProfiles, VLV_CHILLBEER); }
         else if (encValue == 5) autoValve[AV_CHILL] = 1;        
       }
     }
@@ -858,16 +858,6 @@ void continueClick() {
     }
   } else activeScreen = activeScreen + 1; 
   screenInit(activeScreen); 
-}
-
-void resetSpargeValves() {
-  autoValve[AV_SPARGEIN] = 0;
-  autoValve[AV_SPARGEOUT] = 0;
-  autoValve[AV_FLYSPARGE] = 0;
-  setValves(vlvConfig[VLV_SPARGEIN], 0);
-  setValves(vlvConfig[VLV_SPARGEOUT], 0);
-  setValves(vlvConfig[VLV_MASHHEAT], 0);
-  setValves(vlvConfig[VLV_MASHIDLE], 0);
 }
 
 void stepAdvanceFailDialog() {
@@ -2142,12 +2132,11 @@ unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
       encValue = Encoder.getCount();
       if (encValue == encMax) return retValue;
       else if (encValue == encMax - 1) {
-        setValves(VLV_ALL, 0);
-        setValves(retValue, 1);
+        setValves(retValue);
         printLCD_P(3, 2, PSTR("["));
         printLCD_P(3, 7, PSTR("]"));
         while (!Encoder.ok()) delay(100);
-        setValves(VLV_ALL, 0);
+        setValves(0);
         redraw = 1;
       } else {
         retValue = retValue ^ ((unsigned long)1<<encValue);

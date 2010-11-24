@@ -28,6 +28,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Config.h"
 #include "Enum.h"
 
+unsigned long prevProfiles;
+
 #ifdef PID_FLOW_CONTROL 
   #define LAST_HEAT_OUTPUT VS_PUMP // not this is mostly done for code readability as VS_PUMP = VS_STEAM
   
@@ -341,15 +343,24 @@ void resetHeatOutput(byte vessel) {
   #endif
 }  
 
-//Sets the specified valves On or Off
-void setValves (unsigned long vlvBitMask, boolean value) {
-  
-  //Nothing to do with an empty valve profile
-  if(!vlvBitMask) return;
-  
-  if (value) vlvBits |= vlvBitMask;
-  else vlvBits = vlvBits ^ (vlvBits & vlvBitMask);
-  
+void updateValves() {
+  if (actProfiles != prevProfiles) {
+    setValves(computeValveBits());
+    prevProfiles = actProfiles;
+  }
+}
+
+unsigned long computeValveBits() {
+  unsigned long vlvBits = 0;
+  for (byte i = 0; i < NUM_VLVCFGS; i++) {
+    if (bitRead(actProfiles, i)) {
+      vlvBits |= vlvConfig[i];
+    }
+  }
+  return vlvBits;
+}
+
+void setValves(unsigned long vlvBits) {
   #if MUXBOARDS > 0
   //MUX Valve Code
     //Disable outputs
@@ -497,64 +508,64 @@ void processHeatOutputs() {
 boolean vlvConfigIsActive(byte profile) {
   //An empty valve profile cannot be active
   if (!vlvConfig[profile]) return 0;
-  if ((vlvBits & vlvConfig[profile]) == vlvConfig[profile]) return 1; else return 0;
+  return bitRead(actProfiles, profile);
 }
 
 void processAutoValve() {
   //Do Valves
   if (autoValve[AV_FILL]) {
-    if (volAvg[VS_HLT] < tgtVol[VS_HLT]) setValves(vlvConfig[VLV_FILLHLT], 1);
-      else setValves(vlvConfig[VLV_FILLHLT], 0);
+    if (volAvg[VS_HLT] < tgtVol[VS_HLT]) bitSet(actProfiles, VLV_FILLHLT);
+      else bitClear(actProfiles, VLV_FILLHLT);
       
-    if (volAvg[VS_MASH] < tgtVol[VS_MASH]) setValves(vlvConfig[VLV_FILLMASH], 1);
-      else setValves(vlvConfig[VLV_FILLMASH], 0);
+    if (volAvg[VS_MASH] < tgtVol[VS_MASH]) bitSet(actProfiles, VLV_FILLMASH);
+      else bitClear(actProfiles, VLV_FILLMASH);
   } 
   if (autoValve[AV_HLT]) {
     if (heatStatus[VS_HLT]) {
-      if (!vlvConfigIsActive(VLV_HLTHEAT)) setValves(vlvConfig[VLV_HLTHEAT], 1);
+      if (!vlvConfigIsActive(VLV_HLTHEAT)) bitSet(actProfiles, VLV_HLTHEAT);
     } else {
-      if (vlvConfigIsActive(VLV_HLTHEAT)) setValves(vlvConfig[VLV_HLTHEAT], 0);
+      if (vlvConfigIsActive(VLV_HLTHEAT)) bitClear(actProfiles, VLV_HLTHEAT);
     }
   }
   if (autoValve[AV_MASH]) {
     if (heatStatus[VS_MASH]) {
-      if (vlvConfigIsActive(VLV_MASHIDLE)) setValves(vlvConfig[VLV_MASHIDLE], 0);
-      if (!vlvConfigIsActive(VLV_MASHHEAT)) setValves(vlvConfig[VLV_MASHHEAT], 1);
+      if (vlvConfigIsActive(VLV_MASHIDLE)) bitClear(actProfiles, VLV_MASHIDLE);
+      if (!vlvConfigIsActive(VLV_MASHHEAT)) bitSet(actProfiles, VLV_MASHHEAT);
     } else {
-      if (vlvConfigIsActive(VLV_MASHHEAT)) setValves(vlvConfig[VLV_MASHHEAT], 0);
-      if (!vlvConfigIsActive(VLV_MASHIDLE)) setValves(vlvConfig[VLV_MASHIDLE], 1); 
+      if (vlvConfigIsActive(VLV_MASHHEAT)) bitClear(actProfiles, VLV_MASHHEAT);
+      if (!vlvConfigIsActive(VLV_MASHIDLE)) bitSet(actProfiles, VLV_MASHIDLE); 
     }
   } 
   if (autoValve[AV_SPARGEIN]) {
-    if (volAvg[VS_HLT] > tgtVol[VS_HLT]) setValves(vlvConfig[VLV_SPARGEIN], 1);
-      else setValves(vlvConfig[VLV_SPARGEIN], 0);
+    if (volAvg[VS_HLT] > tgtVol[VS_HLT]) bitSet(actProfiles, VLV_SPARGEIN);
+      else bitClear(actProfiles, VLV_SPARGEIN);
   }
   if (autoValve[AV_SPARGEOUT]) {
-    if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) setValves(vlvConfig[VLV_SPARGEOUT], 1);
-    else setValves(vlvConfig[VLV_SPARGEOUT], 0);
+    if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) bitSet(actProfiles, VLV_SPARGEOUT);
+    else bitClear(actProfiles, VLV_SPARGEOUT);
   }
   if (autoValve[AV_FLYSPARGE]) {
     if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
       #ifdef SPARGE_IN_PUMP_CONTROL
       if(volAvg[VS_KETTLE] - prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
       {
-         setValves(vlvConfig[VLV_SPARGEIN], 1);
+         bitSet(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[0] = volAvg[VS_KETTLE];
          prevSpargeVol[1] = volAvg[VS_HLT];
       }
       else if(prevSpargeVol[1] - volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS)
       {
-         setValves(vlvConfig[VLV_SPARGEIN], 0);
+         bitClear(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[1] = volAvg[VS_HLT];
       }
       
       #else
-      setValves(vlvConfig[VLV_SPARGEIN], 1);
+      bitSet(actProfiles, VLV_SPARGEIN);
       #endif
-      setValves(vlvConfig[VLV_SPARGEOUT], 1);
+      bitSet(actProfiles, VLV_SPARGEOUT);
     } else {
-      setValves(vlvConfig[VLV_SPARGEIN], 0);
-      setValves(vlvConfig[VLV_SPARGEOUT], 0);
+      bitClear(actProfiles, VLV_SPARGEIN);
+      bitClear(actProfiles, VLV_SPARGEOUT);
     }
   }
   if (autoValve[AV_CHILL]) {
@@ -563,21 +574,21 @@ void processAutoValve() {
     //If Pumping beer
     if (vlvConfigIsActive(VLV_CHILLBEER)) {
       //Cut beer if exceeds pitch + 1
-      if (temp[TS_BEEROUT] > pitchTemp + 1.0) setValves(vlvConfig[VLV_CHILLBEER], 0);
+      if (temp[TS_BEEROUT] > pitchTemp + 1.0) bitClear(actProfiles, VLV_CHILLBEER);
     } else {
       //Enable beer if chiller H2O output is below pitch
       //ADD MIN DELAY!
-      if (temp[TS_H2OOUT] < pitchTemp - 1.0) setValves(vlvConfig[VLV_CHILLBEER], 1);
+      if (temp[TS_H2OOUT] < pitchTemp - 1.0) bitSet(actProfiles, VLV_CHILLBEER);
     }
     
     //If chiller water is running
     if (vlvConfigIsActive(VLV_CHILLH2O)) {
       //Cut H2O if beer below pitch - 1
-      if (temp[TS_BEEROUT] < pitchTemp - 1.0) setValves(vlvConfig[VLV_CHILLH2O], 0);
+      if (temp[TS_BEEROUT] < pitchTemp - 1.0) bitClear(actProfiles, VLV_CHILLH2O);
     } else {
       //Enable H2O if chiller H2O output is at pitch
       //ADD MIN DELAY!
-      if (temp[TS_H2OOUT] >= pitchTemp) setValves(vlvConfig[VLV_CHILLH2O], 1);
+      if (temp[TS_H2OOUT] >= pitchTemp) bitSet(actProfiles, VLV_CHILLH2O);
     }
     */
   }

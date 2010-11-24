@@ -133,7 +133,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
     #endif
-    setValves(vlvConfig[VLV_ADDGRAIN], 1);
+    bitSet(actProfiles, VLV_ADDGRAIN);
     if(getProgMLHeatSrc(pgm) == VS_HLT) {
       unsigned long spargeVol = calcSpargeVol(pgm);
       unsigned long mashVol = calcStrikeVol(pgm);
@@ -361,13 +361,13 @@ void stepCore() {
     }
     //Turn off hop valve profile after 5s
     if ((vlvConfigIsActive(VLV_HOPADD)) && lastHop > 0 && millis() - lastHop > HOPADD_DELAY) {
-      setValves(vlvConfig[VLV_HOPADD], 0);
+      bitClear(actProfiles, VLV_HOPADD);
       lastHop = 0;
     }
     if (preheated[VS_KETTLE]) {
       //Boil Addition
       if ((boilAdds ^ triggered) & 1) {
-        setValves(vlvConfig[VLV_HOPADD], 1);
+        bitSet(actProfiles, VLV_HOPADD);
         lastHop = millis();
         setAlarm(1); 
         triggered |= 1; 
@@ -376,7 +376,7 @@ void stepCore() {
       //Timed additions (See hoptimes[] array at top of AutoBrew.pde)
       for (byte i = 0; i < 10; i++) {
         if (((boilAdds ^ triggered) & (1<<(i + 1))) && timerValue[TIMER_BOIL] <= hoptimes[i] * 60000) { 
-          setValves(vlvConfig[VLV_HOPADD], 1);
+          bitSet(actProfiles, VLV_HOPADD);
           lastHop = millis();
           setAlarm(1); 
           triggered |= (1<<(i + 1)); 
@@ -384,7 +384,7 @@ void stepCore() {
         }
       }
       #ifdef AUTO_BOIL_RECIRC
-      if (timerValue[TIMER_BOIL] <= AUTO_BOIL_RECIRC * 60000) setValves(vlvConfig[VLV_BOILRECIRC], 1);
+      if (timerValue[TIMER_BOIL] <= AUTO_BOIL_RECIRC * 60000) bitSet(actProfiles, VLV_BOILRECIRC);
       #endif
     }
     //Exit Condition  
@@ -393,9 +393,9 @@ void stepCore() {
   
   if (stepIsActive(STEP_CHILL)) {
     if (temp[TS_KETTLE] != -1 && temp[TS_KETTLE] <= KETTLELID_THRESH) {
-      if (!vlvConfigIsActive(VLV_KETTLELID)) setValves(vlvConfig[VLV_KETTLELID], 1);
+      if (!vlvConfigIsActive(VLV_KETTLELID)) bitSet(actProfiles, VLV_KETTLELID);
     } else {
-      if (vlvConfigIsActive(VLV_KETTLELID)) setValves(vlvConfig[VLV_KETTLELID], 0);
+      if (vlvConfigIsActive(VLV_KETTLELID)) bitClear(actProfiles, VLV_KETTLELID);
     }
   }
 }
@@ -460,8 +460,8 @@ void stepExit(byte brewStep) {
     tgtVol[VS_HLT] = 0;
     tgtVol[VS_MASH] = 0;
     autoValve[AV_FILL] = 0;
-    setValves(vlvConfig[VLV_FILLHLT], 0);
-    setValves(vlvConfig[VLV_FILLMASH], 0);
+    bitClear(actProfiles, VLV_FILLHLT);
+    bitClear(actProfiles, VLV_FILLMASH);
 
   } else if (brewStep == STEP_DELAY) {
   //Step Exit: Delay
@@ -471,10 +471,10 @@ void stepExit(byte brewStep) {
   //Step Exit: Add Grain
     tgtVol[VS_HLT] = 0;
     autoValve[AV_SPARGEIN] = 0;
-    setValves(vlvConfig[VLV_ADDGRAIN], 0);
-    setValves(vlvConfig[VLV_SPARGEIN], 0);
-    setValves(vlvConfig[VLV_MASHHEAT], 0);
-    setValves(vlvConfig[VLV_MASHIDLE], 0);
+    bitClear(actProfiles, VLV_ADDGRAIN);
+    bitClear(actProfiles, VLV_SPARGEIN);
+    bitClear(actProfiles, VLV_MASHHEAT);
+    bitClear(actProfiles, VLV_MASHIDLE);
     resetHeatOutput(VS_HLT);
 #ifdef USESTEAM
     resetHeatOutput(VS_STEAM);
@@ -483,8 +483,8 @@ void stepExit(byte brewStep) {
   } else if (brewStep == STEP_PREHEAT || (brewStep >= STEP_DOUGHIN && brewStep <= STEP_MASHHOLD)) {
   //Step Exit: Preheat/Mash
     clearTimer(TIMER_MASH);
-    setValves(vlvConfig[VLV_MASHHEAT], 0);    
-    setValves(vlvConfig[VLV_MASHIDLE], 0);   
+    bitClear(actProfiles, VLV_MASHHEAT);    
+    bitClear(actProfiles, VLV_MASHIDLE);
     resetHeatOutput(VS_HLT);
     resetHeatOutput(VS_MASH);
 #ifdef USESTEAM
@@ -499,36 +499,40 @@ void stepExit(byte brewStep) {
   //Step Exit: Sparge
     tgtVol[VS_HLT] = 0;
     tgtVol[VS_KETTLE] = 0;
-    autoValve[AV_SPARGEIN] = 0;
-    autoValve[AV_SPARGEOUT] = 0;
-    autoValve[AV_FLYSPARGE] = 0;
-    setValves(vlvConfig[VLV_MASHHEAT], 0);
-    setValves(vlvConfig[VLV_MASHIDLE], 0);
-    setValves(vlvConfig[VLV_SPARGEIN], 0);
-    setValves(vlvConfig[VLV_SPARGEOUT], 0);    
+    resetSpargeValves();
 
   } else if (brewStep == STEP_BOIL) {
   //Step Exit: Boil
     //0 Min Addition
     if ((boilAdds ^ triggered) & 2048) { 
-      setValves(vlvConfig[VLV_HOPADD], 1);
+      bitSet(actProfiles, VLV_HOPADD);
       setAlarm(1);
       triggered |= 2048;
       setBoilAddsTrig(triggered);
       delay(HOPADD_DELAY);
     }
-    setValves(vlvConfig[VLV_HOPADD], 0);
+    bitClear(actProfiles, VLV_HOPADD);
     #ifdef AUTO_BOIL_RECIRC
-      setValves(vlvConfig[VLV_BOILRECIRC], 0);
+      bitClear(actProfiles, VLV_BOILRECIRC);
     #endif
     resetHeatOutput(VS_KETTLE);
     clearTimer(TIMER_BOIL);
   } else if (brewStep == STEP_CHILL) {
   //Step Exit: Chill
     autoValve[AV_CHILL] = 0;
-    setValves(vlvConfig[VLV_CHILLBEER], 0);    
-    setValves(vlvConfig[VLV_CHILLH2O], 0);  
+    bitClear(actProfiles, VLV_CHILLBEER);
+    bitClear(actProfiles, VLV_CHILLH2O);
   }
+}
+
+void resetSpargeValves() {
+  autoValve[AV_SPARGEIN] = 0;
+  autoValve[AV_SPARGEOUT] = 0;
+  autoValve[AV_FLYSPARGE] = 0;
+  bitClear(actProfiles, VLV_SPARGEIN);
+  bitClear(actProfiles, VLV_SPARGEOUT);
+  bitClear(actProfiles, VLV_MASHHEAT);
+  bitClear(actProfiles, VLV_MASHIDLE);
 }
 
 #ifdef SMART_HERMS_HLT
