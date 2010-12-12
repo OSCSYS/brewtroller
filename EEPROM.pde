@@ -34,7 +34,7 @@ void loadSetup() {
   //TSensors: HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39),
   //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
   //**********************************************************************************
-  for (byte i = TS_HLT; i <= TS_AUX3; i++) PROMreadBytes(i * 8, tSensor[i], 8);
+  PROMreadBytes(0, *tSensor, 72);
   #ifdef HLT_AS_KETTLE
     PROMreadBytes(0, tSensor[TS_KETTLE], 8);
   #endif
@@ -73,19 +73,13 @@ void loadSetup() {
   //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
   //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
   //**********************************************************************************
-  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
-    for (byte slot = 0; slot < 10; slot++) {
-      calibVols[vessel][slot] = PROMreadLong(119 + vessel * 40 + slot * 4);
-      calibVals[vessel][slot] = PROMreadInt(239 + vessel * 20 + slot * 2);
-    }
-  }
+  eeprom_read_block(&calibVols, (unsigned char *) 119, 120);
+  eeprom_read_block(&calibVals, (unsigned char *) 239, 60);
 
   //Load HLT calibrations to kettle
   #ifdef HLT_AS_KETTLE
-    for (byte slot = 0; slot < 10; slot++) {
-      calibVols[VS_KETTLE][slot] = PROMreadLong(119 + VS_HLT * 40 + slot * 4);
-      calibVals[VS_KETTLE][slot] = PROMreadInt(239 + VS_HLT * 20 + slot * 2);
-    }
+    eeprom_read_block(&calibVols[VS_KETTLE], (unsigned char *) 119, 40);
+    eeprom_read_block(&calibVals[VS_KETTLE], (unsigned char *) 239, 20);
   #endif
 
   //**********************************************************************************
@@ -130,8 +124,7 @@ void loadSetup() {
   //**********************************************************************************
   //401-456 Valve Profiles
   //**********************************************************************************
-  for (byte profile = VLV_FILLHLT; profile <= VLV_HLTHEAT; profile++) vlvConfig[profile] = PROMreadLong(401 + profile * 4);
-
+  eeprom_read_block(&vlvConfig, (unsigned char *) 401, 56);
 }
 
 
@@ -144,7 +137,7 @@ void loadSetup() {
 //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
 //**********************************************************************************
 void setTSAddr(byte sensor, byte addr[8]) {
-  for (byte i = 0; i<8; i++) tSensor[sensor][i] = addr[i];
+  memcpy(tSensor[sensor], addr, 8);
   PROMwriteBytes(sensor * 8, addr, 8);
 }
 
@@ -405,11 +398,11 @@ void setValveCfg(byte profile, unsigned long value) {
 //Program Name (P:1-19)
 //**********************************************************************************
 void setProgName(byte preset, char name[20]) {
-  for (byte i = 0; i < 19; i++) EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + i, name[i]);
+  eeprom_write_block(&name, (unsigned char *) PROGRAM_START_ADDR + preset * PROGRAM_SIZE, 20);
 }
 
 void getProgName(byte preset, char name[20]) {
-  for (byte i = 0; i < 19; i++) name[i] = EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + i);
+  eeprom_read_block(&name, (unsigned char *) PROGRAM_START_ADDR + preset * PROGRAM_SIZE, 20);
   name[19] = '\0';
 }
 
