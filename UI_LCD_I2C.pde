@@ -118,7 +118,7 @@ void i2cLcdClear() {
   Wire.beginTransmission(i2cLcdAddr);
   Wire.send(0x02);
   Wire.endTransmission();
-  delay(5);
+  delay(3);
 }
 
 /*
@@ -141,20 +141,18 @@ void i2cLcdPrint(byte iCol, byte iRow, char s[]) {
     Wire.send(*p++);
   }
   Wire.endTransmission();
-  delay(5);
+  delay(3);
 }
 
 void i2cLcdSetCustChar_P(byte slot, const byte *charDef) {
   Wire.beginTransmission(i2cLcdAddr);
   Wire.send(0x05);
   Wire.send(slot);
-  byte BELL[] = {B00100, B01110, B01110, B01110, B11111, B00000, B00100, B00000};
   for (byte i = 0; i < 8; i++) {
     Wire.send(pgm_read_byte(charDef++));
-//    Wire.send(BELL[i]);
   }
   Wire.endTransmission();
-  delay(10);
+  delay(3);
 }
 
 void i2cLcdWriteCustChar(byte iCol, byte iRow, byte c) {
@@ -164,7 +162,7 @@ void i2cLcdWriteCustChar(byte iCol, byte iRow, byte c) {
   Wire.send(iRow);
   Wire.send(c);
   Wire.endTransmission();
-  delay(5);
+  delay(3);
 }
 
 #endif
