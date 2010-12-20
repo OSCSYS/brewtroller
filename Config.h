@@ -26,6 +26,7 @@
 //#define BTBOARD_1
 //#define BTBOARD_22
 #define BTBOARD_3
+//#define BTBOARD_4
 //**********************************************************************************
 
 //**********************************************************************************
@@ -199,6 +200,12 @@
 // support alternatives temperature sensor options.)
 #define TS_ONEWIRE
 
+// TS_ONEWIRE_GPIO: Direct pin connection on microcontroller (Default for BTBOARD_1,
+// BTBOARD_22 and BTBOARD_3)
+// TS_ONEWIRE_I2C: DS2482 OneWire Master over I2C (Default for BTBOARD_4)
+//#define TS_ONEWIRE_GPIO
+//#define TS_ONEWIRE_I2C
+
 // TS_ONEWIRE_PPWR: Specifies whether parasite power is used for OneWire temperature
 // sensors. Parasite power allows sensors to obtain their power from the data line
 // but significantly increases the time required to read the temperature (94-750ms
@@ -215,6 +222,9 @@
 //   10-bit (0.25C   / 0.45F  ) = 188ms 
 //    9-bit (0.5C    / 0.9F   ) =  94ms   
 #define TS_ONEWIRE_RES 9
+
+// DS2482_ADDR: I2C Address of DS2482 OneWire Master (used for TS_OneWire_I2C)
+#define DS2482_ADDR
 //**********************************************************************************
 
 

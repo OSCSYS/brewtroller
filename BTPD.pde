@@ -33,12 +33,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #ifdef BTPD_SUPPORT
 #include "Config.h"
 #include "Enum.h"
-#include <Wire.h>
 
 unsigned long lastBTPD;
 
 void btpdInit() {
-  Wire.begin();
+  //Wire.begin() moved to setup() to support multiple I2C plug-ins
 }
 
 void updateBTPD() {

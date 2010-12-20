@@ -28,9 +28,16 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Enum.h"
 
 #ifdef TS_ONEWIRE
-  #include <OneWire.h>
+  #ifdef TS_ONEWIRE_GPIO
+    #include <OneWire.h>
+    OneWire ds(TEMP_PIN);
+  #endif
+  #ifdef TS_ONEWIRE_I2C
+    #include <OneWire_i2c.h>
+    OneWire_I2C ds(DS2482_ADDR);
+  #endif
   //One Wire Bus on 
-  OneWire ds(TEMP_PIN);
+  
   unsigned long convStart;
   
   #if TS_ONEWIRE_RES == 12
@@ -42,55 +49,118 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #else //Default to 9-bit
     #define CONV_DELAY 94
   #endif
-#endif
 
-void tempInit() {
-  ds.reset();
-  ds.skip();
-  ds.write(0x4E, TS_ONEWIRE_PPWR); //Write to scratchpad
-  ds.write(0x4B, TS_ONEWIRE_PPWR); //Default value of TH reg (user byte 1)
-  ds.write(0x46, TS_ONEWIRE_PPWR); //Default value of TL reg (user byte 2)
-
-  #if TS_ONEWIRE_RES == 12
-    ds.write(0x7F, TS_ONEWIRE_PPWR); //Config Reg (12-bit)
-  #elif TS_ONEWIRE_RES == 11
-    ds.write(0x5F, TS_ONEWIRE_PPWR); //Config Reg (11-bit)
-  #elif TS_ONEWIRE_RES == 10
-    ds.write(0x3F, TS_ONEWIRE_PPWR); //Config Reg (10-bit)
-  #else //Default to 9-bit
-    ds.write(0x1F, TS_ONEWIRE_PPWR); //Config Reg (9-bit)
-  #endif
-
-  ds.reset();
-  ds.skip();
-  ds.write(0x48, TS_ONEWIRE_PPWR); //Copy scratchpad to EEPROM
-}
-
-
-void updateTemps() {
-#ifdef TS_ONEWIRE
-  if (convStart == 0) {
+  void tempInit() {
     ds.reset();
     ds.skip();
-    ds.write(0x44, TS_ONEWIRE_PPWR); //Start conversion
-    convStart = millis();   
-  } else if (tsReady() || millis() - convStart >= CONV_DELAY) {
-    #ifdef DEBUG_TEMP_CONV_T
-      convStart = millis() - convStart;
-      logStart_P(LOGDEBUG);
-      logField_P(PSTR("TEMP_CONV_T"));
-      logFieldI(convStart);
-      logEnd();
+    ds.write(0x4E, TS_ONEWIRE_PPWR); //Write to scratchpad
+    ds.write(0x4B, TS_ONEWIRE_PPWR); //Default value of TH reg (user byte 1)
+    ds.write(0x46, TS_ONEWIRE_PPWR); //Default value of TL reg (user byte 2)
+  
+    #if TS_ONEWIRE_RES == 12
+      ds.write(0x7F, TS_ONEWIRE_PPWR); //Config Reg (12-bit)
+    #elif TS_ONEWIRE_RES == 11
+      ds.write(0x5F, TS_ONEWIRE_PPWR); //Config Reg (11-bit)
+    #elif TS_ONEWIRE_RES == 10
+      ds.write(0x3F, TS_ONEWIRE_PPWR); //Config Reg (10-bit)
+    #else //Default to 9-bit
+      ds.write(0x1F, TS_ONEWIRE_PPWR); //Config Reg (9-bit)
     #endif
-    for (byte i = TS_HLT; i <= TS_AUX3; i++) temp[i] = read_temp(tSensor[i]);
-    convStart = 0;
+  
+    ds.reset();
+    ds.skip();
+    ds.write(0x48, TS_ONEWIRE_PPWR); //Copy scratchpad to EEPROM
+  }
+
+
+  void updateTemps() {
+    if (convStart == 0) {
+      ds.reset();
+      ds.skip();
+      ds.write(0x44, TS_ONEWIRE_PPWR); //Start conversion
+      convStart = millis();   
+    } else if (tsReady() || millis() - convStart >= CONV_DELAY) {
+      #ifdef DEBUG_TEMP_CONV_T
+        convStart = millis() - convStart;
+        logStart_P(LOGDEBUG);
+        logField_P(PSTR("TEMP_CONV_T"));
+        logFieldI(convStart);
+        logEnd();
+      #endif
+      for (byte i = TS_HLT; i <= TS_AUX3; i++) temp[i] = read_temp(tSensor[i]);
+      convStart = 0;
+      
+      #if defined MASH_AVG
+        mashAvg();
+      #endif
+    }
+  }
+
+  boolean tsReady() {
+    #if TS_ONEWIRE_PPWR == 0 //Poll if parasite power is disabled
+      if (ds.read() == 0xFF) return 1;
+    #endif
+    return 0;
+  }
+  
+  //This function search for an address that is not currently assigned!
+  void getDSAddr(byte addrRet[8]){
+  //Leaving stub for external functions (serial and setup) that use this function
+    byte scanAddr[8];
+    ds.reset_search();
+    byte limit = 0;
+    //Scan at most 20 sensors (In case the One Wire Search loop issue occurs)
+    while (limit <= 20) {
+      if (!ds.search(scanAddr)) {
+        //No Sensor found, Return
+        ds.reset_search();
+        return;
+      }
+      boolean found = 0;
+      for (byte i = TS_HLT; i <= TS_AUX3; i++) {
+        boolean match = 1;
+        for (byte j = 0; j < 8; j++) {
+          //Try to confirm a match by checking every byte of the scanned address with those of each sensor.
+          if (scanAddr[j] != tSensor[i][j]) {
+            match = 0;
+            break;
+          }
+        }
+        if (match) { 
+          found = 1;
+          break;
+        }
+      }
+      if (!found) {
+        for (byte k = 0; k < 8; k++) addrRet[k] = scanAddr[k];
+        return;
+      }
+      limit++;
+    }      
+  }
+  
+  //Returns Int representing hundreths of degree
+  int read_temp(byte* addr) {
+    long tempOut;
+    byte data[9];
+    ds.reset();
+    ds.select(addr);   
+    ds.write(0xBE, TS_ONEWIRE_PPWR); //Read Scratchpad
+    for (byte i = 0; i < 9; i++) data[i] = ds.read();
+    if (OneWire::crc8( data, 8) != data[8]) return -32768;
     
-    #if defined MASH_AVG
-      mashAvg();
+    tempOut = (data[1] << 8) + data[0];
+  
+    if ( addr[0] == 0x10) tempOut = tempOut * 50; //9-bit DS18S20
+    else tempOut = tempOut * 25 / 4; //12-bit DS18B20, etc.
+    
+    #ifdef USEMETRIC
+      return int(tempOut);  
+    #else
+      return int((tempOut * 9 / 5) + 3200);
     #endif
   }
 #endif
-}
 
 #if defined MASH_AVG
 void mashAvg() {
@@ -118,71 +188,4 @@ void mashAvg() {
 }
 #endif
 
-boolean tsReady() {
-  #if TS_ONEWIRE_PPWR == 0 //Poll if parasite power is disabled
-    if (ds.read() == 0xFF) return 1;
-  #endif
-  return 0;
-}
 
-//This function search for an address that is not currently assigned!
-void getDSAddr(byte addrRet[8]){
-//Leaving stub for external functions (serial and setup) that use this function
-#ifdef TS_ONEWIRE
-  byte scanAddr[8];
-  ds.reset_search();
-  byte limit = 0;
-  //Scan at most 20 sensors (In case the One Wire Search loop issue occurs)
-  while (limit <= 20) {
-    if (!ds.search(scanAddr)) {
-      //No Sensor found, Return
-      ds.reset_search();
-      return;
-    }
-    boolean found = 0;
-    for (byte i = TS_HLT; i <= TS_AUX3; i++) {
-      boolean match = 1;
-      for (byte j = 0; j < 8; j++) {
-        //Try to confirm a match by checking every byte of the scanned address with those of each sensor.
-        if (scanAddr[j] != tSensor[i][j]) {
-          match = 0;
-          break;
-        }
-      }
-      if (match) { 
-        found = 1;
-        break;
-      }
-    }
-    if (!found) {
-      for (byte k = 0; k < 8; k++) addrRet[k] = scanAddr[k];
-      return;
-    }
-    limit++;
-  }      
-#endif
-}
-
-#ifdef TS_ONEWIRE
-//Returns Int representing hundreths of degree
-int read_temp(byte* addr) {
-  long tempOut;
-  byte data[9];
-  ds.reset();
-  ds.select(addr);   
-  ds.write(0xBE, TS_ONEWIRE_PPWR); //Read Scratchpad
-  for (byte i = 0; i < 9; i++) data[i] = ds.read();
-  if (OneWire::crc8( data, 8) != data[8]) return -32768;
-  
-  tempOut = (data[1] << 8) + data[0];
-
-  if ( addr[0] == 0x10) tempOut = tempOut * 50; //9-bit DS18S20
-  else tempOut = tempOut * 25 / 4; //12-bit DS18B20, etc.
-  
-  #ifdef USEMETRIC
-    return int(tempOut);  
-  #else
-    return int((tempOut * 9 / 5) + 3200);
-  #endif
-}
-#endif

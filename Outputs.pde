@@ -215,6 +215,9 @@ void pinInit() {
     muxDataPin.setup(MUX_DATA_PIN, OUTPUT);
     muxClockPin.setup(MUX_CLOCK_PIN, OUTPUT);
     muxOEPin.setup(MUX_OE_PIN, OUTPUT);
+    #ifdef BTBOARD_4
+      muxMRPin.setup(MUX_OE_PIN, OUTPUT);
+    #endif
     muxOEPin.set();
   #endif
   #ifdef ONBOARDPV
@@ -244,6 +247,15 @@ void pinInit() {
 #endif
 #ifdef PID_FLOW_CONTROL
   heatPin[VS_PUMP].setup(PWMPUMP_PIN, OUTPUT);
+#endif
+
+#ifdef BTBOARD_4
+  digInPin[0].setup(DIGIN1_PIN, INPUT);
+  digInPin[1].setup(DIGIN2_PIN, INPUT);
+  digInPin[2].setup(DIGIN3_PIN, INPUT);
+  digInPin[3].setup(DIGIN4_PIN, INPUT);
+  digInPin[4].setup(DIGIN5_PIN, INPUT);
+  digInPin[5].setup(DIGIN6_PIN, INPUT);
 #endif
 }
 
@@ -385,8 +397,13 @@ void setValves(unsigned long vlvBits) {
     //stop shifting
     muxClockPin.clear();
     muxLatchPin.set();
+
     //Enable outputs
     muxOEPin.clear();
+    #ifdef BTBOARD_4
+      muxMRPin.set();
+    #endif
+  
   #endif
   #ifdef ONBOARDPV
   //Original 11 Valve Code

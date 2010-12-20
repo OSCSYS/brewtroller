@@ -6,7 +6,9 @@
 //Pin and Interrupt Definitions
 #define ENCA_PIN 2
 #define ENCB_PIN 4
-#define TEMP_PIN 5
+#ifndef BTBOARD_4
+  #define TEMP_PIN 5
+#endif
 
 #define ENTER_PIN 11
 #define ALARM_PIN 15
@@ -14,35 +16,62 @@
 #define ENCA_INT 2
 
 //P/V Ouput Defines
-#define MUX_LATCH_PIN 12
-#define MUX_CLOCK_PIN 13
-#define MUX_DATA_PIN 14
-#define MUX_OE_PIN 10
-
-#define VALVE1_PIN 6 //Pin 4
-#define VALVE2_PIN 7 //Pin 3
-
-#ifdef BTBOARD_22
-  #define VALVE3_PIN 25
-  #define VALVE4_PIN 26
-#else
-  #define VALVE3_PIN 8 //Pin 6
-  #define VALVE4_PIN 9 //Pin 7
+#if defined BTBOARD_3 || defined BTBOARD_4
+  #define MUX_LATCH_PIN 12
+  #define MUX_CLOCK_PIN 13
+  #define MUX_DATA_PIN 14
+  
+  #ifdef BTBOARD_4
+    #define MUX_OE_PIN 5
+    #define MUX_MR_PIN 6
+  #else
+    #define MUX_OE_PIN 10
+  #endif
 #endif
 
-#define VALVE5_PIN 10 //Pin 8
-#define VALVE6_PIN 12 //Pin 7
-#define VALVE7_PIN 13 //Pin 10
-#define VALVE8_PIN 14 //Pin 9
-#define VALVE9_PIN 24 //Pin 12
-#define VALVEA_PIN 18 //Pin 11
-#define VALVEB_PIN 16 //Pin 14
+#if defined BTBOARD_1 || defined BTBOARD_22
+  #define VALVE1_PIN 6 //Pin 4
+  #define VALVE2_PIN 7 //Pin 3
+  
+  #ifdef BTBOARD_22
+    #define VALVE3_PIN 25
+    #define VALVE4_PIN 26
+  #else
+    #define VALVE3_PIN 8 //Pin 6
+    #define VALVE4_PIN 9 //Pin 7
+  #endif
+  
+  #define VALVE5_PIN 10 //Pin 8
+  #define VALVE6_PIN 12 //Pin 7
+  #define VALVE7_PIN 13 //Pin 10
+  #define VALVE8_PIN 14 //Pin 9
+  #define VALVE9_PIN 24 //Pin 12
+  #define VALVEA_PIN 18 //Pin 11
+  #define VALVEB_PIN 16 //Pin 14
+#endif
 
-#define HLTHEAT_PIN 0
-#define MASHHEAT_PIN 1
-#define KETTLEHEAT_PIN 3
-#define STEAMHEAT_PIN 6
-#define PWMPUMP_PIN 6
+#ifdef BTBOARD_4
+  #define HLTHEAT_PIN 23
+  #define MASHHEAT_PIN 1
+  #define KETTLEHEAT_PIN 3
+  #define STEAMHEAT_PIN 7
+  #define PWMPUMP_PIN 7
+#else
+  #define HLTHEAT_PIN 0
+  #define MASHHEAT_PIN 1
+  #define KETTLEHEAT_PIN 3
+  #define STEAMHEAT_PIN 6
+  #define PWMPUMP_PIN 6
+#endif
+
+#ifdef BTBOARD_4
+  #define DIGIN1_PIN 21
+  #define DIGIN2_PIN 20
+  #define DIGIN3_PIN 19
+  #define DIGIN4_PIN 18
+  #define DIGIN5_PIN 10
+  #define DIGIN6_PIN 22
+#endif
 
 //Reverse pin swap on 2.x boards
 #ifdef BTBOARD_22
