@@ -33,8 +33,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     OneWire ds(TEMP_PIN);
   #endif
   #ifdef TS_ONEWIRE_I2C
-    #include <OneWire_i2c.h>
-    OneWire_I2C ds(DS2482_ADDR);
+    #include <DS2482.h>
+    DS2482 ds(DS2482_ADDR);
   #endif
   //One Wire Bus on 
   
@@ -51,6 +51,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #endif
 
   void tempInit() {
+    #ifdef TS_ONEWIRE_I2C
+      ds.configure(DS2482_CONFIG_APU | DS2482_CONFIG_SPU);
+    #endif
     ds.reset();
     ds.skip();
     ds.write(0x4E, TS_ONEWIRE_PPWR); //Write to scratchpad
@@ -147,7 +150,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     ds.select(addr);   
     ds.write(0xBE, TS_ONEWIRE_PPWR); //Read Scratchpad
     for (byte i = 0; i < 9; i++) data[i] = ds.read();
-    if (OneWire::crc8( data, 8) != data[8]) return -32768;
+    if (ds.crc8( data, 8) != data[8]) return -32768;
     
     tempOut = (data[1] << 8) + data[0];
   

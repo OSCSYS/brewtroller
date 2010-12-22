@@ -224,7 +224,8 @@
 #define TS_ONEWIRE_RES 9
 
 // DS2482_ADDR: I2C Address of DS2482 OneWire Master (used for TS_OneWire_I2C)
-#define DS2482_ADDR
+// Should be 0x18, 0x19, 0x1A, 0x1B
+#define DS2482_ADDR 0x18
 //**********************************************************************************
 
 
