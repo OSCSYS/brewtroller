@@ -170,19 +170,31 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 #ifdef PWM_8K_1
 ISR(TIMER1_COMPA_vect, ISR_BLOCK )
 {
-	if(PIDEnabled[PWM_8K_1])
-	{
-		//if the output is 1000, we need to set the pin to low 
-		if(PIDOutputCountEquivalent[PWM_8K_1][1] == 1000) heatPin[PWM_8K_1].set(LOW);
-		//if the output is its maxiumum then we just set the pin high 
-		else if(PIDOutputCountEquivalent[PWM_8K_1][1] == 0) heatPin[PWM_8K_1].set(HIGH);
-		// else we need to toggle the pin from its previous state
-		else
-		{
-			if(heatPin[PWM_8K_1].get()) heatPin[PWM_8K_1].set(LOW);
-			else heatPin[PWM_8K_1].set(HIGH);
-		}
-	}
+    if(PIDEnabled[PWM_8K_1])
+    {
+        //if the output is 1000, we need to set the pin to low 
+        if(PIDOutputCountEquivalent[PWM_8K_1][1] == 1000) heatPin[PWM_8K_1].set(LOW);
+        //if the output is its maxiumum then we just set the pin high 
+        else if(PIDOutputCountEquivalent[PWM_8K_1][1] == 0)
+        {
+            heatPin[PWM_8K_1].set(HIGH);
+            LastSetFullPowerBoolean1 = 1;
+        }
+        // if we just exited from full power we need to set the heat output pin to low else we will invert our toggle logic
+        else if(LastSetFullPowerBoolean1) 
+        {
+            heatPin[PWM_8K_1].set(LOW);
+            LastSetFullPowerBoolean1 = 0;
+            if(heatPin[PWM_8K_1].get()) heatPin[PWM_8K_1].set(LOW);
+            else heatPin[PWM_8K_1].set(HIGH);
+        }
+        // else we need to toggle the pin from its previous state
+        else
+        {
+            if(heatPin[PWM_8K_1].get()) heatPin[PWM_8K_1].set(LOW);
+            else heatPin[PWM_8K_1].set(HIGH);
+        }
+    }
 }
 #endif
 
@@ -194,7 +206,19 @@ ISR(TIMER1_COMPB_vect, ISR_BLOCK)
         //if the output is 1000, we need to set the pin to low 
         if(PIDOutputCountEquivalent[PWM_8K_2][1] == 1000) heatPin[PWM_8K_2].set(LOW);
         //if the output is its maxiumum then we just set the pin high 
-        else if(PIDOutputCountEquivalent[PWM_8K_2][1] == 0) heatPin[PWM_8K_2].set(HIGH);
+        else if(PIDOutputCountEquivalent[PWM_8K_2][1] == 0)
+        {
+            heatPin[PWM_8K_2].set(HIGH);
+            LastSetFullPowerBoolean2 = 1;
+        }
+        // if we just exited from full power we need to set the heat output pin to low else we will invert our toggle logic
+        else if(LastSetFullPowerBoolean2) 
+        {
+            heatPin[PWM_8K_2].set(LOW);
+            LastSetFullPowerBoolean2 = 0;
+            if(heatPin[PWM_8K_2].get()) heatPin[PWM_8K_2].set(LOW);
+            else heatPin[PWM_8K_2].set(HIGH)
+        }
         // else we need to toggle the pin from its previous state
         else
         {
@@ -472,7 +496,7 @@ void processHeatOutputs() {
          //note that the subtract from 1000 part is here because the way the counter timer works by toggeling the output bit
          // and the fact that the starting state of said bit is always 0 causes us to have to invert the logic. If we didnt subtract
          // the value from 1000 the bit would be set high at say PIDOutput = 20 and left high until we counted up to 1000, then down 
-         // from 1000 to 20 then get set low again, thus 20 is your 20/2000 = 1% time low, not time on as is expected. 
+         // from 1000 to 20 then get set low again, thus 20 is your 40/2000 = 2% time low, not time on as is expected. 
       #ifdef PWM_8K_1
          if(i == PWM_8K_1)
          {
