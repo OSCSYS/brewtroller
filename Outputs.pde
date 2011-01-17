@@ -97,14 +97,14 @@ unsigned long prevProfiles;
 void pwmInit( void )
 {
     // set timer 1 prescale factor to 0
-    sbi(TCCR1B, CS11);
+    sbi(TCCR1B, CS10);
     cbi(TCCR1B, CS12);
-    cbi(TCCR1B, CS10);
+    cbi(TCCR1B, CS11);
 
     //clear timer 1 out of 8 bit phase correct PWM mode from sanguino init
     cbi(TCCR1A, WGM10);
     //set timer 1 into 16 bit phase and frequency correct PWM mode with ICR1 as TOP
-    sbi(TCCR1A, WGM13);
+    sbi(TCCR1B, WGM13);
     //set TOP as 1000, which makes the overflow on return to bottom for this mode happen ever 
     // 125uS given a 16mhz input clock, aka 8khz PWM frequency, the overflow ISR will handle 
     // the PWM outputs that are slower than 8khz, and the OCR1A/B ISR will handle the 8khz PWM outputs
@@ -141,7 +141,7 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 {
     //count the number of times this has been called 
     timer1_overflow_count++;
-    for(byte i = 0; i < LAST_HEAT_OUTPUT; i++)
+    for(byte i = 0; i <= LAST_HEAT_OUTPUT; i++)
     {
         // if PID is enabled, and NOT one of the 8khz PWM outputs then we can use this
         if(PIDEnabled[i] 
@@ -464,7 +464,7 @@ void processHeatOutputs() {
          oldSREG = SREG;
          cli();
          PIDOutputCountEquivalent[i][0] = PIDCycle[i] * 800;
-         PIDOutputCountEquivalent[i][1] = PIDOutput[i] * 800;
+         PIDOutputCountEquivalent[i][1] = PIDOutput[i] * 8;
          SREG = oldSREG; // restore interrupts
       }
       else
