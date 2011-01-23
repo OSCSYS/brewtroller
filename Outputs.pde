@@ -238,11 +238,20 @@ void pinInit() {
     muxLatchPin.setup(MUX_LATCH_PIN, OUTPUT);
     muxDataPin.setup(MUX_DATA_PIN, OUTPUT);
     muxClockPin.setup(MUX_CLOCK_PIN, OUTPUT);
-    muxOEPin.setup(MUX_OE_PIN, OUTPUT);
     #ifdef BTBOARD_4
-      muxMRPin.setup(MUX_OE_PIN, OUTPUT);
+      //MUX in Reset State
+      muxMRPin.setup(MUX_MR_PIN, OUTPUT);
+      muxLatchPin.clear(); //Prepare to copy pin states
+      muxMRPin.clear(); //Force clear of pin registers
+      muxLatchPin.set(); //Copy pin states from registers
+      muxMRPin.set(); //Disable clear
+    #else
+      //MUX in Hi-Z State
+      muxOEPin.setup(MUX_OE_PIN, OUTPUT);
+      setValves(0);
+      muxOEPin.clear();
+      //MUX Enabled
     #endif
-    muxOEPin.set();
   #endif
   #ifdef ONBOARDPV
     valvePin[0].setup(VALVE1_PIN, OUTPUT);
@@ -279,7 +288,6 @@ void pinInit() {
   digInPin[2].setup(DIGIN3_PIN, INPUT);
   digInPin[3].setup(DIGIN4_PIN, INPUT);
   digInPin[4].setup(DIGIN5_PIN, INPUT);
-  digInPin[5].setup(DIGIN6_PIN, INPUT);
 #endif
 }
 
@@ -399,8 +407,6 @@ unsigned long computeValveBits() {
 void setValves(unsigned long vlvBits) {
   #if MUXBOARDS > 0
   //MUX Valve Code
-    //Disable outputs
-    //muxOEPin.set();
     //ground latchPin and hold low for as long as you are transmitting
     muxLatchPin.clear();
     //clear everything out just in case to prepare shift register for bit shifting
@@ -421,13 +427,6 @@ void setValves(unsigned long vlvBits) {
     //stop shifting
     muxClockPin.clear();
     muxLatchPin.set();
-
-    //Enable outputs
-    muxOEPin.clear();
-    #ifdef BTBOARD_4
-      muxMRPin.set();
-    #endif
-  
   #endif
   #ifdef ONBOARDPV
   //Original 11 Valve Code

@@ -28,10 +28,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Enum.h"
 
 void brewCore() {
+  #ifndef NOUI
+    updateLCD();
+  #endif
+  
   //Timers: Timer.pde
   updateTimers();
   
-   //temps: Temp.pde
+  //temps: Temp.pde
   updateTemps();
  
   //Alarm update allows to have a beeping alarm

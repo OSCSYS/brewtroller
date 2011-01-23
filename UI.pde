@@ -134,6 +134,8 @@ const char PUNIT[] PROGMEM = "psi";
 const byte CHARFIELD[] PROGMEM = {B11111, B00000, B00000, B00000, B00000, B00000, B00000, B00000};
 const byte CHARCURSOR[] PROGMEM = {B11111, B11111, B00000, B00000, B00000, B00000, B00000, B00000};
 const byte CHARSEL[] PROGMEM = {B10001, B11111, B00000, B00000, B00000, B00000, B00000, B00000};
+
+#ifdef LOGO_TROLL
 const byte BMP0[] PROGMEM = {B00000, B00000, B00000, B00000, B00011, B01111, B11111, B11111};
 const byte BMP1[] PROGMEM = {B00000, B00000, B00000, B00000, B11100, B11110, B11111, B11111};
 const byte BMP2[] PROGMEM = {B00001, B00011, B00111, B01111, B00001, B00011, B01111, B11111};
@@ -141,6 +143,16 @@ const byte BMP3[] PROGMEM = {B11111, B11111, B10001, B00011, B01111, B11111, B11
 const byte BMP4[] PROGMEM = {B01111, B01110, B01100, B00001, B01111, B00111, B00011, B11101};
 const byte BMP5[] PROGMEM = {B11111, B00111, B00111, B11111, B11111, B11111, B11110, B11001};
 const byte BMP6[] PROGMEM = {B11111, B11111, B11110, B11101, B11011, B00111, B11111, B11111};
+#endif
+
+#ifdef LOGO_BREWTROLLER
+const byte BMP0[] PROGMEM = {B00000, B00000, B00000, B11111, B10001, B10001, B11111, B00001};
+const byte BMP1[] PROGMEM = {B00000, B00000, B00000, B00000, B00000, B00011, B01100, B01111};
+const byte BMP2[] PROGMEM = {B00000, B00000, B00000, B00000, B00000, B11100, B00011, B11111};
+const byte BMP3[] PROGMEM = {B00100, B01100, B01111, B00111, B00100, B01100, B01111, B00111};
+const byte BMP4[] PROGMEM = {B00010, B00011, B11111, B11110, B00010, B00011, B11111, B11110};
+#endif
+
 const byte UNLOCK_ICON[] PROGMEM = {B00110, B01001, B01001, B01000, B01111, B01111, B01111, B00000};
 const byte PROG_ICON[] PROGMEM = {B00001, B11101, B10101, B11101, B10001, B10001, B00001, B11111};
 const byte BELL[] PROGMEM = {B00100, B01110, B01110, B01110, B11111, B00000, B00100, B00000};
@@ -157,7 +169,11 @@ unsigned long timerLastPrint;
 void uiInit() {
   initLCD();
   lcdSetCustChar_P(7, UNLOCK_ICON);
-  Encoder.begin(ENCA_PIN, ENCB_PIN, ENTER_PIN, ENTER_INT, ENCODER_TYPE);
+  #ifdef BTBOARD_4
+    Encoder.begin(ENCODER_TYPE, false, ENTER_PIN, ENCA_PIN, ENCB_PIN);
+  #else
+    Encoder.begin(ENCODER_TYPE, false, ENTER_PIN, ENCA_PIN, ENCB_PIN, ENTER_INT, ENCA_INT);
+  #endif
 
   //Check to see if EEPROM Initialization is needed
   if (checkConfig()) {
@@ -169,6 +185,7 @@ void uiInit() {
       clearLCD();
       printLCD_P(1, 0, INIT_EEPROM);
       printLCD_P(2, 3, PSTR("Please Wait..."));
+      updateLCD();
       initEEPROM();
       //Apply any EEPROM updates
       checkConfig();
@@ -253,24 +270,43 @@ void screenInit(byte screen) {
   
   if (screen == SCREEN_HOME) {
     //Screen Init: Home
-    lcdSetCustChar_P(0, BMP0);
-    lcdSetCustChar_P(1, BMP1);
-    lcdSetCustChar_P(2, BMP2);
-    lcdSetCustChar_P(3, BMP3);
-    lcdSetCustChar_P(4, BMP4);
-    lcdSetCustChar_P(5, BMP5);
-    lcdSetCustChar_P(6, BMP6);
-    lcdWriteCustChar(0, 1, 0);
-    lcdWriteCustChar(0, 2, 1);
-    lcdWriteCustChar(1, 0, 2); 
-    lcdWriteCustChar(1, 1, 3); 
-    lcdWriteCustChar(1, 2, 255); 
-    lcdWriteCustChar(2, 0, 4); 
-    lcdWriteCustChar(2, 1, 5); 
-    lcdWriteCustChar(2, 2, 6); 
-    printLCD_P(3, 0, BT);
-    printLCD_P(3, 12, BTVER);
-    printLCDLPad(3, 16, itoa(BUILD, buf, 10), 4, '0');
+    #ifdef LOGO_TROLL
+      lcdSetCustChar_P(0, BMP0);
+      lcdSetCustChar_P(1, BMP1);
+      lcdSetCustChar_P(2, BMP2);
+      lcdSetCustChar_P(3, BMP3);
+      lcdSetCustChar_P(4, BMP4);
+      lcdSetCustChar_P(5, BMP5);
+      lcdSetCustChar_P(6, BMP6);
+      lcdWriteCustChar(0, 1, 0);
+      lcdWriteCustChar(0, 2, 1);
+      lcdWriteCustChar(1, 0, 2); 
+      lcdWriteCustChar(1, 1, 3); 
+      lcdWriteCustChar(1, 2, 255); 
+      lcdWriteCustChar(2, 0, 4); 
+      lcdWriteCustChar(2, 1, 5); 
+      lcdWriteCustChar(2, 2, 6); 
+      printLCD_P(3, 0, BT);
+      printLCD_P(3, 12, BTVER);
+      printLCDLPad(3, 16, itoa(BUILD, buf, 10), 4, '0');
+    #endif
+    #ifdef LOGO_BREWTROLLER
+      lcdSetCustChar_P(0, BMP0);
+      lcdSetCustChar_P(1, BMP1);
+      lcdSetCustChar_P(2, BMP2);
+      lcdSetCustChar_P(3, BMP3);
+      lcdSetCustChar_P(4, BMP4);
+      lcdWriteCustChar(0, 0, 0);
+      lcdWriteCustChar(0, 1, 1);
+      lcdWriteCustChar(0, 2, 2);
+      lcdWriteCustChar(1, 1, 3);
+      lcdWriteCustChar(1, 2, 4);
+      printLCD_P(1, 4, BT);
+      printLCD_P(1, 16, BTVER);
+      printLCD_P(2, 4, PSTR("Build"));
+      printLCDLPad(2, 10, itoa(BUILD, buf, 10), 4, '0');
+      printLCD_P(3, 0, PSTR("www.brewtroller.com"));
+    #endif
     
   } else if (screen == SCREEN_FILL) {
     //Screen Init: Fill/Refill

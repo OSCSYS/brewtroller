@@ -1,4 +1,4 @@
-#define BUILD 645 
+#define BUILD 651 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -45,6 +45,8 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
 #include <pin.h>
+#include <PinChangeInt.h>
+#include <PinChangeIntConfig.h>
 
 #if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
   #include <Wire.h>
@@ -108,9 +110,11 @@ pin heatPin[4], alarmPin;
 #endif
 
 #if MUXBOARDS > 0
-  pin muxLatchPin, muxDataPin, muxClockPin, muxOEPin;
+  pin muxLatchPin, muxDataPin, muxClockPin;
   #ifdef BTBOARD_4
     pin muxMRPin;
+  #else
+    pin muxOEPin;
   #endif
 #endif
 
@@ -239,11 +243,6 @@ void setup() {
   
   tempInit();
   
-  //User Interface Initialization (UI.pde)
-  #ifndef NOUI
-    uiInit();
-  #endif
-
   #ifdef BTPD_SUPPORT
     btpdInit();
   #endif
@@ -261,6 +260,11 @@ void setup() {
   pwmInit();
   #endif
 
+  //User Interface Initialization (UI.pde)
+  //Moving this to last of setup() to allow time for I2CLCD to initialize
+  #ifndef NOUI
+    uiInit();
+  #endif
 }
 
 

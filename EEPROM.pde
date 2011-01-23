@@ -397,12 +397,12 @@ void setValveCfg(byte profile, unsigned long value) {
 //**********************************************************************************
 //Program Name (P:1-19)
 //**********************************************************************************
-void setProgName(byte preset, char name[20]) {
-  eeprom_write_block(&name, (unsigned char *) PROGRAM_START_ADDR + preset * PROGRAM_SIZE, 20);
+void setProgName(byte preset, char *name) {
+  for (byte i = 0; i < 19; i++) EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + i, name[i]);
 }
 
-void getProgName(byte preset, char name[20]) {
-  eeprom_read_block(&name, (unsigned char *) PROGRAM_START_ADDR + preset * PROGRAM_SIZE, 20);
+void getProgName(byte preset, char *name) {
+  for (byte i = 0; i < 19; i++) name[i] = EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + i);
   name[19] = '\0';
 }
 

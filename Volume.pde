@@ -75,6 +75,9 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
   byte lowerCal = 0;
   byte lowerCal2 = 0;
   for (byte i = 0; i < 10; i++) {
+    #ifdef DEBUG_VOL_READ
+      logFieldI(calibrationValues[i]);
+    #endif
     if (aValue == calibrationValues[i]) { 
       upperCal = i;
       lowerCal = i;
@@ -93,10 +96,12 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
   }
   
   #ifdef DEBUG_VOL_READ
-    logFieldI(aValue);
     logFieldI(upperCal);
+    logFieldI(calibrationVols[upperCal]);
     logFieldI(lowerCal);
+    logFieldI(calibrationVols[lowerCal]);
     logFieldI(lowerCal2);
+    logFieldI(calibrationVols[lowerCal2]);
   #endif
   
   //If no calibrations exist return zero
@@ -137,11 +142,11 @@ unsigned long readPressure( byte aPin, unsigned int sens, unsigned int zero) {
 }
 
 unsigned int GetCalibrationValue(byte vessel){
-  unsigned int newSensorValueAverage;
+  unsigned int newSensorValueAverage = 0;
   
   for(byte i = 0; i < VOLUME_READ_COUNT; i++){
     newSensorValueAverage += analogRead(vSensor[vessel]);
   }
   
-  return(newSensorValueAverage = round((float)newSensorValueAverage / VOLUME_READ_COUNT));
+  return (newSensorValueAverage / VOLUME_READ_COUNT);
 }

@@ -38,18 +38,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #endif
   //One Wire Bus on 
   
-  unsigned long convStart;
-  
-  #if TS_ONEWIRE_RES == 12
-    #define CONV_DELAY 750
-  #elif TS_ONEWIRE_RES == 11
-    #define CONV_DELAY 375
-  #elif TS_ONEWIRE_RES == 10
-    #define CONV_DELAY 188
-  #else //Default to 9-bit
-    #define CONV_DELAY 94
-  #endif
-
   void tempInit() {
     #ifdef TS_ONEWIRE_I2C
       ds.configure(DS2482_CONFIG_APU | DS2482_CONFIG_SPU);
@@ -76,6 +64,18 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
 
 
+  unsigned long convStart;
+  
+  #if TS_ONEWIRE_RES == 12
+    #define CONV_DELAY 750
+  #elif TS_ONEWIRE_RES == 11
+    #define CONV_DELAY 375
+  #elif TS_ONEWIRE_RES == 10
+    #define CONV_DELAY 188
+  #else //Default to 9-bit
+    #define CONV_DELAY 94
+  #endif
+
   void updateTemps() {
     if (convStart == 0) {
       ds.reset();
@@ -90,7 +90,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         logFieldI(convStart);
         logEnd();
       #endif
-      for (byte i = TS_HLT; i <= TS_AUX3; i++) temp[i] = read_temp(tSensor[i]);
+      for (byte i = TS_HLT; i <= TS_AUX3; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]);
       convStart = 0;
       
       #if defined MASH_AVG
@@ -103,6 +103,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     #if TS_ONEWIRE_PPWR == 0 //Poll if parasite power is disabled
       if (ds.read() == 0xFF) return 1;
     #endif
+    return 0;
+  }
+  
+  boolean validAddr(byte* addr) {
+    for (byte i = 0; i < 8; i++) if (addr[i]) return 1;
     return 0;
   }
   
@@ -142,27 +147,35 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     }      
   }
   
-  //Returns Int representing hundreths of degree
+//Returns Int representing hundreths of degree
   int read_temp(byte* addr) {
     long tempOut;
     byte data[9];
     ds.reset();
     ds.select(addr);   
     ds.write(0xBE, TS_ONEWIRE_PPWR); //Read Scratchpad
-    for (byte i = 0; i < 9; i++) data[i] = ds.read();
-    if (ds.crc8( data, 8) != data[8]) return -32768;
-    
+    #ifdef TS_ONEWIRE_FASTREAD
+      for (byte i = 0; i < 2; i++) data[i] = ds.read();
+    #else
+      for (byte i = 0; i < 9; i++) data[i] = ds.read();
+      if (ds.crc8( data, 8) != data[8]) return -32768;
+    #endif
+
     tempOut = (data[1] << 8) + data[0];
-  
+    
     if ( addr[0] == 0x10) tempOut = tempOut * 50; //9-bit DS18S20
     else tempOut = tempOut * 25 / 4; //12-bit DS18B20, etc.
-    
+      
     #ifdef USEMETRIC
       return int(tempOut);  
     #else
       return int((tempOut * 9 / 5) + 3200);
     #endif
   }
+#else
+  void tempInit() {}
+  void updateTemps() {}
+  void getDSAddr(byte addrRet[8]){};
 #endif
 
 #if defined MASH_AVG

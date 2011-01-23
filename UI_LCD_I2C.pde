@@ -28,35 +28,33 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #ifdef UI_LCD_I2C
 #include "Config.h"
 #include "Enum.h"
-//#include <LiquidCrystalFP.h>
 #include <Wire.h>
 
 //*****************************************************************************************************************************
 // UI COMPILE OPTIONS
 //*****************************************************************************************************************************
 
+byte screen[80];
+
 void initLCD(){
   Wire.begin();
+  i2cSetContrast(0);
   i2cLcdBegin(20, 4);
 }
 
 void printLCD(byte iRow, byte iCol, char sText[]){
-  i2cLcdPrint(iCol, iRow, sText);
+  byte pos = iRow * 20 + iCol;
+  memcpy((byte*)&screen[pos], sText, min(strlen(sText), 80-pos));
 }  
 
 //Version of PrintLCD reading from PROGMEM
 void printLCD_P(byte iRow, byte iCol, const char *sText){
-  char s[20];
-  byte i = 0;
-  byte ch = 0;
-  while (ch = pgm_read_byte(sText++)) {
-    s[i++] = ch;
-  }
-  s[i] = 0;
-  printLCD(iRow, iCol, s);
+  byte pos = iRow * 20 + iCol;
+  memcpy_P((byte*)&screen[pos], sText, min(strlen_P(sText), 80-pos));
 } 
 
-void clearLCD() { 
+void clearLCD() {
+  memset(screen, ' ', 80);
   i2cLcdClear();
 }
 
@@ -94,7 +92,13 @@ void lcdSetCustChar_P(byte slot, const byte *charDef) {
 }
 
 void lcdWriteCustChar(byte iRow, byte iCol, byte slot) {
-  i2cLcdWriteCustChar(iCol, iRow, slot);
+  screen[iRow * 20 + iCol] = slot;
+}
+
+void updateLCD() {
+  for (byte row = 0; row < 4; row++) {
+    i2cLcdWrite(0, row, 20, (char*)&screen[row * 20]);
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -118,7 +122,7 @@ void i2cLcdClear() {
   Wire.beginTransmission(i2cLcdAddr);
   Wire.send(0x02);
   Wire.endTransmission();
-  delay(5);
+  delay(3);
 }
 
 /*
@@ -141,20 +145,29 @@ void i2cLcdPrint(byte iCol, byte iRow, char s[]) {
     Wire.send(*p++);
   }
   Wire.endTransmission();
-  delay(5);
+  delay(3);
+}
+
+void i2cLcdWrite(byte iCol, byte iRow, byte len, char s[]) {
+  Wire.beginTransmission(i2cLcdAddr);
+  Wire.send(0x14);
+  Wire.send(iCol);
+  Wire.send(iRow);
+  Wire.send(len);
+  for (byte i = 0; i < len; i++) Wire.send(s[i]);
+  Wire.endTransmission();
+  delay(3);
 }
 
 void i2cLcdSetCustChar_P(byte slot, const byte *charDef) {
   Wire.beginTransmission(i2cLcdAddr);
   Wire.send(0x05);
   Wire.send(slot);
-  byte BELL[] = {B00100, B01110, B01110, B01110, B11111, B00000, B00100, B00000};
   for (byte i = 0; i < 8; i++) {
     Wire.send(pgm_read_byte(charDef++));
-//    Wire.send(BELL[i]);
   }
   Wire.endTransmission();
-  delay(10);
+  delay(5);
 }
 
 void i2cLcdWriteCustChar(byte iCol, byte iRow, byte c) {
@@ -164,7 +177,23 @@ void i2cLcdWriteCustChar(byte iCol, byte iRow, byte c) {
   Wire.send(iRow);
   Wire.send(c);
   Wire.endTransmission();
-  delay(5);
+  delay(3);
+}
+
+void i2cSetBright(byte val) {
+  Wire.beginTransmission(i2cLcdAddr);
+  Wire.send(0x07);
+  Wire.send(val);
+  Wire.endTransmission();
+  delay(3);
+}
+
+void i2cSetContrast(byte val) {
+  Wire.beginTransmission(i2cLcdAddr);
+  Wire.send(0x08);
+  Wire.send(val);
+  Wire.endTransmission();
+  delay(3);
 }
 
 #endif

@@ -57,6 +57,8 @@ void initLCD(){
   lcd.begin(20, 4);
 }
 
+void updateLCD() {}
+
 void printLCD(byte iRow, byte iCol, char sText[]){
   lcd.setCursor(iCol, iRow);
   #ifdef LCD_DELAY_CURSOR
