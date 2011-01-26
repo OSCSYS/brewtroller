@@ -402,14 +402,6 @@ void stepCore() {
 
 //stepCore logic for Fill and Refill
 void stepFill(byte brewStep) {
-  //Skip unnecessary refills
-  if (brewStep == STEP_REFILL) {
-    byte pgm = stepProgram[brewStep];
-    unsigned long HLTFillVol = calcSpargeVol(pgm);
-    if (getProgMLHeatSrc(pgm) == VS_HLT) HLTFillVol += calcStrikeVol(pgm);
-    if (HLTFillVol <= getCapacity(VS_HLT)) stepAdvance(brewStep);
-  }
-
   #ifdef AUTO_FILL_EXIT
     if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH]) stepAdvance(brewStep);
   #endif
