@@ -122,7 +122,8 @@
 #define AV_FLYSPARGE 4
 #define AV_CHILL 5
 #define AV_HLT 6
-#define NUM_AV 7
+#define AV_KETTLE 7
+#define NUM_AV 8
 
 //Valve Array Element Constants and Variables
 #define VLV_ALL 4294967295
@@ -140,7 +141,13 @@
 #define VLV_BOILRECIRC 11
 #define VLV_DRAIN 12
 #define VLV_HLTHEAT 13
-#define NUM_VLVCFGS 14
+#define VLV_HLTIDLE 14
+#define VLV_KETTLEHEAT 15
+#define VLV_KETTLEIDLE 16
+#define VLV_USER1 17
+#define VLV_USER2 18
+#define VLV_USER3 19
+#define NUM_VLVCFGS 20
 
 //Timers
 #define TIMER_MASH 0

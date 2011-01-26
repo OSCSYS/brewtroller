@@ -82,12 +82,19 @@ const char SPARGEIN[] PROGMEM = "Sparge In";
 const char SPARGEOUT[] PROGMEM = "Sparge Out";
 const char FLYSPARGE[] PROGMEM = "Fly Sparge";
 const char BOILADDS[] PROGMEM = "Boil Additions";
+const char KETTLELID[] PROGMEM = "Kettle Lid";
 const char CHILLNORM[] PROGMEM = "Chill Both";
 const char CHILLH2O[] PROGMEM = "Chill H2O";
 const char CHILLBEER[] PROGMEM = "Chill Beer";
 const char BOILRECIRC[] PROGMEM = "Boil Recirc";
 const char DRAIN[] PROGMEM = "Drain";
 const char HLTHEAT[] PROGMEM = "HLT Heat";
+const char HLTIDLE[] PROGMEM = "HLT Idle";
+const char KETTLEHEAT[] PROGMEM = "Kettle Heat";
+const char KETTLEIDLE[] PROGMEM = "Kettle Idle";
+const char USER1[] PROGMEM = "User Valve 1";
+const char USER2[] PROGMEM = "User Valve 2";
+const char USER3[] PROGMEM = "User Valve 3";
 
 #ifndef UI_NO_SETUP
 const char HLTCYCLE[] PROGMEM = "HLT PID Cycle";
@@ -632,13 +639,21 @@ void screenEnter(byte screen) {
           strcpy_P(menuopts[3], DRAIN);
           if (vlvConfigIsActive(VLV_DRAIN)) strcat_P(menuopts[3], PSTR(": On"));
           else strcat_P(menuopts[3], PSTR(": Off"));
-          strcpy_P(menuopts[4], PSTR("Reset All"));
-          //strcpy_P(menuopts[5], PSTR("System Info"));
-          strcpy_P(menuopts[5], PSTR("System Setup"));
+          strcpy_P(menuopts[4], USER1);
+          if (vlvConfigIsActive(VLV_USER1)) strcat_P(menuopts[4], PSTR(": On"));
+          else strcat_P(menuopts[4], PSTR(": Off"));
+          strcpy_P(menuopts[5], USER2);
+          if (vlvConfigIsActive(VLV_USER2)) strcat_P(menuopts[5], PSTR(": On"));
+          else strcat_P(menuopts[5], PSTR(": Off"));
+          strcpy_P(menuopts[6], USER3);
+          if (vlvConfigIsActive(VLV_USER3)) strcat_P(menuopts[6], PSTR(": On"));
+          else strcat_P(menuopts[6], PSTR(": Off"));
+          strcpy_P(menuopts[7], PSTR("Reset All"));
           #ifdef UI_NO_SETUP
-            lastOption = scrollMenu("Main Menu", 5, lastOption);
+            lastOption = scrollMenu("Main Menu", 8, lastOption);
           #else
-            lastOption = scrollMenu("Main Menu", 6, lastOption);
+            strcpy_P(menuopts[8], PSTR("System Setup"));
+            lastOption = scrollMenu("Main Menu", 9, lastOption);
           #endif
           if (lastOption == 1) editProgramMenu();
           else if (lastOption == 2) {
@@ -664,7 +679,12 @@ void screenEnter(byte screen) {
               } else bitSet(actProfiles, VLV_DRAIN);
             }
           }
-          else if (lastOption == 4) {
+          else if (lastOption >= 4 && lastOption <= 6) {
+            //User Valve 1-3
+            if (vlvConfigIsActive(lastOption + 13)) bitClear(actProfiles, lastOption + 13);
+            else bitSet(actProfiles, lastOption + 13);
+          }          
+          else if (lastOption == 7) {
             //Reset All
             if (confirmAbort()) {
               resetOutputs();
@@ -672,10 +692,11 @@ void screenEnter(byte screen) {
               clearTimer(TIMER_BOIL);
             }
           }
+          
 #ifndef UI_NO_SETUP        
-          else if (lastOption == 5) menuSetup();
+          else if (lastOption == 8) menuSetup();
 #endif
-          else if (lastOption == 0){
+          else {
             //On exit of the Main menu go back to Splash/Home screen.
             activeScreen = SCREEN_HOME;
             screenInit(activeScreen);
@@ -2077,26 +2098,34 @@ void cfgValves() {
   while (1) {
     strcpy_P(menuopts[0], FILLHLT);
     strcpy_P(menuopts[1], FILLMASH);
-    strcpy_P(menuopts[2], HLTHEAT);    
-    strcpy_P(menuopts[3], ADDGRAIN);    
-    strcpy_P(menuopts[4], MASHHEAT);
-    strcpy_P(menuopts[5], MASHIDLE);
-    strcpy_P(menuopts[6], SPARGEIN);
-    strcpy_P(menuopts[7], SPARGEOUT);
-    strcpy_P(menuopts[8], BOILADDS);
-    strcpy_P(menuopts[9], PSTR("Kettle Lid"));
-    strcpy_P(menuopts[10], CHILLH2O);
-    strcpy_P(menuopts[11], CHILLBEER);
-    strcpy_P(menuopts[12], BOILRECIRC);
-    strcpy_P(menuopts[13], DRAIN);
-    strcpy_P(menuopts[14], EXIT);
+    strcpy_P(menuopts[2], HLTHEAT);
+    strcpy_P(menuopts[3], HLTIDLE);
+    strcpy_P(menuopts[4], ADDGRAIN);    
+    strcpy_P(menuopts[5], MASHHEAT);
+    strcpy_P(menuopts[6], MASHIDLE);
+    strcpy_P(menuopts[7], SPARGEIN);
+    strcpy_P(menuopts[8], SPARGEOUT);
+    strcpy_P(menuopts[9], KETTLEHEAT);
+    strcpy_P(menuopts[10], KETTLEIDLE);
+    strcpy_P(menuopts[11], BOILADDS);
+    strcpy_P(menuopts[12], KETTLELID);
+    strcpy_P(menuopts[13], CHILLH2O);
+    strcpy_P(menuopts[14], CHILLBEER);
+    strcpy_P(menuopts[15], BOILRECIRC);
+    strcpy_P(menuopts[16], DRAIN);
+    strcpy_P(menuopts[17], USER1);
+    strcpy_P(menuopts[18], USER2);
+    strcpy_P(menuopts[19], USER3);
+    strcpy_P(menuopts[20], EXIT);
     
-    lastOption = scrollMenu("Valve Configuration", 15, lastOption);
-    if (lastOption > 13) return;
+    lastOption = scrollMenu("Valve Configuration", 21, lastOption);
+    if (lastOption > 19) return;
     else {
       byte vc = lastOption;
-      if (vc == 2) vc = 13; /* Map HLTHEAT to vlvConfig[13] */
-      else if (vc > 2) vc--; /* Subtract 1 for Add Grain - Drain to map to vlvConfig[2] - vlvConfig[12] */
+      if (lastOption == 2 || lastOption == 3) vc += 11; /* Map HLTHEAT/HLTIDLE to vlvConfig[13]/[14] */
+      else if (lastOption > 3 && lastOption < 9) vc -= 2; /* Map Add Grain - Sparge Out vlvConfig[2]-[7] */
+      else if (lastOption == 9 || lastOption == 10) vc += 6; /* Map KETTLEHEAT/KETTLEIDLE to vlvConfig[15]/[16] */
+      else if (lastOption > 10 && lastOption < 17) vc -= 4; /* Map BOILADDS - DRAIN vlvConfig[7]-[12] */
       setValveCfg(vc, cfgValveProfile(menuopts[lastOption], vlvConfig[vc]));
     }
   }

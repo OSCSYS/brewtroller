@@ -559,23 +559,23 @@ void processAutoValve() {
       
     if (volAvg[VS_MASH] < tgtVol[VS_MASH]) bitSet(actProfiles, VLV_FILLMASH);
       else bitClear(actProfiles, VLV_FILLMASH);
-  } 
-  if (autoValve[AV_HLT]) {
-    if (heatStatus[VS_HLT]) {
-      if (!vlvConfigIsActive(VLV_HLTHEAT)) bitSet(actProfiles, VLV_HLTHEAT);
-    } else {
-      if (vlvConfigIsActive(VLV_HLTHEAT)) bitClear(actProfiles, VLV_HLTHEAT);
+  }
+  
+  //HLT/MASH/KETTLE AV Logic
+  for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+    byte vlvHeat = vesselVLVHeat(i);
+    byte vlvIdle = vesselVLVIdle(i);
+    if (autoValve[vesselAV(i)]) {
+      if (heatStatus[i]) {
+        if (vlvConfigIsActive(vlvIdle)) bitClear(actProfiles, vlvIdle);
+        if (!vlvConfigIsActive(vlvHeat)) bitSet(actProfiles, vlvHeat);
+      } else {
+        if (vlvConfigIsActive(vlvHeat)) bitClear(actProfiles, vlvHeat);
+        if (!vlvConfigIsActive(vlvIdle)) bitSet(actProfiles, vlvIdle); 
+      }
     }
   }
-  if (autoValve[AV_MASH]) {
-    if (heatStatus[VS_MASH]) {
-      if (vlvConfigIsActive(VLV_MASHIDLE)) bitClear(actProfiles, VLV_MASHIDLE);
-      if (!vlvConfigIsActive(VLV_MASHHEAT)) bitSet(actProfiles, VLV_MASHHEAT);
-    } else {
-      if (vlvConfigIsActive(VLV_MASHHEAT)) bitClear(actProfiles, VLV_MASHHEAT);
-      if (!vlvConfigIsActive(VLV_MASHIDLE)) bitSet(actProfiles, VLV_MASHIDLE); 
-    }
-  } 
+  
   if (autoValve[AV_SPARGEIN]) {
     if (volAvg[VS_HLT] > tgtVol[VS_HLT]) bitSet(actProfiles, VLV_SPARGEIN);
       else bitClear(actProfiles, VLV_SPARGEIN);
@@ -632,4 +632,23 @@ void processAutoValve() {
     }
     */
   }
+}
+
+//Map AutoValve Profiles to Vessels
+byte vesselAV(byte vessel) {
+  if (vessel == VS_HLT) return AV_HLT;
+  else if (vessel == VS_MASH) return AV_MASH;
+  else if (vessel == VS_KETTLE) return AV_KETTLE;
+}
+
+byte vesselVLVHeat(byte vessel) {
+  if (vessel == VS_HLT) return VLV_HLTHEAT;
+  else if (vessel == VS_MASH) return VLV_MASHHEAT;
+  else if (vessel == VS_KETTLE) return VLV_KETTLEHEAT;
+}
+
+byte vesselVLVIdle(byte vessel) {
+  if (vessel == VS_HLT) return VLV_HLTIDLE;
+  else if (vessel == VS_MASH) return VLV_MASHIDLE;
+  else if (vessel == VS_KETTLE) return VLV_KETTLEIDLE;
 }

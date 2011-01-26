@@ -34,23 +34,17 @@ void eventHandler(byte eventID, int eventParam) {
   }
   else if (eventID == EVENT_SETPOINT) {
     //Setpoint Change (Update AutoValve Logic)
-    if (eventParam == VS_HLT) { 
-      if (setpoint[VS_HLT]) autoValve[AV_HLT] = 1; 
-      else { 
-        autoValve[AV_HLT] = 0; 
-        if (vlvConfigIsActive(VLV_HLTHEAT)) bitClear(actProfiles, VLV_HLTHEAT);
-      } 
-    }
-    else if (eventParam == VS_MASH) { 
-      if (setpoint[VS_MASH]) autoValve[AV_MASH] = 1; 
-      else { 
-        autoValve[AV_MASH] = 0; 
-        if (vlvConfigIsActive(VLV_MASHIDLE)) bitClear(actProfiles, VLV_MASHIDLE);
-        if (vlvConfigIsActive(VLV_MASHHEAT)) bitClear(actProfiles, VLV_MASHHEAT);
-      } 
-    }
+    byte avProfile = vesselAV(eventParam);
+    byte vlvHeat = vesselVLVHeat(eventParam);
+    byte vlvIdle = vesselVLVIdle(eventParam);
+    
+    if (setpoint[eventParam]) autoValve[avProfile] = 1;
+    else { 
+      autoValve[avProfile] = 0; 
+      if (vlvConfigIsActive(vlvIdle)) bitClear(actProfiles, vlvIdle);
+      if (vlvConfigIsActive(vlvHeat)) bitClear(actProfiles, vlvHeat);
+    } 
   }
-
   
   #ifndef NOUI
   //Pass Event Info to UI Even Handler
