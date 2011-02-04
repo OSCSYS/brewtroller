@@ -177,9 +177,9 @@ void uiInit() {
   initLCD();
   lcdSetCustChar_P(7, UNLOCK_ICON);
   #ifdef BTBOARD_4
-    Encoder.begin(ENCODER_TYPE, false, ENTER_PIN, ENCA_PIN, ENCB_PIN);
+    Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
   #else
-    Encoder.begin(ENCODER_TYPE, false, ENTER_PIN, ENCA_PIN, ENCB_PIN, ENTER_INT, ENCA_INT);
+    Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN, ENTER_INT, ENCA_INT);
   #endif
 
   //Check to see if EEPROM Initialization is needed

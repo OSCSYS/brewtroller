@@ -1,4 +1,4 @@
-#define BUILD 659
+#define BUILD 662
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
 
@@ -45,8 +45,6 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
 #include <pin.h>
-#include <PinChangeInt.h>
-#include <PinChangeIntConfig.h>
 
 #if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
   #include <Wire.h>
