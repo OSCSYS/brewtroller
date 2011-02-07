@@ -1621,9 +1621,14 @@ void menuSetup() {
     strcpy_P(menuopts[2], PSTR("Volume/Capacity"));
     strcpy_P(menuopts[3], PSTR("Configure Valves"));
     strcpy_P(menuopts[4], INIT_EEPROM);
+#ifdef UI_LCD_I2C
+    strcpy_P(menuopts[5], PSTR("Adjust LCD"));
+    strcpy_P(menuopts[6], EXIT);
+    lastOption = scrollMenu("System Setup", 7, lastOption);
+#else
     strcpy_P(menuopts[5], EXIT);
-    
     lastOption = scrollMenu("System Setup", 6, lastOption);
+#endif
     if (lastOption == 0) assignSensor();
     else if (lastOption == 1) cfgOutputs();
     else if (lastOption == 2) cfgVolumes();
@@ -1638,7 +1643,11 @@ void menuSetup() {
           initEEPROM();
           checkConfig();
         }
-    } else return;
+    }
+#ifdef UI_LCD_I2C
+    else if (lastOption == 5) adjustLCD();
+#endif
+    else return;
   }
 }
 
@@ -2211,5 +2220,96 @@ unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
     brewCore();
   }
 }
-#endif
-#endif
+
+#ifdef UI_LCD_I2C
+  void adjustLCD() {
+    byte cursorPos = 0; //0 = brightness, 1 = contrast, 2 = cancel, 3 = save
+    boolean cursorState = 0; //0 = Unselected, 1 = Selected
+
+    Encoder.setMin(0);
+    Encoder.setCount(0);
+    Encoder.setMax(3);
+    
+    clearLCD();
+    printLCD_P(0,0,PSTR("Adjust LCD"));
+    printLCD_P(1, 1, PSTR("Brightness:"));
+    printLCD_P(2, 3, PSTR("Contrast:"));
+    printLCD_P(3, 1, PSTR("Cancel"));
+    printLCD_P(3, 15, PSTR("Save"));
+    byte bright = i2cGetBright();
+    byte contrast = i2cGetContrast();
+    byte origBright = bright;
+    byte origContrast = contrast;
+    boolean redraw = 1;
+    while(1) {
+      int encValue;
+      if (redraw) {
+        redraw = 0;
+        encValue = Encoder.getCount();
+      }
+      else encValue = Encoder.change();
+      if (encValue >= 0) {
+        if (cursorState) {
+          if (cursorPos == 0) { 
+            bright = encValue;
+            i2cSetBright(bright);
+          } else if (cursorPos == 1) {
+            contrast = encValue;
+            i2cSetContrast(contrast);
+          }
+        } else {
+          cursorPos = encValue;
+          printLCD_P(1, 12, PSTR(" "));
+          printLCD_P(1, 16, PSTR(" "));
+          printLCD_P(2, 12, PSTR(" "));
+          printLCD_P(2, 16, PSTR(" "));
+          printLCD_P(3, 0, PSTR(" "));
+          printLCD_P(3, 7, PSTR(" "));
+          printLCD_P(3, 14, PSTR(" "));
+          printLCD_P(3, 19, PSTR(" "));
+          if (cursorPos == 0) {
+            printLCD_P(1, 12, PSTR(">"));
+            printLCD_P(1, 16, PSTR("<"));
+          } else if (cursorPos == 1) {
+            printLCD_P(2, 12, PSTR(">"));
+            printLCD_P(2, 16, PSTR("<"));
+          } else if (cursorPos == 2) {
+            printLCD_P(3, 0, PSTR(">"));
+            printLCD_P(3, 7, PSTR("<"));
+          } else if (cursorPos == 3) {
+            printLCD_P(3, 14, PSTR(">"));
+            printLCD_P(3, 19, PSTR("<"));
+          }
+        }
+        printLCDLPad(1, 13, itoa(bright, buf, 10), 3, ' ');
+        printLCDLPad(2, 13, itoa(contrast, buf, 10), 3, ' ');
+      }
+      if (Encoder.ok()) {
+        if (cursorPos == 2) {
+          i2cSetBright(origBright);
+          i2cSetContrast(origContrast);
+          return;
+        }
+        else if (cursorPos == 3) {
+          i2cSaveConfig();
+          return;
+        }
+        cursorState = cursorState ^ 1;
+        if (cursorState) {
+          Encoder.setMin(0);
+          Encoder.setMax(255);
+          if (cursorPos == 0) Encoder.setCount(bright);
+          else if (cursorPos == 1) Encoder.setCount(contrast);
+        } else {
+          Encoder.setMin(0);
+          Encoder.setMax(3);
+          Encoder.setCount(cursorPos);
+        }
+      } else if (Encoder.cancel()) return;
+      brewCore();
+    }
+  }
+#endif //#ifdef UI_LCD_I2C
+
+#endif //#ifndef UI_NO_SETUP
+#endif //#ifndef NOUI
