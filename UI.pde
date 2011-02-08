@@ -1,5 +1,5 @@
 /*  
-   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -175,7 +175,6 @@ unsigned long timerLastPrint;
 //**********************************************************************************
 void uiInit() {
   initLCD();
-  lcdSetCustChar_P(7, UNLOCK_ICON);
   #ifdef BTBOARD_4
     Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
   #else
@@ -267,6 +266,7 @@ void uiCore() {
 //**********************************************************************************
 void screenInit(byte screen) {
   clearLCD();
+  lcdSetCustChar_P(7, UNLOCK_ICON);
   
   //Print Program Active Char (Overwritten if no program active)
   if (screen != SCREEN_HOME) {
@@ -1639,7 +1639,10 @@ void menuSetup() {
       strcpy_P(menuopts[0], INIT_EEPROM);
         strcpy_P(menuopts[1], CANCEL);
         if (getChoice(2, 3) == 0) {
-          EEPROM.write(2047, 0);
+          clearLCD();
+          printLCD_P(1, 0, INIT_EEPROM);
+          printLCD_P(2, 3, PSTR("Please Wait..."));
+          updateLCD();
           initEEPROM();
           checkConfig();
         }
