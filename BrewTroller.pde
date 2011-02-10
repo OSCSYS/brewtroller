@@ -1,6 +1,6 @@
-#define BUILD 662
+#define BUILD 680
 /*  
-  Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+  Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -45,6 +45,7 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
 #include <pin.h>
+#include <menu.h>
 
 #if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
   #include <Wire.h>
@@ -83,6 +84,7 @@ void(* softReset) (void) = 0;
 //Use I2C LCD for BTBoard_4
 #ifdef BTBOARD_4
   #define UI_LCD_I2C
+  #define HEARTBEAT
 #endif
 
 //Select OneWire Comm Type
@@ -118,6 +120,7 @@ pin heatPin[4], alarmPin;
 
 #ifdef BTBOARD_4
   pin digInPin[6];
+  pin hbPin;
 #endif
 
 //Volume Sensor Pin Array
@@ -148,7 +151,7 @@ unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
 
 //Shared buffers
-char menuopts[21][20], buf[20];
+char buf[20];
 
 //Output Globals
 double PIDInput[4], PIDOutput[4], setpoint[4];
@@ -169,22 +172,28 @@ unsigned long cycleStart[4] = {0,0,0,0};
 #endif
 boolean heatStatus[4], PIDEnabled[4];
 unsigned int steamPSens, steamZero;
+
+byte pidLimits[4] = { PIDLIMIT_HLT, PIDLIMIT_MASH, PIDLIMIT_KETTLE, PIDLIMIT_STEAM };
+
 //Steam Pressure in thousandths
 unsigned long steamPressure;
 byte boilPwr;
 
 PID pid[4] = {
   PID(&PIDInput[VS_HLT], &PIDOutput[VS_HLT], &setpoint[VS_HLT], 3, 4, 1),
+
   #ifdef PID_FEED_FORWARD
-  PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], &FFBias, 3, 4, 1),
+    PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], &FFBias, 3, 4, 1),
   #else
-  PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
+    PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
   #endif
+
   PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
+
   #ifdef PID_FLOW_CONTROL
-  PID(&PIDInput[VS_PUMP], &PIDOutput[VS_PUMP], &setpoint[VS_PUMP], 3, 4, 1)
+    PID(&PIDInput[VS_PUMP], &PIDOutput[VS_PUMP], &setpoint[VS_PUMP], 3, 4, 1)
   #else
-  PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
+    PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
   #endif
 };
 
@@ -206,7 +215,7 @@ unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
 byte pitchTemp;
 
 const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "2.2";
+const char BTVER[] PROGMEM = "2.3";
 
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";

@@ -1,5 +1,5 @@
 /*  
-   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -28,6 +28,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Enum.h"
 
 void brewCore() {
+  #ifdef HEARTBEAT
+    heartbeat();
+  #endif
+  
   #ifndef NOUI
     updateLCD();
   #endif
@@ -71,4 +75,12 @@ void brewCore() {
   #ifdef BTPD_SUPPORT
     updateBTPD();
   #endif
+}
+
+unsigned long hbStart = 0;
+void heartbeat() {
+  if (millis() - hbStart > 750) {
+    hbPin.toggle();
+    hbStart = millis();
+  }
 }

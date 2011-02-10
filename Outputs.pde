@@ -1,5 +1,5 @@
 /*  
-   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -52,12 +52,13 @@ unsigned long prevProfiles;
       #endif
     #endif
   #endif
+  
 #else
-#ifdef USESTEAM
-  #define LAST_HEAT_OUTPUT VS_STEAM
-#else
-  #define LAST_HEAT_OUTPUT VS_KETTLE
-#endif
+  #ifdef USESTEAM
+    #define LAST_HEAT_OUTPUT VS_STEAM
+  #else
+    #define LAST_HEAT_OUTPUT VS_KETTLE
+  #endif
 #endif
 
 #ifdef PWM_8K_1
@@ -283,6 +284,7 @@ void pinInit() {
 #endif
 
 #ifdef BTBOARD_4
+  hbPin.setup(HEARTBEAT_PIN, OUTPUT);
   digInPin[0].setup(DIGIN1_PIN, INPUT);
   digInPin[1].setup(DIGIN2_PIN, INPUT);
   digInPin[2].setup(DIGIN3_PIN, INPUT);
@@ -304,35 +306,26 @@ void pidInit() {
   PIDOutputCountEquivalent[PWM_8K_2][1] = 1000; // this sets the output to 0 duty cycle, to make sure we dont pulse the pin high before we do our first PID calculation with a setpoint of 0
   #endif
   
-  pid[VS_HLT].SetInputLimits(0, 25500);
-  pid[VS_HLT].SetOutputLimits(0, PIDCycle[VS_HLT] * PIDLIMIT_HLT);
-  pid[VS_HLT].SetTunings(getPIDp(VS_HLT), getPIDi(VS_HLT), getPIDd(VS_HLT));
-  pid[VS_HLT].SetMode(AUTO);
-  pid[VS_HLT].SetSampleTime(PID_CYCLE_TIME);
-
-  pid[VS_MASH].SetInputLimits(0, 25500);
-  pid[VS_MASH].SetOutputLimits(0, PIDCycle[VS_MASH] * PIDLIMIT_MASH);
-  pid[VS_MASH].SetTunings(getPIDp(VS_MASH), getPIDi(VS_MASH), getPIDd(VS_MASH));
-  pid[VS_MASH].SetMode(AUTO);
-  pid[VS_MASH].SetSampleTime(PID_CYCLE_TIME);
-
-  pid[VS_KETTLE].SetInputLimits(0, 25500);
-  pid[VS_KETTLE].SetOutputLimits(0, PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE);
-  pid[VS_KETTLE].SetTunings(getPIDp(VS_KETTLE), getPIDi(VS_KETTLE), getPIDd(VS_KETTLE));
+  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
+    pid[vessel].SetInputLimits(0, 25500);
+    pid[vessel].SetOutputLimits(0, PIDCycle[vessel] * pidLimits[vessel]);
+    pid[vessel].SetTunings(getPIDp(vessel), getPIDi(vessel), getPIDd(vessel));
+    pid[vessel].SetMode(AUTO);
+    pid[vessel].SetSampleTime(PID_CYCLE_TIME);
+  }
   pid[VS_KETTLE].SetMode(MANUAL);
-  pid[VS_KETTLE].SetSampleTime(PID_CYCLE_TIME);
+
 
 #ifdef PID_FLOW_CONTROL
-#ifdef USEMETRIC
-  pid[VS_PUMP].SetInputLimits(0, 60000); // equivalent of 60 LPM
-#else
-  pid[VS_PUMP].SetInputLimits(0, 15000); // equivalent of 15 GPM
-#endif
-pid[VS_PUMP].SetOutputLimits(0, PIDCycle[VS_PUMP] * PIDLIMIT_STEAM);
-pid[VS_PUMP].SetTunings(getPIDp(VS_PUMP), getPIDi(VS_PUMP), getPIDd(VS_PUMP));
-pid[VS_PUMP].SetMode(AUTO);
-pid[VS_PUMP].SetSampleTime(FLOWRATE_READ_INTERVAL);
-
+  #ifdef USEMETRIC
+    pid[VS_PUMP].SetInputLimits(0, 60000); // equivalent of 60 LPM
+  #else
+    pid[VS_PUMP].SetInputLimits(0, 15000); // equivalent of 15 GPM
+  #endif
+  pid[VS_PUMP].SetOutputLimits(0, PIDCycle[VS_PUMP] * PIDLIMIT_STEAM);
+  pid[VS_PUMP].SetTunings(getPIDp(VS_PUMP), getPIDi(VS_PUMP), getPIDd(VS_PUMP));
+  pid[VS_PUMP].SetMode(AUTO);
+  pid[VS_PUMP].SetSampleTime(FLOWRATE_READ_INTERVAL);
 #else
   #ifdef USEMETRIC
     pid[VS_STEAM].SetInputLimits(0, 50000000 / steamPSens);

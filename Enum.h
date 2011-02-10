@@ -72,10 +72,11 @@
 #endif
 
 #ifdef BTBOARD_4
-  #define DIGIN1_PIN 21
-  #define DIGIN2_PIN 20
-  #define DIGIN3_PIN 19
-  #define DIGIN4_PIN 18
+  #define HEARTBEAT_PIN 0
+  #define DIGIN1_PIN 18
+  #define DIGIN2_PIN 19
+  #define DIGIN3_PIN 20
+  #define DIGIN4_PIN 21
   #define DIGIN5_PIN 22
 #endif
 
