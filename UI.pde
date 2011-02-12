@@ -152,9 +152,10 @@ const char CHILLNORM[] PROGMEM = "Chill Both";
     const char PUMPFLOW[] PROGMEM = "Pump Flow Rate";
   #else
     const char STEAMPRESS[] PROGMEM = "Steam Target";
+  #endif
     const char STEAMSENSOR[] PROGMEM = "Steam Sensor Sens";
     const char STEAMZERO[] PROGMEM = "Steam Zero Calib";
-  #endif
+
   
   const char CAPACITY[] PROGMEM = " Capacity";
   const char DEADSPACE[] PROGMEM = " Dead Space";
