@@ -166,13 +166,12 @@ const char CHILLNORM[] PROGMEM = "Chill Both";
   
   #ifdef PID_FLOW_CONTROL
     const char PUMPFLOW[] PROGMEM = "Pump Flow Rate";
-  #endif
-
-  #ifdef USESTEAM
+  #elif defined USESTEAM
     const char STEAMPRESS[] PROGMEM = "Steam Target";
-  #endif
     const char STEAMSENSOR[] PROGMEM = "Steam Sensor Sens";
     const char STEAMZERO[] PROGMEM = "Steam Zero Calib";
+  #endif
+
 
 
   const char CAPACITY[] PROGMEM = " Capacity";
