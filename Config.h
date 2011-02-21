@@ -11,7 +11,7 @@
 // By default BrewTroller will use US Units
 // Uncomment USEMETRIC below to use metric instead
 //
-//#define USEMETRIC
+#define USEMETRIC
 //**********************************************************************************
 
 //**********************************************************************************
@@ -47,8 +47,8 @@
 //**********************************************************************************
 // Steam Mash Infusion Support
 //**********************************************************************************
-// Uncomment the following line to enable steam mash infusion support. Note: Steam
-// support will disable onboard pump/valve outputs requiring the use of MUX boards
+// EXPERIMENTAL: Uncomment the following line to enable steam mash infusion support.
+// USE CAUTION! TESTING REQUIRED.
 //
 //#define USESTEAM
 //**********************************************************************************
@@ -184,9 +184,10 @@
 // Smart HERMS HLT
 //**********************************************************************************
 // SMART_HERMS_HLT: Varies HLT setpoint based on mash target + variance
-// MASH_HEAT_LOSS: acts a s a floor value to ensure HLT temp is at least target + 
+// HLT_MAX_TEMP: Ceiling value for HLT (Actual max temp in C or F, Decimal values allowed)
+// MASH_HEAT_LOSS: Acts as a floor value to ensure HLT temp is at least target + 
 // specified value
-// HLT_MAX_TEMP: Ceiling value for HLT
+
 
 //#define SMART_HERMS_HLT
 #define MASH_HEAT_LOSS 0
@@ -225,7 +226,7 @@
 
 // TS_ONEWIRE_FASTREAD: Enables faster reads of temperatures by reading only the first
 // 2 bytes of temperature data and ignoring CRC check.
-//#define TS_ONEWIRE_FASTREAD
+#define TS_ONEWIRE_FASTREAD
 
 // DS2482_ADDR: I2C Address of DS2482 OneWire Master (used for TS_OneWire_I2C)
 // Should be 0x18, 0x19, 0x1A, 0x1B
@@ -238,9 +239,10 @@
 //**********************************************************************************
 // STRIKE_TEMP_OFFSET: Adjusts strike temperature to compensate for thermal mass of
 // mash tun. (Note: This option is used only when Mash Liquor Heat Source is set to
-// HLT.) Specify correction in whole degrees.
+// HLT.)
+// Value may be positive or negative. Decimal values are allowed.
 
-//#define STRIKE_TEMP_OFFSET 1
+#define STRIKE_TEMP_OFFSET 0
 
 //**********************************************************************************
 

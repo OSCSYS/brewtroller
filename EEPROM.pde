@@ -86,7 +86,7 @@ void loadSetup() {
   //setpoints (299-301)
   //**********************************************************************************
   for (byte i=VS_HLT; i<=VS_KETTLE; i++) { 
-    setpoint[i] = EEPROM.read(299 + i) * 100;
+    setpoint[i] = EEPROM.read(299 + i) * SETPOINT_MULT;
     eventHandler(EVENT_SETPOINT, i);
   }
   
@@ -293,8 +293,13 @@ void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) 
 //**********************************************************************************
 //setpoints (299-301)
 //**********************************************************************************
-void setSetpoint(byte vessel, byte value) { 
-  setpoint[vessel] = value * 100;
+void setSetpoint(byte vessel, byte value) {
+  #if defined PID_FLOW_CONTROL || defined USESTEAM
+    if (vessel == VS_STEAM) setpoint[vessel] = value;
+    else setpoint[vessel] = value * SETPOINT_MULT;
+  #else
+    setpoint[vessel] = value * SETPOINT_MULT;
+  #endif
   EEPROM.write(299 + vessel, value);
   eventHandler(EVENT_SETPOINT, vessel);
 }

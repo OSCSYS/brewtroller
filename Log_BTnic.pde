@@ -343,7 +343,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         else pct = 0;
         logFieldI(pct);
       } 
-      else if (cmdBuffer[0] == CMD_SETPOINT) logFieldI(setpoint[vessel] / 100);
+      else if (cmdBuffer[0] == CMD_SETPOINT) logFieldI(setpoint[vessel] / SETPOINT_MULT);
       logEnd();
     } 
   

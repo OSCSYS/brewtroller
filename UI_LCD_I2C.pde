@@ -37,6 +37,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 byte screen[80];
 
 void initLCD(){
+  delay(1000);
   Wire.begin();
   i2cLcdBegin(20, 4);
 }

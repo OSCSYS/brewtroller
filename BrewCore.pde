@@ -77,6 +77,7 @@ void brewCore() {
   #endif
 }
 
+#ifdef HEARTBEAT
 unsigned long hbStart = 0;
 void heartbeat() {
   if (millis() - hbStart > 750) {
@@ -84,3 +85,4 @@ void heartbeat() {
     hbStart = millis();
   }
 }
+#endif

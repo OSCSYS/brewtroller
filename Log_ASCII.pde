@@ -572,7 +572,7 @@ void getLog() {
     logStart_P(LOGDATA);
     logField_P(PSTR("SETPOINT"));
     logFieldI(i);
-    logFieldI(setpoint[i] / 100);
+    logFieldI(setpoint[i] / SETPOINT_MULT);
     #if COMSCHEMA == 0
       #ifdef USEMETRIC
         logFieldI(0);

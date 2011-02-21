@@ -100,15 +100,13 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Preheat
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
       setSetpoint(TS_HLT, calcStrikeTemp(pgm));
-      #ifdef STRIKE_TEMP_OFFSET
-        setSetpoint(TS_HLT, setpoint[TS_HLT] + STRIKE_TEMP_OFFSET);
-      #endif
-      setSetpoint(TS_MASH, 0);
+      
       #ifdef MASH_PREHEAT_STRIKE
         setSetpoint(TS_MASH, calcStrikeTemp(pgm));
-      #endif
-      #ifdef MASH_PREHEAT_STEP1
+      #elif defined MASH_PREHEAT_STEP1
         setSetpoint(TS_MASH, getFirstStepTemp(pgm));
+      #else
+        setSetpoint(TS_MASH, 0);
       #endif        
     } else {
       setSetpoint(TS_HLT, getProgHLT(pgm));
@@ -529,7 +527,7 @@ void resetSpargeValves() {
 
 #ifdef SMART_HERMS_HLT
 void smartHERMSHLT() {
-  if (setpoint[VS_MASH] != 0) setpoint[VS_HLT] = constrain(setpoint[VS_MASH] * 2 - temp[TS_MASH], setpoint[VS_MASH] + MASH_HEAT_LOSS * 100, HLT_MAX_TEMP * 100);
+  if (setpoint[VS_MASH] != 0) setpoint[VS_HLT] = constrain(setpoint[VS_MASH] * 2 - temp[TS_MASH], setpoint[VS_MASH] + MASH_HEAT_LOSS * SETPOINT_DIV * 100, HLT_MAX_TEMP *  SETPOINT_DIV * 100);
 }
 #endif
   
@@ -608,11 +606,11 @@ unsigned long calcGrainVolume(byte pgm) {
 }
 
 byte calcStrikeTemp(byte pgm) {
-  byte strikeTemp = getFirstStepTemp(pgm);
+  float strikeTemp = (float)getFirstStepTemp(pgm) / SETPOINT_DIV;
   #ifdef USEMETRIC
-    return strikeTemp + round(.4 * (strikeTemp - getGrainTemp()) / (getProgRatio(pgm) / 100.0)) + 1.7;
+    return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
   #else
-    return strikeTemp + round(.192 * (strikeTemp - getGrainTemp()) / (getProgRatio(pgm) / 100.0)) + 3;
+    return (strikeTemp + round(.192 * (strikeTemp - getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
   #endif
 }
 
