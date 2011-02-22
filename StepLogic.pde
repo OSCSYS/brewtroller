@@ -243,8 +243,15 @@ boolean stepInit(byte pgm, byte brewStep) {
 
   } else if (brewStep == STEP_SPARGE) {
   //Step Init: Sparge
-    #ifdef BATCH_SPARGE
+    #ifdef HLT_HEAT_SPARGE
+      #ifdef HLT_MIN_SPARGE
+        if (volAvg[VS_HLT] >= HLT_MIN_SPARGE)
+      #endif
+          setSetpoint(TS_HLT, getProgSparge(pgm));
+    #endif
     
+    #ifdef BATCH_SPARGE
+      
     #else
       tgtVol[VS_KETTLE] = calcPreboilVol(pgm);
       #ifdef AUTO_SPARGE_START
@@ -331,6 +338,12 @@ void stepCore() {
   }
   
   if (stepIsActive(STEP_SPARGE)) { 
+    #ifdef HLT_HEAT_SPARGE
+      #ifdef HLT_MIN_SPARGE
+        if (volAvg[VS_HLT] < HLT_MIN_SPARGE) setSetpoint(TS_HLT, 0);
+      #endif
+    #endif
+    
     #ifdef BATCH_SPARGE
     
     #else
@@ -487,6 +500,9 @@ void stepExit(byte brewStep) {
 
   } else if (brewStep == STEP_SPARGE) {
   //Step Exit: Sparge
+    #ifdef HLT_HEAT_SPARGE
+      setSetpoint(TS_HLT, 0);
+    #endif
     tgtVol[VS_HLT] = 0;
     tgtVol[VS_KETTLE] = 0;
     resetSpargeValves();

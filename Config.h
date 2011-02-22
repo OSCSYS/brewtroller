@@ -30,31 +30,6 @@
 //**********************************************************************************
 
 //**********************************************************************************
-// MUX Boards
-//**********************************************************************************
-// Uncomment one of the following lines to enable MUX'ing of Pump/Valve Outputs
-// Note: MUX'ing requires 1-4 expansion boards providing 8-32 pump/valve outputs
-// To use the original 11 Pump/valve outputs included in BrewTroller 1.0 - 2.0 leave
-// all lines commented. If you are using BTBOARD_3, MUXBOARDS 2 is used automatically
-// but you can override the default by specifying a value below.
-//
-//#define MUXBOARDS 1
-//#define MUXBOARDS 2
-//#define MUXBOARDS 3
-//#define MUXBOARDS 4
-//**********************************************************************************
-
-//**********************************************************************************
-// Steam Mash Infusion Support
-//**********************************************************************************
-// EXPERIMENTAL: Uncomment the following line to enable steam mash infusion support.
-// USE CAUTION! TESTING REQUIRED.
-//
-//#define USESTEAM
-//**********************************************************************************
-
-
-//**********************************************************************************
 // Vessel Options
 //**********************************************************************************
 // BrewTroller was designed to support three vessles (HLT, Mash and Kettle). This
@@ -258,20 +233,7 @@
 //**********************************************************************************
 
 
-//**********************************************************************************
-// Sparge Options
-//**********************************************************************************
-// BATCH_SPARGE: Uses batch sparge logic instead of fly sparge logic for programs.
-//#define BATCH_SPARGE
 
-// BATCH_VOLUME_OFFSET: Adjusts batch volume calculations to increase or reduce the
-// volume of batch sparges.
-//#define BATCH_VOLUME_OFFSET 0
-
-// BATCH_SPARGE_RECIRC: Specifies the number of seconds to run the Mash Heat valve
-// profile between batch sparges.
-//#define BATCH_SPARGE_RECIRC 60
-//**********************************************************************************
 
 
 //**********************************************************************************
@@ -486,8 +448,79 @@
 // volume changes over a specified interval
 // FLOWRATE_READ_INTERVAL: Time in ms between flowrate calculation updates
 //
-#define FLOWRATE_CALCS
+//#define FLOWRATE_CALCS
 #define FLOWRATE_READ_INTERVAL 1000
+//**********************************************************************************
+
+
+
+
+
+/***********************************************************************************
+ * EXPERIMENTAL OPTIONS
+ ***********************************************************************************
+ The following options are experimental with little to no testing.
+ **********************************************************************************/
+
+
+
+
+   
+//**********************************************************************************
+// Steam Mash Infusion Support
+//**********************************************************************************
+// EXPERIMENTAL: Uncomment the following line to enable steam mash infusion support.
+// USE CAUTION! TESTING REQUIRED.
+//
+//#define USESTEAM
+//**********************************************************************************
+
+//**********************************************************************************
+// HLT Heat During Sparge
+//**********************************************************************************
+// HLT_HEAT_SPARGE: Enables the HLT setpoint during the sparge until a minimum
+// volume level is reached.
+// HLT_MIN_SPARGE: Minimum HLT volume trigger to disable the HLT Setpoint during
+// sparge. Value represents thousandths of Gallons/Litres.
+//
+//  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//  !! WARNING: ENABLING THIS OPTION WITHOUT VOLUME LEVEL SENSING OR USING A MINIMUM !!
+//  !! HLT VOLUME FLOAT SWITCH WILL RESULT IN DRY FIRING THE HLT AND CAUSING DAMAGE  !!
+//  !! AND/OR PERSONAL HARM!                                                         !!
+//  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+//#define HLT_HEAT_SPARGE
+//#define HLT_MIN_SPARGE 2000
+//**********************************************************************************
+
+//**********************************************************************************
+// Sparge Options
+//**********************************************************************************
+// BATCH_SPARGE: Uses batch sparge logic instead of fly sparge logic for programs.
+//#define BATCH_SPARGE
+
+// BATCH_VOLUME_OFFSET: Adjusts batch volume calculations to increase or reduce the
+// volume of batch sparges.
+//#define BATCH_VOLUME_OFFSET 0
+
+// BATCH_SPARGE_RECIRC: Specifies the number of seconds to run the Mash Heat valve
+// profile between batch sparges.
+//#define BATCH_SPARGE_RECIRC 60
+//**********************************************************************************
+
+//**********************************************************************************
+// MUX Boards
+//**********************************************************************************
+// Uncomment one of the following lines to enable MUX'ing of Pump/Valve Outputs
+// Note: MUX'ing requires 1-4 expansion boards providing 8-32 pump/valve outputs
+// To use the original 11 Pump/valve outputs included in BrewTroller 1.0 - 2.0 leave
+// all lines commented. If you are using BTBOARD_3, MUXBOARDS 2 is used automatically
+// but you can override the default by specifying a value below.
+//
+//#define MUXBOARDS 1
+//#define MUXBOARDS 2
+//#define MUXBOARDS 3
+//#define MUXBOARDS 4
 //**********************************************************************************
 
 //**********************************************************************************
