@@ -186,12 +186,20 @@ const char SEC[] PROGMEM = "s";
 const char VOLUNIT[] PROGMEM = "l";
 const char WTUNIT[] PROGMEM = "kg";
 const char TUNIT[] PROGMEM = "C";
+#ifdef PID_FLOW_CONTROL
+const char PUNIT[] PROGMEM = "1/10 l/m";
+#else
 const char PUNIT[] PROGMEM = "kPa";
+#endif
 #else
 const char VOLUNIT[] PROGMEM = "gal";
 const char WTUNIT[] PROGMEM = "lb";
 const char TUNIT[] PROGMEM = "F";
+#ifdef PID_FLOW_CONTROL
+const char PUNIT[] PROGMEM = "1/10 q/m";
+#else
 const char PUNIT[] PROGMEM = "psi";
+#endif
 #endif
 
 //**********************************************************************************
