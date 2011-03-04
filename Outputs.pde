@@ -174,20 +174,21 @@ ISR(TIMER1_COMPA_vect, ISR_BLOCK )
     if(PIDEnabled[PWM_8K_1])
     {
         //if the output is 1000, we need to set the pin to low 
-        if(PIDOutputCountEquivalent[PWM_8K_1][1] == 1000) heatPin[PWM_8K_1].set(LOW);
+        if(PIDOutputCountEquivalent[PWM_8K_1][1] == 1000) 
+        {
+           heatPin[PWM_8K_1].set(LOW);
+           LastSetFullPowerBoolean1 = 0;
+        }
         //if the output is its maxiumum then we just set the pin high 
         else if(PIDOutputCountEquivalent[PWM_8K_1][1] == 0)
         {
             heatPin[PWM_8K_1].set(HIGH);
             LastSetFullPowerBoolean1 = 1;
         }
-        // if we just exited from full power we need to set the heat output pin to low else we will invert our toggle logic
+        // if we just exited from full power we need to wait until the next interrupt before we set the pin low or we will invert our logic
         else if(LastSetFullPowerBoolean1) 
         {
-            heatPin[PWM_8K_1].set(LOW);
             LastSetFullPowerBoolean1 = 0;
-            if(heatPin[PWM_8K_1].get()) heatPin[PWM_8K_1].set(LOW);
-            else heatPin[PWM_8K_1].set(HIGH);
         }
         // else we need to toggle the pin from its previous state
         else
@@ -205,20 +206,21 @@ ISR(TIMER1_COMPB_vect, ISR_BLOCK)
     if(PIDEnabled[PWM_8K_2])
     {
         //if the output is 1000, we need to set the pin to low 
-        if(PIDOutputCountEquivalent[PWM_8K_2][1] == 1000) heatPin[PWM_8K_2].set(LOW);
+        if(PIDOutputCountEquivalent[PWM_8K_2][1] == 1000) 
+        {
+           heatPin[PWM_8K_2].set(LOW);
+           LastSetFullPowerBoolean2 = 0;
+        }
         //if the output is its maxiumum then we just set the pin high 
         else if(PIDOutputCountEquivalent[PWM_8K_2][1] == 0)
         {
             heatPin[PWM_8K_2].set(HIGH);
             LastSetFullPowerBoolean2 = 1;
         }
-        // if we just exited from full power we need to set the heat output pin to low else we will invert our toggle logic
+        // if we just exited from full power we need to wait until the next interrupt before we set the pin low or we will invert our logic
         else if(LastSetFullPowerBoolean2) 
         {
-            heatPin[PWM_8K_2].set(LOW);
             LastSetFullPowerBoolean2 = 0;
-            if(heatPin[PWM_8K_2].get()) heatPin[PWM_8K_2].set(LOW);
-            else heatPin[PWM_8K_2].set(HIGH)
         }
         // else we need to toggle the pin from its previous state
         else
@@ -373,6 +375,12 @@ void resetHeatOutput(byte vessel) {
     PIDOutputCountEquivalent[vessel][1] = 0;
   else
     PIDOutputCountEquivalent[vessel][1] = 1000;
+    #ifdef PWM_8K_1
+    OCR1A = 1000;
+    #endif
+    #ifdef PWM_8K_2
+    OCR1B = 1000;
+    #endif
   #endif
   heatPin[vessel].set(LOW);
   #ifdef PWM_BY_TIMER

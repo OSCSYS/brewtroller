@@ -49,14 +49,22 @@ void updateVols() {
 
 #ifdef FLOWRATE_CALCS
 void updateFlowRates() {
+   unsigned long tempmill = millis();
+   unsigned long MiliToMin = 60000;
   //Check flowrate periodically (FLOWRATE_READ_INTERVAL)
-  if (millis() - lastFlowChk > FLOWRATE_READ_INTERVAL) {
+  if (tempmill - lastFlowChk >= FLOWRATE_READ_INTERVAL) {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-      // note that the * 60000 is from converting thousands of a gallon / miliseoncds to thousands of a gallon / minutes 
-      flowRate[i] = round(((float)(((float)volAvg[i] - (float)prevFlowVol[i])) / (float)((float)millis() - (float)lastFlowChk)) * 60000);
+      // note that the * 60000 is from converting thousands of a gallon / miliseconds to thousands of a gallon / minutes 
+      flowRate[i] = round((float)((float)(((float)volAvg[i] - (float)prevFlowVol[i])) / (float)((float)tempmill - (float)lastFlowChk)) * (float)MiliToMin);
+      #ifdef DEBUG_VOL_READ
+      logStart_P(LOGDEBUG);
+      logField_P(PSTR("VOL_Calc"));
+      logFieldI(i);
+      logFieldI(flowRate[i]);
+      #endif
       prevFlowVol[i] = volAvg[i];
     }
-    lastFlowChk = millis();
+    lastFlowChk = tempmill;
   }
 }
 #endif
@@ -112,16 +120,16 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
   else if (aValue == calibrationValues[upperCal]) retValue = calibrationVols[upperCal];
   
   //If read value is greater than all calibrations plot value based on two closest lesser values
-  else if (aValue > calibrationValues[upperCal] && calibrationValues[lowerCal] > calibrationValues[lowerCal2]) retValue = round((float) (aValue - calibrationValues[lowerCal]) / (float) (calibrationValues[lowerCal] - calibrationValues[lowerCal2]) * (calibrationVols[lowerCal] - calibrationVols[lowerCal2])) + calibrationVols[lowerCal];
+  else if (aValue > calibrationValues[upperCal] && calibrationValues[lowerCal] > calibrationValues[lowerCal2]) retValue = round((float) ((float)aValue - (float)calibrationValues[lowerCal]) / (float) ((float)calibrationValues[lowerCal] - (float)calibrationValues[lowerCal2]) * ((float)calibrationVols[lowerCal] - (float)calibrationVols[lowerCal2])) + calibrationVols[lowerCal];
   
   //If read value exceeds all calibrations and only one lower calibration point is available plot value based on zero and closest lesser value
-  else if (aValue > calibrationValues[upperCal]) retValue = round((float) (aValue - calibrationValues[lowerCal]) / (float) (calibrationValues[lowerCal]) * (calibrationVols[lowerCal])) + calibrationVols[lowerCal];
+  else if (aValue > calibrationValues[upperCal]) retValue = round((float) ((float)aValue - (float)calibrationValues[lowerCal]) / (float) ((float)calibrationValues[lowerCal]) * (float)((float)calibrationVols[lowerCal])) + calibrationVols[lowerCal];
   
   //If read value is less than all calibrations plot value between zero and closest greater value
-  else if (aValue < calibrationValues[lowerCal]) retValue = round((float) aValue / (float) calibrationValues[upperCal] * calibrationVols[upperCal]);
+  else if (aValue < calibrationValues[lowerCal]) retValue = round((float) aValue / (float) calibrationValues[upperCal] * (float)calibrationVols[upperCal]);
   
   //Otherwise plot value between lower and greater calibrations
-  else retValue = round((float) (aValue - calibrationValues[lowerCal]) / (float) (calibrationValues[upperCal] - calibrationValues[lowerCal]) * (calibrationVols[upperCal] - calibrationVols[lowerCal])) + calibrationVols[lowerCal];
+  else retValue = round((float) ((float)aValue - (float)calibrationValues[lowerCal]) / (float) ((float)calibrationValues[upperCal] - (float)calibrationValues[lowerCal]) * ((float)calibrationVols[upperCal] - (float)calibrationVols[lowerCal])) + calibrationVols[lowerCal];
 
   #ifdef DEBUG_VOL_READ
     logFieldI(retValue);
