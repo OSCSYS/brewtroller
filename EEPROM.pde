@@ -293,7 +293,7 @@ void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) 
 //**********************************************************************************
 //setpoints (299-301)
 //**********************************************************************************
-void setSetpoint(byte vessel, byte value) {
+void setSetpoint(byte vessel, int value) {
   #if defined PID_FLOW_CONTROL || defined USESTEAM
     if (vessel == VS_STEAM) setpoint[vessel] = value;
     else setpoint[vessel] = value * SETPOINT_MULT;

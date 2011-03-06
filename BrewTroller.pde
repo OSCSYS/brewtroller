@@ -1,4 +1,4 @@
-#define BUILD 688
+#define BUILD 690
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -173,12 +173,6 @@ double FFBias;
 byte PIDCycle[4], hysteresis[4];
 #ifdef PWM_BY_TIMER
 unsigned int cycleStart[4] = {0,0,0,0};
-#ifdef PWM_8K_1
-byte LastSetFullPowerBoolean1 = 0;
-#endif
-#ifdef PWM_8K_2
-byte LastSetFullPowerBoolean2 = 0;
-#endif
 #else
 unsigned long cycleStart[4] = {0,0,0,0};
 #endif
@@ -208,6 +202,10 @@ PID pid[4] = {
     PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
   #endif
 };
+#if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
+  unsigned int nextcompute;
+  byte additioncount[2];
+#endif
 
 //Timer Globals
 unsigned long timerValue[2], lastTime[2];

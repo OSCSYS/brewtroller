@@ -263,7 +263,7 @@ boolean stepInit(byte pgm, byte brewStep) {
       setSetpoint(VS_PUMP, (getSteamTgt() * 100));
       #else
       //value is given in 10ths of a quart per min, so 1 quart/min would be 10, and 10 *25 = 250 which is 1 quart/min in flow rate calcs (1000ths of a gallon/min)
-      setSetpoint(VS_PUMP, getSteamTgt()*25);
+      setSetpoint(VS_PUMP, getSteamTgt()* 25);
       #endif
       #endif
     #endif

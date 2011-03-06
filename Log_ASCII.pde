@@ -543,7 +543,7 @@ void getLog() {
     logStart_P(LOGDATA);
     #ifdef PID_FLOW_CONTROL
     logField_P(PSTR("PUMP"));
-    logFieldI(flowRate[VS_MASH]);
+    logFieldI(flowRate[VS_KETTLE]);
     #else
     logField_P(PSTR("STEAM"));
     logFieldI(steamPressure);
@@ -572,7 +572,11 @@ void getLog() {
     logStart_P(LOGDATA);
     logField_P(PSTR("SETPOINT"));
     logFieldI(i);
+    #ifdef PID_FLOW_CONTROL
+    if(i == VS_PUMP) logFieldI(setpoint[i]);
+    #else
     logFieldI(setpoint[i] / SETPOINT_MULT);
+    #endif
     #if COMSCHEMA == 0
       #ifdef USEMETRIC
         logFieldI(0);

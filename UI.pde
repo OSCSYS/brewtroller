@@ -187,7 +187,7 @@ const char VOLUNIT[] PROGMEM = "l";
 const char WTUNIT[] PROGMEM = "kg";
 const char TUNIT[] PROGMEM = "C";
 #ifdef PID_FLOW_CONTROL
-const char PUNIT[] PROGMEM = "1/10 l/m";
+const char PUNIT[] PROGMEM = "0.1*l/m";
 #else
 const char PUNIT[] PROGMEM = "kPa";
 #endif
@@ -196,7 +196,7 @@ const char VOLUNIT[] PROGMEM = "gal";
 const char WTUNIT[] PROGMEM = "lb";
 const char TUNIT[] PROGMEM = "F";
 #ifdef PID_FLOW_CONTROL
-const char PUNIT[] PROGMEM = "1/10 q/m";
+const char PUNIT[] PROGMEM = "0.1*q/m";
 #else
 const char PUNIT[] PROGMEM = "psi";
 #endif
@@ -1492,7 +1492,8 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
           if (cursorPos < digits - precision) lcdWriteCustChar(2, valuePos + cursorPos - 1, 2);
           else lcdWriteCustChar(2, valuePos + cursorPos, 2);
           unsigned long cursorPow = pow10(digits - cursorPos - 1);
-          increment = max(10 / (cursorPow * divisor), 1);
+          if(divisor == 1) increment = 1;
+          else increment = max(10 / (cursorPow * divisor), 1);
           Encoder.setMin(0);
           Encoder.setMax(10 / increment - 1);
           vftoa(retValue, strValue, divisor, 0);
@@ -1848,30 +1849,24 @@ void cfgOutputs() {
     //Low-nibble = menu item: OPT_XXXXXXXX (see #defines above)
     
     if (PIDEnabled[VS_HLT]) outputMenu.setItem_P(PSTR("HLT Mode: PID"), VS_HLT<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("HLT Mode: On/Off"), VS_HLT<<4 | OPT_MODE);
-    #if !(defined PWM_8K_1 && PWM_8K_1 == VS_HLT) || (defined PWM_8K_2 && PWM_8K_2 == VS_HLT)
-      outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_HLT])), VS_HLT<<4 | OPT_CYCLE);
-      outputMenu.appendItem_P(PIDCYCLE, VS_HLT<<4 | OPT_CYCLE);
-    #endif
+    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_HLT])), VS_HLT<<4 | OPT_CYCLE);
+    outputMenu.appendItem_P(PIDCYCLE, VS_HLT<<4 | OPT_CYCLE);
     outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_HLT])), VS_HLT<<4 | OPT_GAIN);
     outputMenu.appendItem_P(PIDGAIN, VS_HLT<<4 | OPT_GAIN);
     outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_HLT])), VS_HLT<<4 | OPT_HYSTERESIS);
     outputMenu.appendItem_P(HYSTERESIS, VS_HLT<<4 | OPT_HYSTERESIS);
     
     if (PIDEnabled[VS_MASH]) outputMenu.setItem_P(PSTR("Mash Mode: PID"), VS_MASH<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("Mash Mode: On/Off"), VS_MASH<<4 | OPT_MODE);
-    #if !(defined PWM_8K_1 && PWM_8K_1 == VS_MASH) || (defined PWM_8K_2 && PWM_8K_2 == VS_MASH)
-      outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_MASH])), VS_MASH<<4 | OPT_CYCLE);
-      outputMenu.appendItem_P(PIDCYCLE, VS_MASH<<4 | OPT_CYCLE);
-    #endif
+    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_MASH])), VS_MASH<<4 | OPT_CYCLE);
+    outputMenu.appendItem_P(PIDCYCLE, VS_MASH<<4 | OPT_CYCLE);
     outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_MASH])), VS_MASH<<4 | OPT_GAIN);
     outputMenu.appendItem_P(PIDGAIN, VS_MASH<<4 | OPT_GAIN);
     outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_MASH])), VS_MASH<<4 | OPT_HYSTERESIS);
     outputMenu.appendItem_P(HYSTERESIS, VS_MASH<<4 | OPT_HYSTERESIS);
     
     if (PIDEnabled[VS_KETTLE]) outputMenu.setItem_P(PSTR("Kettle Mode: PID"), VS_KETTLE<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("Kettle Mode: On/Off"), VS_KETTLE<<4 | OPT_MODE);
-    #if !(defined PWM_8K_1 && PWM_8K_1 == VS_KETTLE) || (defined PWM_8K_2 && PWM_8K_2 == VS_KETTLE)
-      outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_KETTLE])), VS_KETTLE<<4 | OPT_CYCLE);
-      outputMenu.appendItem_P(PIDCYCLE, VS_KETTLE<<4 | OPT_CYCLE);
-    #endif
+    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_KETTLE])), VS_KETTLE<<4 | OPT_CYCLE);
+    outputMenu.appendItem_P(PIDCYCLE, VS_KETTLE<<4 | OPT_CYCLE);
     outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_KETTLE])), VS_KETTLE<<4 | OPT_GAIN);
     outputMenu.appendItem_P(PIDGAIN, VS_KETTLE<<4 | OPT_GAIN);
     outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_KETTLE])), VS_KETTLE<<4 | OPT_HYSTERESIS);
@@ -1894,10 +1889,8 @@ void cfgOutputs() {
       outputMenu.setItem_P(PUMPFLOW, VS_PUMP<<4 | OPT_PRESS);
     #elif defined USESTEAM
       if (PIDEnabled[VS_STEAM]) outputMenu.setItem_P(PSTR("Steam Mode: PID"), VS_STEAM<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("Steam Mode: On/Off"), VS_STEAM<<4 | OPT_MODE);
-      #if !(defined PWM_8K_1 && PWM_8K_1 == VS_STEAM) || (defined PWM_8K_2 && PWM_8K_2 == VS_STEAM)
-        outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_STEAM])), VS_STEAM<<4 | OPT_CYCLE);
-        outputMenu.appendItem_P(PIDCYCLE, VS_STEAM<<4 | OPT_CYCLE);
-      #endif
+      outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_STEAM])), VS_STEAM<<4 | OPT_CYCLE);
+      outputMenu.appendItem_P(PIDCYCLE, VS_STEAM<<4 | OPT_CYCLE);
       outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_STEAM])), VS_STEAM<<4 | OPT_GAIN);
       outputMenu.appendItem_P(PIDGAIN, VS_STEAM<<4 | OPT_GAIN);
       outputMenu.setItem_P(STEAMPRESS, VS_STEAM<<4 | OPT_PRESS);

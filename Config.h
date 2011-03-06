@@ -11,7 +11,7 @@
 // By default BrewTroller will use US Units
 // Uncomment USEMETRIC below to use metric instead
 //
-#define USEMETRIC
+//#define USEMETRIC
 //**********************************************************************************
 
 //**********************************************************************************
@@ -91,8 +91,6 @@
 // You will not however be able to set the the PWM frequency from the UI because it is set at 8khz, the value
 // given in the UI will be ignored. The % output however will be reported properly through the UI and log. 
 //#define PWM_BY_TIMER
-//#define PWM_8K_1 VS_PUMP
-//#define PWM_8K_2 VS_MASH
 //**********************************************************************************
 
 //**********************************************************************************
@@ -101,16 +99,21 @@
 // This #define enables the feeding of the flow rate calcs based on the pressure sensors to be fed into the 
 // PID code to control a pump for fly sparge to get a desired flow rate. Note that the PWM output used to 
 // control the pump takes over the steam output, and thus the steam output cannot be used for steam. 
-// Note: This code is designed to work with PWM_BY_TIMER with one of the PWM_8K outputs set to VS_PUMP
-// if you dont use it that way it may not work as intended. 
-// Note2: Given our current 10 bit dac and the average pressure sensor resolution for volume you only get about 
+// Note: This code is designed to work with PWM_BY_TIMER 
+// Note2: Given our current 10 bit adc and the average pressure sensor resolution for volume you only get about 
 // 7 ADC clicks per quart, thus if you have your flow rate calcs set to happen to fast you'll always show a 0 flow 
 // rate. You'll need at least 20 seconds between flow rate calcs to be able to measure this slow of a flow rate. 
-// Note3: the Pump output must be set to PID for this to work as well, and the PID cycle is always set to what
-// will appear to be 10 seconds, but in reality it's 8khz = 125uS. 
+// Note3: the Pump output must be set to PID for this to work as well.
 // Note4: In the UI when you enter the Pump flow rate it's entered in 10ths of a quart per minute, so 1 quart per
 // minute would be 10. 
 //#define PID_FLOW_CONTROL
+//#define PID_CONTROL_MANUAL  // modified manual control (still has to be set to PID in settings menu) in case you 
+                            //just cant get PID to work
+#define PID_FLOW_MIN 30     // this is the minimum PID output duty cycle % to be used when the setpoint is non zero
+                            // this is used because under a certain duty cycle a pump wont even spin or just
+                            // make foam, etc so we need the pump to at least move liquid before we try to 
+                            // control it or your process + intregral variables can just run away while you're trying
+                            // to spin up. 
 //**********************************************************************************
 
 //**********************************************************************************
@@ -120,7 +123,6 @@
 // into the kettle from the MLT. It will then shut off the pump when that equal amount of sparge water has been
 // pumped out of the HLT. 
 // Note: SPARGE_IN_HYSTERSIS is in 1000ths of a gallon or liter. 
-// Note2: This code also has no way to work with HLT_AS_KETTLE at the moment
 //#define SPARGE_IN_PUMP_CONTROL
 //#define SPARGE_IN_HYSTERESIS 250
 //**********************************************************************************

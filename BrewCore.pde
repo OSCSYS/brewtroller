@@ -44,19 +44,19 @@ void brewCore() {
  
   //Alarm update allows to have a beeping alarm
   updateBuzzer();
+
+  //Volumes: Volume.pde
+  updateVols();
+
+  #ifdef FLOWRATE_CALCS
+  updateFlowRates();
+  #endif
  
   //Heat Outputs: Outputs.pde
   processHeatOutputs();
   
-  //Volumes: Volume.pde
-  updateVols();
-
   //Log: Log.pde
   updateLog();  
-
-  #ifdef FLOWRATE_CALCS
-    updateFlowRates();
-  #endif
 
   #ifndef PID_FLOW_CONTROL
   steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
