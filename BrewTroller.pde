@@ -1,4 +1,4 @@
-#define BUILD 690
+#define BUILD 692
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -150,7 +150,7 @@ int temp[9];
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
 #ifdef SPARGE_IN_PUMP_CONTROL
-unsigned long prevSpargeVol[2] = {0,0xFFFFFFFF};
+unsigned long prevSpargeVol[2] = {0,0};
 #endif
 
 #ifdef FLOWRATE_CALCS
@@ -203,8 +203,15 @@ PID pid[4] = {
   #endif
 };
 #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
-  unsigned int nextcompute;
+  unsigned long nextcompute;
   byte additioncount[2];
+#endif
+
+#ifdef RIMS_MLT_SETPOINT_DELAY
+  byte steptoset = 0;
+  byte RIMStimeExpired = 0;
+  unsigned long starttime = 0;
+  unsigned long timetoset = 0;
 #endif
 
 //Timer Globals

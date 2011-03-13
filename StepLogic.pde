@@ -87,10 +87,6 @@ boolean stepInit(byte pgm, byte brewStep) {
     autoValve[AV_FILL] = 1;
     #endif
 
-    #ifdef SPARGE_IN_PUMP_CONTROL
-    prevSpargeVol[1] = 0xFFFFFFFF; // need to set to 0 when starting a new program so that the logic works properly
-    #endif
-
   } else if (brewStep == STEP_DELAY) {
   //Step Init: Delay
     //Load delay minutes from EEPROM if timer is not already populated via Power Loss Recovery
@@ -150,11 +146,23 @@ boolean stepInit(byte pgm, byte brewStep) {
       tgtVol[VS_HLT] = calcSpargeVol(pgm);
       tgtVol[VS_MASH] = 0;
     }
+    #ifdef AUTO_REFILL_START
+    autoValve[AV_FILL] = 1;
+    #endif
 
   } else if (brewStep == STEP_DOUGHIN) {
   //Step Init: Dough In
     setSetpoint(TS_HLT, getProgHLT(pgm));
+    #ifdef RIMS_MLT_SETPOINT_DELAY
+    starttime = millis(); // get current time
+    timetoset = starttime + RIMS_DELAY; //note that overflow of the milisecond timer is not covered here 
+    steptoset = brewStep; //step that we need to set the setpoint to after the timer is done. 
+    RIMStimeExpired = 0; //reset the boolean so that we know if the timer has expired for this program or not
+    autoValve[vesselAV(TS_MASH)] = 1; // turn on the mash recirc valve profile as if the setpoint had been set
+    #else
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_DOUGHIN));
+    #endif
+    
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
     #endif
@@ -167,6 +175,10 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_ACID) {
   //Step Init: Acid Rest
     setSetpoint(TS_HLT, getProgHLT(pgm));
+    #ifdef RIMS_MLT_SETPOINT_DELAY
+    if(RIMStimeExpired == 0 && steptoset != 0) steptoset = brewStep;
+    else
+    #endif
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_ACID));
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
@@ -180,6 +192,10 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_PROTEIN) {
   //Step Init: Protein
     setSetpoint(TS_HLT, getProgHLT(pgm));
+    #ifdef RIMS_MLT_SETPOINT_DELAY
+    if(RIMStimeExpired == 0 && steptoset != 0) steptoset = brewStep;
+    else
+    #endif
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_PROTEIN));
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
@@ -193,6 +209,10 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_SACCH) {
   //Step Init: Sacch
     setSetpoint(TS_HLT, getProgHLT(pgm));
+    #ifdef RIMS_MLT_SETPOINT_DELAY
+    if(RIMStimeExpired == 0 && steptoset != 0) steptoset = brewStep;
+    else
+    #endif
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH));
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
@@ -206,6 +226,10 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_SACCH2) {
   //Step Init: Sacch2
     setSetpoint(TS_HLT, getProgHLT(pgm));
+    #ifdef RIMS_MLT_SETPOINT_DELAY
+    if(RIMStimeExpired == 0 && steptoset != 0) steptoset = brewStep;
+    else
+    #endif
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH2));
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
@@ -219,6 +243,10 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_MASHOUT) {
   //Step Init: Mash Out
     setSetpoint(TS_HLT, getProgHLT(pgm));
+    #ifdef RIMS_MLT_SETPOINT_DELAY
+    if(RIMStimeExpired == 0 && steptoset != 0) steptoset = brewStep;
+    else
+    #endif
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_MASHOUT));
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
@@ -253,6 +281,10 @@ boolean stepInit(byte pgm, byte brewStep) {
     #ifdef BATCH_SPARGE
       
     #else
+        #ifdef SPARGE_IN_PUMP_CONTROL
+        prevSpargeVol[1] = volAvg[VS_HLT]; // init the value at the start of sparge
+        prevSpargeVol[0] = 0;
+        #endif
       tgtVol[VS_KETTLE] = calcPreboilVol(pgm);
       #ifdef AUTO_SPARGE_START
         autoValve[AV_FLYSPARGE] = 1;
@@ -429,7 +461,11 @@ void stepMash(byte brewStep) {
     if (!timerStatus[TIMER_MASH]) pauseTimer(TIMER_MASH);
   }
   //Exit Condition (and skip unused mash steps)
+  #ifdef RIMS_MLT_SETPOINT_DELAY
+  if (getProgMashTemp(stepProgram[brewStep], (brewStep - 5)) == 0 || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0)) stepAdvance(brewStep);
+  #else
   if (setpoint[VS_MASH] == 0 || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0)) stepAdvance(brewStep);
+  #endif
 }
 
 //Advances program to next brew step

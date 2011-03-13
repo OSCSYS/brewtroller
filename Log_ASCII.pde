@@ -487,6 +487,7 @@ void updateLog() {
 }
 
 void getLog() {
+  unsigned long tempval;
   if (logCount == 0) {
     logStart_P(LOGDATA);
     logField_P(PSTR("STEPPRG"));
@@ -572,11 +573,9 @@ void getLog() {
     logStart_P(LOGDATA);
     logField_P(PSTR("SETPOINT"));
     logFieldI(i);
-    #ifdef PID_FLOW_CONTROL
-    if(i == VS_PUMP) logFieldI(setpoint[i]);
-    #else
-    logFieldI(setpoint[i] / SETPOINT_MULT);
-    #endif
+    tempval = setpoint[i];
+    tempval = tempval / SETPOINT_MULT;
+    logFieldI(tempval);
     #if COMSCHEMA == 0
       #ifdef USEMETRIC
         logFieldI(0);

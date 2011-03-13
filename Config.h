@@ -25,8 +25,8 @@
 //
 //#define BTBOARD_1
 //#define BTBOARD_22
-//#define BTBOARD_3
-#define BTBOARD_4
+#define BTBOARD_3
+//#define BTBOARD_4
 //**********************************************************************************
 
 //**********************************************************************************
@@ -124,7 +124,7 @@
 // pumped out of the HLT. 
 // Note: SPARGE_IN_HYSTERSIS is in 1000ths of a gallon or liter. 
 //#define SPARGE_IN_PUMP_CONTROL
-//#define SPARGE_IN_HYSTERESIS 250
+#define SPARGE_IN_HYSTERESIS 250
 //**********************************************************************************
 
 //**********************************************************************************
@@ -383,6 +383,10 @@
 // the Fill step. 
 //#define AUTO_FILL_START
 
+// AUTO_REFILL_START: This option will enable the Fill AutoValve logic at the start of the 
+// ReFill steip
+//#define AUTO_REFILL_START
+
 // AUTO_FILL_EXIT: This option will automatically exit the Fill step once target 
 // volumes have been reached.
 //#define AUTO_FILL_EXIT
@@ -421,6 +425,17 @@
 // losing wort or causing personal injury when this profile is enabled
 //#define AUTO_BOIL_RECIRC 20
 //**********************************************************************************
+
+//**********************************************************************************
+// Delay setting the first setpoint for the MLT for a RIMS tube so the RIMS tube can be full before power on
+//**********************************************************************************
+// This code will add a delay of RIMS_DELAY (in miliseconds) to expire before the first MLT setpoint is set. This is to allow the RIMS
+// tube to be filled up with the recirc pump and come to a steady state before turning on the power. 
+//NOTE: Do not use this code if you do not have a dough in time set that is longer than the RIMS_DELAY for any program 
+// start. 
+//#define RIMS_MLT_SETPOINT_DELAY
+#define RIMS_DELAY 60000
+//**********************************
 
 //**********************************************************************************
 // Volume Sensor Settings
@@ -492,7 +507,7 @@
 //  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 //#define HLT_HEAT_SPARGE
-//#define HLT_MIN_SPARGE 2000
+//#define HLT_MIN_SPARGE 4000
 //**********************************************************************************
 
 //**********************************************************************************

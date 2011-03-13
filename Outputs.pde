@@ -311,6 +311,14 @@ void processHeatOutputs() {
   #ifdef PWM_BY_TIMER
   uint8_t oldSREG;
   #endif
+
+  #ifdef RIMS_MLT_SETPOINT_DELAY
+  if(timetoset <= millis() && timetoset != 0){
+    RIMStimeExpired = 1;
+    timetoset = 0;
+    setSetpoint(TS_MASH, getProgMashTemp(stepProgram[steptoset], steptoset - 5));
+  }
+  #endif
   
   for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++) {
     #ifdef HLT_AS_KETTLE
@@ -328,15 +336,19 @@ void processHeatOutputs() {
       #endif
           else { 
             PIDInput[i] = temp[i];
-  #ifdef PID_FEED_FORWARD
-            if(i == VS_MASH && setpoint[i] != 0) FFBias = temp[FEED_FORWARD_SENSOR];
-            else FFBias = 0; // found a bug where the mash output could be turned on if setpoint was 0 but FFBias was not 0. 
-  #endif
+      #ifdef PID_FEED_FORWARD
+            if(i == VS_MASH ) FFBias = temp[FEED_FORWARD_SENSOR];
+      #endif
           }
           pid[i].Compute();
-          #ifdef PID_FLOW_CONTROL
+        #ifdef PID_FLOW_CONTROL
           if(i == VS_PUMP && setpoint[i] == 0) PIDOutput[i] = 0; // if the setpoint is 0 then make sure we output 0, as dont want the min output always on. 
-          #endif
+        #endif
+        #ifdef PID_FEED_FORWARD
+          if(i == VS_MASH && setpoint[i] == 0) PIDOutput[i] = 0; // found a bug where the mash output could be turned on if setpoint was 0 but FFBias was not 0. 
+                                                                 // this fixes the bug but still lets the integral gain learn to compensate for the FFBias while 
+                                                                 // the setpoint is 0. 
+        #endif
         }
       #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
         else if(i == VS_PUMP){ //manual control if PID isnt working due to long sample times or other reasons
@@ -474,13 +486,13 @@ void processAutoValve() {
   if (autoValve[AV_FLYSPARGE]) {
     if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
       #ifdef SPARGE_IN_PUMP_CONTROL
-      if(volAvg[VS_KETTLE] - prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
+      if((long)volAvg[VS_KETTLE] - (long)prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
       {
          bitSet(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[0] = volAvg[VS_KETTLE];
          prevSpargeVol[1] = volAvg[VS_HLT];
       }
-      else if(prevSpargeVol[1] - volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS)
+      else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS)
       {
          bitClear(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[1] = volAvg[VS_HLT];

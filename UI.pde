@@ -1249,11 +1249,11 @@ unsigned int editHopSchedule (unsigned int sched) {
       if (retVal & (1<<(i + 1))) hopMenu.appendItem_P(PSTR("On"), i + 1); else hopMenu.appendItem_P(PSTR("Off"), i + 1);
     }
     if (retVal & 2048) hopMenu.setItem_P(PSTR("0   Min: On"), 11); else hopMenu.setItem_P(PSTR("0   Min: Off"), 11);
-    hopMenu.setItem_P(EXIT, 255);
+    hopMenu.setItem_P(EXIT, 12);
 
     byte lastOption = scrollMenu("Boil Additions", &hopMenu);
     if (lastOption == 12) return retVal;
-    else if (lastOption == 13) return sched;
+    else if (lastOption == 255) return sched;
     else retVal = retVal ^ (1 << lastOption);
   }
 }
