@@ -574,6 +574,9 @@ void getLog() {
     logField_P(PSTR("SETPOINT"));
     logFieldI(i);
     tempval = setpoint[i];
+    #ifdef PID_FLOW_CONTROL
+    if(i != VS_PUMP)
+    #endif
     tempval = tempval / SETPOINT_MULT;
     logFieldI(tempval);
     #if COMSCHEMA == 0
