@@ -186,10 +186,20 @@
 
 //Events
 #define EVENT_STEPINIT 0
-#define EVENT_SETPOINT 1
+#define EVENT_STEPEXIT 1
+#define EVENT_SETPOINT 2
+
 
 //Log Constants
 #define CMD_MSG_FIELDS 25
 #define CMD_FIELD_CHARS 21
+
+#define NUM_PROGRAMS 20
+
+#define BT_I2C_ADDR 0x10
+
+#define ASCII 0
+#define BTNIC 1
+#define BINARY 2
 
 #endif

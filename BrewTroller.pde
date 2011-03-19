@@ -1,4 +1,4 @@
-#define BUILD 693
+#define BUILD 694
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -71,11 +71,6 @@ void(* softReset) (void) = 0;
   #endif
 #endif
 
-//Enable Serial on BTBOARD_22+ boards or if DEBUG is set
-#if !defined BTBOARD_1
-  #define USESERIAL
-#endif
-
 //Enable Mash Avergaing Logic if any Mash_AVG_AUXx options were enabled
 #if defined MASH_AVG_AUX1 || defined MASH_AVG_AUX2 || defined MASH_AVG_AUX3
   #define MASH_AVG
@@ -108,6 +103,14 @@ void(* softReset) (void) = 0;
 
 #ifndef STRIKE_TEMP_OFFSET
   #define STRIKE_TEMP_OFFSET 0
+#endif
+
+#if COM_SERIAL0 == BTNIC || defined BTNIC_EMBEDDED
+  #define BTNIC_PROTOCOL
+#endif
+
+#if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE || defined BTNIC_EMBEDDED
+  #define USE_I2C
 #endif
 
 //**********************************************************************************
@@ -252,15 +255,15 @@ unsigned int PIDOutputCountEquivalent[4][2] = {{0,0},{0,0},{0,0},{0,0}};
 //**********************************************************************************
 
 void setup() {
-  #if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
-    Wire.begin();
+  #ifdef USE_I2C
+    Wire.begin(BT_I2C_ADDR);
   #endif
   
   //Initialize Brew Steps to 'Idle'
   for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepProgram[brewStep] = PROGRAM_IDLE;
   
   //Log initialization (Log.pde)
-  logInit();
+  comInit();
 
   //Pin initialization (Outputs.pde)
   pinInit();

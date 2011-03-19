@@ -261,37 +261,68 @@
 
 
 //**********************************************************************************
-// Serial Logging Options
+// Serial0 Communication Options
 //**********************************************************************************
-// COMTYPE:   Specifies the communication type being used. 
+// COM_SERIAL0: Specifies the communication type being used (Pick One):
+//  ASCII  = Original BrewTroller serial command protocol used with BTRemote and BTLog
+//  BTNIC  = BTnic (Lighterweight implementation of ASCII protocol using single-byte
+//           commands. This protocol is used with BTnic Modules and software for
+//           network connectivity.
+//  BINARY = Binary Messages
+//**********************************************************************************
+
+#define COM_SERIAL0  ASCII
+//#define COM_SERIAL0  BTNIC
+//#define COM_SERIAL0 BINARY
+
+// BAUD_RATE: The baud rate for the Serial0 connection. Previous to BrewTroller 2.0
+// Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
+// was increased to 115200 but can be manually set using this compile option.
+#define SERIAL0_BAUDRATE 115200
+
+
+// ** ASCII Protocol Options:
+//
 // COMSCHEMA: Specifies the schema for a particular type
-//  0 = ASCII Messages
+//  ASCII Messages
 //      0 - Original BT 2.0 Messages
 //      1 - BT 2.1 Enhanced ASCII
 //       Steam, Calc. Vol & Temp, BoilPower, Grain Temp, Delay Start, MLT Heat Source
-//  1 = BTnic Messages - Non-Broadcasting, Single Byte Commands
-//      0 - Original implementation
-//      1 - With CRC
-//  2 = Binary Messages
-//      0 = Original implementation
-//**********************************************************************************
-#define COMTYPE   0
 #define COMSCHEMA 0
-
-// BAUD_RATE: The baud rate for the serial connection. Previous to BrewTroller 2.0
-// Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
-// was increased to 115200 but can be manually set using this compile option.
-#define BAUD_RATE 115200
-
+//
 // LOG_INTERVAL: Specifies how often data is logged via serial in milliseconds. If
 // real time display of data is being used a smaller interval is best (1000 ms). A
 // larger interval can be used for logging applications to reduce log file size 
 // (5000 ms).
 #define LOG_INTERVAL 2000
-
+//
 // LOG_INITSTATUS: Sets whether logging is enabled on bootup. Log status can be
 // toggled using the SET_LOGSTATUS command.
 #define LOG_INITSTATUS 1
+
+//**********************************************************************************
+// BTnic Embedded Module
+//**********************************************************************************
+//#define BTNIC_EMBEDDED
+
+
+//**********************************************************************************
+// BrewTroller PID Display (BTPD)
+//**********************************************************************************
+// BTPD is an external LED display developed by BrewTroller forum member vonnieda. 
+// It is a 2 line, 4 digit (8 digits total) LED display with one line red and one
+// line green. The digits are about a half inch high and can easily be seen across
+// the room. The display connects to the BrewTroller via the I2C header and can be
+// daisy chained to use as many as you like, theoretically up to 127 but in practice
+// probably 10 or so.
+
+// BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
+//#define BTPD_SUPPORT
+
+// BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds
+#define BTPD_INTERVAL 1000
+//**********************************************************************************
+
 //**********************************************************************************
 
 
@@ -326,52 +357,6 @@
 //#define LOGO_TROLL
 #define LOGO_BREWTROLLER
 
-//**********************************************************************************
-// BrewTroller PID Display (BTPD)
-//**********************************************************************************
-// BTPD is an external LED display developed by BrewTroller forum member vonnieda. 
-// It is a 2 line, 4 digit (8 digits total) LED display with one line red and one
-// line green. The digits are about a half inch high and can easily be seen across
-// the room. The display connects to the BrewTroller via the I2C header and can be
-// daisy chained to use as many as you like, theoretically up to 127 but in practice
-// probably 10 or so.
-
-// BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
-//#define BTPD_SUPPORT
-
-// BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds.
-#define BTPD_INTERVAL 1000
-
-// BTPD_HLT_TEMP: Displays HLT temp and setpoint on specified channel
-//#define BTPD_HLT_TEMP 0x20
-
-// BTPD_MASH_TEMP: Displays Mash temp and setpoint on specified channel
-//#define BTPD_MASH_TEMP 0x21
-
-// BTPD_KETTLE_TEMP: Displays Kettle temp and setpoint on specified channel
-//#define BTPD_KETTLE_TEMP 0x22
-
-// BTPD_H2O_TEMPS: Displays H2O In and H2O Out temps on specified channels
-//#define BTPD_H2O_TEMPS 0x23
-
-// BTPD_FERM_TEMP: Displays Beer Out temp and Pitch temp on specified channel
-//#define BTPD_FERM_TEMP 0x24
-
-// BTPD_FERM_TEMP: Displays Beer Out temp and Pitch temp on specified channel
-//#define BTPD_TIMERS 0x25
-
-// BTPD_HLT_VOL: Displays current and target HLT volume
-//#define BTPD_HLT_VOL 0x26
-
-// BTPD_MASH_VOL: Displays current and target Mash volume
-//#define BTPD_MASH_VOL 0x27
-
-// BTPD_KETTLE_VOL: Displays current and target Kettle volume
-//#define BTPD_KETTLE_VOL 0x28
-
-// BTPD_STEAM_PRESS: Displays current and target Steam pressure
-//#define BTPD_STEAM_PRESS 0x29
-//**********************************************************************************
 
 //**********************************************************************************
 // Brew Step Automation

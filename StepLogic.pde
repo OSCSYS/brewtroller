@@ -565,6 +565,7 @@ void stepExit(byte brewStep) {
     bitClear(actProfiles, VLV_CHILLBEER);
     bitClear(actProfiles, VLV_CHILLH2O);
   }
+  eventHandler(EVENT_STEPEXIT, brewStep);  
 }
 
 void resetSpargeValves() {

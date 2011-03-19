@@ -293,6 +293,8 @@ void uiEvent(byte eventID, byte eventParam) {
     else if (eventParam == STEP_CHILL) activeScreen = SCREEN_CHILL;
     screenInit(activeScreen);
   }
+  else if (eventID == EVENT_STEPEXIT) screenInit(activeScreen);
+    
 }
 
 //**********************************************************************************
@@ -1252,9 +1254,9 @@ unsigned int editHopSchedule (unsigned int sched) {
     hopMenu.setItem_P(EXIT, 12);
 
     byte lastOption = scrollMenu("Boil Additions", &hopMenu);
-    if (lastOption == 12) return retVal;
-    else if (lastOption == 255) return sched;
-    else retVal = retVal ^ (1 << lastOption);
+    if (lastOption < 12) retVal = retVal ^ (1 << lastOption);
+    else if (lastOption == 12) return retVal;
+    else return sched;
   }
 }
 

@@ -55,8 +55,8 @@ void brewCore() {
   //Heat Outputs: Outputs.pde
   processHeatOutputs();
   
-  //Log: Log.pde
-  updateLog();  
+  //Communications: Com.pde
+  updateCom();  
 
   #ifndef PID_FLOW_CONTROL
   steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
@@ -70,11 +70,6 @@ void brewCore() {
   
   //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
   updateValves();
-  
-  //BTPD Support
-  #ifdef BTPD_SUPPORT
-    updateBTPD();
-  #endif
 }
 
 #ifdef HEARTBEAT

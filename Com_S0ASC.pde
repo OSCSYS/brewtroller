@@ -26,11 +26,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   Update 9/22/2010 to support enhanced functions and mutiple schemas.
   
 */
-
-#if COMTYPE == 0
-
 #include "Config.h"
 #include "Enum.h"
+
+#ifdef COM_SERIAL0
+#if COM_SERIAL0 == ASCII
 
 //**********************************************************************************
 //Code for Schemas 0 & 1
@@ -41,39 +41,29 @@ byte logCount, msgField;
 char msg[CMD_MSG_FIELDS][CMD_FIELD_CHARS];
 
 void logStart_P (const char *sType) {
-#if defined USESERIAL
  Serial.print(millis(),DEC);
  Serial.print("\t");
  while (pgm_read_byte(sType) != 0) Serial.print(pgm_read_byte(sType++)); 
  Serial.print("\t");
-#endif
 }
 
 void logEnd () {
-#if defined USESERIAL
  Serial.println();
-#endif
 }
 
 void logField (char sText[]) {
-#if defined USESERIAL
   Serial.print(sText);
   Serial.print("\t");
-#endif
 }
 
 void logFieldI (unsigned long value) {
-#if defined USESERIAL
   Serial.print(value, DEC);
   Serial.print("\t");
-#endif
 }
 
 void logField_P (const char *sText) {
-#if defined USESERIAL
   while (pgm_read_byte(sText) != 0) Serial.print(pgm_read_byte(sText++));
   Serial.print("\t");
-#endif
 }
 
 //This is (and should only) be used internally in COMSCHEMA 0/1
@@ -84,7 +74,6 @@ void logString_P (const char *sType, const char *sText) {
 }
 
 boolean chkMsg() {
-#if defined USESERIAL
   if (!msgQueued) {
     while (Serial.available()) {
       byte byteIn = Serial.read();
@@ -426,7 +415,6 @@ boolean chkMsg() {
     }
   }
   if (msgQueued) return 1; else return 0;
-#endif
 }
 
 void sendOK() {
@@ -462,7 +450,7 @@ void rejectParam() {
 
 void logVersion() { logASCIIVersion(); }
 
-void updateLog() {
+void updateS0ASCII() {
   // All data is logged every 2s. A total of 28 records are sent. The 
   //  records are sent on consecutive scans.
   if (logData) {
@@ -487,7 +475,6 @@ void updateLog() {
 }
 
 void getLog() {
-  unsigned long tempval;
   if (logCount == 0) {
     logStart_P(LOGDATA);
     logField_P(PSTR("STEPPRG"));
@@ -573,9 +560,9 @@ void getLog() {
     logStart_P(LOGDATA);
     logField_P(PSTR("SETPOINT"));
     logFieldI(i);
-    tempval = setpoint[i];
+    unsigned long tempval = setpoint[i];
     #ifdef PID_FLOW_CONTROL
-    if(i != VS_PUMP)
+      if(i != VS_PUMP)
     #endif
     tempval = tempval / SETPOINT_MULT;
     logFieldI(tempval);
@@ -607,7 +594,6 @@ void getLog() {
   }
 }
 
-#if defined USESERIAL
 void logTSensor(byte sensor) {
   logStart_P(LOGCFG);
   logField_P(PSTR("TS_ADDR"));
@@ -919,7 +905,7 @@ void logCalcVols(byte program) {
   logFieldI(calcSpargeVol(program));
   logEnd();
 }
-#endif
+#endif  //COMSCHEMA > 0
 
 #ifdef DEBUG_PID_GAIN
 void logDebugPIDGain(byte vessel) {
@@ -933,6 +919,5 @@ void logDebugPIDGain(byte vessel) {
 }
 #endif
 
-#endif  // COMSCHEMA > 0
-
-#endif  // COMTYPE == 0
+#endif  // COM_SERIAL0 == ASCII
+#endif
