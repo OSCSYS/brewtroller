@@ -349,6 +349,10 @@ void processHeatOutputs() {
                                                                  // this fixes the bug but still lets the integral gain learn to compensate for the FFBias while 
                                                                  // the setpoint is 0. 
         #endif
+        #ifdef HLT_KET_ELEMENT_SAVE
+          if(i == VS_HLT && volAvg[i] < HLT_MIN_HEAT_VOL) PIDOutput[i] = 0;
+          if(i == VS_KETTLE && volAvg[i] < KET_MIN_HEAT_VOL) PIDOutput[i] = 0;
+        #endif
         }
       #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
         else if(i == VS_PUMP){ //manual control if PID isnt working due to long sample times or other reasons
@@ -488,9 +492,10 @@ void processAutoValve() {
       #ifdef SPARGE_IN_PUMP_CONTROL
       if((long)volAvg[VS_KETTLE] - (long)prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
       {
-         bitSet(actProfiles, VLV_SPARGEIN);
+         if(volAvg[VS_HLT] > getVolLoss(VS_HLT) + 20)
+            bitSet(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[0] = volAvg[VS_KETTLE];
-         prevSpargeVol[1] = volAvg[VS_HLT];
+         //prevSpargeVol[1] = volAvg[VS_HLT];
       }
       else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS)
       {

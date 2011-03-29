@@ -478,6 +478,19 @@
 //**********************************************************************************
 
 //**********************************************************************************
+// Save HLT and KET heating elements Support
+//**********************************************************************************
+// EXPERIMENTAL: Uncomment the following line to enable forcing the HLT and KET outputs to 0
+// if the volume in said vessel is less than the #defined value support.
+// NOTE: Volume is in thousandths of a Gallons/Liters
+// USE CAUTION! TESTING REQUIRED.
+//
+//#define HLT_KET_ELEMENT_SAVE
+//#define HLT_MIN_HEAT_VOL 4000
+//#define KET_MIN_HEAT_VOL 4000
+//**********************************************************************************
+
+//**********************************************************************************
 // HLT Heat During Sparge
 //**********************************************************************************
 // HLT_HEAT_SPARGE: Enables the HLT setpoint during the sparge until a minimum
