@@ -143,7 +143,12 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_REFILL) {
   //Step Init: Refill
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
+    #ifdef HLT_MIN_REFILL
+      SpargeVol = calcSpargeVol(pgm);
+      tgtVol[VS_HLT] = min(SpargeVol, HLT_MIN_REFILL_VOL);
+    #else
       tgtVol[VS_HLT] = calcSpargeVol(pgm);
+    #endif
       tgtVol[VS_MASH] = 0;
     }
     #ifdef AUTO_REFILL_START

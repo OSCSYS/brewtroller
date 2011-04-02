@@ -1,4 +1,4 @@
-#define BUILD 695
+#define BUILD 697
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -154,6 +154,10 @@ unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
 #ifdef SPARGE_IN_PUMP_CONTROL
 unsigned long prevSpargeVol[2] = {0,0};
+#endif
+
+#ifdef HLT_MIN_REFILL
+unsigned long SpargeVol = 0;
 #endif
 
 #ifdef FLOWRATE_CALCS

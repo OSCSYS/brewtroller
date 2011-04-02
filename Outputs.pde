@@ -455,6 +455,9 @@ boolean vlvConfigIsActive(byte profile) {
 }
 
 void processAutoValve() {
+#ifdef HLT_MIN_REFILL
+  unsigned long HLTStopVol;
+#endif
   //Do Valves
   if (autoValve[AV_FILL]) {
     if (volAvg[VS_HLT] < tgtVol[VS_HLT]) bitSet(actProfiles, VLV_FILLHLT);
@@ -492,7 +495,12 @@ void processAutoValve() {
       #ifdef SPARGE_IN_PUMP_CONTROL
       if((long)volAvg[VS_KETTLE] - (long)prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
       {
+      #ifdef HLT_MIN_REFILL
+         HLTStopVol = (SpargeVol > HLT_MIN_REFILL_VOL ? getVolLoss(VS_HLT) : (HLT_MIN_REFILL_VOL - SpargeVol));
+         if(volAvg[VS_HLT] > HLTStopVol + 20)
+      #else
          if(volAvg[VS_HLT] > getVolLoss(VS_HLT) + 20)
+      #endif
             bitSet(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[0] = volAvg[VS_KETTLE];
          //prevSpargeVol[1] = volAvg[VS_HLT];

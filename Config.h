@@ -491,6 +491,21 @@
 //**********************************************************************************
 
 //**********************************************************************************
+// Min HLT refill volume
+//**********************************************************************************
+// EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT
+// during the refill step. This is so that you can make any amount of sparge water needed by making
+// sure your heating elements are covered by water so they can heat your sparge water even if you're
+// only going to use 0.25 gallons of it or some other small amount of sparge water.
+// NOTE: Volume is in thousandths of a Gallons/Liters
+// USE CAUTION! TESTING REQUIRED.
+//
+//#define HLT_MIN_REFILL
+//#define HLT_MIN_REFILL_VOL 4000
+//**********************************************************************************
+
+
+//**********************************************************************************
 // HLT Heat During Sparge
 //**********************************************************************************
 // HLT_HEAT_SPARGE: Enables the HLT setpoint during the sparge until a minimum
