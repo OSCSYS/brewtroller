@@ -939,7 +939,7 @@ void screenEnter(byte screen) {
         boilMenu.setItem_P(PSTR("Auto Boil"), 2);
         
         boilMenu.setItem_P(PSTR("Boil Temp: "), 3);
-        vftoa(getBoilTemp(), buf, 100, 1);
+        vftoa(getBoilTemp() * 100, buf, 100, 1);
         truncFloat(buf, 5);
         boilMenu.appendItem(buf, 3);
         boilMenu.appendItem_P(TUNIT, 3);
