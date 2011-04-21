@@ -435,9 +435,9 @@ boolean stepAdvance(byte brewStep) {
       setProgramStep(program, brewStep); //Show the step we started with as active
       return 1;
     }
-    //Init Successful
-    return 0;
   }
+  //Init Successful
+  return 0;
 }
 
 //Performs exit logic specific to each step
