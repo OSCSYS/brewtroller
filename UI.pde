@@ -2089,7 +2089,11 @@ void cfgVolumes() {
       strcat_P(title, CALIBRATION);
       volCalibMenu(title, vessel);
     }
+    #ifdef BOIL_OFF_GALLONS
+    else if ((lastOption & B00001111) == OPT_EVAP) setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("0.1g/hr")));
+    #else
     else if ((lastOption & B00001111) == OPT_EVAP) setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 100, PSTR("%/hr")));
+    #endif
     else return;
   } 
 }
