@@ -124,9 +124,12 @@ void loadSetup() {
   //**********************************************************************************
   //401-480 Valve Profiles
   //**********************************************************************************
-  eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
+  loadVlvConfigs();
 }
 
+void loadVlvConfigs() {
+  eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
+}
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions

@@ -52,6 +52,9 @@
 // the first mash step temp. aka 'Yorg Option 2'
 //#define MASH_PREHEAT_STRIKE
 //#define MASH_PREHEAT_STEP1
+
+//MASH_PREHEAT_NOVALVES: Disables MASH HEAT/MASH IDLE Valve Profiles during preheat
+//#define MASH_PREHEAT_NOVALVES
 //**********************************************************************************
 
 

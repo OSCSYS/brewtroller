@@ -94,6 +94,11 @@ boolean stepInit(byte pgm, byte brewStep) {
 
   } else if (brewStep == STEP_PREHEAT) {
   //Step Init: Preheat
+    #ifdef MASH_PREHEAT_NOVALVES
+      vlvConfig[VLV_MASHHEAT] = 0;
+      vlvConfig[VLV_MASHIDLE] = 0;
+    #endif
+
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
       setSetpoint(TS_HLT, calcStrikeTemp(pgm));
       
@@ -108,6 +113,7 @@ boolean stepInit(byte pgm, byte brewStep) {
       setSetpoint(TS_HLT, getProgHLT(pgm));
       setSetpoint(TS_MASH, calcStrikeTemp(pgm));
     }
+    
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
     #endif
@@ -366,9 +372,6 @@ void stepCore() {
   for (byte brewStep = STEP_DOUGHIN; brewStep <= STEP_MASHOUT; brewStep++) if (stepIsActive(brewStep)) stepMash(brewStep);
   
   if (stepIsActive(STEP_MASHHOLD)) {
-    #ifdef SMART_HERMS_HLT
-      smartHERMSHLT();
-    #endif
     #ifdef AUTO_MASH_HOLD_EXIT
       if (!zoneIsActive(ZONE_BOIL)) stepAdvance(STEP_MASHHOLD);
     #endif
@@ -538,7 +541,9 @@ void stepExit(byte brewStep) {
     //Restore mash temp sensor address from EEPROM (address 8)
       PROMreadBytes(8, tSensor[TS_MASH], 8);
     #endif
-
+    #ifdef MASH_PREHEAT_NOVALVES
+      loadVlvConfigs();
+    #endif
   } else if (brewStep == STEP_SPARGE) {
   //Step Exit: Sparge
     #ifdef HLT_HEAT_SPARGE

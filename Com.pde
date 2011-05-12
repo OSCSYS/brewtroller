@@ -32,15 +32,18 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Enum.h"
 
 void comInit() {
-  #if defined COM_SERIAL0
+  #ifdef COM_SERIAL0
     Serial.begin(SERIAL0_BAUDRATE);
     //Always identify
     if (logData)
       logASCIIVersion();
   #endif
+  #ifdef BTNIC_EMBEDDED
+    Wire.onReceive(btnicRX);
+  #endif
+  
 }
 
-#if defined COM_SERIAL0
 void logASCIIVersion() {
   printFieldUL(millis());   // timestamp
   printFieldPS(LOGSYS);     // keyword "SYS"
@@ -68,10 +71,8 @@ void printFieldPS (const char *sText) {
   while (pgm_read_byte(sText) != 0) Serial.print(pgm_read_byte(sText++));
   Serial.print("\t");
 }
-#endif
 
 void updateCom() {
-  
   #ifdef COM_SERIAL0
     #if COM_SERIAL0 == ASCII
       updateS0ASCII(); /* Log_ASCII.pde */
@@ -86,7 +87,6 @@ void updateCom() {
   #ifdef BTPD_SUPPORT
     updateBTPD();
   #endif
-  
 }
 
 /********************************************************************************************************************
@@ -98,8 +98,27 @@ void updateCom() {
   #ifdef BTNIC_EMBEDDED
     BTnic btnicI2C;
     void updateI2CBTnic() {
-      
+      if(btnicI2C.getState() == BTNIC_STATE_TX) {
+        //TX Ready
+        Wire.beginTransmission(BTNIC_I2C_ADDR);
+        char timestamp[11];
+        Wire.send(ultoa(millis(), timestamp, 10));
+        Wire.send(0x09);
+        while(btnicI2C.getState() == BTNIC_STATE_TX) Wire.send(btnicI2C.tx());        
+        Wire.send(0x0D); //Carriage Return
+        Wire.send(0x0A); //New Line
+        Wire.endTransmission();
+      }
     }
+
+    void btnicRX(int numBytes) {
+      if(btnicI2C.getState() == BTNIC_STATE_RX) {
+        for (byte i = 0; i < numBytes; i++) {
+          btnicI2C.rx(Wire.receive());
+          if(btnicI2C.getState() != BTNIC_STATE_RX) break;
+        }
+      }
+    }    
   #endif
   
   #ifdef COM_SERIAL0
@@ -109,7 +128,7 @@ void updateCom() {
         if(btnicS0.getState() == BTNIC_STATE_RX) {
           while (Serial.available()) {
             btnicS0.rx(Serial.read());
-            if(btnicS0.getState() == BTNIC_STATE_TX) break;
+            if(btnicS0.getState() != BTNIC_STATE_RX) break;
           }
         }
         if(btnicS0.getState() == BTNIC_STATE_TX) {

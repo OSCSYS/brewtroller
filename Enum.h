@@ -197,6 +197,7 @@
 #define NUM_PROGRAMS 20
 
 #define BT_I2C_ADDR 0x10
+#define BTNIC_I2C_ADDR 0x11
 
 #define ASCII 0
 #define BTNIC 1

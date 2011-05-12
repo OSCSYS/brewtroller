@@ -1,4 +1,4 @@
-#define BUILD 706 
+#define BUILD 707 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -46,10 +46,6 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
 #include <PID_Beta6.h>
 #include <pin.h>
 #include <menu.h>
-
-#if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
-  #include <Wire.h>
-#endif
 
 void(* softReset) (void) = 0;
 
@@ -111,6 +107,11 @@ void(* softReset) (void) = 0;
 
 #if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE || defined BTNIC_EMBEDDED
   #define USE_I2C
+#endif
+
+
+#ifdef USE_I2C
+  #include <Wire.h>
 #endif
 
 //**********************************************************************************
@@ -273,10 +274,6 @@ void setup() {
   pinInit();
   
   tempInit();
-  
-  #ifdef BTPD_SUPPORT
-    btpdInit();
-  #endif
 
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();

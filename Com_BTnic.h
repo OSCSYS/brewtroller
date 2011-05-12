@@ -1,4 +1,4 @@
-r/*  
+/*  
    Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
@@ -422,7 +422,7 @@ void BTnic::execCmd(void) {
       logFieldCmd(CMD_GET_VER, NO_CMDINDEX);
       logField_P(BTVER);
       logFieldI(BUILD);
-      logFieldI(COM_SERIAL0);
+      logFieldI(BTNIC);
       logFieldI(COMSCHEMA);
       #ifdef USEMETRIC
         logFieldI(0);
