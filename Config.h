@@ -239,6 +239,19 @@
 
 
 //**********************************************************************************
+// Stop fly sparge removing water from HLT at this volume
+//**********************************************************************************
+// This feature was added because the dead space for the HLT may be less than the space lost in the tubing. 
+// In particular if you're flushing your RIMS tube wort with fly sparge in water the water in the RIMS tube 
+// will need to be added to the HLT dead space even though the dead space of water actually left in the 
+// HLT will be less than that and we want to continue fly sparging until it's that low. 
+// NOTE: volume is in thousands of a gallon
+//#define HLT_FLY_SPARGE_STOP
+//#define HLT_FLY_SPARGE_STOP_VOLUME 250
+//**********************************************************************************
+
+
+//**********************************************************************************
 // Boil Off Unit Change
 //**********************************************************************************
 // This option will change the units of the boil off from % per hour to 0.1 gallons per hour

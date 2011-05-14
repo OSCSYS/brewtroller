@@ -504,7 +504,11 @@ void processAutoValve() {
             bitSet(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[0] = volAvg[VS_KETTLE];
       }
-      else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < getVolLoss(VS_HLT) +  20)
+      #ifdef HLT_FLY_SPARGE_STOP
+      else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < HLT_FLY_SPARGE_STOP_VOLUME + 20)
+      #else
+      else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < getVolLoss(VS_HLT) + 20)
+      #endif
       {
          bitClear(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[1] = volAvg[VS_HLT];
