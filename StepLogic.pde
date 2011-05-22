@@ -374,7 +374,7 @@ void stepCore() {
   if (stepIsActive(STEP_MASHHOLD)) {
     #ifdef AUTO_MASH_HOLD_EXIT 
       #ifdef AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP
-      if (!zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= getProgSparge(stepProgram[STEP_MASHHOLD])) stepAdvance(STEP_MASHHOLD);
+      if (!zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= setpoint[VS_HLT]) stepAdvance(STEP_MASHHOLD);
       #else
       if (!zoneIsActive(ZONE_BOIL)) stepAdvance(STEP_MASHHOLD);
       #endif
