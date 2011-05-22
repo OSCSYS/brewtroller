@@ -416,6 +416,11 @@
 // the boil zone is inactive.
 //#define AUTO_MASH_HOLD_EXIT
 
+// AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP This option, assuming the AUTO_MASH_HOLD_EXIT
+// option is turned on (else does nothing) wont allow the auto mash hold exit to occur until
+// the HLT has reached the sparge temp of the currently active program. 
+//#define AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP
+
 // AUTO_SPARGE_START: This option will automatically enable batch or fly sparge
 // logic at the start of the sparge step.
 //#define AUTO_SPARGE_START
