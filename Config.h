@@ -254,7 +254,8 @@
 //**********************************************************************************
 // Boil Off Unit Change
 //**********************************************************************************
-// This option will change the units of the boil off from % per hour to 0.1 gallons per hour
+// This option will change the units of the boil off from % per hour to 0.1 gallons per hour, or to 1 liter per hour 
+// if use metric is on
 //#define BOIL_OFF_GALLONS
 //**********************************************************************************
 

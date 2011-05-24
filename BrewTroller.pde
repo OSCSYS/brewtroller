@@ -1,4 +1,4 @@
-#define BUILD 711 
+#define BUILD 712 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -109,6 +109,13 @@ void(* softReset) (void) = 0;
   #define USE_I2C
 #endif
 
+#ifdef BOIL_OFF_GALLONS
+  #ifdef USEMETRIC
+    #define EvapRateConversion 1000
+  #else
+    #define EvapRateConversion 100
+  #endif
+#endif
 
 #ifdef USE_I2C
   #include <Wire.h>
