@@ -1,4 +1,4 @@
-#define BUILD 712 
+#define BUILD 713 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -55,6 +55,8 @@ void(* softReset) (void) = 0;
 
 // Disable On board pump/valve outputs for BT Board 3.0 and older boards using steam
 // Set MUXBOARDS 0 for boards without on board or MUX Pump/valve outputs
+#define DEBUG_PROG_CALC_VOLS
+
 #if (defined BTBOARD_3 || defined BTBOARD_4) && !defined MUXBOARDS
   #define MUXBOARDS 2
 #endif
