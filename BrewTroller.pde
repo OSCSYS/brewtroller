@@ -1,4 +1,4 @@
-#define BUILD 708 
+#define BUILD 715 
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -55,6 +55,7 @@ void(* softReset) (void) = 0;
 
 // Disable On board pump/valve outputs for BT Board 3.0 and older boards using steam
 // Set MUXBOARDS 0 for boards without on board or MUX Pump/valve outputs
+
 #if (defined BTBOARD_3 || defined BTBOARD_4) && !defined MUXBOARDS
   #define MUXBOARDS 2
 #endif
@@ -109,6 +110,13 @@ void(* softReset) (void) = 0;
   #define USE_I2C
 #endif
 
+#ifdef BOIL_OFF_GALLONS
+  #ifdef USEMETRIC
+    #define EvapRateConversion 1000
+  #else
+    #define EvapRateConversion 100
+  #endif
+#endif
 
 #ifdef USE_I2C
   #include <Wire.h>

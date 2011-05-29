@@ -372,8 +372,12 @@ void stepCore() {
   for (byte brewStep = STEP_DOUGHIN; brewStep <= STEP_MASHOUT; brewStep++) if (stepIsActive(brewStep)) stepMash(brewStep);
   
   if (stepIsActive(STEP_MASHHOLD)) {
-    #ifdef AUTO_MASH_HOLD_EXIT
+    #ifdef AUTO_MASH_HOLD_EXIT 
+      #ifdef AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP
+      if (!zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= setpoint[VS_HLT]) stepAdvance(STEP_MASHHOLD);
+      #else
       if (!zoneIsActive(ZONE_BOIL)) stepAdvance(STEP_MASHHOLD);
+      #endif
     #endif
   }
   
@@ -595,14 +599,18 @@ void smartHERMSHLT() {
 #endif
   
 unsigned long calcStrikeVol(byte pgm) {
-  unsigned long retValue = round((getProgGrain(pgm) * getProgRatio(pgm) / 100.0) + getVolLoss(TS_MASH));
+  unsigned long retValue = round(getProgGrain(pgm) * getProgRatio(pgm) / 100.0);
   //Convert qts to gal for US
   #ifndef USEMETRIC
     retValue = round(retValue / 4.0);
   #endif
+  retValue += getVolLoss(TS_MASH);
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logProgCalcVols("Strike:", retValue);
+  logStart_P(LOGDEBUG);
+  logField_P(PSTR("StrikeVol:"));
+  logFieldI( retValue);
+  logEnd();
   #endif
   
   return retValue;
@@ -622,7 +630,10 @@ unsigned long calcSpargeVol(byte pgm) {
   retValue -= calcStrikeVol(pgm);
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logProgCalcVols("Sparge:", retValue);
+  logStart_P(LOGDEBUG);
+  logField_P(PSTR("SpargeVol:"));
+  logFieldI( retValue);
+  logEnd();
   #endif
   
   return retValue;
@@ -633,13 +644,16 @@ unsigned long calcPreboilVol(byte pgm) {
   // It is (((batch volume + kettle loss) / thermo shrinkage factor ) / evap loss factor )
   //unsigned long retValue = (getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0)) + getVolLoss(TS_KETTLE); // old logic 
   #ifdef BOIL_OFF_GALLONS
-  unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) + ((getEvapRate() * 100) * getProgBoil(pgm) / 60.0));
+  unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) + (((unsigned long)getEvapRate() * EvapRateConversion) * getProgBoil(pgm) / 60.0));
   #else
   unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0));
   #endif
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logProgCalcVols("Preboil", round(retValue));
+  logStart_P(LOGDEBUG);
+  logField_P(PSTR("PreBoilVol:"));
+  logFieldI( round(retValue));
+  logEnd();
   #endif
   
   return round(retValue);
@@ -654,7 +668,10 @@ unsigned long calcGrainLoss(byte pgm) {
   #endif
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logProgCalcVols("Grain Loss:", retValue);
+  logStart_P(LOGDEBUG);
+  logField_P(PSTR("GrainLoss"));
+  logFieldI(retValue);
+  logEnd();
   #endif
   
   return retValue;

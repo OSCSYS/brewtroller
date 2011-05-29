@@ -254,7 +254,8 @@
 //**********************************************************************************
 // Boil Off Unit Change
 //**********************************************************************************
-// This option will change the units of the boil off from % per hour to 0.1 gallons per hour
+// This option will change the units of the boil off from % per hour to 0.1 gallons per hour, or to 1 liter per hour 
+// if use metric is on
 //#define BOIL_OFF_GALLONS
 //**********************************************************************************
 
@@ -415,6 +416,11 @@
 // the last mash step. Use this option to automatically exit the mash hold step if
 // the boil zone is inactive.
 //#define AUTO_MASH_HOLD_EXIT
+
+// AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP This option, assuming the AUTO_MASH_HOLD_EXIT
+// option is turned on (else does nothing) wont allow the auto mash hold exit to occur until
+// the HLT has reached the sparge temp of the currently active program. 
+//#define AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP
 
 // AUTO_SPARGE_START: This option will automatically enable batch or fly sparge
 // logic at the start of the sparge step.
