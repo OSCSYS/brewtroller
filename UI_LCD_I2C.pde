@@ -24,10 +24,11 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-#ifndef NOUI
-#ifdef UI_LCD_I2C
 #include "Config.h"
 #include "Enum.h"
+#include "HWProfile.h"
+
+#if !defined NOUI && defined UI_LCD_I2C
 #include <Wire.h>
 
 //*****************************************************************************************************************************
@@ -232,5 +233,4 @@ byte i2cLoadConfig(void) {
   delay(10);
 }
 
-#endif
 #endif

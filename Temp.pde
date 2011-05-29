@@ -26,6 +26,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 #include "Config.h"
 #include "Enum.h"
+#include "HWProfile.h"
 
 #ifdef TS_ONEWIRE
   #ifdef TS_ONEWIRE_GPIO

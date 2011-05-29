@@ -27,6 +27,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #ifndef NOUI
 #include "Config.h"
 #include "Enum.h"
+#include "HWProfile.h"
 #include <encoder.h>
 
 //*****************************************************************************************************************************
@@ -242,7 +243,7 @@ unsigned long timerLastPrint;
 //**********************************************************************************
 void uiInit() {
   initLCD();
-  #ifdef BTBOARD_4
+  #ifndef ENCODER_OLD_CONSTRUCTOR
     Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
   #else
     Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN, ENTER_INT, ENCA_INT);
@@ -2225,11 +2226,8 @@ unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
   //firstBit: The left most bit being displayed
   byte firstBit, encMax;
   
-#ifdef ONBOARDPV
-  encMax = 12;
-#else
-  encMax = MUXBOARDS * 8 + 1;
-#endif
+  encMax = PVOUT_BANKS * 8 + 1;
+
   Encoder.setMin(0);
   Encoder.setCount(0);
   Encoder.setMax(encMax);
@@ -2286,11 +2284,12 @@ unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
       encValue = Encoder.getCount();
       if (encValue == encMax) return retValue;
       else if (encValue == encMax - 1) {
-        setValves(retValue);
+        Valves.set(retValue);
         printLCD_P(3, 2, PSTR("["));
         printLCD_P(3, 7, PSTR("]"));
+        updateLCD();
         while (!Encoder.ok()) delay(100);
-        setValves(0);
+        Valves.set(0);
         redraw = 1;
       } else {
         retValue = retValue ^ ((unsigned long)1<<encValue);

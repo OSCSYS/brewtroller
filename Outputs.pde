@@ -27,8 +27,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 #include "Config.h"
 #include "Enum.h"
-
-unsigned long prevProfiles;
+#include "HWProfile.h"
+#include "PVOut.h"
 
 #ifdef PID_FLOW_CONTROL 
   #define LAST_HEAT_OUTPUT VS_PUMP // not this is mostly done for code readability as VS_PUMP = VS_STEAM
@@ -120,40 +120,6 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 
 void pinInit() {
   alarmPin.setup(ALARM_PIN, OUTPUT);
-
-  #if MUXBOARDS > 0
-    muxLatchPin.setup(MUX_LATCH_PIN, OUTPUT);
-    muxDataPin.setup(MUX_DATA_PIN, OUTPUT);
-    muxClockPin.setup(MUX_CLOCK_PIN, OUTPUT);
-    #ifdef BTBOARD_4
-      //MUX in Reset State
-      muxMRPin.setup(MUX_MR_PIN, OUTPUT);
-      muxLatchPin.clear(); //Prepare to copy pin states
-      muxMRPin.clear(); //Force clear of pin registers
-      muxLatchPin.set(); //Copy pin states from registers
-      muxMRPin.set(); //Disable clear
-    #else
-      //MUX in Hi-Z State
-      muxOEPin.setup(MUX_OE_PIN, OUTPUT);
-      setValves(0);
-      muxOEPin.clear();
-      //MUX Enabled
-    #endif
-  #endif
-  #ifdef ONBOARDPV
-    valvePin[0].setup(VALVE1_PIN, OUTPUT);
-    valvePin[1].setup(VALVE2_PIN, OUTPUT);
-    valvePin[2].setup(VALVE3_PIN, OUTPUT);
-    valvePin[3].setup(VALVE4_PIN, OUTPUT);
-    valvePin[4].setup(VALVE5_PIN, OUTPUT);
-    valvePin[5].setup(VALVE6_PIN, OUTPUT);
-    valvePin[6].setup(VALVE7_PIN, OUTPUT);
-    valvePin[7].setup(VALVE8_PIN, OUTPUT);
-    valvePin[8].setup(VALVE9_PIN, OUTPUT);
-    valvePin[9].setup(VALVEA_PIN, OUTPUT);
-    valvePin[10].setup(VALVEB_PIN, OUTPUT);
-  #endif
-  
   heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
   heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
 #ifdef HLT_AS_KETTLE
@@ -169,8 +135,11 @@ void pinInit() {
   heatPin[VS_PUMP].setup(PWMPUMP_PIN, OUTPUT);
 #endif
 
-#ifdef BTBOARD_4
+#ifdef HEARTBEAT
   hbPin.setup(HEARTBEAT_PIN, OUTPUT);
+#endif
+
+#ifdef DIGITAL_INPUTS
   digInPin[0].setup(DIGIN1_PIN, INPUT);
   digInPin[1].setup(DIGIN2_PIN, INPUT);
   digInPin[2].setup(DIGIN3_PIN, INPUT);
@@ -258,9 +227,11 @@ void resetHeatOutput(byte vessel) {
   #endif
 }  
 
+unsigned long prevProfiles;
+
 void updateValves() {
   if (actProfiles != prevProfiles) {
-    setValves(computeValveBits());
+    Valves.set(computeValveBits());
     prevProfiles = actProfiles;
   }
 }
@@ -275,34 +246,10 @@ unsigned long computeValveBits() {
   return vlvBits;
 }
 
-void setValves(unsigned long vlvBits) {
-  #if MUXBOARDS > 0
-  //MUX Valve Code
-    //ground latchPin and hold low for as long as you are transmitting
-    muxLatchPin.clear();
-    //clear everything out just in case to prepare shift register for bit shifting
-    muxDataPin.clear();
-    muxClockPin.clear();
-  
-    //for each bit in the long myDataOut
-    for (byte i = 0; i < 32; i++)  {
-      muxClockPin.clear();
-      //create bitmask to grab the bit associated with our counter i and set data pin accordingly (NOTE: 32 - i causes bits to be sent most significant to least significant)
-      if ( vlvBits & ((unsigned long)1<<(31 - i)) ) muxDataPin.set(); else muxDataPin.clear();
-      //register shifts bits on upstroke of clock pin  
-      muxClockPin.set();
-      //zero the data pin after shift to prevent bleed through
-      muxDataPin.clear();
-    }
-  
-    //stop shifting
-    muxClockPin.clear();
-    muxLatchPin.set();
-  #endif
-  #ifdef ONBOARDPV
-  //Original 11 Valve Code
-  for (byte i = 0; i < 11; i++) { if (vlvBits & (1<<i)) valvePin[i].set(); else valvePin[i].clear(); }
-  #endif
+boolean vlvConfigIsActive(byte profile) {
+  //An empty valve profile cannot be active
+  if (!vlvConfig[profile]) return 0;
+  return bitRead(actProfiles, profile);
 }
 
 void processHeatOutputs() {
@@ -448,12 +395,6 @@ void processHeatOutputs() {
   }
 }
 
-boolean vlvConfigIsActive(byte profile) {
-  //An empty valve profile cannot be active
-  if (!vlvConfig[profile]) return 0;
-  return bitRead(actProfiles, profile);
-}
-
 void processAutoValve() {
 #ifdef HLT_MIN_REFILL
   unsigned long HLTStopVol;
@@ -567,3 +508,6 @@ byte vesselVLVIdle(byte vessel) {
   else if (vessel == VS_MASH) return VLV_MASHIDLE;
   else if (vessel == VS_KETTLE) return VLV_KETTLEIDLE;
 }
+
+
+

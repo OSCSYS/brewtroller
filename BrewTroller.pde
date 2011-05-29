@@ -1,4 +1,4 @@
-#define BUILD 714 
+#define BUILD 716
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -26,7 +26,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 /*
-Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
+Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
   With Sanguino Software "Sanguino-0018r2_1_4.zip" (http://code.google.com/p/sanguino/downloads/list)
 
   Using the following libraries:
@@ -38,6 +38,8 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
 
 #include "Config.h"
 #include "Enum.h"
+#include "HWProfile.h"
+#include "PVOut.h"
 
 //*****************************************************************************************************************************
 // BEGIN CODE
@@ -53,41 +55,9 @@ void(* softReset) (void) = 0;
 // Compile Time Logic
 //**********************************************************************************
 
-// Disable On board pump/valve outputs for BT Board 3.0 and older boards using steam
-// Set MUXBOARDS 0 for boards without on board or MUX Pump/valve outputs
-
-#if (defined BTBOARD_3 || defined BTBOARD_4) && !defined MUXBOARDS
-  #define MUXBOARDS 2
-#endif
-
-#if !defined BTBOARD_3 && !defined BTBOARD_4 && !defined USESTEAM && !defined MUXBOARDS
-  #define ONBOARDPV
-#else
-  #if !defined MUXBOARDS
-    #define MUXBOARDS 0
-  #endif
-#endif
-
 //Enable Mash Avergaing Logic if any Mash_AVG_AUXx options were enabled
 #if defined MASH_AVG_AUX1 || defined MASH_AVG_AUX2 || defined MASH_AVG_AUX3
   #define MASH_AVG
-#endif
-
-//Use I2C LCD for BTBoard_4
-#ifdef BTBOARD_4
-  #define UI_LCD_I2C
-  #define HEARTBEAT
-#endif
-
-//Select OneWire Comm Type
-#ifdef TS_ONEWIRE
-  #ifdef BTBOARD_4
-    #define TS_ONEWIRE_I2C //BTBOARD_4 uses I2C if OneWire support is used
-  #else
-    #ifndef TS_ONEWIRE_I2C
-      #define TS_ONEWIRE_GPIO //Previous boards use GPIO unless explicitly configured for I2C
-    #endif
-  #endif
 #endif
 
 #ifdef USEMETRIC
@@ -106,7 +76,7 @@ void(* softReset) (void) = 0;
   #define BTNIC_PROTOCOL
 #endif
 
-#if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE || defined BTNIC_EMBEDDED
+#if defined BTPD_SUPPORT || defined UI_LCD_I2C || defined TS_ONEWIRE_I2C || defined BTNIC_EMBEDDED
   #define USE_I2C
 #endif
 
@@ -129,21 +99,11 @@ void(* softReset) (void) = 0;
 //Heat Output Pin Array
 pin heatPin[4], alarmPin;
 
-#ifdef ONBOARDPV
-  pin valvePin[11];
-#endif
-
-#if MUXBOARDS > 0
-  pin muxLatchPin, muxDataPin, muxClockPin;
-  #ifdef BTBOARD_4
-    pin muxMRPin;
-  #else
-    pin muxOEPin;
-  #endif
-#endif
-
-#ifdef BTBOARD_4
+#ifdef DIGITAL_INPUTS
   pin digInPin[6];
+#endif
+
+#ifdef HEARTBEAT
   pin hbPin;
 #endif
 
@@ -177,6 +137,36 @@ long flowRate[3] = {0,0,0};
 //Valve Variables
 unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
+
+//Create the appropriate 'Valves' object for the hardware configuration (GPIO, MUX, MODBUS)
+#if defined PVOUT_TYPE_GPIO
+  PVOutGPIO Valves(
+    VALVE1_PIN,
+    VALVE2_PIN,
+    VALVE3_PIN,
+    VALVE4_PIN,
+    VALVE5_PIN,
+    VALVE6_PIN,
+    VALVE7_PIN,
+    VALVE8_PIN,
+    VALVE9_PIN,
+    VALVEA_PIN,
+    VALVEB_PIN
+  );
+
+#elif defined PVOUT_TYPE_MUX
+  PVOutMUX Valves( 
+    MUX_LATCH_PIN,
+    MUX_DATA_PIN,
+    MUX_CLOCK_PIN,
+    MUX_ENABLE_PIN,
+    MUX_ENABLE_LOGIC
+  );
+  
+#elif defined PVOUT_TYPE_MODBUS
+  PVOutMODBUS Valves();
+
+#endif
 
 //Shared buffers
 char buf[20];
@@ -248,7 +238,7 @@ unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
 byte pitchTemp;
 
 const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "2.3";
+const char BTVER[] PROGMEM = "2.4";
 
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";
@@ -281,19 +271,21 @@ void setup() {
   //Pin initialization (Outputs.pde)
   pinInit();
   
+  Valves.init();
+  
   tempInit();
-
+  
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();
-
+  
   //Load global variable values stored in EEPROM (EEPROM.pde)
   loadSetup();
-
+  
   //PID Initialization (Outputs.pde)
   pidInit();
-
+  
   #ifdef PWM_BY_TIMER
-  pwmInit();
+    pwmInit();
   #endif
 
   //User Interface Initialization (UI.pde)

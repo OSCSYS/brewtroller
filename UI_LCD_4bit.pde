@@ -24,12 +24,12 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-#ifndef NOUI
-#ifndef UI_LCD_I2C
 #include "Config.h"
 #include "Enum.h"
 #include <LiquidCrystalFP.h>
+#include "HWProfile.h"
 
+#if !defined NOUI && defined UI_LCD_4BIT
 //*****************************************************************************************************************************
 // UI COMPILE OPTIONS
 //*****************************************************************************************************************************
@@ -45,13 +45,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //#define LCD_DELAY_CHAR 60
 //**********************************************************************************
 
-
-//UI Globals
-#ifdef BTBOARD_3
-  LiquidCrystal lcd(18, 19, 20, 21, 22, 23);
-#else
-  LiquidCrystal lcd(17, 19, 20, 21, 22, 23);
-#endif 
+LiquidCrystal lcd(LCD_RS_PIN, LCD_ENABLE_PIN, LCD_DATA4_PIN, LCD_DATA5_PIN, LCD_DATA6_PIN, LCD_DATA7_PIN);
 
 void initLCD(){
   lcd.begin(20, 4);
@@ -171,5 +165,4 @@ void lcdWriteCustChar(byte iRow, byte iCol, byte slot) {
   lcd.write(slot);
 }
 
-#endif
 #endif
