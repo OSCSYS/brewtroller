@@ -1,4 +1,4 @@
-#define BUILD 716
+#define BUILD 717
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -140,6 +140,7 @@ boolean autoValve[NUM_AV];
 
 //Create the appropriate 'Valves' object for the hardware configuration (GPIO, MUX, MODBUS)
 #if defined PVOUT_TYPE_GPIO
+  #define PVOUT
   PVOutGPIO Valves(
     VALVE1_PIN,
     VALVE2_PIN,
@@ -155,6 +156,7 @@ boolean autoValve[NUM_AV];
   );
 
 #elif defined PVOUT_TYPE_MUX
+  #define PVOUT
   PVOutMUX Valves( 
     MUX_LATCH_PIN,
     MUX_DATA_PIN,
@@ -164,6 +166,7 @@ boolean autoValve[NUM_AV];
   );
   
 #elif defined PVOUT_TYPE_MODBUS
+  #define PVOUT
   PVOutMODBUS Valves();
 
 #endif
@@ -270,9 +273,11 @@ void setup() {
 
   //Pin initialization (Outputs.pde)
   pinInit();
-  
+
+#ifdef PVOUT
   Valves.init();
-  
+#endif
+
   tempInit();
   
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)

@@ -103,5 +103,4 @@
     void init(void);
     void set(unsigned long);
   };
-  
-#endif
+#endif //ifndef PVOUT_H

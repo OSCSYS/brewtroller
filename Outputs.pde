@@ -122,30 +122,30 @@ void pinInit() {
   alarmPin.setup(ALARM_PIN, OUTPUT);
   heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
   heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
-#ifdef HLT_AS_KETTLE
-  heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
-#else
-  heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
-#endif
+  #ifdef HLT_AS_KETTLE
+    heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
+  #else
+    heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
+  #endif
 
-#ifdef USESTEAM
-  heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
-#endif
-#ifdef PID_FLOW_CONTROL
-  heatPin[VS_PUMP].setup(PWMPUMP_PIN, OUTPUT);
-#endif
+  #ifdef USESTEAM
+    heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
+  #endif
+  #ifdef PID_FLOW_CONTROL
+    heatPin[VS_PUMP].setup(PWMPUMP_PIN, OUTPUT);
+  #endif
 
-#ifdef HEARTBEAT
-  hbPin.setup(HEARTBEAT_PIN, OUTPUT);
-#endif
-
-#ifdef DIGITAL_INPUTS
-  digInPin[0].setup(DIGIN1_PIN, INPUT);
-  digInPin[1].setup(DIGIN2_PIN, INPUT);
-  digInPin[2].setup(DIGIN3_PIN, INPUT);
-  digInPin[3].setup(DIGIN4_PIN, INPUT);
-  digInPin[4].setup(DIGIN5_PIN, INPUT);
-#endif
+  #ifdef HEARTBEAT
+    hbPin.setup(HEARTBEAT_PIN, OUTPUT);
+  #endif
+  
+  #ifdef DIGITAL_INPUTS
+    digInPin[0].setup(DIGIN1_PIN, INPUT);
+    digInPin[1].setup(DIGIN2_PIN, INPUT);
+    digInPin[2].setup(DIGIN3_PIN, INPUT);
+    digInPin[3].setup(DIGIN4_PIN, INPUT);
+    digInPin[4].setup(DIGIN5_PIN, INPUT);
+  #endif
 }
 
 void pidInit() {
@@ -153,7 +153,7 @@ void pidInit() {
   // this means that after it is multiplied by the PIDLIMIT it will be the proper value to give you the desired % output
   // it also makes the % calculations work properly in the log, UI, and other area's. 
   #ifdef PID_FLOW_CONTROL
-  PIDCycle[VS_PUMP] = 1; // for PID pump flow the STEAM heat output is set to a fixed 10hz signal with 100 step outputs. 
+    PIDCycle[VS_PUMP] = 1; // for PID pump flow the STEAM heat output is set to a fixed 10hz signal with 100 step outputs. 
   #endif
   
   for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
@@ -166,38 +166,38 @@ void pidInit() {
   pid[VS_KETTLE].SetMode(MANUAL);
 
 
-#ifdef PID_FLOW_CONTROL
-  #ifdef USEMETRIC
-    pid[VS_PUMP].SetInputLimits(0, 255000); // equivalent of 25.5 LPM (255 * 100)
+  #ifdef PID_FLOW_CONTROL
+    #ifdef USEMETRIC
+      pid[VS_PUMP].SetInputLimits(0, 255000); // equivalent of 25.5 LPM (255 * 100)
+    #else
+      pid[VS_PUMP].SetInputLimits(0, 6375); // equivalent of 6.375 GPM (255 * 25)
+    #endif
+    pid[VS_PUMP].SetOutputLimits(PID_FLOW_MIN, PIDCycle[VS_PUMP] * PIDLIMIT_STEAM);
+    pid[VS_PUMP].SetTunings(getPIDp(VS_PUMP), getPIDi(VS_PUMP), getPIDd(VS_PUMP));
+    #ifdef PID_CONTROL_MANUAL
+      pid[VS_PUMP].SetMode(MANUAL);
+    #else
+      pid[VS_PUMP].SetMode(AUTO);
+    #endif
+    pid[VS_PUMP].SetSampleTime(FLOWRATE_READ_INTERVAL);
+    #ifdef PID_CONTROL_MANUAL
+      nextcompute = millis() + FLOWRATE_READ_INTERVAL;
+    #endif
   #else
-    pid[VS_PUMP].SetInputLimits(0, 6375); // equivalent of 6.375 GPM (255 * 25)
+    #ifdef USEMETRIC
+      pid[VS_STEAM].SetInputLimits(0, 50000000 / steamPSens);
+    #else
+      pid[VS_STEAM].SetInputLimits(0, 7250000 / steamPSens);
+    #endif
+    pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * PIDLIMIT_STEAM);
+    pid[VS_STEAM].SetTunings(getPIDp(VS_STEAM), getPIDi(VS_STEAM), getPIDd(VS_STEAM));
+    pid[VS_STEAM].SetMode(AUTO);
+    pid[VS_STEAM].SetSampleTime(PID_CYCLE_TIME);
   #endif
-  pid[VS_PUMP].SetOutputLimits(PID_FLOW_MIN, PIDCycle[VS_PUMP] * PIDLIMIT_STEAM);
-  pid[VS_PUMP].SetTunings(getPIDp(VS_PUMP), getPIDi(VS_PUMP), getPIDd(VS_PUMP));
-  #ifdef PID_CONTROL_MANUAL
-  pid[VS_PUMP].SetMode(MANUAL);
-  #else
-  pid[VS_PUMP].SetMode(AUTO);
-  #endif
-  pid[VS_PUMP].SetSampleTime(FLOWRATE_READ_INTERVAL);
-  #ifdef PID_CONTROL_MANUAL
-  nextcompute = millis() + FLOWRATE_READ_INTERVAL;
-  #endif
-#else
-  #ifdef USEMETRIC
-    pid[VS_STEAM].SetInputLimits(0, 50000000 / steamPSens);
-  #else
-    pid[VS_STEAM].SetInputLimits(0, 7250000 / steamPSens);
-  #endif
-  pid[VS_STEAM].SetOutputLimits(0, PIDCycle[VS_STEAM] * PIDLIMIT_STEAM);
-  pid[VS_STEAM].SetTunings(getPIDp(VS_STEAM), getPIDi(VS_STEAM), getPIDd(VS_STEAM));
-  pid[VS_STEAM].SetMode(AUTO);
-  pid[VS_STEAM].SetSampleTime(PID_CYCLE_TIME);
-#endif
 
-#ifdef DEBUG_PID_GAIN
-  for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) logDebugPIDGain(vessel);
-#endif
+  #ifdef DEBUG_PID_GAIN
+    for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) logDebugPIDGain(vessel);
+  #endif
 }
 
 void resetOutputs() {
@@ -206,65 +206,40 @@ void resetOutputs() {
 
 void resetHeatOutput(byte vessel) {
   #ifdef PWM_BY_TIMER
-  uint8_t oldSREG;
+    uint8_t oldSREG;
   #endif
   setSetpoint(vessel, 0);
   PIDOutput[vessel] = 0;
   #ifdef PID_FEED_FORWARD
-  if(vessel == VS_MASH)
-    FFBias = 0;
+    if(vessel == VS_MASH)
+      FFBias = 0;
   #endif
   #ifdef PWM_BY_TIMER
-  // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
-  oldSREG = SREG;
-  cli();
-  //if we are not a 8K output then we can set it to 0, but if we are we need to set it to 1000 to make the duty cycle 0
-  PIDOutputCountEquivalent[vessel][1] = 0;
+    // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
+    oldSREG = SREG;
+    cli();
+    //if we are not a 8K output then we can set it to 0, but if we are we need to set it to 1000 to make the duty cycle 0
+    PIDOutputCountEquivalent[vessel][1] = 0;
   #endif
   heatPin[vessel].set(LOW);
   #ifdef PWM_BY_TIMER
-  SREG = oldSREG; // restore interrupts
+    SREG = oldSREG; // restore interrupts
   #endif
 }  
-
-unsigned long prevProfiles;
-
-void updateValves() {
-  if (actProfiles != prevProfiles) {
-    Valves.set(computeValveBits());
-    prevProfiles = actProfiles;
-  }
-}
-
-unsigned long computeValveBits() {
-  unsigned long vlvBits = 0;
-  for (byte i = 0; i < NUM_VLVCFGS; i++) {
-    if (bitRead(actProfiles, i)) {
-      vlvBits |= vlvConfig[i];
-    }
-  }
-  return vlvBits;
-}
-
-boolean vlvConfigIsActive(byte profile) {
-  //An empty valve profile cannot be active
-  if (!vlvConfig[profile]) return 0;
-  return bitRead(actProfiles, profile);
-}
 
 void processHeatOutputs() {
   //Process Heat Outputs
   unsigned long millistemp;
   #ifdef PWM_BY_TIMER
-  uint8_t oldSREG;
+    uint8_t oldSREG;
   #endif
 
   #ifdef RIMS_MLT_SETPOINT_DELAY
-  if(timetoset <= millis() && timetoset != 0){
-    RIMStimeExpired = 1;
-    timetoset = 0;
-    setSetpoint(TS_MASH, getProgMashTemp(stepProgram[steptoset], steptoset - 5));
-  }
+    if(timetoset <= millis() && timetoset != 0){
+      RIMStimeExpired = 1;
+      timetoset = 0;
+      setSetpoint(TS_MASH, getProgMashTemp(stepProgram[steptoset], steptoset - 5));
+    }
   #endif
   
   for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++) {
@@ -355,20 +330,20 @@ void processHeatOutputs() {
       #endif
       }
       #ifndef PWM_BY_TIMER
-      //only 1 call to millis needed here, and if we get hit with an interrupt we still want to calculate based on the first read value of it
-      millistemp = millis();
-      if (cycleStart[i] == 0) cycleStart[i] = millistemp;
-      if (millistemp - cycleStart[i] > PIDCycle[i] * 100) cycleStart[i] += PIDCycle[i] * 100;
-      if (PIDOutput[i] >= millistemp - cycleStart[i] && millistemp != cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
+        //only 1 call to millis needed here, and if we get hit with an interrupt we still want to calculate based on the first read value of it
+        millistemp = millis();
+        if (cycleStart[i] == 0) cycleStart[i] = millistemp;
+        if (millistemp - cycleStart[i] > PIDCycle[i] * 100) cycleStart[i] += PIDCycle[i] * 100;
+        if (PIDOutput[i] >= millistemp - cycleStart[i] && millistemp != cycleStart[i]) heatPin[i].set(HIGH); else heatPin[i].set(LOW);
       #else
-      //here we do as much math as we can OUT SIDE the ISR, we calculate the PWM cycle time in counter/timer counts
-      // and place it in the [i][0] value, then calculate the timer counts to get the desired PWM % and place it in [i][1]
-      // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
-      oldSREG = SREG;
-      cli();
-      PIDOutputCountEquivalent[i][0] = PIDCycle[i] * 800;
-      PIDOutputCountEquivalent[i][1] = PIDOutput[i] * 8;
-      SREG = oldSREG; // restore interrupts
+        //here we do as much math as we can OUT SIDE the ISR, we calculate the PWM cycle time in counter/timer counts
+        // and place it in the [i][0] value, then calculate the timer counts to get the desired PWM % and place it in [i][1]
+        // need to disable interrupts so a write into here can finish before an interrupt can come in and read it
+        oldSREG = SREG;
+        cli();
+        PIDOutputCountEquivalent[i][0] = PIDCycle[i] * 800;
+        PIDOutputCountEquivalent[i][1] = PIDOutput[i] * 8;
+        SREG = oldSREG; // restore interrupts
       #endif
       if (PIDOutput[i] == 0)  heatStatus[i] = 0; else heatStatus[i] = 1;
     } else {
@@ -395,100 +370,127 @@ void processHeatOutputs() {
   }
 }
 
-void processAutoValve() {
-#ifdef HLT_MIN_REFILL
-  unsigned long HLTStopVol;
-#endif
-  //Do Valves
-  if (autoValve[AV_FILL]) {
-    if (volAvg[VS_HLT] < tgtVol[VS_HLT]) bitSet(actProfiles, VLV_FILLHLT);
-      else bitClear(actProfiles, VLV_FILLHLT);
-      
-    if (volAvg[VS_MASH] < tgtVol[VS_MASH]) bitSet(actProfiles, VLV_FILLMASH);
-      else bitClear(actProfiles, VLV_FILLMASH);
-  }
+#ifdef PVOUT
+  unsigned long prevProfiles;
   
-  //HLT/MASH/KETTLE AV Logic
-  for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-    byte vlvHeat = vesselVLVHeat(i);
-    byte vlvIdle = vesselVLVIdle(i);
-    if (autoValve[vesselAV(i)]) {
-      if (heatStatus[i]) {
-        if (vlvConfigIsActive(vlvIdle)) bitClear(actProfiles, vlvIdle);
-        if (!vlvConfigIsActive(vlvHeat)) bitSet(actProfiles, vlvHeat);
-      } else {
-        if (vlvConfigIsActive(vlvHeat)) bitClear(actProfiles, vlvHeat);
-        if (!vlvConfigIsActive(vlvIdle)) bitSet(actProfiles, vlvIdle); 
-      }
+  void updateValves() {
+    if (actProfiles != prevProfiles) {
+      Valves.set(computeValveBits());
+      prevProfiles = actProfiles;
     }
   }
-  
-  if (autoValve[AV_SPARGEIN]) {
-    if (volAvg[VS_HLT] > tgtVol[VS_HLT]) bitSet(actProfiles, VLV_SPARGEIN);
-      else bitClear(actProfiles, VLV_SPARGEIN);
-  }
-  if (autoValve[AV_SPARGEOUT]) {
-    if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) bitSet(actProfiles, VLV_SPARGEOUT);
-    else bitClear(actProfiles, VLV_SPARGEOUT);
-  }
-  if (autoValve[AV_FLYSPARGE]) {
-    if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
-      #ifdef SPARGE_IN_PUMP_CONTROL
-      if((long)volAvg[VS_KETTLE] - (long)prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
-      {
-      #ifdef HLT_MIN_REFILL
-         HLTStopVol = (SpargeVol > HLT_MIN_REFILL_VOL ? getVolLoss(VS_HLT) : (HLT_MIN_REFILL_VOL - SpargeVol));
-         if(volAvg[VS_HLT] > HLTStopVol + 20)
-      #else
-         if(volAvg[VS_HLT] > getVolLoss(VS_HLT) + 20)
-      #endif
-            bitSet(actProfiles, VLV_SPARGEIN);
-         prevSpargeVol[0] = volAvg[VS_KETTLE];
-      }
-      #ifdef HLT_FLY_SPARGE_STOP
-      else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < HLT_FLY_SPARGE_STOP_VOLUME + 20)
-      #else
-      else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < getVolLoss(VS_HLT) + 20)
-      #endif
-      {
-         bitClear(actProfiles, VLV_SPARGEIN);
-         prevSpargeVol[1] = volAvg[VS_HLT];
-      }
-      
-      #else
-      bitSet(actProfiles, VLV_SPARGEIN);
-      #endif
-      bitSet(actProfiles, VLV_SPARGEOUT);
-    } else {
-      bitClear(actProfiles, VLV_SPARGEIN);
-      bitClear(actProfiles, VLV_SPARGEOUT);
-    }
-  }
-  if (autoValve[AV_CHILL]) {
-    //Needs work
-    /*
-    //If Pumping beer
-    if (vlvConfigIsActive(VLV_CHILLBEER)) {
-      //Cut beer if exceeds pitch + 1
-      if (temp[TS_BEEROUT] > pitchTemp + 1.0) bitClear(actProfiles, VLV_CHILLBEER);
-    } else {
-      //Enable beer if chiller H2O output is below pitch
-      //ADD MIN DELAY!
-      if (temp[TS_H2OOUT] < pitchTemp - 1.0) bitSet(actProfiles, VLV_CHILLBEER);
+
+  void processAutoValve() {
+    #ifdef HLT_MIN_REFILL
+      unsigned long HLTStopVol;
+    #endif
+    //Do Valves
+    if (autoValve[AV_FILL]) {
+      if (volAvg[VS_HLT] < tgtVol[VS_HLT]) bitSet(actProfiles, VLV_FILLHLT);
+        else bitClear(actProfiles, VLV_FILLHLT);
+        
+      if (volAvg[VS_MASH] < tgtVol[VS_MASH]) bitSet(actProfiles, VLV_FILLMASH);
+        else bitClear(actProfiles, VLV_FILLMASH);
     }
     
-    //If chiller water is running
-    if (vlvConfigIsActive(VLV_CHILLH2O)) {
-      //Cut H2O if beer below pitch - 1
-      if (temp[TS_BEEROUT] < pitchTemp - 1.0) bitClear(actProfiles, VLV_CHILLH2O);
-    } else {
-      //Enable H2O if chiller H2O output is at pitch
-      //ADD MIN DELAY!
-      if (temp[TS_H2OOUT] >= pitchTemp) bitSet(actProfiles, VLV_CHILLH2O);
+    //HLT/MASH/KETTLE AV Logic
+    for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+      byte vlvHeat = vesselVLVHeat(i);
+      byte vlvIdle = vesselVLVIdle(i);
+      if (autoValve[vesselAV(i)]) {
+        if (heatStatus[i]) {
+          if (vlvConfigIsActive(vlvIdle)) bitClear(actProfiles, vlvIdle);
+          if (!vlvConfigIsActive(vlvHeat)) bitSet(actProfiles, vlvHeat);
+        } else {
+          if (vlvConfigIsActive(vlvHeat)) bitClear(actProfiles, vlvHeat);
+          if (!vlvConfigIsActive(vlvIdle)) bitSet(actProfiles, vlvIdle); 
+        }
+      }
     }
-    */
+    
+    if (autoValve[AV_SPARGEIN]) {
+      if (volAvg[VS_HLT] > tgtVol[VS_HLT]) bitSet(actProfiles, VLV_SPARGEIN);
+        else bitClear(actProfiles, VLV_SPARGEIN);
+    }
+    if (autoValve[AV_SPARGEOUT]) {
+      if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) bitSet(actProfiles, VLV_SPARGEOUT);
+      else bitClear(actProfiles, VLV_SPARGEOUT);
+    }
+    if (autoValve[AV_FLYSPARGE]) {
+      if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
+        #ifdef SPARGE_IN_PUMP_CONTROL
+          if((long)volAvg[VS_KETTLE] - (long)prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
+          {
+            #ifdef HLT_MIN_REFILL
+               HLTStopVol = (SpargeVol > HLT_MIN_REFILL_VOL ? getVolLoss(VS_HLT) : (HLT_MIN_REFILL_VOL - SpargeVol));
+               if(volAvg[VS_HLT] > HLTStopVol + 20)
+            #else
+               if(volAvg[VS_HLT] > getVolLoss(VS_HLT) + 20)
+            #endif
+                bitSet(actProfiles, VLV_SPARGEIN);
+             prevSpargeVol[0] = volAvg[VS_KETTLE];
+          }
+          #ifdef HLT_FLY_SPARGE_STOP
+          else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < HLT_FLY_SPARGE_STOP_VOLUME + 20)
+          #else
+          else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < getVolLoss(VS_HLT) + 20)
+          #endif
+          {
+             bitClear(actProfiles, VLV_SPARGEIN);
+             prevSpargeVol[1] = volAvg[VS_HLT];
+          }
+        #else
+          bitSet(actProfiles, VLV_SPARGEIN);
+        #endif
+        bitSet(actProfiles, VLV_SPARGEOUT);
+      } else {
+        bitClear(actProfiles, VLV_SPARGEIN);
+        bitClear(actProfiles, VLV_SPARGEOUT);
+      }
+    }
+    if (autoValve[AV_CHILL]) {
+      //Needs work
+      /*
+      //If Pumping beer
+      if (vlvConfigIsActive(VLV_CHILLBEER)) {
+        //Cut beer if exceeds pitch + 1
+        if (temp[TS_BEEROUT] > pitchTemp + 1.0) bitClear(actProfiles, VLV_CHILLBEER);
+      } else {
+        //Enable beer if chiller H2O output is below pitch
+        //ADD MIN DELAY!
+        if (temp[TS_H2OOUT] < pitchTemp - 1.0) bitSet(actProfiles, VLV_CHILLBEER);
+      }
+      
+      //If chiller water is running
+      if (vlvConfigIsActive(VLV_CHILLH2O)) {
+        //Cut H2O if beer below pitch - 1
+        if (temp[TS_BEEROUT] < pitchTemp - 1.0) bitClear(actProfiles, VLV_CHILLH2O);
+      } else {
+        //Enable H2O if chiller H2O output is at pitch
+        //ADD MIN DELAY!
+        if (temp[TS_H2OOUT] >= pitchTemp) bitSet(actProfiles, VLV_CHILLH2O);
+      }
+      */
+    }
   }
+#endif //#ifdef PVOUT
+  
+unsigned long computeValveBits() {
+  unsigned long vlvBits = 0;
+  for (byte i = 0; i < NUM_VLVCFGS; i++) {
+    if (bitRead(actProfiles, i)) {
+      vlvBits |= vlvConfig[i];
+    }
+  }
+  return vlvBits;
 }
+
+boolean vlvConfigIsActive(byte profile) {
+  //An empty valve profile cannot be active
+  if (!vlvConfig[profile]) return 0;
+  return bitRead(actProfiles, profile);
+}
+
 
 //Map AutoValve Profiles to Vessels
 byte vesselAV(byte vessel) {
@@ -508,6 +510,4 @@ byte vesselVLVIdle(byte vessel) {
   else if (vessel == VS_MASH) return VLV_MASHIDLE;
   else if (vessel == VS_KETTLE) return VLV_KETTLEIDLE;
 }
-
-
 

@@ -1724,7 +1724,9 @@ void menuSetup() {
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 0);
   setupMenu.setItem_P(PSTR("Outputs"), 1);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 2);
-  setupMenu.setItem_P(PSTR("Valve Profiles"), 3);
+  #ifdef PVOUT
+    setupMenu.setItem_P(PSTR("Valve Profiles"), 3);
+  #endif
   setupMenu.setItem_P(INIT_EEPROM, 4);
   #ifdef UI_LCD_I2C
     setupMenu.setItem_P(PSTR("Display"), 5);
@@ -1736,7 +1738,9 @@ void menuSetup() {
     if (lastOption == 0) assignSensor();
     else if (lastOption == 1) cfgOutputs();
     else if (lastOption == 2) cfgVolumes();
-    else if (lastOption == 3) cfgValves();
+    #ifdef PVOUT
+      else if (lastOption == 3) cfgValves();
+    #endif  
     else if (lastOption == 4) {
       clearLCD();
       printLCD_P(0, 0, PSTR("Reset Configuration?"));
@@ -2188,117 +2192,119 @@ void volCalibEntryMenu(byte vessel, byte entry) {
   }
 }
 
-void cfgValves() {
-  byte dispOrder[] = {
-    VLV_FILLHLT,
-    VLV_FILLMASH,
-    VLV_HLTHEAT,
-    VLV_HLTIDLE,
-    VLV_MASHHEAT,
-    VLV_MASHIDLE,
-    VLV_ADDGRAIN,
-    VLV_SPARGEIN,
-    VLV_SPARGEOUT,
-    VLV_KETTLEHEAT,
-    VLV_KETTLEIDLE,
-    VLV_HOPADD,
-    VLV_KETTLELID,
-    VLV_CHILLH2O,
-    VLV_CHILLBEER,
-    VLV_BOILRECIRC,
-    VLV_DRAIN,
-    VLV_USER1,
-    VLV_USER2,
-    VLV_USER3
-  };
-  menu vlvMenu(3, 21);
-  for (byte profile = 0; profile < NUM_VLVCFGS; profile++) vlvMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
-  vlvMenu.setItem_P(EXIT, 255);
-  while (1) {
-    byte profile = scrollMenu("Valve Configuration", &vlvMenu);
-    if (profile >= NUM_VLVCFGS) return;
-    else setValveCfg(profile, cfgValveProfile(vlvMenu.getSelectedRow(buf), vlvConfig[profile]));
+#ifdef PVOUT
+  void cfgValves() {
+    byte dispOrder[] = {
+      VLV_FILLHLT,
+      VLV_FILLMASH,
+      VLV_HLTHEAT,
+      VLV_HLTIDLE,
+      VLV_MASHHEAT,
+      VLV_MASHIDLE,
+      VLV_ADDGRAIN,
+      VLV_SPARGEIN,
+      VLV_SPARGEOUT,
+      VLV_KETTLEHEAT,
+      VLV_KETTLEIDLE,
+      VLV_HOPADD,
+      VLV_KETTLELID,
+      VLV_CHILLH2O,
+      VLV_CHILLBEER,
+      VLV_BOILRECIRC,
+      VLV_DRAIN,
+      VLV_USER1,
+      VLV_USER2,
+      VLV_USER3
+    };
+    menu vlvMenu(3, 21);
+    for (byte profile = 0; profile < NUM_VLVCFGS; profile++) vlvMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
+    vlvMenu.setItem_P(EXIT, 255);
+    while (1) {
+      byte profile = scrollMenu("Valve Configuration", &vlvMenu);
+      if (profile >= NUM_VLVCFGS) return;
+      else setValveCfg(profile, cfgValveProfile(vlvMenu.getSelectedRow(buf), vlvConfig[profile]));
+    }
   }
-}
-
-unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
-  unsigned long retValue = defValue;
-  //firstBit: The left most bit being displayed
-  byte firstBit, encMax;
   
-  encMax = PVOUT_BANKS * 8 + 1;
-
-  Encoder.setMin(0);
-  Encoder.setCount(0);
-  Encoder.setMax(encMax);
-  //(Set to MAX + 1 to force redraw)
-  firstBit = encMax + 1;
-  
-  clearLCD();
-  printLCD(0,0,sTitle);
-  printLCD_P(3, 3, PSTR("Test"));
-  printLCD_P(3, 13, PSTR("Save"));
-  
-  boolean redraw = 1;
-  while(1) {
-    int encValue;
-    if (redraw) {
-      redraw = 0;
-      encValue = Encoder.getCount();
-    }
-    else encValue = Encoder.change();
-    if (encValue >= 0) {
-      if (encValue < firstBit || encValue > firstBit + 17) {
-        if (encValue < firstBit) firstBit = encValue; else if (encValue < encMax - 1) firstBit = encValue - 17;
-        for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) printLCD_P(1, i - firstBit + 1, PSTR("1")); else printLCD_P(1, i - firstBit + 1, PSTR("0"));
-      }
-
-      for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) {
-        if (i < 9) itoa(i + 1, buf, 10); else buf[0] = i + 56;
-        buf[1] = '\0';
-        printLCD(2, i - firstBit + 1, buf);
-      }
-
-      if (firstBit > 0) printLCD_P(2, 0, PSTR("<")); else printLCD_P(2, 0, PSTR(" "));
-      if (firstBit + 18 < encMax - 1) printLCD_P(2, 19, PSTR(">")); else printLCD_P(2, 19, PSTR(" "));
-      if (encValue == encMax - 1) {
-        printLCD_P(3, 2, PSTR(">"));
-        printLCD_P(3, 7, PSTR("<"));
-        printLCD_P(3, 12, PSTR(" "));
-        printLCD_P(3, 17, PSTR(" "));
-      } else if (encValue == encMax) {
-        printLCD_P(3, 2, PSTR(" "));
-        printLCD_P(3, 7, PSTR(" "));
-        printLCD_P(3, 12, PSTR(">"));
-        printLCD_P(3, 17, PSTR("<"));
-      } else {
-        printLCD_P(3, 2, PSTR(" "));
-        printLCD_P(3, 7, PSTR(" "));
-        printLCD_P(3, 12, PSTR(" "));
-        printLCD_P(3, 17, PSTR(" "));
-        printLCD_P(2, encValue - firstBit + 1, PSTR("^"));
-      }
-    }
+  unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
+    unsigned long retValue = defValue;
+    //firstBit: The left most bit being displayed
+    byte firstBit, encMax;
     
-    if (Encoder.ok()) {
-      encValue = Encoder.getCount();
-      if (encValue == encMax) return retValue;
-      else if (encValue == encMax - 1) {
-        Valves.set(retValue);
-        printLCD_P(3, 2, PSTR("["));
-        printLCD_P(3, 7, PSTR("]"));
-        updateLCD();
-        while (!Encoder.ok()) delay(100);
-        Valves.set(0);
-        redraw = 1;
-      } else {
-        retValue = retValue ^ ((unsigned long)1<<encValue);
-        for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) printLCD_P(1, i - firstBit + 1, PSTR("1")); else printLCD_P(1, i - firstBit + 1, PSTR("0"));
+    encMax = PVOUT_BANKS * 8 + 1;
+  
+    Encoder.setMin(0);
+    Encoder.setCount(0);
+    Encoder.setMax(encMax);
+    //(Set to MAX + 1 to force redraw)
+    firstBit = encMax + 1;
+    
+    clearLCD();
+    printLCD(0,0,sTitle);
+    printLCD_P(3, 3, PSTR("Test"));
+    printLCD_P(3, 13, PSTR("Save"));
+    
+    boolean redraw = 1;
+    while(1) {
+      int encValue;
+      if (redraw) {
+        redraw = 0;
+        encValue = Encoder.getCount();
       }
-    } else if (Encoder.cancel()) return defValue;
-    brewCore();
+      else encValue = Encoder.change();
+      if (encValue >= 0) {
+        if (encValue < firstBit || encValue > firstBit + 17) {
+          if (encValue < firstBit) firstBit = encValue; else if (encValue < encMax - 1) firstBit = encValue - 17;
+          for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) printLCD_P(1, i - firstBit + 1, PSTR("1")); else printLCD_P(1, i - firstBit + 1, PSTR("0"));
+        }
+  
+        for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) {
+          if (i < 9) itoa(i + 1, buf, 10); else buf[0] = i + 56;
+          buf[1] = '\0';
+          printLCD(2, i - firstBit + 1, buf);
+        }
+  
+        if (firstBit > 0) printLCD_P(2, 0, PSTR("<")); else printLCD_P(2, 0, PSTR(" "));
+        if (firstBit + 18 < encMax - 1) printLCD_P(2, 19, PSTR(">")); else printLCD_P(2, 19, PSTR(" "));
+        if (encValue == encMax - 1) {
+          printLCD_P(3, 2, PSTR(">"));
+          printLCD_P(3, 7, PSTR("<"));
+          printLCD_P(3, 12, PSTR(" "));
+          printLCD_P(3, 17, PSTR(" "));
+        } else if (encValue == encMax) {
+          printLCD_P(3, 2, PSTR(" "));
+          printLCD_P(3, 7, PSTR(" "));
+          printLCD_P(3, 12, PSTR(">"));
+          printLCD_P(3, 17, PSTR("<"));
+        } else {
+          printLCD_P(3, 2, PSTR(" "));
+          printLCD_P(3, 7, PSTR(" "));
+          printLCD_P(3, 12, PSTR(" "));
+          printLCD_P(3, 17, PSTR(" "));
+          printLCD_P(2, encValue - firstBit + 1, PSTR("^"));
+        }
+      }
+      
+      if (Encoder.ok()) {
+        encValue = Encoder.getCount();
+        if (encValue == encMax) return retValue;
+        else if (encValue == encMax - 1) {
+          Valves.set(retValue);
+          printLCD_P(3, 2, PSTR("["));
+          printLCD_P(3, 7, PSTR("]"));
+          updateLCD();
+          while (!Encoder.ok()) delay(100);
+          Valves.set(0);
+          redraw = 1;
+        } else {
+          retValue = retValue ^ ((unsigned long)1<<encValue);
+          for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) printLCD_P(1, i - firstBit + 1, PSTR("1")); else printLCD_P(1, i - firstBit + 1, PSTR("0"));
+        }
+      } else if (Encoder.cancel()) return defValue;
+      brewCore();
+    }
   }
-}
+#endif
 
 #ifdef UI_LCD_I2C
   void adjustLCD() {

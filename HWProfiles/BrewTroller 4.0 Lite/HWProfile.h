@@ -11,12 +11,11 @@ BrewTroller 4.0 Lite Hardware Configuration
   #define ENTER_PIN 5
   #define ALARM_PIN 15
   
-  #define PVOUT_TYPE_MODBUS
-
-  //Define the number of 8-Port Pump/Valve Output Banks
-  #ifndef PVOUT_BANKS
-    #define PVOUT_BANKS 2
-  #endif
+  //Uncomment to support one or more 8-Port MODBUS relay boards
+  //#define PVOUT_TYPE_MODBUS
+  
+  //Define the number of 8-Port Pump/Valve Output Banks (1-4)
+  #define PVOUT_BANKS 1
 
   #define HLTHEAT_PIN 23
   #define MASHHEAT_PIN 1

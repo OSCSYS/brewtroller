@@ -124,12 +124,16 @@ void loadSetup() {
   //**********************************************************************************
   //401-480 Valve Profiles
   //**********************************************************************************
-  loadVlvConfigs();
+  #ifdef PVOUT
+    loadVlvConfigs();
+  #endif
 }
 
-void loadVlvConfigs() {
-  eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
-}
+#ifdef PVOUT
+  void loadVlvConfigs() {
+    eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
+  }
+#endif
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions
@@ -392,8 +396,10 @@ byte getGrainTemp() { return EEPROM.read(400); }
 // Valve Profile Configuration (401-480; 481-785 Reserved)
 //*****************************************************************************************************************************
 void setValveCfg(byte profile, unsigned long value) {
-  vlvConfig[profile] = value;
-  PROMwriteLong(401 + profile * 4, value);
+  #ifdef PVOUT
+    vlvConfig[profile] = value;
+    PROMwriteLong(401 + profile * 4, value);
+  #endif
 }
 
 //*****************************************************************************************************************************
