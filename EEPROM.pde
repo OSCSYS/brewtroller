@@ -510,6 +510,10 @@ unsigned long getProgGrain(byte preset) { return PROMreadLong(PROGRAM_START_ADDR
 //EEPROM Version (2047)
 //**********************************************************************************
 
+//**********************************************************************************
+//LCD Bright/Contrast (2048-2049) ATMEGA1284P Only
+//**********************************************************************************
+
 
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
@@ -575,11 +579,18 @@ void initEEPROM() {
   //Set all steps idle
   for (byte i = 0; i < NUM_BREW_STEPS; i++) setProgramStep(i, PROGRAM_IDLE);
 
+  //Set default LCD Bright/Contrast
+  #if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
+    EEPROM.write(2048, 240);
+    EEPROM.write(2049, 10);
+  #endif
+  
   //Set cfgVersion = 0
   EEPROM.write(2047, 0);
 
   // re-load Setup 
   loadSetup();
+  LCD.init();
 }
 
 //*****************************************************************************************************************************

@@ -34,7 +34,7 @@ void brewCore() {
   #endif
   
   #ifndef NOUI
-    updateLCD();
+    LCD.update();
   #endif
   
   //Timers: Timer.pde

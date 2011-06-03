@@ -39,7 +39,9 @@ BrewTroller 4.0 Pro Hardware Configuration
   #define STEAMPRESS_APIN 0
   
   #define UI_LCD_I2C
-
+  #define UI_LCD_I2CADDR 0x01
+  #define UI_DISPLAY_SETUP
+  
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
 //**********************************************************************************

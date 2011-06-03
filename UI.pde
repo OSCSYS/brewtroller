@@ -29,6 +29,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Enum.h"
 #include "HWProfile.h"
 #include <encoder.h>
+#include "UI_LCD.h"
 
 //*****************************************************************************************************************************
 // UI COMPILE OPTIONS
@@ -242,7 +243,7 @@ unsigned long timerLastPrint;
 // uiInit:  One time intialization of all UI logic
 //**********************************************************************************
 void uiInit() {
-  initLCD();
+  LCD.init();
   #ifndef ENCODER_OLD_CONSTRUCTOR
     Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
   #else
@@ -251,10 +252,10 @@ void uiInit() {
 
   //Check to see if EEPROM Initialization is needed
   if (checkConfig()) {
-    clearLCD();
-    printLCD_P(0, 0, PSTR("Missing Config"));
+    LCD.clear();
+    LCD.print_P(0, 0, PSTR("Missing Config"));
     if (confirmChoice(INIT_EEPROM, 3)) UIinitEEPROM();
-    clearLCD();
+    LCD.clear();
   }
 
   activeScreen = SCREEN_HOME;
@@ -263,10 +264,10 @@ void uiInit() {
 }
 
 void UIinitEEPROM() {
-  clearLCD();
-  printLCD_P(1, 0, INIT_EEPROM);
-  printLCD_P(2, 3, PSTR("Please Wait..."));
-  updateLCD();
+  LCD.clear();
+  LCD.print_P(1, 0, INIT_EEPROM);
+  LCD.print_P(2, 3, PSTR("Please Wait..."));
+  LCD.update();
   initEEPROM();
   //Apply any EEPROM updates
   checkConfig();
@@ -335,76 +336,76 @@ void uiCore() {
 // screenInit: Initialize active screen
 //**********************************************************************************
 void screenInit(byte screen) {
-  clearLCD();
-  lcdSetCustChar_P(7, UNLOCK_ICON);
+  LCD.clear();
+  LCD.setCustChar_P(7, UNLOCK_ICON);
   
   //Print Program Active Char (Overwritten if no program active)
   if (screen != SCREEN_HOME) {
-    lcdSetCustChar_P(6, PROG_ICON);
-    lcdWriteCustChar(0, 0, 6);
-    lcdSetCustChar_P(5, BELL);
+    LCD.setCustChar_P(6, PROG_ICON);
+    LCD.writeCustChar(0, 0, 6);
+    LCD.setCustChar_P(5, BELL);
   }
   
   if (screen == SCREEN_HOME) {
     //Screen Init: Home
     #ifdef LOGO_TROLL
-      lcdSetCustChar_P(0, BMP0);
-      lcdSetCustChar_P(1, BMP1);
-      lcdSetCustChar_P(2, BMP2);
-      lcdSetCustChar_P(3, BMP3);
-      lcdSetCustChar_P(4, BMP4);
-      lcdSetCustChar_P(5, BMP5);
-      lcdSetCustChar_P(6, BMP6);
-      lcdWriteCustChar(0, 1, 0);
-      lcdWriteCustChar(0, 2, 1);
-      lcdWriteCustChar(1, 0, 2); 
-      lcdWriteCustChar(1, 1, 3); 
-      lcdWriteCustChar(1, 2, 255); 
-      lcdWriteCustChar(2, 0, 4); 
-      lcdWriteCustChar(2, 1, 5); 
-      lcdWriteCustChar(2, 2, 6); 
-      printLCD_P(3, 0, BT);
-      printLCD_P(3, 12, BTVER);
-      printLCDLPad(3, 16, itoa(BUILD, buf, 10), 4, '0');
+      LCD.setCustChar_P(0, BMP0);
+      LCD.setCustChar_P(1, BMP1);
+      LCD.setCustChar_P(2, BMP2);
+      LCD.setCustChar_P(3, BMP3);
+      LCD.setCustChar_P(4, BMP4);
+      LCD.setCustChar_P(5, BMP5);
+      LCD.setCustChar_P(6, BMP6);
+      LCD.writeCustChar(0, 1, 0);
+      LCD.writeCustChar(0, 2, 1);
+      LCD.writeCustChar(1, 0, 2); 
+      LCD.writeCustChar(1, 1, 3); 
+      LCD.writeCustChar(1, 2, 255); 
+      LCD.writeCustChar(2, 0, 4); 
+      LCD.writeCustChar(2, 1, 5); 
+      LCD.writeCustChar(2, 2, 6); 
+      LCD.print_P(3, 0, BT);
+      LCD.print_P(3, 12, BTVER);
+      LCD.lPad(3, 16, itoa(BUILD, buf, 10), 4, '0');
     #endif
     #ifdef LOGO_BREWTROLLER
-      lcdSetCustChar_P(0, BMP0);
-      lcdSetCustChar_P(1, BMP1);
-      lcdSetCustChar_P(2, BMP2);
-      lcdSetCustChar_P(3, BMP3);
-      lcdSetCustChar_P(4, BMP4);
-      lcdWriteCustChar(0, 0, 0);
-      lcdWriteCustChar(0, 1, 1);
-      lcdWriteCustChar(0, 2, 2);
-      lcdWriteCustChar(1, 1, 3);
-      lcdWriteCustChar(1, 2, 4);
-      printLCD_P(1, 4, BT);
-      printLCD_P(1, 16, BTVER);
-      printLCD_P(2, 4, PSTR("Build"));
-      printLCDLPad(2, 10, itoa(BUILD, buf, 10), 4, '0');
-      printLCD_P(3, 0, PSTR("www.brewtroller.com"));
+      LCD.setCustChar_P(0, BMP0);
+      LCD.setCustChar_P(1, BMP1);
+      LCD.setCustChar_P(2, BMP2);
+      LCD.setCustChar_P(3, BMP3);
+      LCD.setCustChar_P(4, BMP4);
+      LCD.writeCustChar(0, 0, 0);
+      LCD.writeCustChar(0, 1, 1);
+      LCD.writeCustChar(0, 2, 2);
+      LCD.writeCustChar(1, 1, 3);
+      LCD.writeCustChar(1, 2, 4);
+      LCD.print_P(1, 4, BT);
+      LCD.print_P(1, 16, BTVER);
+      LCD.print_P(2, 4, PSTR("Build"));
+      LCD.lPad(2, 10, itoa(BUILD, buf, 10), 4, '0');
+      LCD.print_P(3, 0, PSTR("www.brewtroller.com"));
     #endif
     
   } else if (screen == SCREEN_FILL) {
     //Screen Init: Fill/Refill
-    if (stepIsActive(STEP_FILL)) printLCD_P(0, 1, PSTR("Fill"));
-    else if (stepIsActive(STEP_REFILL)) printLCD_P(0, 1, PSTR("Refill"));
-    else printLCD_P(0, 0, PSTR("Fill"));
-    printLCD_P(0, 11, PSTR("HLT"));
-    printLCD_P(0, 16, PSTR("Mash"));
-    printLCD_P(1, 1, PSTR("Target"));
-    printLCD_P(2, 1, PSTR("Actual"));
+    if (stepIsActive(STEP_FILL)) LCD.print_P(0, 1, PSTR("Fill"));
+    else if (stepIsActive(STEP_REFILL)) LCD.print_P(0, 1, PSTR("Refill"));
+    else LCD.print_P(0, 0, PSTR("Fill"));
+    LCD.print_P(0, 11, PSTR("HLT"));
+    LCD.print_P(0, 16, PSTR("Mash"));
+    LCD.print_P(1, 1, PSTR("Target"));
+    LCD.print_P(2, 1, PSTR("Actual"));
     vftoa(tgtVol[VS_HLT], buf, 1000, 1);
     truncFloat(buf, 5);
-    printLCDLPad(1, 9, buf, 5, ' ');
+    LCD.lPad(1, 9, buf, 5, ' ');
     vftoa(tgtVol[VS_MASH], buf, 1000, 1);
     truncFloat(buf, 5);
-    printLCDLPad(1, 15, buf, 5, ' ');
+    LCD.lPad(1, 15, buf, 5, ' ');
 
     if (screenLock) {
-      printLCD_P(3, 0, PSTR(">"));
-      printLCD_P(3, 10, PSTR("<"));
-      printLCD_P(3, 1, CONTINUE);
+      LCD.print_P(3, 0, PSTR(">"));
+      LCD.print_P(3, 10, PSTR("<"));
+      LCD.print_P(3, 1, CONTINUE);
       Encoder.setMin(0);
       Encoder.setMax(5);
       Encoder.setCount(0);
@@ -415,48 +416,48 @@ void screenInit(byte screen) {
     //Delay Start Indication
     timerLastPrint = 0;
     
-    if (stepIsActive(STEP_DELAY)) printLCD_P(0, 1, PSTR("Delay"));
-    else if (stepIsActive(STEP_PREHEAT)) printLCD_P(0, 1, PSTR("Preheat"));
-    else if (stepIsActive(STEP_DOUGHIN)) printLCD_P(0, 1, PSTR("Dough In"));
-    else if (stepIsActive(STEP_ACID)) printLCD_P(0, 1, PSTR("Acid"));
-    else if (stepIsActive(STEP_PROTEIN)) printLCD_P(0, 1, PSTR("Protein"));
-    else if (stepIsActive(STEP_SACCH)) printLCD_P(0, 1, PSTR("Sacch"));
-    else if (stepIsActive(STEP_SACCH2)) printLCD_P(0, 1, PSTR("Sacch2"));
-    else if (stepIsActive(STEP_MASHOUT)) printLCD_P(0, 1, PSTR("Mash Out"));
-    else if (stepIsActive(STEP_MASHHOLD)) printLCD_P(0, 1, PSTR("End Mash"));
-    else printLCD_P(0, 0, PSTR("Mash"));
-    printLCD_P(0, 11, PSTR("HLT"));
-    printLCD_P(0, 16, PSTR("Mash"));
-    printLCD_P(1, 1, PSTR("Target"));
-    printLCD_P(2, 1, PSTR("Actual"));
+    if (stepIsActive(STEP_DELAY)) LCD.print_P(0, 1, PSTR("Delay"));
+    else if (stepIsActive(STEP_PREHEAT)) LCD.print_P(0, 1, PSTR("Preheat"));
+    else if (stepIsActive(STEP_DOUGHIN)) LCD.print_P(0, 1, PSTR("Dough In"));
+    else if (stepIsActive(STEP_ACID)) LCD.print_P(0, 1, PSTR("Acid"));
+    else if (stepIsActive(STEP_PROTEIN)) LCD.print_P(0, 1, PSTR("Protein"));
+    else if (stepIsActive(STEP_SACCH)) LCD.print_P(0, 1, PSTR("Sacch"));
+    else if (stepIsActive(STEP_SACCH2)) LCD.print_P(0, 1, PSTR("Sacch2"));
+    else if (stepIsActive(STEP_MASHOUT)) LCD.print_P(0, 1, PSTR("Mash Out"));
+    else if (stepIsActive(STEP_MASHHOLD)) LCD.print_P(0, 1, PSTR("End Mash"));
+    else LCD.print_P(0, 0, PSTR("Mash"));
+    LCD.print_P(0, 11, PSTR("HLT"));
+    LCD.print_P(0, 16, PSTR("Mash"));
+    LCD.print_P(1, 1, PSTR("Target"));
+    LCD.print_P(2, 1, PSTR("Actual"));
     
-    printLCD_P(1, 13, TUNIT);
-    printLCD_P(1, 19, TUNIT);
-    printLCD_P(2, 13, TUNIT);
-    printLCD_P(2, 19, TUNIT);
+    LCD.print_P(1, 13, TUNIT);
+    LCD.print_P(1, 19, TUNIT);
+    LCD.print_P(2, 13, TUNIT);
+    LCD.print_P(2, 19, TUNIT);
 
   } else if (screen == SCREEN_SPARGE) {
     //Screen Init: Sparge
-    if (stepIsActive(STEP_SPARGE)) printLCD_P(0, 1, PSTR("Sparge"));
-    else if (stepIsActive(STEP_ADDGRAIN)) printLCD_P(0, 1, PSTR("Grain In"));
-    else printLCD_P(0, 0, PSTR("Sparge"));
-    printLCD_P(1, 1, PSTR("HLT"));
-    printLCD_P(2, 1, PSTR("Mash"));
-    printLCD_P(3, 1, PSTR("Kettle"));
-    printLCD_P(1, 8, PSTR("---"));
-    printLCD_P(2, 8, PSTR("---"));
-    printLCD_P(3, 8, PSTR("---"));
-    printLCD_P(1, 14, PSTR("--.---"));
-    printLCD_P(2, 14, PSTR("--.---"));
-    printLCD_P(3, 14, PSTR("--.---"));
-    printLCD_P(1, 12, TUNIT);
-    printLCD_P(2, 12, TUNIT);
-    printLCD_P(3, 12, TUNIT);
+    if (stepIsActive(STEP_SPARGE)) LCD.print_P(0, 1, PSTR("Sparge"));
+    else if (stepIsActive(STEP_ADDGRAIN)) LCD.print_P(0, 1, PSTR("Grain In"));
+    else LCD.print_P(0, 0, PSTR("Sparge"));
+    LCD.print_P(1, 1, PSTR("HLT"));
+    LCD.print_P(2, 1, PSTR("Mash"));
+    LCD.print_P(3, 1, PSTR("Kettle"));
+    LCD.print_P(1, 8, PSTR("---"));
+    LCD.print_P(2, 8, PSTR("---"));
+    LCD.print_P(3, 8, PSTR("---"));
+    LCD.print_P(1, 14, PSTR("--.---"));
+    LCD.print_P(2, 14, PSTR("--.---"));
+    LCD.print_P(3, 14, PSTR("--.---"));
+    LCD.print_P(1, 12, TUNIT);
+    LCD.print_P(2, 12, TUNIT);
+    LCD.print_P(3, 12, TUNIT);
 
     if (screenLock) {
-      printLCD_P(0, 8, PSTR(">"));
-      printLCD_P(0, 19, PSTR("<"));
-      printLCD_P(0, 10, CONTINUE);
+      LCD.print_P(0, 8, PSTR(">"));
+      LCD.print_P(0, 19, PSTR("<"));
+      LCD.print_P(0, 10, CONTINUE);
       Encoder.setMin(0);
       Encoder.setMax(7);
       Encoder.setCount(0);
@@ -465,9 +466,9 @@ void screenInit(byte screen) {
   } else if (screen == SCREEN_BOIL) {
     //Screen Init: Boil
     timerLastPrint = 0;
-    if (stepIsActive(STEP_BOIL)) printLCD_P(0, 1, PSTR("Boil"));
-    else printLCD_P(0,0,PSTR("Boil"));
-    printLCD_P(1, 19, TUNIT);
+    if (stepIsActive(STEP_BOIL)) LCD.print_P(0, 1, PSTR("Boil"));
+    else LCD.print_P(0,0,PSTR("Boil"));
+    LCD.print_P(1, 19, TUNIT);
 
   if (screenLock) {
       Encoder.setMin(0);
@@ -477,22 +478,22 @@ void screenInit(byte screen) {
 
   } else if (screen == SCREEN_CHILL) {
     //Screen Init: Chill
-    if (stepIsActive(STEP_CHILL)) printLCD_P(0, 1, PSTR("Chill"));
-    else printLCD_P(0, 0, PSTR("Chill"));
-    printLCD_P(0, 11, PSTR("Beer"));
-    printLCD_P(0, 17, PSTR("H2O"));
-    printLCD_P(1, 8, PSTR("In"));
-    printLCD_P(2, 7, PSTR("Out"));
+    if (stepIsActive(STEP_CHILL)) LCD.print_P(0, 1, PSTR("Chill"));
+    else LCD.print_P(0, 0, PSTR("Chill"));
+    LCD.print_P(0, 11, PSTR("Beer"));
+    LCD.print_P(0, 17, PSTR("H2O"));
+    LCD.print_P(1, 8, PSTR("In"));
+    LCD.print_P(2, 7, PSTR("Out"));
 
-    printLCD_P(1, 14, TUNIT);
-    printLCD_P(1, 19, TUNIT);
-    printLCD_P(2, 14, TUNIT);
-    printLCD_P(2, 19, TUNIT);
+    LCD.print_P(1, 14, TUNIT);
+    LCD.print_P(1, 19, TUNIT);
+    LCD.print_P(2, 14, TUNIT);
+    LCD.print_P(2, 19, TUNIT);
     
     if (screenLock) {
-      printLCD_P(3, 0, PSTR(">"));
-      printLCD_P(3, 11, PSTR("<"));
-      printLCD_P(3, 2, CONTINUE);
+      LCD.print_P(3, 0, PSTR(">"));
+      LCD.print_P(3, 11, PSTR("<"));
+      LCD.print_P(3, 2, CONTINUE);
       Encoder.setMin(0);
       Encoder.setMax(6);
       Encoder.setCount(0);
@@ -500,17 +501,17 @@ void screenInit(byte screen) {
 
   } else if (screen == SCREEN_AUX) {
     //Screen Init: AUX
-    printLCD_P(0,0,PSTR("AUX Temps"));
-    printLCD_P(1,1,PSTR("AUX1"));
-    printLCD_P(2,1,PSTR("AUX2"));
-    printLCD_P(3,1,PSTR("AUX3"));
-    printLCD_P(1, 11, TUNIT);
-    printLCD_P(2, 11, TUNIT);
-    printLCD_P(3, 11, TUNIT);
+    LCD.print_P(0,0,PSTR("AUX Temps"));
+    LCD.print_P(1,1,PSTR("AUX1"));
+    LCD.print_P(2,1,PSTR("AUX2"));
+    LCD.print_P(3,1,PSTR("AUX3"));
+    LCD.print_P(1, 11, TUNIT);
+    LCD.print_P(2, 11, TUNIT);
+    LCD.print_P(3, 11, TUNIT);
   }
   
   //Write Unlock symbol to upper right corner
-  if (!screenLock) lcdWriteCustChar(0, 19, 7);
+  if (!screenLock) LCD.writeCustChar(0, 19, 7);
 }
 
 //**********************************************************************************
@@ -523,28 +524,28 @@ void screenRefresh(byte screen) {
   } else if (screen == SCREEN_FILL) {
     vftoa(volAvg[VS_HLT], buf, 1000, 1);
     truncFloat(buf, 5);
-    printLCDLPad(2, 9, buf, 5, ' ');
+    LCD.lPad(2, 9, buf, 5, ' ');
 
     vftoa(volAvg[VS_MASH], buf, 1000, 1);
     truncFloat(buf, 5);
-    printLCDLPad(2, 15, buf, 5, ' ');
+    LCD.lPad(2, 15, buf, 5, ' ');
 
-    if (vlvConfigIsActive(VLV_FILLHLT)) printLCD_P(3, 11, PSTR("On "));
-    else printLCD_P(3, 11, PSTR("Off"));
+    if (vlvConfigIsActive(VLV_FILLHLT)) LCD.print_P(3, 11, PSTR("On "));
+    else LCD.print_P(3, 11, PSTR("Off"));
 
-    if (vlvConfigIsActive(VLV_FILLMASH)) printLCD_P(3, 17, PSTR(" On"));
-    else printLCD_P(3, 17, PSTR("Off"));
+    if (vlvConfigIsActive(VLV_FILLMASH)) LCD.print_P(3, 17, PSTR(" On"));
+    else LCD.print_P(3, 17, PSTR("Off"));
     
     if (screenLock) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
-        printLCDRPad(3, 1, "", 9, ' ');
-        if (encValue == 0) printLCD_P(3, 1, CONTINUE);
-        else if (encValue == 1) printLCD_P(3, 1, FILLHLT);
-        else if (encValue == 2) printLCD_P(3, 1, FILLMASH);
-        else if (encValue == 3) printLCD_P(3, 1, FILLBOTH);
-        else if (encValue == 4) printLCD_P(3, 2, ALLOFF);
-        else if (encValue == 5) printLCD_P(3, 3, MENU);
+        LCD.rPad(3, 1, "", 9, ' ');
+        if (encValue == 0) LCD.print_P(3, 1, CONTINUE);
+        else if (encValue == 1) LCD.print_P(3, 1, FILLHLT);
+        else if (encValue == 2) LCD.print_P(3, 1, FILLMASH);
+        else if (encValue == 3) LCD.print_P(3, 1, FILLBOTH);
+        else if (encValue == 4) LCD.print_P(3, 2, ALLOFF);
+        else if (encValue == 5) LCD.print_P(3, 3, MENU);
       }
     }
     
@@ -553,10 +554,10 @@ void screenRefresh(byte screen) {
     for (byte i = VS_HLT; i <= VS_MASH; i++) {
       vftoa(setpoint[i], buf, 100, 1);
       truncFloat(buf, 4);
-      printLCDLPad(1, i * 6 + 9, buf, 4, ' ');
+      LCD.lPad(1, i * 6 + 9, buf, 4, ' ');
       vftoa(temp[i], buf, 100, 1);
       truncFloat(buf, 4);
-      if (temp[i] == -32768) printLCD_P(2, i * 6 + 9, PSTR("----")); else printLCDLPad(2, i * 6 + 9, buf, 4, ' ');
+      if (temp[i] == -32768) LCD.print_P(2, i * 6 + 9, PSTR("----")); else LCD.lPad(2, i * 6 + 9, buf, 4, ' ');
       byte pct;
       if (PIDEnabled[i]) {
         pct = PIDOutput[i] / PIDCycle[i];
@@ -570,7 +571,7 @@ void screenRefresh(byte screen) {
         strcpy_P(buf, PSTR("Off"));
         pct = 0;
       }
-      printLCDLPad(3, i * 6 + 11, buf, 3, ' ');
+      LCD.lPad(3, i * 6 + 11, buf, 3, ' ');
     }
 
     printTimer(TIMER_MASH, 3, 0);
@@ -581,62 +582,62 @@ void screenRefresh(byte screen) {
       // In manual volume mode show the target volumes instead of the current volumes
       vftoa(tgtVol[VS_HLT], buf, 1000, 1);
       truncFloat(buf, 6);
-      printLCDLPad(1, 14, buf, 6, ' ');
+      LCD.lPad(1, 14, buf, 6, ' ');
         
       vftoa(tgtVol[VS_MASH], buf, 1000, 1);
       truncFloat(buf, 6);
-      printLCDLPad(2, 14, buf, 6, ' ');
+      LCD.lPad(2, 14, buf, 6, ' ');
         
       vftoa(tgtVol[VS_KETTLE], buf, 1000, 1);
       truncFloat(buf, 6);
-      printLCDLPad(3, 14, buf, 6, ' ');
+      LCD.lPad(3, 14, buf, 6, ' ');
     #else
       vftoa(volAvg[VS_HLT], buf, 1000, 1);
       truncFloat(buf, 6);
-      printLCDLPad(1, 14, buf, 6, ' ');
+      LCD.lPad(1, 14, buf, 6, ' ');
         
       vftoa(volAvg[VS_MASH], buf, 1000, 1);
       truncFloat(buf, 6);
-      printLCDLPad(2, 14, buf, 6, ' ');
+      LCD.lPad(2, 14, buf, 6, ' ');
         
       vftoa(volAvg[VS_KETTLE], buf, 1000, 1);
       truncFloat(buf, 6);
-      printLCDLPad(3, 14, buf, 6, ' ');
+      LCD.lPad(3, 14, buf, 6, ' ');
     #endif
     
     if (screenLock) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
-        printLCDRPad(0, 9, "", 10, ' ');
+        LCD.rPad(0, 9, "", 10, ' ');
 
-        if (encValue == 0) printLCD_P(0, 10, CONTINUE);
-        else if (encValue == 1) printLCD_P(0, 9, SPARGEIN);
-        else if (encValue == 2) printLCD_P(0, 9, SPARGEOUT);
-        else if (encValue == 3) printLCD_P(0, 9, FLYSPARGE);
-        else if (encValue == 4) printLCD_P(0, 9, MASHHEAT);
-        else if (encValue == 5) printLCD_P(0, 9, MASHIDLE);
-        else if (encValue == 6) printLCD_P(0, 11, ALLOFF);
-        else if (encValue == 7) printLCD_P(0, 12, MENU);
+        if (encValue == 0) LCD.print_P(0, 10, CONTINUE);
+        else if (encValue == 1) LCD.print_P(0, 9, SPARGEIN);
+        else if (encValue == 2) LCD.print_P(0, 9, SPARGEOUT);
+        else if (encValue == 3) LCD.print_P(0, 9, FLYSPARGE);
+        else if (encValue == 4) LCD.print_P(0, 9, MASHHEAT);
+        else if (encValue == 5) LCD.print_P(0, 9, MASHIDLE);
+        else if (encValue == 6) LCD.print_P(0, 11, ALLOFF);
+        else if (encValue == 7) LCD.print_P(0, 12, MENU);
       }
     }
 
     for (byte i = TS_HLT; i <= TS_KETTLE; i++) {
       vftoa(temp[i], buf, 100, 1);
       truncFloat(buf, 4);
-      if (temp[i] == -32768) printLCD_P(i + 1, 8, PSTR("----")); else printLCDLPad(i + 1, 8, buf, 4, ' ');
+      if (temp[i] == -32768) LCD.print_P(i + 1, 8, PSTR("----")); else LCD.lPad(i + 1, 8, buf, 4, ' ');
     }
   } else if (screen == SCREEN_BOIL) {
     //Refresh Screen: Boil
     if (screenLock) {
-      if (doAutoBoil) printLCD_P(0, 14, PSTR("  Auto"));
-      else printLCD_P(0, 14, PSTR("Manual"));
+      if (doAutoBoil) LCD.print_P(0, 14, PSTR("  Auto"));
+      else LCD.print_P(0, 14, PSTR("Manual"));
     }
     
     printTimer(TIMER_BOIL, 3, 0);
 
     vftoa(volAvg[VS_KETTLE], buf, 1000, 1);
     truncFloat(buf, 5);
-    printLCDLPad(2, 15, buf, 5, ' ');
+    LCD.lPad(2, 15, buf, 5, ' ');
 
     if (PIDEnabled[TS_KETTLE]) {
       byte pct = PIDOutput[TS_KETTLE] / PIDCycle[TS_KETTLE];
@@ -648,10 +649,10 @@ void screenRefresh(byte screen) {
     } else {
       strcpy_P(buf, PSTR("Off"));
     }
-    printLCDLPad(3, 17, buf, 3, ' ');
+    LCD.lPad(3, 17, buf, 3, ' ');
     vftoa(temp[TS_KETTLE], buf, 100, 1);
     truncFloat(buf, 5);
-    if (temp[TS_KETTLE] == -32768) printLCD_P(1, 14, PSTR("-----")); else printLCDLPad(1, 14, buf, 4, ' ');
+    if (temp[TS_KETTLE] == -32768) LCD.print_P(1, 14, PSTR("-----")); else LCD.lPad(1, 14, buf, 4, ' ');
     if (screenLock) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
@@ -666,30 +667,30 @@ void screenRefresh(byte screen) {
     if (screenLock) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
-        printLCDRPad(3, 1, "", 10, ' ');
-        if (encValue == 0) printLCD_P(3, 2, CONTINUE);
-        else if (encValue == 1) printLCD_P(3, 1, CHILLNORM);
-        else if (encValue == 2) printLCD_P(3, 1, CHILLH2O);
-        else if (encValue == 3) printLCD_P(3, 1, CHILLBEER);
-        else if (encValue == 4) printLCD_P(3, 2, ALLOFF);
-        else if (encValue == 5) printLCD_P(3, 4, PSTR("Auto"));
-        else if (encValue == 6) printLCD_P(3, 3, ABORT);
+        LCD.rPad(3, 1, "", 10, ' ');
+        if (encValue == 0) LCD.print_P(3, 2, CONTINUE);
+        else if (encValue == 1) LCD.print_P(3, 1, CHILLNORM);
+        else if (encValue == 2) LCD.print_P(3, 1, CHILLH2O);
+        else if (encValue == 3) LCD.print_P(3, 1, CHILLBEER);
+        else if (encValue == 4) LCD.print_P(3, 2, ALLOFF);
+        else if (encValue == 5) LCD.print_P(3, 4, PSTR("Auto"));
+        else if (encValue == 6) LCD.print_P(3, 3, ABORT);
       }
     }
-    if (temp[TS_KETTLE] == -32768) printLCD_P(1, 11, PSTR("---")); else printLCDLPad(1, 11, itoa(temp[TS_KETTLE] / 100, buf, 10), 3, ' ');
-    if (temp[TS_BEEROUT] == -32768) printLCD_P(2, 11, PSTR("---")); else printLCDLPad(2, 11, itoa(temp[TS_BEEROUT] / 100, buf, 10), 3, ' ');
-    if (temp[TS_H2OIN] == -32768) printLCD_P(1, 16, PSTR("---")); else printLCDLPad(1, 16, itoa(temp[TS_H2OIN] / 100, buf, 10), 3, ' ');
-    if (temp[TS_H2OOUT] == -32768) printLCD_P(2, 16, PSTR("---")); else printLCDLPad(2, 16, itoa(temp[TS_H2OOUT] / 100, buf, 10), 3, ' ');
-    if (vlvConfigIsActive(VLV_CHILLBEER)) printLCD_P(3, 12, PSTR(" On")); else printLCD_P(3, 12, PSTR("Off"));
-    if (vlvConfigIsActive(VLV_CHILLH2O)) printLCD_P(3, 17, PSTR(" On")); else printLCD_P(3, 17, PSTR("Off"));
+    if (temp[TS_KETTLE] == -32768) LCD.print_P(1, 11, PSTR("---")); else LCD.lPad(1, 11, itoa(temp[TS_KETTLE] / 100, buf, 10), 3, ' ');
+    if (temp[TS_BEEROUT] == -32768) LCD.print_P(2, 11, PSTR("---")); else LCD.lPad(2, 11, itoa(temp[TS_BEEROUT] / 100, buf, 10), 3, ' ');
+    if (temp[TS_H2OIN] == -32768) LCD.print_P(1, 16, PSTR("---")); else LCD.lPad(1, 16, itoa(temp[TS_H2OIN] / 100, buf, 10), 3, ' ');
+    if (temp[TS_H2OOUT] == -32768) LCD.print_P(2, 16, PSTR("---")); else LCD.lPad(2, 16, itoa(temp[TS_H2OOUT] / 100, buf, 10), 3, ' ');
+    if (vlvConfigIsActive(VLV_CHILLBEER)) LCD.print_P(3, 12, PSTR(" On")); else LCD.print_P(3, 12, PSTR("Off"));
+    if (vlvConfigIsActive(VLV_CHILLH2O)) LCD.print_P(3, 17, PSTR(" On")); else LCD.print_P(3, 17, PSTR("Off"));
 
   } else if (screen == SCREEN_AUX) {
     //Screen Refresh: AUX
     for (byte i = TS_AUX1; i <= TS_AUX3; i++) {
-      if (temp[i] == -32768) printLCD_P(i - 5, 6, PSTR("---.-")); else {
+      if (temp[i] == -32768) LCD.print_P(i - 5, 6, PSTR("---.-")); else {
         vftoa(temp[i], buf, 100, 1);
         truncFloat(buf, 5);
-        printLCDLPad(i - 5, 6, buf, 5, ' ');
+        LCD.lPad(i - 5, 6, buf, 5, ' ');
       }
     }
   }
@@ -753,13 +754,13 @@ void screenEnter(byte screen) {
             if (vlvConfigIsActive(VLV_DRAIN)) bitClear(actProfiles, VLV_DRAIN);
             else {
               if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL)) {
-                clearLCD();
-                printLCD_P(0, 0, PSTR("Cannot drain while"));
-                printLCD_P(1, 0, PSTR("mash or boil zone"));
-                printLCD_P(2, 0, PSTR("is active"));
-                printLCD(3, 4, ">");
-                printLCD_P(3, 6, CONTINUE);
-                printLCD(3, 15, "<");
+                LCD.clear();
+                LCD.print_P(0, 0, PSTR("Cannot drain while"));
+                LCD.print_P(1, 0, PSTR("mash or boil zone"));
+                LCD.print_P(2, 0, PSTR("is active"));
+                LCD.print(3, 4, ">");
+                LCD.print_P(3, 6, CONTINUE);
+                LCD.print(3, 15, "<");
                 while (!Encoder.ok()) brewCore();
               } else bitSet(actProfiles, VLV_DRAIN);
             }
@@ -1026,12 +1027,12 @@ void continueClick() {
 }
 
 void stepAdvanceFailDialog() {
-  clearLCD();
-  printLCD_P(0, 0, PSTR("Failed to advance"));
-  printLCD_P(1, 0, PSTR("program."));
-  printLCD(3, 4, ">");
-  printLCD_P(3, 6, CONTINUE);
-  printLCD(3, 15, "<");
+  LCD.clear();
+  LCD.print_P(0, 0, PSTR("Failed to advance"));
+  LCD.print_P(1, 0, PSTR("program."));
+  LCD.print(3, 4, ">");
+  LCD.print_P(3, 6, CONTINUE);
+  LCD.print(3, 15, "<");
   while (!Encoder.ok()) brewCore();
 }
 
@@ -1086,13 +1087,13 @@ void startProgramMenu() {
       else if (lastOption == 1) setGrainTemp(getValue_P(PSTR("Grain Temp"), getGrainTemp(), SETPOINT_DIV, 255, TUNIT)); 
       else if (lastOption == 2 || lastOption == 3) {
         if (zoneIsActive(ZONE_MASH)) {
-          clearLCD();
-          printLCD_P(0, 0, PSTR("Cannot start program"));
-          printLCD_P(1, 0, PSTR("while mash zone is"));
-          printLCD_P(2, 0, PSTR("active."));
-          printLCD(3, 4, ">");
-          printLCD_P(3, 6, CONTINUE);
-          printLCD(3, 15, "<");
+          LCD.clear();
+          LCD.print_P(0, 0, PSTR("Cannot start program"));
+          LCD.print_P(1, 0, PSTR("while mash zone is"));
+          LCD.print_P(2, 0, PSTR("active."));
+          LCD.print(3, 4, ">");
+          LCD.print_P(3, 6, CONTINUE);
+          LCD.print(3, 15, "<");
           while (!Encoder.ok()) brewCore();
         } else {
           if (lastOption == 3) {
@@ -1100,11 +1101,11 @@ void startProgramMenu() {
             setDelayMins(getTimerValue(PSTR("Delay Start"), getDelayMins(), 23));
           }
           if (stepInit(profile, STEP_FILL)) {
-            clearLCD();
-            printLCD_P(1, 0, PSTR("Program start failed"));
-            printLCD(3, 4, ">");
-            printLCD_P(3, 6, CONTINUE);
-            printLCD(3, 15, "<");
+            LCD.clear();
+            LCD.print_P(1, 0, PSTR("Program start failed"));
+            LCD.print(3, 4, ">");
+            LCD.print_P(3, 6, CONTINUE);
+            LCD.print(3, 15, "<");
             while (!Encoder.ok()) brewCore();
           } else {
             activeScreen = SCREEN_FILL;
@@ -1272,50 +1273,50 @@ byte MLHeatSrcMenu(byte MLHeatSrc) {
 }
 
 void warnHLT(unsigned long spargeVol) {
-  clearLCD();
-  printLCD_P(0, 0, PSTR("HLT Capacity Issue"));
-  printLCD_P(1, 0, PSTR("Sparge Vol:"));
+  LCD.clear();
+  LCD.print_P(0, 0, PSTR("HLT Capacity Issue"));
+  LCD.print_P(1, 0, PSTR("Sparge Vol:"));
   vftoa(spargeVol, buf, 1000, 1);
   truncFloat(buf, 5);
-  printLCD(1, 11, buf);
-  printLCD_P(1, 16, VOLUNIT);
-  printLCD(3, 4, ">");
-  printLCD_P(3, 6, CONTINUE);
-  printLCD(3, 15, "<");
+  LCD.print(1, 11, buf);
+  LCD.print_P(1, 16, VOLUNIT);
+  LCD.print(3, 4, ">");
+  LCD.print_P(3, 6, CONTINUE);
+  LCD.print(3, 15, "<");
   while (!Encoder.ok()) brewCore();
 }
 
 
 void warnMash(unsigned long mashVol, unsigned long grainVol) {
-  clearLCD();
-  printLCD_P(0, 0, PSTR("Mash Capacity Issue"));
-  printLCD_P(1, 0, PSTR("Strike Vol:"));
+  LCD.clear();
+  LCD.print_P(0, 0, PSTR("Mash Capacity Issue"));
+  LCD.print_P(1, 0, PSTR("Strike Vol:"));
   vftoa(mashVol, buf, 1000, 1);
   truncFloat(buf, 5);
-  printLCD(1, 11, buf);
-  printLCD_P(1, 16, VOLUNIT);
-  printLCD_P(2, 0, PSTR("Grain Vol:"));
+  LCD.print(1, 11, buf);
+  LCD.print_P(1, 16, VOLUNIT);
+  LCD.print_P(2, 0, PSTR("Grain Vol:"));
   vftoa(grainVol, buf, 1000, 1);
   truncFloat(buf, 5);
-  printLCD(2, 11, buf);
-  printLCD_P(2, 16, VOLUNIT);
-  printLCD(3, 4, ">");
-  printLCD_P(3, 6, CONTINUE);
-  printLCD(3, 15, "<");
+  LCD.print(2, 11, buf);
+  LCD.print_P(2, 16, VOLUNIT);
+  LCD.print(3, 4, ">");
+  LCD.print_P(3, 6, CONTINUE);
+  LCD.print(3, 15, "<");
   while (!Encoder.ok()) brewCore();
 }
 
 void warnBoil(unsigned long preboilVol) {
-  clearLCD();
-  printLCD_P(0, 0, PSTR("Boil Capacity Issue"));
-  printLCD_P(1, 0, PSTR("Preboil Vol:"));
+  LCD.clear();
+  LCD.print_P(0, 0, PSTR("Boil Capacity Issue"));
+  LCD.print_P(1, 0, PSTR("Preboil Vol:"));
   vftoa(preboilVol, buf, 1000, 1);
   truncFloat(buf, 5);
-  printLCD(1, 12, buf);
-  printLCD_P(1, 17, VOLUNIT);
-  printLCD(3, 4, ">");
-  printLCD_P(3, 6, CONTINUE);
-  printLCD(3, 15, "<");
+  LCD.print(1, 12, buf);
+  LCD.print_P(1, 17, VOLUNIT);
+  LCD.print(3, 4, ">");
+  LCD.print_P(3, 6, CONTINUE);
+  LCD.print(3, 15, "<");
   while (!Encoder.ok()) brewCore();
 }
 
@@ -1341,8 +1342,8 @@ byte scrollMenu(char sTitle[], menu *objMenu) {
     if (encValue >= 0) {
       objMenu->setSelected(Encoder.getCount());
       if (objMenu->refreshDisp() || redraw) drawMenu(sTitle, objMenu);
-      for (byte i = 0; i < 3; i++) printLCD(i + 1, 0, " ");
-      printLCD(objMenu->getCursor() + 1, 0, ">");
+      for (byte i = 0; i < 3; i++) LCD.print(i + 1, 0, " ");
+      LCD.print(objMenu->getCursor() + 1, 0, ">");
     }
     redraw = 0;
     //If Enter
@@ -1356,19 +1357,19 @@ byte scrollMenu(char sTitle[], menu *objMenu) {
 }
 
 void drawMenu(char sTitle[], menu *objMenu) {
-  clearLCD();
-  if (sTitle != NULL) printLCD(0, 0, sTitle);
+  LCD.clear();
+  if (sTitle != NULL) LCD.print(0, 0, sTitle);
 
   for (byte i = 0; i < 3; i++) {
     objMenu->getVisibleRow(i, buf);
-    printLCD(i + 1, 1, buf);
+    LCD.print(i + 1, 1, buf);
   }
-  printLCD(objMenu->getCursor() + 1, 0, ">");
+  LCD.print(objMenu->getCursor() + 1, 0, ">");
 }
 
 byte getChoice(menu *objMenu, byte iRow) {
-  printLCD_P(iRow, 0, PSTR(">"));
-  printLCD_P(iRow, 19, PSTR("<"));
+  LCD.print_P(iRow, 0, PSTR(">"));
+  LCD.print_P(iRow, 19, PSTR("<"));
   Encoder.setMin(0);
   Encoder.setMax(objMenu->getItemCount() - 1);
   Encoder.setCount(0);
@@ -1383,13 +1384,13 @@ byte getChoice(menu *objMenu, byte iRow) {
     else encValue = Encoder.change();
     if (encValue >= 0) {
       objMenu->setSelected(encValue);
-      printLCDCenter(iRow, 1, objMenu->getSelectedRow(buf), 18);
+      LCD.center(iRow, 1, objMenu->getSelectedRow(buf), 18);
     }
     
     //If Enter
     if (Encoder.ok()) {
-      printLCD_P(iRow, 0, SPACE);
-      printLCD_P(iRow, 19, SPACE);
+      LCD.print_P(iRow, 0, SPACE);
+      LCD.print_P(iRow, 19, SPACE);
       return Encoder.getCount();
     } else if (Encoder.cancel()) {
       return 255;
@@ -1406,16 +1407,16 @@ boolean confirmChoice(const char *choice, byte row) {
 }
 
 boolean confirmAbort() {
-  clearLCD();
-  printLCD_P(0, 0, PSTR("Abort operation and"));
-  printLCD_P(1, 0, PSTR("reset setpoints,"));
-  printLCD_P(2, 0, PSTR("timers and outputs?"));
+  LCD.clear();
+  LCD.print_P(0, 0, PSTR("Abort operation and"));
+  LCD.print_P(1, 0, PSTR("reset setpoints,"));
+  LCD.print_P(2, 0, PSTR("timers and outputs?"));
   return confirmChoice(PSTR("Reset"), 3);
 }
 
 boolean confirmDel() {
-  clearLCD();
-  printLCD_P(1, 0, PSTR("Delete Item?"));
+  LCD.clear();
+  LCD.print_P(1, 0, PSTR("Delete Item?"));
   return confirmChoice(PSTR("Delete"), 3);
 }
 
@@ -1444,15 +1445,15 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
   Encoder.setMax(digits);
   Encoder.setCount(0);
 
-  lcdSetCustChar_P(0, CHARFIELD);
-  lcdSetCustChar_P(1, CHARCURSOR);
-  lcdSetCustChar_P(2, CHARSEL);
+  LCD.setCustChar_P(0, CHARFIELD);
+  LCD.setCustChar_P(1, CHARCURSOR);
+  LCD.setCustChar_P(2, CHARSEL);
   
   byte valuePos = (20 - digits + 1) / 2;
-  clearLCD();
-  printLCD(0, 0, sTitle);
-  printLCD_P(1, valuePos + digits + 1, dispUnit);
-  printLCD_P(3, 9, OK);
+  LCD.clear();
+  LCD.print(0, 0, sTitle);
+  LCD.print_P(1, valuePos + digits + 1, dispUnit);
+  LCD.print_P(3, 9, OK);
   boolean redraw = 1;
   
   while(1) {
@@ -1470,21 +1471,21 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
         retValue = min(strtoul(strValue, NULL, 10) / (mult / divisor), maxValue);
       } else {
         cursorPos = encValue;
-        for (byte i = valuePos - 1; i < valuePos - 1 + digits - precision; i++) lcdWriteCustChar(2, i, 0);
-        if (precision) for (byte i = valuePos + digits - precision; i < valuePos + digits; i++) lcdWriteCustChar(2, i, 0);
-        printLCD(3, 8, " ");
-        printLCD(3, 11, " ");
+        for (byte i = valuePos - 1; i < valuePos - 1 + digits - precision; i++) LCD.writeCustChar(2, i, 0);
+        if (precision) for (byte i = valuePos + digits - precision; i < valuePos + digits; i++) LCD.writeCustChar(2, i, 0);
+        LCD.print(3, 8, " ");
+        LCD.print(3, 11, " ");
         if (cursorPos == digits) {
-          printLCD(3, 8, ">");
-          printLCD(3, 11, "<");
+          LCD.print(3, 8, ">");
+          LCD.print(3, 11, "<");
         } else {
-          if (cursorPos < digits - precision) lcdWriteCustChar(2, valuePos + cursorPos - 1, 1);
-          else lcdWriteCustChar(2, valuePos + cursorPos, 1);
+          if (cursorPos < digits - precision) LCD.writeCustChar(2, valuePos + cursorPos - 1, 1);
+          else LCD.writeCustChar(2, valuePos + cursorPos, 1);
         }
       }
       vftoa(retValue, strValue, divisor, 1);
       strLPad(strValue, digits + (precision ? 1 : 0), ' ');
-      printLCD(1, valuePos - 1, strValue);
+      LCD.print(1, valuePos - 1, strValue);
     }
     
     if (Encoder.ok()) {
@@ -1492,8 +1493,8 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
       else {
         cursorState = cursorState ^ 1;
         if (cursorState) {
-          if (cursorPos < digits - precision) lcdWriteCustChar(2, valuePos + cursorPos - 1, 2);
-          else lcdWriteCustChar(2, valuePos + cursorPos, 2);
+          if (cursorPos < digits - precision) LCD.writeCustChar(2, valuePos + cursorPos - 1, 2);
+          else LCD.writeCustChar(2, valuePos + cursorPos, 2);
           unsigned long cursorPow = pow10(digits - cursorPos - 1);
           if(divisor == 1) increment = 1;
           else increment = max(10 / (cursorPow * divisor), 1);
@@ -1503,8 +1504,8 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
           strLPad(strValue, digits, '0');
           Encoder.setCount((strValue[cursorPos] - '0') / increment);
         } else {
-          if (cursorPos < digits - precision) lcdWriteCustChar(2, valuePos + cursorPos - 1, 1);
-          else lcdWriteCustChar(2, valuePos + cursorPos, 1);
+          if (cursorPos < digits - precision) LCD.writeCustChar(2, valuePos + cursorPos - 1, 1);
+          else LCD.writeCustChar(2, valuePos + cursorPos, 1);
           Encoder.setMin(0);
           Encoder.setMax(digits);
           Encoder.setCount(cursorPos);
@@ -1520,7 +1521,7 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
 }
 
 void printTimer(byte timer, byte iRow, byte iCol) {
-  if (timerValue[timer] > 0 && !timerStatus[timer]) printLCD(iRow, iCol, "PAUSED");
+  if (timerValue[timer] > 0 && !timerStatus[timer]) LCD.print(iRow, iCol, "PAUSED");
   else if (alarmStatus || timerStatus[timer]) {
     byte hours = timerValue[timer] / 3600000;
     byte mins = (timerValue[timer] - hours * 3600000) / 60000;
@@ -1529,14 +1530,14 @@ void printTimer(byte timer, byte iRow, byte iCol) {
     //Update LCD once per second
     if (millis() - timerLastPrint >= 1000) {
       timerLastPrint = millis();
-      printLCDRPad(iRow, iCol, "", 6, ' ');
-      printLCD_P(iRow, iCol+2, PSTR(":  :"));
-      printLCDLPad(iRow, iCol, itoa(hours, buf, 10), 2, '0');
-      printLCDLPad(iRow, iCol + 3, itoa(mins, buf, 10), 2, '0');
-      printLCDLPad(iRow, iCol + 6, itoa(secs, buf, 10), 2, '0');
-      if (alarmStatus) lcdWriteCustChar(iRow, iCol + 8, 5);
+      LCD.rPad(iRow, iCol, "", 6, ' ');
+      LCD.print_P(iRow, iCol+2, PSTR(":  :"));
+      LCD.lPad(iRow, iCol, itoa(hours, buf, 10), 2, '0');
+      LCD.lPad(iRow, iCol + 3, itoa(mins, buf, 10), 2, '0');
+      LCD.lPad(iRow, iCol + 6, itoa(secs, buf, 10), 2, '0');
+      if (alarmStatus) LCD.writeCustChar(iRow, iCol + 8, 5);
     }
-  } else printLCDRPad(iRow, iCol, "", 9, ' ');
+  } else LCD.rPad(iRow, iCol, "", 9, ' ');
 }
 
 int getTimerValue(const char *sTitle, int defMins, byte maxHours) {
@@ -1548,11 +1549,11 @@ int getTimerValue(const char *sTitle, int defMins, byte maxHours) {
   Encoder.setMax(2);
   Encoder.setCount(0);
   
-  clearLCD();
-  printLCD_P(0,0,sTitle);
-  printLCD(1, 7, "(hh:mm)");
-  printLCD(2, 10, ":");
-  printLCD_P(3, 9, OK);
+  LCD.clear();
+  LCD.print_P(0,0,sTitle);
+  LCD.print(1, 7, "(hh:mm)");
+  LCD.print(2, 10, ":");
+  LCD.print_P(3, 9, OK);
   boolean redraw = 1;
   int encValue;
  
@@ -1568,27 +1569,27 @@ int getTimerValue(const char *sTitle, int defMins, byte maxHours) {
         cursorPos = encValue;
         switch (cursorPos) {
           case 0: //hours
-            printLCD(2, 7, ">");
-            printLCD(2, 13, " ");
-            printLCD(3, 8, " ");
-            printLCD(3, 11, " ");
+            LCD.print(2, 7, ">");
+            LCD.print(2, 13, " ");
+            LCD.print(3, 8, " ");
+            LCD.print(3, 11, " ");
             break;
           case 1: //mins
-            printLCD(2, 7, " ");
-            printLCD(2, 13, "<");
-            printLCD(3, 8, " ");
-            printLCD(3, 11, " ");
+            LCD.print(2, 7, " ");
+            LCD.print(2, 13, "<");
+            LCD.print(3, 8, " ");
+            LCD.print(3, 11, " ");
             break;
           case 2: //OK
-            printLCD(2, 7, " ");
-            printLCD(2, 13, " ");
-            printLCD(3, 8, ">");
-            printLCD(3, 11, "<");
+            LCD.print(2, 7, " ");
+            LCD.print(2, 13, " ");
+            LCD.print(3, 8, ">");
+            LCD.print(3, 11, "<");
             break;
         }
       }
-      printLCDLPad(2, 8, itoa(hours, buf, 10), 2, '0');
-      printLCDLPad(2, 11, itoa(mins, buf, 10), 2, '0');
+      LCD.lPad(2, 8, itoa(hours, buf, 10), 2, '0');
+      LCD.lPad(2, 11, itoa(mins, buf, 10), 2, '0');
     }
     
     if (Encoder.ok()) {
@@ -1635,13 +1636,13 @@ void getString(const char *sTitle, char defValue[], byte chars) {
   Encoder.setCount(0);
 
 
-  lcdSetCustChar_P(0, CHARFIELD);
-  lcdSetCustChar_P(1, CHARCURSOR);
-  lcdSetCustChar_P(2, CHARSEL);
+  LCD.setCustChar_P(0, CHARFIELD);
+  LCD.setCustChar_P(1, CHARCURSOR);
+  LCD.setCustChar_P(2, CHARSEL);
   
-  clearLCD();
-  printLCD_P(0,0,sTitle);
-  printLCD_P(3, 9, OK);
+  LCD.clear();
+  LCD.print_P(0,0,sTitle);
+  LCD.print_P(3, 9, OK);
   boolean redraw = 1;
   while(1) {
     int encValue;
@@ -1655,17 +1656,17 @@ void getString(const char *sTitle, char defValue[], byte chars) {
         retValue[cursorPos] = enc2ASCII(encValue);
       } else {
         cursorPos = encValue;
-        for (byte i = (20 - chars + 1) / 2 - 1; i < (20 - chars + 1) / 2 - 1 + chars; i++) lcdWriteCustChar(2, i, 0);
-        printLCD(3, 8, " ");
-        printLCD(3, 11, " ");
+        for (byte i = (20 - chars + 1) / 2 - 1; i < (20 - chars + 1) / 2 - 1 + chars; i++) LCD.writeCustChar(2, i, 0);
+        LCD.print(3, 8, " ");
+        LCD.print(3, 11, " ");
         if (cursorPos == chars) {
-          printLCD(3, 8, ">");
-          printLCD(3, 11, "<");
+          LCD.print(3, 8, ">");
+          LCD.print(3, 11, "<");
         } else {
-          lcdWriteCustChar(2, (20 - chars + 1) / 2 + cursorPos - 1, 1);
+          LCD.writeCustChar(2, (20 - chars + 1) / 2 + cursorPos - 1, 1);
         }
       }
-      printLCD(1, (20 - chars + 1) / 2 - 1, retValue);
+      LCD.print(1, (20 - chars + 1) / 2 - 1, retValue);
     }
     
     if (Encoder.ok()) {
@@ -1679,12 +1680,12 @@ void getString(const char *sTitle, char defValue[], byte chars) {
           Encoder.setMin(0);
           Encoder.setMax(94);
           Encoder.setCount(ASCII2enc(retValue[cursorPos]));
-          lcdWriteCustChar(2, (20 - chars + 1) / 2 + cursorPos - 1, 2);
+          LCD.writeCustChar(2, (20 - chars + 1) / 2 + cursorPos - 1, 2);
         } else {
           Encoder.setMin(0);
           Encoder.setMax(chars);
           Encoder.setCount(cursorPos);
-          lcdWriteCustChar(2, (20 - chars + 1) / 2 + cursorPos - 1, 1);
+          LCD.writeCustChar(2, (20 - chars + 1) / 2 + cursorPos - 1, 1);
         }
       }
     } else if (Encoder.cancel()) return;
@@ -1728,7 +1729,7 @@ void menuSetup() {
     setupMenu.setItem_P(PSTR("Valve Profiles"), 3);
   #endif
   setupMenu.setItem_P(INIT_EEPROM, 4);
-  #ifdef UI_LCD_I2C
+  #ifdef UI_DISPLAY_SETUP
     setupMenu.setItem_P(PSTR("Display"), 5);
   #endif  
   setupMenu.setItem_P(EXIT, 255);
@@ -1742,11 +1743,11 @@ void menuSetup() {
       else if (lastOption == 3) cfgValves();
     #endif  
     else if (lastOption == 4) {
-      clearLCD();
-      printLCD_P(0, 0, PSTR("Reset Configuration?"));
+      LCD.clear();
+      LCD.print_P(0, 0, PSTR("Reset Configuration?"));
       if (confirmChoice(INIT_EEPROM, 3)) UIinitEEPROM();
     }
-    #ifdef UI_LCD_I2C
+    #ifdef UI_DISPLAY_SETUP
       else if (lastOption == 5) adjustLCD();
     #endif
     else return;
@@ -1783,10 +1784,10 @@ void assignSensor() {
     if (encValue >= 0) {
       tsMenu.setSelected(encValue);
       //The user has navigated toward a new temperature probe screen.
-      clearLCD();
-      printLCD_P(0, 0, PSTR("Assign Temp Sensor"));
-      printLCDCenter(1, 0, tsMenu.getSelectedRow(buf), 20);
-      for (byte i=0; i<8; i++) printLCDLPad(2,i*2+2,itoa(tSensor[tsMenu.getValue()][i], buf, 16), 2, '0');
+      LCD.clear();
+      LCD.print_P(0, 0, PSTR("Assign Temp Sensor"));
+      LCD.center(1, 0, tsMenu.getSelectedRow(buf), 20);
+      for (byte i=0; i<8; i++) LCD.lPad(2,i*2+2,itoa(tSensor[tsMenu.getValue()][i], buf, 16), 2, '0');
     }
     displayAssignSensorTemp(tsMenu.getValue()); //Update each loop
 
@@ -1801,10 +1802,10 @@ void assignSensor() {
       tsOpMenu.setItem_P(EXIT, 255);
       byte selected = scrollMenu(tsMenu.getSelectedRow(buf), &tsOpMenu);
       if (selected == 0) {
-        clearLCD();
-        printLCDCenter(0, 0, tsMenu.getSelectedRow(buf), 20);
-        printLCD_P(1,0,PSTR("Disconnect all other"));
-        printLCD_P(2,2,PSTR("temp sensors now"));
+        LCD.clear();
+        LCD.center(0, 0, tsMenu.getSelectedRow(buf), 20);
+        LCD.print_P(1,0,PSTR("Disconnect all other"));
+        LCD.print_P(2,2,PSTR("temp sensors now"));
         {
           if (confirmChoice(CONTINUE, 3)) {
             byte addr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -1828,11 +1829,11 @@ void assignSensor() {
 }
 
 void displayAssignSensorTemp(int sensor) {
-  printLCD_P(3, 10, TUNIT); 
+  LCD.print_P(3, 10, TUNIT); 
   if (temp[sensor] == -32768) {
-    printLCD_P(3, 7, PSTR("---"));
+    LCD.print_P(3, 7, PSTR("---"));
   } else {
-    printLCDLPad(3, 7, itoa(temp[sensor] / 100, buf, 10), 3, ' ');
+    LCD.lPad(3, 7, itoa(temp[sensor] / 100, buf, 10), 3, ' ');
   }
 }
 
@@ -1944,9 +1945,9 @@ void cfgOutputs() {
     } else if ((lastOption & B00001111) == OPT_SENSOR) {
       setSteamPSens(getValue_P(STEAMSENSOR, steamPSens, 10, 9999, PSTR("mV/kPa")));
     } else if ((lastOption & B00001111) == OPT_ZERO) {
-      clearLCD();
-      printLCD_P(0, 0, STEAMZERO);
-      printLCD_P(1,2,PSTR("Calibrate Zero?"));
+      LCD.clear();
+      LCD.print_P(0, 0, STEAMZERO);
+      LCD.print_P(1,2,PSTR("Calibrate Zero?"));
       if (confirmChoice(CONTINUE, 3)) setSteamZero(analogRead(STEAMPRESS_APIN));
 #endif
     } else if ((lastOption & B00001111) == OPT_BOILTEMP) {
@@ -1968,10 +1969,10 @@ void setPIDGain(char sTitle[], byte vessel) {
   Encoder.setMax(3);
   Encoder.setCount(0);
   
-  clearLCD();
-  printLCD(0,0,sTitle);
-  printLCD_P(1, 0, PSTR("P:     I:     D:    "));
-  printLCD_P(3, 8, OK);
+  LCD.clear();
+  LCD.print(0,0,sTitle);
+  LCD.print_P(1, 0, PSTR("P:     I:     D:    "));
+  LCD.print_P(3, 8, OK);
   boolean redraw = 1;
   while(1) {
     int encValue;
@@ -1988,34 +1989,34 @@ void setPIDGain(char sTitle[], byte vessel) {
       } else {
         cursorPos = encValue;
         if (cursorPos == 0) {
-          printLCD_P(1, 2, PSTR(">"));
-          printLCD_P(1, 9, PSTR(" "));
-          printLCD_P(1, 16, PSTR(" "));
-          printLCD_P(3, 7, PSTR(" "));
-          printLCD_P(3, 10, PSTR(" "));
+          LCD.print_P(1, 2, PSTR(">"));
+          LCD.print_P(1, 9, PSTR(" "));
+          LCD.print_P(1, 16, PSTR(" "));
+          LCD.print_P(3, 7, PSTR(" "));
+          LCD.print_P(3, 10, PSTR(" "));
         } else if (cursorPos == 1) {
-          printLCD_P(1, 2, PSTR(" "));
-          printLCD_P(1, 9, PSTR(">"));
-          printLCD_P(1, 16, PSTR(" "));
-          printLCD_P(3, 7, PSTR(" "));
-          printLCD_P(3, 10, PSTR(" "));
+          LCD.print_P(1, 2, PSTR(" "));
+          LCD.print_P(1, 9, PSTR(">"));
+          LCD.print_P(1, 16, PSTR(" "));
+          LCD.print_P(3, 7, PSTR(" "));
+          LCD.print_P(3, 10, PSTR(" "));
         } else if (cursorPos == 2) {
-          printLCD_P(1, 2, PSTR(" "));
-          printLCD_P(1, 9, PSTR(" "));
-          printLCD_P(1, 16, PSTR(">"));
-          printLCD_P(3, 7, PSTR(" "));
-          printLCD_P(3, 10, PSTR(" "));
+          LCD.print_P(1, 2, PSTR(" "));
+          LCD.print_P(1, 9, PSTR(" "));
+          LCD.print_P(1, 16, PSTR(">"));
+          LCD.print_P(3, 7, PSTR(" "));
+          LCD.print_P(3, 10, PSTR(" "));
         } else if (cursorPos == 3) {
-          printLCD_P(1, 2, PSTR(" "));
-          printLCD_P(1, 9, PSTR(" "));
-          printLCD_P(1, 16, PSTR(" "));
-          printLCD_P(3, 7, PSTR(">"));
-          printLCD_P(3, 10, PSTR("<"));
+          LCD.print_P(1, 2, PSTR(" "));
+          LCD.print_P(1, 9, PSTR(" "));
+          LCD.print_P(1, 16, PSTR(" "));
+          LCD.print_P(3, 7, PSTR(">"));
+          LCD.print_P(3, 10, PSTR("<"));
         }
       }
-      printLCDLPad(1, 3, itoa(retP, buf, 10), 3, ' ');
-      printLCDLPad(1, 10, itoa(retI, buf, 10), 3, ' ');
-      printLCDLPad(1, 17, itoa(retD, buf, 10), 3, ' ');
+      LCD.lPad(1, 3, itoa(retP, buf, 10), 3, ' ');
+      LCD.lPad(1, 10, itoa(retI, buf, 10), 3, ' ');
+      LCD.lPad(1, 17, itoa(retD, buf, 10), 3, ' ');
     }
     if (Encoder.ok()) {
       if (cursorPos == 3) {
@@ -2239,10 +2240,10 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     //(Set to MAX + 1 to force redraw)
     firstBit = encMax + 1;
     
-    clearLCD();
-    printLCD(0,0,sTitle);
-    printLCD_P(3, 3, PSTR("Test"));
-    printLCD_P(3, 13, PSTR("Save"));
+    LCD.clear();
+    LCD.print(0,0,sTitle);
+    LCD.print_P(3, 3, PSTR("Test"));
+    LCD.print_P(3, 13, PSTR("Save"));
     
     boolean redraw = 1;
     while(1) {
@@ -2255,33 +2256,33 @@ void volCalibEntryMenu(byte vessel, byte entry) {
       if (encValue >= 0) {
         if (encValue < firstBit || encValue > firstBit + 17) {
           if (encValue < firstBit) firstBit = encValue; else if (encValue < encMax - 1) firstBit = encValue - 17;
-          for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) printLCD_P(1, i - firstBit + 1, PSTR("1")); else printLCD_P(1, i - firstBit + 1, PSTR("0"));
+          for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) LCD.print_P(1, i - firstBit + 1, PSTR("1")); else LCD.print_P(1, i - firstBit + 1, PSTR("0"));
         }
   
         for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) {
           if (i < 9) itoa(i + 1, buf, 10); else buf[0] = i + 56;
           buf[1] = '\0';
-          printLCD(2, i - firstBit + 1, buf);
+          LCD.print(2, i - firstBit + 1, buf);
         }
   
-        if (firstBit > 0) printLCD_P(2, 0, PSTR("<")); else printLCD_P(2, 0, PSTR(" "));
-        if (firstBit + 18 < encMax - 1) printLCD_P(2, 19, PSTR(">")); else printLCD_P(2, 19, PSTR(" "));
+        if (firstBit > 0) LCD.print_P(2, 0, PSTR("<")); else LCD.print_P(2, 0, PSTR(" "));
+        if (firstBit + 18 < encMax - 1) LCD.print_P(2, 19, PSTR(">")); else LCD.print_P(2, 19, PSTR(" "));
         if (encValue == encMax - 1) {
-          printLCD_P(3, 2, PSTR(">"));
-          printLCD_P(3, 7, PSTR("<"));
-          printLCD_P(3, 12, PSTR(" "));
-          printLCD_P(3, 17, PSTR(" "));
+          LCD.print_P(3, 2, PSTR(">"));
+          LCD.print_P(3, 7, PSTR("<"));
+          LCD.print_P(3, 12, PSTR(" "));
+          LCD.print_P(3, 17, PSTR(" "));
         } else if (encValue == encMax) {
-          printLCD_P(3, 2, PSTR(" "));
-          printLCD_P(3, 7, PSTR(" "));
-          printLCD_P(3, 12, PSTR(">"));
-          printLCD_P(3, 17, PSTR("<"));
+          LCD.print_P(3, 2, PSTR(" "));
+          LCD.print_P(3, 7, PSTR(" "));
+          LCD.print_P(3, 12, PSTR(">"));
+          LCD.print_P(3, 17, PSTR("<"));
         } else {
-          printLCD_P(3, 2, PSTR(" "));
-          printLCD_P(3, 7, PSTR(" "));
-          printLCD_P(3, 12, PSTR(" "));
-          printLCD_P(3, 17, PSTR(" "));
-          printLCD_P(2, encValue - firstBit + 1, PSTR("^"));
+          LCD.print_P(3, 2, PSTR(" "));
+          LCD.print_P(3, 7, PSTR(" "));
+          LCD.print_P(3, 12, PSTR(" "));
+          LCD.print_P(3, 17, PSTR(" "));
+          LCD.print_P(2, encValue - firstBit + 1, PSTR("^"));
         }
       }
       
@@ -2290,15 +2291,15 @@ void volCalibEntryMenu(byte vessel, byte entry) {
         if (encValue == encMax) return retValue;
         else if (encValue == encMax - 1) {
           Valves.set(retValue);
-          printLCD_P(3, 2, PSTR("["));
-          printLCD_P(3, 7, PSTR("]"));
-          updateLCD();
+          LCD.print_P(3, 2, PSTR("["));
+          LCD.print_P(3, 7, PSTR("]"));
+          LCD.update();
           while (!Encoder.ok()) delay(100);
           Valves.set(0);
           redraw = 1;
         } else {
           retValue = retValue ^ ((unsigned long)1<<encValue);
-          for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) printLCD_P(1, i - firstBit + 1, PSTR("1")); else printLCD_P(1, i - firstBit + 1, PSTR("0"));
+          for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) LCD.print_P(1, i - firstBit + 1, PSTR("1")); else LCD.print_P(1, i - firstBit + 1, PSTR("0"));
         }
       } else if (Encoder.cancel()) return defValue;
       brewCore();
@@ -2306,7 +2307,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
   }
 #endif
 
-#ifdef UI_LCD_I2C
+#ifdef UI_DISPLAY_SETUP
   void adjustLCD() {
     byte cursorPos = 0; //0 = brightness, 1 = contrast, 2 = cancel, 3 = save
     boolean cursorState = 0; //0 = Unselected, 1 = Selected
@@ -2315,14 +2316,14 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     Encoder.setCount(0);
     Encoder.setMax(3);
     
-    clearLCD();
-    printLCD_P(0,0,PSTR("Adjust LCD"));
-    printLCD_P(1, 1, PSTR("Brightness:"));
-    printLCD_P(2, 3, PSTR("Contrast:"));
-    printLCD_P(3, 1, PSTR("Cancel"));
-    printLCD_P(3, 15, PSTR("Save"));
-    byte bright = i2cGetBright();
-    byte contrast = i2cGetContrast();
+    LCD.clear();
+    LCD.print_P(0,0,PSTR("Adjust LCD"));
+    LCD.print_P(1, 1, PSTR("Brightness:"));
+    LCD.print_P(2, 3, PSTR("Contrast:"));
+    LCD.print_P(3, 1, PSTR("Cancel"));
+    LCD.print_P(3, 15, PSTR("Save"));
+    byte bright = LCD.getBright();
+    byte contrast = LCD.getContrast();
     byte origBright = bright;
     byte origContrast = contrast;
     boolean redraw = 1;
@@ -2337,46 +2338,46 @@ void volCalibEntryMenu(byte vessel, byte entry) {
         if (cursorState) {
           if (cursorPos == 0) { 
             bright = encValue;
-            i2cSetBright(bright);
+            LCD.setBright(bright);
           } else if (cursorPos == 1) {
             contrast = encValue;
-            i2cSetContrast(contrast);
+            LCD.setContrast(contrast);
           }
         } else {
           cursorPos = encValue;
-          printLCD_P(1, 12, PSTR(" "));
-          printLCD_P(1, 16, PSTR(" "));
-          printLCD_P(2, 12, PSTR(" "));
-          printLCD_P(2, 16, PSTR(" "));
-          printLCD_P(3, 0, PSTR(" "));
-          printLCD_P(3, 7, PSTR(" "));
-          printLCD_P(3, 14, PSTR(" "));
-          printLCD_P(3, 19, PSTR(" "));
+          LCD.print_P(1, 12, PSTR(" "));
+          LCD.print_P(1, 16, PSTR(" "));
+          LCD.print_P(2, 12, PSTR(" "));
+          LCD.print_P(2, 16, PSTR(" "));
+          LCD.print_P(3, 0, PSTR(" "));
+          LCD.print_P(3, 7, PSTR(" "));
+          LCD.print_P(3, 14, PSTR(" "));
+          LCD.print_P(3, 19, PSTR(" "));
           if (cursorPos == 0) {
-            printLCD_P(1, 12, PSTR(">"));
-            printLCD_P(1, 16, PSTR("<"));
+            LCD.print_P(1, 12, PSTR(">"));
+            LCD.print_P(1, 16, PSTR("<"));
           } else if (cursorPos == 1) {
-            printLCD_P(2, 12, PSTR(">"));
-            printLCD_P(2, 16, PSTR("<"));
+            LCD.print_P(2, 12, PSTR(">"));
+            LCD.print_P(2, 16, PSTR("<"));
           } else if (cursorPos == 2) {
-            printLCD_P(3, 0, PSTR(">"));
-            printLCD_P(3, 7, PSTR("<"));
+            LCD.print_P(3, 0, PSTR(">"));
+            LCD.print_P(3, 7, PSTR("<"));
           } else if (cursorPos == 3) {
-            printLCD_P(3, 14, PSTR(">"));
-            printLCD_P(3, 19, PSTR("<"));
+            LCD.print_P(3, 14, PSTR(">"));
+            LCD.print_P(3, 19, PSTR("<"));
           }
         }
-        printLCDLPad(1, 13, itoa(bright, buf, 10), 3, ' ');
-        printLCDLPad(2, 13, itoa(contrast, buf, 10), 3, ' ');
+        LCD.lPad(1, 13, itoa(bright, buf, 10), 3, ' ');
+        LCD.lPad(2, 13, itoa(contrast, buf, 10), 3, ' ');
       }
       if (Encoder.ok()) {
         if (cursorPos == 2) {
-          i2cSetBright(origBright);
-          i2cSetContrast(origContrast);
+          LCD.setBright(origBright);
+          LCD.setContrast(origContrast);
           return;
         }
         else if (cursorPos == 3) {
-          i2cSaveConfig();
+          LCD.saveConfig();
           return;
         }
         cursorState = cursorState ^ 1;
@@ -2394,7 +2395,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
       brewCore();
     }
   }
-#endif //#ifdef UI_LCD_I2C
+#endif //#ifdef UI_DISPLAY_SETUP
 
 #endif //#ifndef UI_NO_SETUP
 

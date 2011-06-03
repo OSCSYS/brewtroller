@@ -1,4 +1,4 @@
-#define BUILD 717
+#define BUILD 718
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -36,10 +36,7 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
     FastPin and modified LiquidCrystal with FastPin by CodeRage (http://www.brewtroller.com/forum/showthread.php?t=626)
 */
 
-#include "Config.h"
-#include "Enum.h"
-#include "HWProfile.h"
-#include "PVOut.h"
+
 
 //*****************************************************************************************************************************
 // BEGIN CODE
@@ -48,6 +45,12 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 #include <PID_Beta6.h>
 #include <pin.h>
 #include <menu.h>
+
+#include "Config.h"
+#include "Enum.h"
+#include "HWProfile.h"
+#include "PVOut.h"
+#include "UI_LCD.h"
 
 void(* softReset) (void) = 0;
 
@@ -133,6 +136,22 @@ unsigned long SpargeVol = 0;
 //Flowrate in thousandths of gal/l per minute
 long flowRate[3] = {0,0,0};
 #endif
+
+
+//Create the appropriate 'LCD' object for the hardware configuration (4-Bit GPIO, I2C)
+#if defined UI_LCD_4BIT
+  #include <LiquidCrystalFP.h>
+  
+  #ifndef UI_DISPLAY_SETUP
+    LCD4Bit LCD(LCD_RS_PIN, LCD_ENABLE_PIN, LCD_DATA4_PIN, LCD_DATA5_PIN, LCD_DATA6_PIN, LCD_DATA7_PIN);
+  #else
+    LCD4Bit LCD(LCD_RS_PIN, LCD_ENABLE_PIN, LCD_DATA4_PIN, LCD_DATA5_PIN, LCD_DATA6_PIN, LCD_DATA7_PIN, LCD_BRIGHT_PIN, LCD_CONTRAST_PIN);
+  #endif
+  
+#elif defined UI_LCD_I2C
+  LCDI2C LCD(UI_LCD_I2CADDR);
+#endif
+
 
 //Valve Variables
 unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
