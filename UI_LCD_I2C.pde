@@ -61,7 +61,7 @@ void clearLCD() {
 void printLCDCenter(byte iRow, byte iCol, char sText[], byte fieldWidth){
   byte sLen = strlen(sText);
   byte textStart = (fieldWidth - sLen) / 2;
-  char s[20];
+  char s[21];
   memset(s, ' ', fieldWidth);
   memcpy(s + textStart, sText, sLen);
   s[fieldWidth] = NULL;
