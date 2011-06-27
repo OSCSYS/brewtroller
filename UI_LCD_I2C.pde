@@ -69,7 +69,7 @@ void printLCDCenter(byte iRow, byte iCol, char sText[], byte fieldWidth){
 }
   
 char printLCDLPad(byte iRow, byte iCol, char sText[], byte length, char pad) {
-  char s[20];
+  char s[21];
   byte sLen = strlen(sText);
   byte textStart = length - sLen;
   memset(s, pad, textStart);
@@ -79,7 +79,7 @@ char printLCDLPad(byte iRow, byte iCol, char sText[], byte length, char pad) {
 }  
 
 char printLCDRPad(byte iRow, byte iCol, char sText[], byte length, char pad) {
-  char s[20];
+  char s[21];
   byte sLen = strlen(sText);
   memcpy(s, sText, sLen);
   memset(s + sLen, pad, length - sLen);
