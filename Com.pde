@@ -97,27 +97,68 @@ void updateCom() {
   
   #ifdef BTNIC_EMBEDDED
     BTnic btnicI2C;
+    
+    #ifdef DEBUG_BTNIC
+      byte lastState = 255;
+    #endif
+    
     void updateI2CBTnic() {
+      
+      #ifdef DEBUG_BTNIC
+        if (btnicI2C.getState() != lastState) {
+          Serial.print("btnicEmb State Change: ");
+          Serial.print(lastState, DEC);
+          Serial.print('>');
+          lastState = btnicI2C.getState();
+          Serial.println(lastState, DEC);
+        }
+      #endif
+
       if(btnicI2C.getState() == BTNIC_STATE_TX) {
         //TX Ready
         Wire.beginTransmission(BTNIC_I2C_ADDR);
         char timestamp[11];
         Wire.send(ultoa(millis(), timestamp, 10));
         Wire.send(0x09);
-        while(btnicI2C.getState() == BTNIC_STATE_TX) Wire.send(btnicI2C.tx());        
-        Wire.send(0x0D); //Carriage Return
-        Wire.send(0x0A); //New Line
+        #ifdef DEBUG_BTNIC
+          Serial.print("btnicEmb TX: ");
+        #endif
+        while(btnicI2C.getState() == BTNIC_STATE_TX) {
+          byte data = btnicI2C.tx();
+          #ifdef DEBUG_BTNIC
+            Serial.print(data);
+          #endif
+          Wire.send(data);        
+        }
         Wire.endTransmission();
       }
     }
 
     void btnicRX(int numBytes) {
-      if(btnicI2C.getState() == BTNIC_STATE_RX) {
+      byte state = btnicI2C.getState();
+      #ifdef DEBUG_BTNIC
+        Serial.print("btnicEmb RX: ");
+      #endif
+      if(state == BTNIC_STATE_RX) {
         for (byte i = 0; i < numBytes; i++) {
-          btnicI2C.rx(Wire.receive());
+          char data = Wire.receive();
+          #ifdef DEBUG_BTNIC
+            Serial.print(data);
+          #endif
+          btnicI2C.rx(data);
           if(btnicI2C.getState() != BTNIC_STATE_RX) break;
         }
+        #ifdef DEBUG_BTNIC
+          Serial.println();
+        #endif
       }
+      #ifdef DEBUG_BTNIC
+      else {
+        Serial.print("NOT READY(");
+        Serial.print(state, DEC);
+        Serial.println(")");
+      }
+      #endif
     }    
   #endif
   

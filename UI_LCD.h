@@ -287,7 +287,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       }
         
       char lPad(byte iRow, byte iCol, char sText[], byte length, char pad) {
-        char s[20];
+        char s[21];
         byte sLen = strlen(sText);
         byte textStart = length - sLen;
         memset(s, pad, textStart);
@@ -297,7 +297,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       }  
       
       char rPad(byte iRow, byte iCol, char sText[], byte length, char pad) {
-        char s[20];
+        char s[21];
         byte sLen = strlen(sText);
         memcpy(s, sText, sLen);
         memset(s + sLen, pad, length - sLen);

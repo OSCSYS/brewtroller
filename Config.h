@@ -534,6 +534,8 @@
 // based on the running program
 //#define DEBUG_PROG_CALC_VOLS
 
+//#define DEBUG_BTNIC
+
 //**********************************************************************************
 
 #endif
