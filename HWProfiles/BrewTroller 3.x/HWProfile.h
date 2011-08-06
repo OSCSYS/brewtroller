@@ -22,9 +22,8 @@ BrewTroller 3.x Hardware Configuration
   #define ALARM_PIN 15
   
   #define PVOUT_TYPE_MUX
-  #define PVOUT_BANKS 2 //2x 8-Port Banks = 16 Outputs
-  //#define PVOUT_BANKS 4 //4x 8-Port Banks = 32 Outputs
-  
+  #define PVOUT_COUNT 16 //16 Outputs
+    
   #define MUX_LATCH_PIN 12
   #define MUX_CLOCK_PIN 13
   #define MUX_DATA_PIN 14
@@ -74,7 +73,7 @@ BrewTroller 3.x Hardware Configuration
 //**********************************************************************************
   
   #define UI_LCD_4BIT
-  #define LCD_RS_PIN 17
+  #define LCD_RS_PIN 18
   #define LCD_ENABLE_PIN 19
   #define LCD_DATA4_PIN 20
   #define LCD_DATA5_PIN 21
