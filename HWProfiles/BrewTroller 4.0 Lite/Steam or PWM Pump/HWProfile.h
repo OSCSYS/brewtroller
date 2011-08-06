@@ -1,5 +1,6 @@
 /*
 BrewTroller 4.0 Lite Hardware Configuration
+  RIMS / Direct Fired: Three Heat Outputs + 2 Pump/Valve Outputs + Alarm
 */
 
 #ifndef BT_HWPROFILE
@@ -12,24 +13,22 @@ BrewTroller 4.0 Lite Hardware Configuration
   
   #define ALARM_PIN 15 //OUT6
   
-  //Uncomment to support one or more 8-Port MODBUS relay boards
-  //#define PVOUT_TYPE_MODBUS
+  #define PVOUT_TYPE_GPIO
+  #define PVOUT_COUNT 1 //1 Output
   
-  //Define the number of 8-Port Pump/Valve Output Banks (1-4)
-  //#define PVOUT_BANKS 1
-
+  #define VALVE1_PIN 18 //OUT5
+  
   #define HLTHEAT_PIN 22 //OUT1
-  #define MASHHEAT_PIN 21 //OUT2
+  #define MASHHEAT_PIN 21//OUT2
   #define KETTLEHEAT_PIN 20 //OUT3
   #define STEAMHEAT_PIN 19 //OUT4
   #define PWMPUMP_PIN 19 //OUT4
-  //#define EXTRA_OUT_PIN //OUT5
   
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
   #define KETTLEVOL_APIN 1
   #define STEAMPRESS_APIN 0
-
+  
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
   
@@ -79,5 +78,8 @@ BrewTroller 4.0 Lite Hardware Configuration
 // Should be 0x18, 0x19, 0x1A, 0x1B
 #define DS2482_ADDR 0x1B
 //**********************************************************************************
+
+#define RS485_MASTER
+#define RS485_RXTX_PIN 12
 
 #endif

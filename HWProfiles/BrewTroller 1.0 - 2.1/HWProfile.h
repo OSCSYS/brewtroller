@@ -16,7 +16,7 @@ BrewTroller 1.0 - 2.1 Hardware Configuration
   #define ALARM_PIN 15
   
   #define PVOUT_TYPE_GPIO
-  #define PVOUT_BANKS 1.375 //1.375x 8-Port Banks = 11 Outputs
+  #define PVOUT_COUNT 11 //11 Outputs
 
   #define VALVE1_PIN 6 //Pin 4
   #define VALVE2_PIN 7 //Pin 3

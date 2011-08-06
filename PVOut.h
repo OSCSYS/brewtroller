@@ -5,33 +5,19 @@
   class PVOutGPIO
   {
     private:
-    pin valvePin[11];
+    pin* valvePin;
     
     public:
-    PVOutGPIO(
-      byte pin1,
-      byte pin2,
-      byte pin3,
-      byte pin4,
-      byte pin5,
-      byte pin6,
-      byte pin7,
-      byte pin8,
-      byte pin9,
-      byte pinA,
-      byte pinB
-    ) {
-      valvePin[0].setup(pin1, OUTPUT);
-      valvePin[1].setup(pin2, OUTPUT);
-      valvePin[2].setup(pin3, OUTPUT);
-      valvePin[3].setup(pin4, OUTPUT);
-      valvePin[4].setup(pin5, OUTPUT);
-      valvePin[5].setup(pin6, OUTPUT);
-      valvePin[6].setup(pin7, OUTPUT);
-      valvePin[7].setup(pin8, OUTPUT);
-      valvePin[8].setup(pin9, OUTPUT);
-      valvePin[9].setup(pinA, OUTPUT);
-      valvePin[10].setup(pinB, OUTPUT);
+    PVOutGPIO(byte pinCount) {
+      valvePin = (pin *) malloc(pinCount * sizeof(pin));
+    }
+
+    ~PVOutGPIO() {
+      free(valvePin);
+    }
+  
+    void setup(byte pinIndex, byte digitalPin) {
+      valvePin[pinIndex].setup(digitalPin, OUTPUT);
     }
   
     void init(void) { 

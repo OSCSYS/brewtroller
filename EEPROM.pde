@@ -524,7 +524,14 @@ boolean checkConfig() {
 
   //If the BT 1.3 fingerprint is missing force a init of EEPROM
   //FermTroller will bump to a cfgVersion starting at 7
-  if (BTFinger != 252 || cfgVersion == 255) return 1;
+  if (BTFinger != 252 || cfgVersion == 255) {
+    //Force default LCD Bright/Contrast to allow user to see 'Missing Config' prompt
+    #if (defined __AVR_ATmega1284P__ || defined __AVR_ATmega1284__) && defined UI_DISPLAY_SETUP && defined UI_LCD_4BIT
+      EEPROM.write(2048, 240);
+      EEPROM.write(2049, 10);
+    #endif
+    return 1;
+  }
 
   //In the future, incremental EEPROM settings will be included here
   switch(cfgVersion) {

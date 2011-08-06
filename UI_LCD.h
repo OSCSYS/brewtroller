@@ -80,7 +80,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         #endif
       }
       
-      void update() {}
+      void update() {      }
       
       void print(byte iRow, byte iCol, char sText[]){
         _lcd->setCursor(iCol, iRow);
@@ -107,7 +107,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         }
       } 
       
-      void clear(){ _lcd->clear(); }
+      void clear(){ 
+        _lcd->begin(20, 4);
+      }
       
       void center(byte iRow, byte iCol, char sText[], byte fieldWidth){
         rPad(iRow, iCol, "", fieldWidth, ' ');
@@ -196,7 +198,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
       #ifdef UI_DISPLAY_SETUP      
         void setBright(byte val) {
-          analogWrite(brightPin, 255 - val);
+          analogWrite(brightPin, val);
           bright = val;
         }
         

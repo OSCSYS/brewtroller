@@ -1,48 +1,49 @@
 /*
-BrewTroller 4.0 Pro Hardware Configuration
+BrewTroller 4.0 Lite Hardware Configuration
+  RIMS / Direct Fired: Three Heat Outputs + 2 Pump/Valve Outputs + Alarm
 */
 
 #ifndef BT_HWPROFILE
 #define BT_HWPROFILE
-
-  #define ENCA_PIN 2
-  #define ENCB_PIN 4
-  #define ENTER_PIN 5
-  #define ALARM_PIN 15
+  #include "Config.h"
   
-  #define PVOUT_TYPE_MUX
-  #define PVOUT_COUNT 16 //16 Outputs
-    
-  #define MUX_LATCH_PIN 12
-  #define MUX_CLOCK_PIN 13
-  #define MUX_DATA_PIN 14
-  #define MUX_ENABLE_PIN 6
-  #define MUX_ENABLE_LOGIC 1
+  #define ENCA_PIN 3
+  #define ENCB_PIN 2
+  #define ENTER_PIN 1
+  
+  #define ALARM_PIN 15 //OUT6
+  
+  #define PVOUT_TYPE_GPIO
+  #define PVOUT_COUNT 2 //2 Outputs
+  
+  #define VALVE1_PIN 19 //OUT4
+  #define VALVE2_PIN 18 //OUT5
 
-  #define HLTHEAT_PIN 23
-  #define MASHHEAT_PIN 1
-  #define KETTLEHEAT_PIN 3
-  #define STEAMHEAT_PIN 7
-  #define PWMPUMP_PIN 7
-
-  #define DIGITAL_INPUTS
-  #define DIGIN1_PIN 18
-  #define DIGIN2_PIN 19
-  #define DIGIN3_PIN 20
-  #define DIGIN4_PIN 21
-  #define DIGIN5_PIN 22
+  #define HLTHEAT_PIN 22 //OUT1
+  #define MASHHEAT_PIN 21//OUT2
+  #define KETTLEHEAT_PIN 20 //OUT3
   
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
   #define KETTLEVOL_APIN 1
   #define STEAMPRESS_APIN 0
   
-  #define UI_LCD_I2C
-  #define UI_LCD_I2CADDR 0x01
-  #define UI_DISPLAY_SETUP
-  
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
+  
+  #define UI_LCD_4BIT
+  #define LCD_RS_PIN 4
+  #define LCD_ENABLE_PIN 23
+  #define LCD_DATA4_PIN 28
+  #define LCD_DATA5_PIN 29
+  #define LCD_DATA6_PIN 30
+  #define LCD_DATA7_PIN 31
+  
+  #define UI_DISPLAY_SETUP
+  #define LCD_BRIGHT_PIN 13
+  #define LCD_CONTRAST_PIN 14
+
+  
 //**********************************************************************************
 // OneWire Temperature Sensor Options
 //**********************************************************************************
@@ -76,5 +77,8 @@ BrewTroller 4.0 Pro Hardware Configuration
 // Should be 0x18, 0x19, 0x1A, 0x1B
 #define DS2482_ADDR 0x1B
 //**********************************************************************************
+
+#define RS485_MASTER
+#define RS485_RXTX_PIN 12
 
 #endif

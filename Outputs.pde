@@ -120,19 +120,31 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 
 void pinInit() {
   alarmPin.setup(ALARM_PIN, OUTPUT);
-  heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
-  heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
+  #ifdef HLTHEAT_PIN
+    heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
+  #endif
+  #ifdef MASHHEAT_PIN
+    heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
+  #endif
   #ifdef HLT_AS_KETTLE
-    heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
+    #ifdef HLTHEAT_PIN
+      heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
+    #endif      
   #else
-    heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
+    #ifdef KETTLEHEAT_PIN
+      heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
+    #endif
   #endif
 
   #ifdef USESTEAM
-    heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
+    #ifdef STEAMHEAT_PIN
+      heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
+    #endif
   #endif
   #ifdef PID_FLOW_CONTROL
-    heatPin[VS_PUMP].setup(PWMPUMP_PIN, OUTPUT);
+    #ifdef PWMPUMP_PIN
+      heatPin[VS_PUMP].setup(PWMPUMP_PIN, OUTPUT);
+    #endif
   #endif
 
   #ifdef HEARTBEAT
@@ -247,7 +259,7 @@ void processHeatOutputs() {
       if (i == VS_KETTLE && setpoint[VS_HLT]) continue;
     #endif
     if (PIDEnabled[i]) {
-      if (i != VS_STEAM && i != VS_KETTLE && temp[i] <= 0) {
+      if (i != VS_STEAM && i != VS_KETTLE && temp[i] == BAD_TEMP) {
         PIDOutput[i] = 0;
       } else {
         if (pid[i].GetMode() == AUTO) {
@@ -349,7 +361,7 @@ void processHeatOutputs() {
     } else {
       if (heatStatus[i]) {
         if (
-          (i != VS_STEAM && (temp[i] <= 0 || temp[i] >= setpoint[i]))  
+          (i != VS_STEAM && (temp[i] == BAD_TEMP || temp[i] >= setpoint[i]))  
             || (i == VS_STEAM && steamPressure >= setpoint[i])
         ) {
           heatPin[i].set(LOW);
@@ -358,7 +370,7 @@ void processHeatOutputs() {
           heatPin[i].set(HIGH);
         }
       } else {
-        if ((i != VS_STEAM && temp[i] > 0 && (setpoint[i] - temp[i]) >= hysteresis[i] * 10) 
+        if ((i != VS_STEAM && temp[i] != BAD_TEMP && (setpoint[i] - temp[i]) >= hysteresis[i] * 10) 
         || (i == VS_STEAM && (setpoint[i] - steamPressure) >= hysteresis[i] * 100)) {
           heatPin[i].set(HIGH);
           heatStatus[i] = 1;

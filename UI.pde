@@ -473,7 +473,7 @@ void screenInit(byte screen) {
   if (screenLock) {
       Encoder.setMin(0);
       Encoder.setMax(PIDLIMIT_KETTLE);
-      Encoder.setCount(PIDLIMIT_KETTLE);
+      Encoder.setCount(PIDOutput[VS_KETTLE]/PIDCycle[VS_KETTLE]);
   }
 
   } else if (screen == SCREEN_CHILL) {
@@ -557,7 +557,7 @@ void screenRefresh(byte screen) {
       LCD.lPad(1, i * 6 + 9, buf, 4, ' ');
       vftoa(temp[i], buf, 100, 1);
       truncFloat(buf, 4);
-      if (temp[i] == -32768) LCD.print_P(2, i * 6 + 9, PSTR("----")); else LCD.lPad(2, i * 6 + 9, buf, 4, ' ');
+      if (temp[i] == BAD_TEMP) LCD.print_P(2, i * 6 + 9, PSTR("----")); else LCD.lPad(2, i * 6 + 9, buf, 4, ' ');
       byte pct;
       if (PIDEnabled[i]) {
         pct = PIDOutput[i] / PIDCycle[i];
@@ -624,7 +624,7 @@ void screenRefresh(byte screen) {
     for (byte i = TS_HLT; i <= TS_KETTLE; i++) {
       vftoa(temp[i], buf, 100, 1);
       truncFloat(buf, 4);
-      if (temp[i] == -32768) LCD.print_P(i + 1, 8, PSTR("----")); else LCD.lPad(i + 1, 8, buf, 4, ' ');
+      if (temp[i] == BAD_TEMP) LCD.print_P(i + 1, 8, PSTR("----")); else LCD.lPad(i + 1, 8, buf, 4, ' ');
     }
   } else if (screen == SCREEN_BOIL) {
     //Refresh Screen: Boil
@@ -652,7 +652,7 @@ void screenRefresh(byte screen) {
     LCD.lPad(3, 17, buf, 3, ' ');
     vftoa(temp[TS_KETTLE], buf, 100, 1);
     truncFloat(buf, 5);
-    if (temp[TS_KETTLE] == -32768) LCD.print_P(1, 14, PSTR("-----")); else LCD.lPad(1, 14, buf, 4, ' ');
+    if (temp[TS_KETTLE] == BAD_TEMP) LCD.print_P(1, 14, PSTR("-----")); else LCD.lPad(1, 14, buf, 4, ' ');
     if (screenLock) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
@@ -677,17 +677,17 @@ void screenRefresh(byte screen) {
         else if (encValue == 6) LCD.print_P(3, 3, ABORT);
       }
     }
-    if (temp[TS_KETTLE] == -32768) LCD.print_P(1, 11, PSTR("---")); else LCD.lPad(1, 11, itoa(temp[TS_KETTLE] / 100, buf, 10), 3, ' ');
-    if (temp[TS_BEEROUT] == -32768) LCD.print_P(2, 11, PSTR("---")); else LCD.lPad(2, 11, itoa(temp[TS_BEEROUT] / 100, buf, 10), 3, ' ');
-    if (temp[TS_H2OIN] == -32768) LCD.print_P(1, 16, PSTR("---")); else LCD.lPad(1, 16, itoa(temp[TS_H2OIN] / 100, buf, 10), 3, ' ');
-    if (temp[TS_H2OOUT] == -32768) LCD.print_P(2, 16, PSTR("---")); else LCD.lPad(2, 16, itoa(temp[TS_H2OOUT] / 100, buf, 10), 3, ' ');
+    if (temp[TS_KETTLE] == BAD_TEMP) LCD.print_P(1, 11, PSTR("---")); else LCD.lPad(1, 11, itoa(temp[TS_KETTLE] / 100, buf, 10), 3, ' ');
+    if (temp[TS_BEEROUT] == BAD_TEMP) LCD.print_P(2, 11, PSTR("---")); else LCD.lPad(2, 11, itoa(temp[TS_BEEROUT] / 100, buf, 10), 3, ' ');
+    if (temp[TS_H2OIN] == BAD_TEMP) LCD.print_P(1, 16, PSTR("---")); else LCD.lPad(1, 16, itoa(temp[TS_H2OIN] / 100, buf, 10), 3, ' ');
+    if (temp[TS_H2OOUT] == BAD_TEMP) LCD.print_P(2, 16, PSTR("---")); else LCD.lPad(2, 16, itoa(temp[TS_H2OOUT] / 100, buf, 10), 3, ' ');
     if (vlvConfigIsActive(VLV_CHILLBEER)) LCD.print_P(3, 12, PSTR(" On")); else LCD.print_P(3, 12, PSTR("Off"));
     if (vlvConfigIsActive(VLV_CHILLH2O)) LCD.print_P(3, 17, PSTR(" On")); else LCD.print_P(3, 17, PSTR("Off"));
 
   } else if (screen == SCREEN_AUX) {
     //Screen Refresh: AUX
     for (byte i = TS_AUX1; i <= TS_AUX3; i++) {
-      if (temp[i] == -32768) LCD.print_P(i - 5, 6, PSTR("---.-")); else {
+      if (temp[i] == BAD_TEMP) LCD.print_P(i - 5, 6, PSTR("-----")); else {
         vftoa(temp[i], buf, 100, 1);
         truncFloat(buf, 5);
         LCD.lPad(i - 5, 6, buf, 5, ' ');
@@ -1830,7 +1830,7 @@ void assignSensor() {
 
 void displayAssignSensorTemp(int sensor) {
   LCD.print_P(3, 10, TUNIT); 
-  if (temp[sensor] == -32768) {
+  if (temp[sensor] == BAD_TEMP) {
     LCD.print_P(3, 7, PSTR("---"));
   } else {
     LCD.lPad(3, 7, itoa(temp[sensor] / 100, buf, 10), 3, ' ');
@@ -2232,7 +2232,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     //firstBit: The left most bit being displayed
     byte firstBit, encMax;
     
-    encMax = PVOUT_BANKS * 8 + 1;
+    encMax = PVOUT_COUNT + 1;
   
     Encoder.setMin(0);
     Encoder.setCount(0);

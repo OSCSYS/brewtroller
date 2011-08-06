@@ -11,9 +11,8 @@ BrewTroller 4.0 Pro Hardware Configuration
   #define ALARM_PIN 15
   
   #define PVOUT_TYPE_MUX
-  #define PVOUT_BANKS 2 //2x 8-Port Banks = 16 Outputs
-  //#define PVOUT_BANKS 4 //4x 8-Port Banks = 32 Outputs
-  
+  #define PVOUT_COUNT 16 //16 Outputs
+    
   #define MUX_LATCH_PIN 12
   #define MUX_CLOCK_PIN 13
   #define MUX_DATA_PIN 14
