@@ -80,6 +80,7 @@
       //stop shifting
       muxClockPin.clear();
       muxLatchPin.set();
+      muxLatchPin.clear();
     }
   };
   
