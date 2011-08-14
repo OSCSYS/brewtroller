@@ -427,6 +427,7 @@ void setValves(unsigned long vlvBits) {
     //stop shifting
     muxClockPin.clear();
     muxLatchPin.set();
+	muxLatchPin.clear();
   #endif
   #ifdef ONBOARDPV
   //Original 11 Valve Code
