@@ -151,7 +151,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
     #ifdef HLT_MIN_REFILL
       SpargeVol = calcSpargeVol(pgm);
-      tgtVol[VS_HLT] = min(SpargeVol, HLT_MIN_REFILL_VOL);
+      tgtVol[VS_HLT] = max(SpargeVol, HLT_MIN_REFILL_VOL);
     #else
       tgtVol[VS_HLT] = calcSpargeVol(pgm);
     #endif
