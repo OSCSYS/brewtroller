@@ -131,6 +131,8 @@ void pinInit() {
       muxLatchPin.clear(); //Prepare to copy pin states
       muxMRPin.clear(); //Force clear of pin registers
       muxLatchPin.set(); //Copy pin states from registers
+      delayMicroseconds(10);
+      muxLatchPin.clear();
       muxMRPin.set(); //Disable clear
     #else
       //MUX in Hi-Z State
@@ -298,7 +300,8 @@ void setValves(unsigned long vlvBits) {
     //stop shifting
     muxClockPin.clear();
     muxLatchPin.set();
-	muxLatchPin.clear();
+    delayMicroseconds(10);
+    muxLatchPin.clear();
   #endif
   #ifdef ONBOARDPV
   //Original 11 Valve Code

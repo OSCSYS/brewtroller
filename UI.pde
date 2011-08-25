@@ -650,7 +650,7 @@ void screenRefresh(byte screen) {
     printLCDLPad(3, 17, buf, 3, ' ');
     vftoa(temp[TS_KETTLE], buf, 100, 1);
     truncFloat(buf, 5);
-    if (temp[TS_KETTLE] == -32768) printLCD_P(1, 14, PSTR("-----")); else printLCDLPad(1, 14, buf, 4, ' ');
+    if (temp[TS_KETTLE] == -32768) printLCD_P(1, 14, PSTR("-----")); else printLCDLPad(1, 14, buf, 5, ' ');
     if (screenLock) {
       int encValue = Encoder.change();
       if (encValue >= 0) {
