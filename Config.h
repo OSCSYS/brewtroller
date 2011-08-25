@@ -238,8 +238,8 @@
 //  BINARY = Binary Messages
 //**********************************************************************************
 
-#define COM_SERIAL0  ASCII
-//#define COM_SERIAL0  BTNIC
+//#define COM_SERIAL0  ASCII
+#define COM_SERIAL0  BTNIC
 //#define COM_SERIAL0 BINARY
 
 // BAUD_RATE: The baud rate for the Serial0 connection. Previous to BrewTroller 2.0
@@ -514,7 +514,7 @@
 //**********************************************************************************
 // DEBUG
 //**********************************************************************************
-#define DEBUG
+//#define DEBUG
 // DEBUG_TEMP_CONV_T: Enables logging of OneWire temperature sensor ADC time.
 //#define DEBUG_TEMP_CONV_T
 
