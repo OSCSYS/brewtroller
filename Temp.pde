@@ -92,7 +92,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         logFieldI(convStart);
         logEnd();
       #endif
-      for (byte i = TS_HLT; i <= TS_AUX3; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]);
+      for (byte i = TS_HLT; i <= TS_AUX3; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]); else temp[i] = BAD_TEMP;
       convStart = 0;
       
       #if defined MASH_AVG

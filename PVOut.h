@@ -51,7 +51,9 @@
         //MUX in Reset State
         muxLatchPin.clear(); //Prepare to copy pin states
         muxEnablePin.clear(); //Force clear of pin registers
-        muxLatchPin.set(); //Copy pin states from registers
+        muxLatchPin.set();
+        delayMicroseconds(10);
+        muxLatchPin.clear();
         muxEnablePin.set(); //Disable clear
       } else {
         set(0);
@@ -80,6 +82,7 @@
       //stop shifting
       muxClockPin.clear();
       muxLatchPin.set();
+      delayMicroseconds(10);
       muxLatchPin.clear();
     }
   };
