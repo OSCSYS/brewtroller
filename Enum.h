@@ -108,6 +108,7 @@
 #define TS_AUX2 7
 #define TS_AUX3 8
 #define NUM_TS 9
+#define BAD_TEMP -32768
 
 #define VS_HLT 0
 #define VS_MASH 1
