@@ -1,4 +1,4 @@
-#define BUILD 761
+#define BUILD 788
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -53,6 +53,9 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 #include "UI_LCD.h"
 
 void(* softReset) (void) = 0;
+
+const char BT[] PROGMEM = "BrewTroller";
+const char BTVER[] PROGMEM = "2.4";
 
 //**********************************************************************************
 // Compile Time Logic
@@ -246,9 +249,6 @@ boolean preheated[4], doAutoBoil;
 //Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
 unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
 byte pitchTemp;
-
-const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "2.4";
 
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";

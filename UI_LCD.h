@@ -198,7 +198,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
       #ifdef UI_DISPLAY_SETUP      
         void setBright(byte val) {
-          analogWrite(brightPin, val);
+          analogWrite(brightPin, 255 - val);
           bright = val;
         }
         
