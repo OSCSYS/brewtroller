@@ -30,10 +30,17 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 unsigned long lastHop, grainInStart;
 unsigned int boilAdds, triggered;
 
+/**
+ * Used to determine if the given step is the active step in the program.
+ */
 boolean stepIsActive(byte brewStep) {
   if (stepProgram[brewStep] != PROGRAM_IDLE) return true; else return false;
 }
 
+/**
+ * Usd to determine if the given ZONE is the active ZONE in the program.
+ * Returns true is any step in the given ZONE is the active step, false otherwise.
+ */
 boolean zoneIsActive(byte brewZone) {
   if (brewZone == ZONE_MASH) {
     if (stepIsActive(STEP_FILL) 
@@ -122,7 +129,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     //No timer used for preheat
     clearTimer(TIMER_MASH);
     #ifdef MASH_PREHEAT_SENSOR
-    //Overwrite mash temp sensor address from EEPROM using the memory location of the specified sensor (sensor element number * 8 bytes)
+      //Overwrite mash temp sensor address from EEPROM using the memory location of the specified sensor (sensor element number * 8 bytes)
       PROMreadBytes(MASH_PREHEAT_SENSOR * 8, tSensor[TS_MASH], 8);
     #endif
   } else if (brewStep == STEP_ADDGRAIN) {
@@ -696,12 +703,15 @@ unsigned long calcGrainVolume(byte pgm) {
   return round (getProgGrain(pgm) * GRAIN2VOL);
 }
 
+/**
+ * Calculates the strike temperature for the mash.
+ */
 byte calcStrikeTemp(byte pgm) {
   float strikeTemp = (float)getFirstStepTemp(pgm) / SETPOINT_DIV;
   #ifdef USEMETRIC
     return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
   #else
-    return (strikeTemp + round(.192 * (strikeTemp - getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    return (strikeTemp + round(.192 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
   #endif
 }
 

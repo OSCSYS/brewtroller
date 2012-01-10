@@ -40,7 +40,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   //One Wire Bus on 
   
   void tempInit() {
-    for (byte i = TS_HLT; i <= TS_AUX3; i++) temp[i] = BAD_TEMP;
+    for (byte i = TS_HLT; i <= TS_RIMS; i++) temp[i] = BAD_TEMP;
     #ifdef TS_ONEWIRE_I2C
       ds.configure(DS2482_CONFIG_APU | DS2482_CONFIG_SPU);
     #endif
@@ -92,7 +92,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         logFieldI(convStart);
         logEnd();
       #endif
-      for (byte i = TS_HLT; i <= TS_AUX3; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]); else temp[i] = BAD_TEMP;
+      for (byte i = TS_HLT; i <= TS_RIMS; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]); else temp[i] = BAD_TEMP;
       convStart = 0;
       
       #if defined MASH_AVG
@@ -127,7 +127,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         return;
       }
       boolean found = 0;
-      for (byte i = TS_HLT; i <= TS_AUX3; i++) {
+      for (byte i = TS_HLT; i <= TS_RIMS; i++) {
         boolean match = 1;
         for (byte j = 0; j < 8; j++) {
           //Try to confirm a match by checking every byte of the scanned address with those of each sensor.
@@ -197,8 +197,8 @@ void mashAvg() {
     }
   #endif
   #if defined MASH_AVG_AUX3
-    if (temp[TS_AUX3] != BAD_TEMP) {
-      avgTemp += temp[TS_AUX3];
+    if (temp[TS_RIMS] != BAD_TEMP) {
+      avgTemp += temp[TS_RIMS];
       sensorCount++;
     }
   #endif

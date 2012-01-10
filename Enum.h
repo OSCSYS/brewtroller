@@ -8,9 +8,9 @@
 #define TS_H2OIN 3
 #define TS_H2OOUT 4
 #define TS_BEEROUT 5
-#define TS_AUX1 6
-#define TS_AUX2 7
-#define TS_AUX3 8
+#define TS_RIMS 6
+#define TS_AUX1 7
+#define TS_AUX2 8
 #define NUM_TS 9
 #define BAD_TEMP -32768
 

@@ -426,6 +426,24 @@ void screenInit(byte screen) {
     else if (stepIsActive(STEP_MASHOUT)) LCD.print_P(0, 1, PSTR("Mash Out"));
     else if (stepIsActive(STEP_MASHHOLD)) LCD.print_P(0, 1, PSTR("End Mash"));
     else LCD.print_P(0, 0, PSTR("Mash"));
+    // For DIRECT_FIRED_RIMS (and possibly just RIMS), we need a different layout here.
+#ifdef DIRECT_FIRED_RIMS
+    // This is the RIMS screen
+    LCD.print_P(0, 9, PSTR("At"));
+    LCD.print_P(0, 15, PSTR("Set"));
+    LCD.print_P(1, 1, PSTR("HLT"));
+    LCD.print_P(2, 1, PSTR("Mash"));
+    LCD.print_P(3, 1, PSTR("RIMS"));
+    
+    LCD.print_P(1, 13, TUNIT);
+    LCD.print_P(1, 19, TUNIT);
+    LCD.print_P(2, 13, TUNIT);
+    LCD.print_P(2, 19, TUNIT);
+    LCD.print_P(3, 13, TUNIT);
+    LCD.print_P(3, 19, TUNIT);
+    
+#else
+    // This is the standard screen
     LCD.print_P(0, 11, PSTR("HLT"));
     LCD.print_P(0, 16, PSTR("Mash"));
     LCD.print_P(1, 1, PSTR("Target"));
@@ -435,6 +453,7 @@ void screenInit(byte screen) {
     LCD.print_P(1, 19, TUNIT);
     LCD.print_P(2, 13, TUNIT);
     LCD.print_P(2, 19, TUNIT);
+#endif
 
   } else if (screen == SCREEN_SPARGE) {
     //Screen Init: Sparge
@@ -470,11 +489,11 @@ void screenInit(byte screen) {
     else LCD.print_P(0,0,PSTR("Boil"));
     LCD.print_P(1, 19, TUNIT);
 
-  if (screenLock) {
-      Encoder.setMin(0);
-      Encoder.setMax(PIDLIMIT_KETTLE);
-      Encoder.setCount(PIDOutput[VS_KETTLE]/PIDCycle[VS_KETTLE]);
-  }
+    if (screenLock) {
+        Encoder.setMin(0);
+        Encoder.setMax(PIDLIMIT_KETTLE);
+        Encoder.setCount(PIDOutput[VS_KETTLE]/PIDCycle[VS_KETTLE]);
+    }
 
   } else if (screen == SCREEN_CHILL) {
     //Screen Init: Chill
@@ -504,10 +523,13 @@ void screenInit(byte screen) {
     LCD.print_P(0,0,PSTR("AUX Temps"));
     LCD.print_P(1,1,PSTR("AUX1"));
     LCD.print_P(2,1,PSTR("AUX2"));
-    LCD.print_P(3,1,PSTR("AUX3"));
     LCD.print_P(1, 11, TUNIT);
     LCD.print_P(2, 11, TUNIT);
+#ifndef DIRECT_FIRED_RIMS
+    LCD.print_P(3, 1, PSTR("AUX3"));
     LCD.print_P(3, 11, TUNIT);
+#endif
+    
   }
   
   //Write Unlock symbol to upper right corner
@@ -551,13 +573,49 @@ void screenRefresh(byte screen) {
     
   } else if (screen == SCREEN_MASH) {
     //Refresh Screen: Preheat/Mash
+    
+    // The DIRECT_FIRED_RIMS option uses a different screen layout, so the logic just
+    // does not work.  So two blocks are required.
+#ifdef DIRECT_FIRED_RIMS
+    byte vessels[3] = {VS_HLT, VS_MASH, VS_MASH};
+    byte temps[3] = {TS_HLT, TS_MASH, TS_RIMS};
+    byte heatSources[3] = {VS_HLT, VS_MASH, VS_STEAM};
+    for (byte i = 0; i <= 2; i++) {
+      vftoa(setpoint[vessels[i]], buf, 100, 1);
+      truncFloat(buf, 4);
+      LCD.lPad(i + 1, 15, buf, 4, ' ');
+      vftoa(temp[temps[i]], buf, 100, 1);
+      truncFloat(buf, 4);
+      if (temp[temps[i]] == BAD_TEMP) {
+        LCD.print_P(i + 1, 1, PSTR("12345678----")); 
+        // LCD.print_P(i + 1, 9, PSTR("----")); 
+      } else {
+        LCD.lPad(i + 1, 9, buf, 4, ' ');      
+      }
+      if (PIDEnabled[vessels[i]]) {
+        // There is no good way to currently show this.
+        // Removing for now.
+        LCD.print_P(i + 1, 6, PSTR("#")); 
+      } else if (heatStatus[heatSources[i]]) {
+        LCD.print_P(i + 1, 6, PSTR("*")); 
+      } else {
+        LCD.print_P(i + 1, 6, PSTR("-"));
+      }
+      // This over-writes the RIMS row, so commented out.
+//    printTimer(TIMER_MASH, 3, 0);
+    }
+#else
     for (byte i = VS_HLT; i <= VS_MASH; i++) {
       vftoa(setpoint[i], buf, 100, 1);
       truncFloat(buf, 4);
       LCD.lPad(1, i * 6 + 9, buf, 4, ' ');
       vftoa(temp[i], buf, 100, 1);
       truncFloat(buf, 4);
-      if (temp[i] == BAD_TEMP) LCD.print_P(2, i * 6 + 9, PSTR("----")); else LCD.lPad(2, i * 6 + 9, buf, 4, ' ');
+      if (temp[i] == BAD_TEMP) {
+        LCD.print_P(2, i * 6 + 9, PSTR("----")); 
+      } else {
+        LCD.lPad(2, i * 6 + 9, buf, 4, ' ');
+      }
       byte pct;
       if (PIDEnabled[i]) {
         pct = PIDOutput[i] / PIDCycle[i];
@@ -572,9 +630,11 @@ void screenRefresh(byte screen) {
         pct = 0;
       }
       LCD.lPad(3, i * 6 + 11, buf, 3, ' ');
-    }
-
     printTimer(TIMER_MASH, 3, 0);
+    }
+#endif
+
+
 
   } else if (screen == SCREEN_SPARGE) {
     //Refresh Screen: Sparge
@@ -621,6 +681,8 @@ void screenRefresh(byte screen) {
       }
     }
 
+    // Not sure what to do here, due to the very serious design
+    // defect of using temperature sensors IDs as the index variable.
     for (byte i = TS_HLT; i <= TS_KETTLE; i++) {
       vftoa(temp[i], buf, 100, 1);
       truncFloat(buf, 4);
@@ -686,7 +748,7 @@ void screenRefresh(byte screen) {
 
   } else if (screen == SCREEN_AUX) {
     //Screen Refresh: AUX
-    for (byte i = TS_AUX1; i <= TS_AUX3; i++) {
+    for (byte i = TS_AUX1; i <= TS_AUX2; i++) {
       if (temp[i] == BAD_TEMP) LCD.print_P(i - 5, 6, PSTR("-----")); else {
         vftoa(temp[i], buf, 100, 1);
         truncFloat(buf, 5);
@@ -1069,9 +1131,9 @@ void startProgramMenu() {
       unsigned long mashVol = calcStrikeVol(profile);
       unsigned long grainVol = calcGrainVolume(profile);
       unsigned long preboilVol = calcPreboilVol(profile);
-      if (spargeVol > getCapacity(TS_HLT)) warnHLT(spargeVol);
-      if (mashVol + grainVol > getCapacity(TS_MASH)) warnMash(mashVol, grainVol);
-      if (preboilVol > getCapacity(TS_KETTLE)) warnBoil(preboilVol);
+      if (spargeVol > getCapacity(VS_HLT)) warnHLT(spargeVol);
+      if (mashVol + grainVol > getCapacity(VS_MASH)) warnMash(mashVol, grainVol);
+      if (preboilVol > getCapacity(VS_KETTLE)) warnBoil(preboilVol);
       startMenu.setItem_P(PSTR("Edit Program"), 0);
       
       startMenu.setItem_P(PSTR("Grain Temp:"), 1);
@@ -1198,9 +1260,9 @@ void editProgram(byte pgm) {
     unsigned long mashVol = calcStrikeVol(pgm);
     unsigned long grainVol = calcGrainVolume(pgm);
     unsigned long preboilVol = calcPreboilVol(pgm);
-    if (spargeVol > getCapacity(TS_HLT)) warnHLT(spargeVol);
-    if (mashVol + grainVol > getCapacity(TS_MASH)) warnMash(mashVol, grainVol);
-    if (preboilVol > getCapacity(TS_KETTLE)) warnBoil(preboilVol);
+    if (spargeVol > getCapacity(VS_HLT)) warnHLT(spargeVol);
+    if (mashVol + grainVol > getCapacity(VS_MASH)) warnMash(mashVol, grainVol);
+    if (preboilVol > getCapacity(VS_KETTLE)) warnBoil(preboilVol);
   }
 }
 
@@ -1762,9 +1824,9 @@ void assignSensor() {
   tsMenu.setItem_P(PSTR("H2O In"), TS_H2OIN);
   tsMenu.setItem_P(PSTR("H2O Out"), TS_H2OOUT);
   tsMenu.setItem_P(PSTR("Beer Out"), TS_BEEROUT);
+  tsMenu.setItem_P(PSTR("RIMS"), TS_RIMS);
   tsMenu.setItem_P(PSTR("AUX 1"), TS_AUX1);
   tsMenu.setItem_P(PSTR("AUX 2"), TS_AUX2);
-  tsMenu.setItem_P(PSTR("AUX 3"), TS_AUX3);
 
 
   Encoder.setMin(0);

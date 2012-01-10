@@ -1,5 +1,6 @@
 #ifndef BT_CONFIGURATION
 #define BT_CONFIGURATION
+#include "Enum.h"
 
 //*****************************************************************************************************************************
 // USER COMPILE OPTIONS
@@ -41,6 +42,37 @@
 //MASH_PREHEAT_NOVALVES: Disables MASH HEAT/MASH IDLE Valve Profiles during preheat
 //#define MASH_PREHEAT_NOVALVES
 //**********************************************************************************
+
+//**********************************************************************************
+// Vessel to temperature sensor mapping
+//**********************************************************************************
+// The purpose of this array is to provide a safe way to map a vessel to the 
+// temperaure sensor to read for that vessels setpoint.
+// The secondary purpose is to provide a safe way to enumerate the heat outputs, 
+// safely decoupling the #defines values from loop-control.
+//#ifdef DIRECT_FIRED_RIMS
+//static const int HEAT_OUTPUTS_COUNT = 3;
+//static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}};
+#if defined PID_FLOW_CONTROL
+static const int HEAT_OUTPUTS_COUNT = 4;
+static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}, {VS_PUMP, TS_MASH}};
+#else
+static const int HEAT_OUTPUTS_COUNT = 3;
+static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}};
+#endif
+// These two should be used as the array index when operating on a HEAT_OUTPUT array.
+// They need to be variables instead of #defines because of use as index subscripts.
+static const byte VS = 0;
+static const byte TS = 1;
+
+// #ifdef DIRECT_FIRED_RIMS
+// static const int HEAT_OUTPUTS_COUNT = 4;
+// static const int HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT] = {VS_HLT, VS_MASH, VS_KETTLE, VS_STEAM};
+// #else
+// static const int HEAT_OUTPUTS_COUNT = 3;
+// static const int HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT] = {VS_HLT, VS_MASH, VS_KETTLE};
+// #endif
+
 
 
 //**********************************************************************************
@@ -282,12 +314,19 @@
 // the room. The display connects to the BrewTroller via the I2C header and can be
 // daisy chained to use as many as you like, theoretically up to 127 but in practice
 // probably 10 or so.
+// You need to set the addresses of each display in the Com_BTPD.h file.
 
 // BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
-//#define BTPD_SUPPORT
+#define BTPD_SUPPORT
 
 // BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds
 #define BTPD_INTERVAL 1000
+
+// Show temperature and volume per kettle on the same display.  Every other update
+// interval the display will switch from temperature to volume.  Make sure that the
+// values in Com_BTPD.h use the same address per kettle for both volume and temperature.
+//#define BTPD_ALTERNATE_TEMP_VOLUME
+
 //**********************************************************************************
 
 //**********************************************************************************
@@ -302,7 +341,7 @@
 //
 //#define NOUI
 //#define UI_NO_SETUP
-//#define UI_LCD_I2C
+#define UI_LCD_I2C
 //**********************************************************************************
 
 //**********************************************************************************
@@ -494,6 +533,39 @@
 //#define HLT_HEAT_SPARGE
 //#define HLT_MIN_SPARGE 2000
 //**********************************************************************************
+
+//**********************************************************************************
+// Direct-fired RIMS support
+//**********************************************************************************
+// DIRECT_FIRED_RIMS/RIMS_TEMP_OFFSET/RIMS_DURING_SPARGE: specifies that the mash 
+// kettle is direct-fired, either with gas, or a heating element, and that the RIMS
+// has it's own element. With this option, the VS_MASH is used for the mash, and the
+// VS_STEAM is used for the RIMS. Only the VS_MASH is used to change the temp; when 
+// the temp is within RIMS_TEMP_OFFSET of the set temp, the VS_MASH is turned off, 
+// and VS_STEAM is turned on, to reach and maintain the set temp. When the strike temp
+// is beaing reached, or any other step change grater than RIMS_TEMP_OFFSET, this 
+// allows VS_MASH to be used for the quicker temeperature change, then for VS_STEAM to
+// take over for finer temperaature control.
+#define DIRECT_FIRED_RIMS
+// If you are not recirculating your mash, the offset should probably be greater.
+#define RIMS_TEMP_OFFSET 5
+// You really should have a sensor in your RIMS tube: this #defines allow you to set 
+// the maximum temp that the RIMS tuube is allowed to reach.  It is important to note 
+// that both the sensor and the heating element should be submersed in liqued, with 
+// the input and output ports facing up, so that the tube can not run dry.
+#define RIMS_MAX_TEMP 180
+// As the SSD can get stuck in the ON state, if the RIMS_ALARM_TEMP temperature is
+// reached, turn on the alarm.
+#define RIMS_ALARM_TEMP 190
+// If your HLT output passes through your RIMS tube to your mash kettle, you may want
+// to define RIMS_DURING_SPARGE so that it can also control the temp of your sparge
+// water.  The logic here is somehwat different than for mashing, in that it will only
+// control the VS_STEAM output.  You can use this in conjuction with HLT_HEAT_SPARGE
+// to fire the HLT too.
+#define RIMS_DURING_SPARGE
+//**********************************************************************************
+
+
 
 //**********************************************************************************
 // Sparge Options

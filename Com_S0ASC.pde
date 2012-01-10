@@ -108,7 +108,7 @@ boolean chkMsg() {
           } else rejectParam();
         } else if (strcasecmp(msg[0], "GET_TS") == 0) {
           byte val = atoi(msg[1]);
-          if (msgField == 1 && val >= TS_HLT && val <= TS_AUX3) {
+          if (msgField == 1 && val >= TS_HLT && val <= TS_RIMS) {
             logTSensor(val);
             clearMsg();
           } else rejectParam();
@@ -217,7 +217,7 @@ boolean chkMsg() {
           } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_TS") == 0) {
           byte val = atoi(msg[1]);
-          if (msgField == 9 && val >= TS_HLT && val <= TS_AUX3) {
+          if (msgField == 9 && val >= TS_HLT && val <= TS_RIMS) {
             byte addr[8];
             for (byte i=0; i<8; i++) addr[i] = (byte)atoi(msg[i+2]);
             setTSAddr(val, addr);
