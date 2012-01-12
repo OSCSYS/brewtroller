@@ -546,7 +546,7 @@ static const byte TS = 1;
 // is beaing reached, or any other step change grater than RIMS_TEMP_OFFSET, this 
 // allows VS_MASH to be used for the quicker temeperature change, then for VS_STEAM to
 // take over for finer temperaature control.
-#define DIRECT_FIRED_RIMS
+//#define DIRECT_FIRED_RIMS
 // If you are not recirculating your mash, the offset should probably be greater.
 #define RIMS_TEMP_OFFSET 5
 // You really should have a sensor in your RIMS tube: this #defines allow you to set 
