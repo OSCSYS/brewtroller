@@ -28,11 +28,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Config.h"
 #include "Enum.h"
 #include "HWProfile.h"
-#ifndef ENCODER_I2C
-  #include <encoder.h>
-#else
-  #include <encoderI2C.h>
-#endif
+#include <encoder.h>
 #include "UI_LCD.h"
 
 //*****************************************************************************************************************************

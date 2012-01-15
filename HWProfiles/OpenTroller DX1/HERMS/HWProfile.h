@@ -22,8 +22,8 @@ OpenTroller DX1 HERMS Hardware Configuration
   #define VALVE7_PIN 12	//OUT9
   #define VALVE8_PIN 15	//OUT10
   #define VALVE9_PIN 14	//OUT11
-  #define VALVE10_PIN 13	//OUT12
-  #define VALVE11_PIN 1	//OUT13
+  #define VALVEA_PIN 13	//OUT12
+  #define VALVEB_PIN 1	//OUT13
   
   #define HLTHEAT_PIN 28	//OUT1
   #define KETTLEHEAT_PIN 29	//OUT2

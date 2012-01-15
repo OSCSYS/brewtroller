@@ -162,11 +162,21 @@ void pinInit() {
   #endif
   
   #ifdef DIGITAL_INPUTS
-    digInPin[0].setup(DIGIN1_PIN, INPUT);
-    digInPin[1].setup(DIGIN2_PIN, INPUT);
-    digInPin[2].setup(DIGIN3_PIN, INPUT);
-    digInPin[3].setup(DIGIN4_PIN, INPUT);
-    digInPin[4].setup(DIGIN5_PIN, INPUT);
+    #if DIGIN_COUNT > 0
+      digInPin[0].setup(DIGIN1_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 1
+      digInPin[1].setup(DIGIN2_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 2
+      digInPin[2].setup(DIGIN3_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 3
+      digInPin[3].setup(DIGIN4_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 4
+      digInPin[4].setup(DIGIN5_PIN, INPUT);
+    #endif
   #endif
 }
 
