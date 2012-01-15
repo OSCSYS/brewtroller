@@ -28,7 +28,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Config.h"
 #include "Enum.h"
 #include "HWProfile.h"
-#include <encoder.h>
+#ifndef ENCODER_I2C
+  #include <encoder.h>
+#else
+  #include <encoderI2C.h>
+#endif
 #include "UI_LCD.h"
 
 //*****************************************************************************************************************************
@@ -244,11 +248,18 @@ unsigned long timerLastPrint;
 //**********************************************************************************
 void uiInit() {
   LCD.init();
-  #ifndef ENCODER_OLD_CONSTRUCTOR
-    Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
+
+  #ifndef ENCODER_I2C
+    #ifndef ENCODER_OLD_CONSTRUCTOR
+      Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
+    #else
+      Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN, ENTER_INT, ENCA_INT);
+    #endif
   #else
-    Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN, ENTER_INT, ENCA_INT);
+     Encoder.begin(ENCODER_I2CADDR);
   #endif
+
+
 
   //Check to see if EEPROM Initialization is needed
   if (checkConfig()) {

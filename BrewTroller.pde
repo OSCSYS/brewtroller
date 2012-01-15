@@ -106,7 +106,7 @@ const char BTVER[] PROGMEM = "2.5";
 pin heatPin[4], alarmPin;
 
 #ifdef DIGITAL_INPUTS
-  pin digInPin[6];
+  pin digInPin[DIGIN_COUNT];
 #endif
 
 #ifdef HEARTBEAT

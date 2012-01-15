@@ -26,6 +26,7 @@ BrewTroller 4.0 Pro Hardware Configuration
   #define PWMPUMP_PIN 7
 
   #define DIGITAL_INPUTS
+  #define DIGIN_COUNT 5
   #define DIGIN1_PIN 18
   #define DIGIN2_PIN 19
   #define DIGIN3_PIN 20
