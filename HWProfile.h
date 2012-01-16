@@ -1,44 +1,42 @@
 /*
-OpenTroller DX1 HERMS Hardware Configuration
+BrewTroller 4.0 Pro Hardware Configuration
 */
 
 #ifndef BT_HWPROFILE
 #define BT_HWPROFILE
 
-  #define ENCODER_I2C
-  #define ENCODER_I2CADDR 0x01
-
-  #define ALARM_PIN 2	//OUT14
+  #define ENCA_PIN 2
+  #define ENCB_PIN 4
+  #define ENTER_PIN 5
+  #define ALARM_PIN 15
   
-  #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 11 //11 Outputs
+  #define PVOUT_TYPE_MUX
+  #define PVOUT_COUNT 16 //16 Outputs
+    
+  #define MUX_LATCH_PIN 12
+  #define MUX_CLOCK_PIN 13
+  #define MUX_DATA_PIN 14
+  #define MUX_ENABLE_PIN 6
+  #define MUX_ENABLE_LOGIC 1
 
-  #define VALVE1_PIN 30	//OUT3
-  #define VALVE2_PIN 31	//OUT4
-  #define VALVE3_PIN 7	//OUT5
-  #define VALVE4_PIN 6	//OUT6
-  #define VALVE5_PIN 3	//OUT7
-  #define VALVE6_PIN 4	//OUT8
-  #define VALVE7_PIN 12	//OUT9
-  #define VALVE8_PIN 15	//OUT10
-  #define VALVE9_PIN 14	//OUT11
-  #define VALVEA_PIN 13	//OUT12
-  #define VALVEB_PIN 1	//OUT13
-  
-  #define HLTHEAT_PIN 28	//OUT1
-  #define KETTLEHEAT_PIN 29	//OUT2
+  #define HLTHEAT_PIN 23
+  #define MASHHEAT_PIN 1
+  #define KETTLEHEAT_PIN 3
+  #define STEAMHEAT_PIN 7
+  #define PWMPUMP_PIN 7
 
   #define DIGITAL_INPUTS
-  #define DIGIN_COUNT 4
-  #define DIGIN1_PIN 21
-  #define DIGIN2_PIN 20
-  #define DIGIN3_PIN 19
-  #define DIGIN4_PIN 18
+  #define DIGIN_COUNT 5
+  #define DIGIN1_PIN 18
+  #define DIGIN2_PIN 19
+  #define DIGIN3_PIN 20
+  #define DIGIN4_PIN 21
+  #define DIGIN5_PIN 22
   
-  #define HLTVOL_APIN 7
-  #define MASHVOL_APIN 6
-  #define KETTLEVOL_APIN 5
-  #define STEAMPRESS_APIN 4
+  #define HLTVOL_APIN 3
+  #define MASHVOL_APIN 2
+  #define KETTLEVOL_APIN 1
+  #define STEAMPRESS_APIN 0
   
   #define UI_LCD_I2C
   #define UI_LCD_I2CADDR 0x01

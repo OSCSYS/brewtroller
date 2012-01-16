@@ -1,4 +1,4 @@
-#define BUILD 897
+#define BUILD 901
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -41,14 +41,15 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 //*****************************************************************************************************************************
 // BEGIN CODE
 //*****************************************************************************************************************************
+
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
 #include <pin.h>
 #include <menu.h>
 
+#include "HWProfile.h"
 #include "Config.h"
 #include "Enum.h"
-#include "HWProfile.h"
 #include "PVOut.h"
 #include "UI_LCD.h"
 
@@ -373,3 +374,4 @@ void loop() {
   brewCore();
 }
 
+#endif
