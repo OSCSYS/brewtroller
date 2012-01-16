@@ -126,24 +126,30 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         ds.reset_search();
         return;
       }
-      boolean found = 0;
-      for (byte i = TS_HLT; i <= TS_RIMS; i++) {
-        boolean match = 1;
-        for (byte j = 0; j < 8; j++) {
-          //Try to confirm a match by checking every byte of the scanned address with those of each sensor.
-          if (scanAddr[j] != tSensor[i][j]) {
-            match = 0;
+      if (
+          scanAddr[0] == 0x28 ||  //DS18B20
+          scanAddr[0] == 0x10     //DS18S20
+         ) 
+      {
+        boolean found = 0;
+        for (byte i = TS_HLT; i <= TS_RIMS; i++) {
+          boolean match = 1;
+          for (byte j = 0; j < 8; j++) {
+            //Try to confirm a match by checking every byte of the scanned address with those of each sensor.
+            if (scanAddr[j] != tSensor[i][j]) {
+              match = 0;
+              break;
+            }
+          }
+          if (match) { 
+            found = 1;
             break;
           }
         }
-        if (match) { 
-          found = 1;
-          break;
+        if (!found) {
+          for (byte k = 0; k < 8; k++) addrRet[k] = scanAddr[k];
+          return;
         }
-      }
-      if (!found) {
-        for (byte k = 0; k < 8; k++) addrRet[k] = scanAddr[k];
-        return;
       }
       limit++;
     }      
