@@ -582,6 +582,24 @@ static const byte TS = 1;
 //#define BATCH_SPARGE_RECIRC 60
 //**********************************************************************************
 
+//**********************************************************************************
+// RGB Board options
+//**********************************************************************************
+// The RGB Board allows you to have RGB LEDs show the status of 8 heat or PV outputs
+// and allows you to have up to 8 switches connected to control them. 
+//#define RGBIO8_ENABLE
+// Enables the UI setup for the RGBIO8 board. This takes up quite a bit of code
+// space so it can be disabled once you have set up all of your boards. It is
+// not needed in day to day use.
+#define RGBIO8_SETUP
+// The first address of your RGB Boards. Other boards should follow using the next
+// address. So, for instance, if this value is 0x30, board 2 should be 0x31, board
+// 3 should be 0x32, etc.
+#define RGBIO8_START_ADDR 0x30
+// The number of RGB boards you have connnected.
+#define RGBIO8_NUM_BOARDS 1
+//**********************************************************************************
+
 
 //**********************************************************************************
 // DEBUG

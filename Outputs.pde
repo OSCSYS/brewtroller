@@ -643,6 +643,22 @@ unsigned long computeValveBits() {
       vlvBits |= vlvConfig[i];
     }
   }
+  #ifdef RGBIO8_ENABLE
+  // build the softswitch masks
+  unsigned long offMask = 0;
+  unsigned long onMask = 0;
+  for (int i = 0; i < PVOUT_COUNT; i++) {
+    if (softSwitchPv[i] == 0) {
+      offMask |= (1 << i);
+    }
+    else if (softSwitchPv[i] == 1) {
+      onMask |= (1 << i);
+    }
+  }
+  offMask = ~offMask;
+  vlvBits &= offMask;
+  vlvBits |= onMask;
+  #endif
   return vlvBits;
 }
 

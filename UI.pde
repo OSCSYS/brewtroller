@@ -1589,6 +1589,118 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
   return retValue;
 }
 
+unsigned long ulpow(unsigned long base, unsigned long exponent) {
+  unsigned long ret = 1;
+  for (int i = 0; i < exponent; i++) {
+    ret *= base;
+  }
+  return ret;
+}
+
+/**
+ * Prompt the user for a value in hex. The value is shown with 0x prepended
+ * and the user may only select 0-f for each digit.
+ */
+unsigned long getHexValue(char sTitle[], unsigned long defValue) {
+  unsigned long retValue = defValue;
+  byte cursorPos = 0; 
+  boolean cursorState = 0; //0 = Unselected, 1 = Selected
+  
+  byte digits = 2;
+
+  Encoder.setMin(0);
+  Encoder.setMax(digits);
+  Encoder.setCount(0);
+
+  LCD.setCustChar_P(0, CHARFIELD);
+  LCD.setCustChar_P(1, CHARCURSOR);
+  LCD.setCustChar_P(2, CHARSEL);
+  
+  byte valuePos = (20 - digits + 1) / 2;
+  LCD.clear();
+  LCD.print(0, 0, sTitle);
+  LCD.print_P(3, 9, OK);
+  boolean redraw = 1;
+  
+  unsigned long multiplier = ulpow(16, (digits - cursorPos - 1));
+  
+  while(1) {
+    int encValue;
+    if (redraw) {
+      redraw = 0;
+      encValue = Encoder.getCount();
+    }
+    else {
+      encValue = Encoder.change();
+    }
+    if (encValue >= 0) {
+      if (cursorState) {
+        retValue -= (retValue / multiplier % 16 * multiplier);
+        retValue += (encValue * multiplier);
+      } 
+      else {
+        cursorPos = encValue;
+        multiplier = ulpow(16, (digits - cursorPos - 1));
+        for (byte i = valuePos - 1; i < valuePos - 1 + digits; i++) {
+          LCD.writeCustChar(2, i, 0);
+        }
+        LCD.print(3, 8, " ");
+        LCD.print(3, 11, " ");
+        if (cursorPos == digits) {
+          LCD.print(3, 8, ">");
+          LCD.print(3, 11, "<");
+        } 
+        else {
+          if (cursorPos < digits) {
+            LCD.writeCustChar(2, valuePos + cursorPos - 1, 1);
+          }
+          else {
+            LCD.writeCustChar(2, valuePos + cursorPos, 1);
+          }
+        }
+      }
+      sprintf(buf, "%02x", retValue);
+      LCD.print(1, valuePos - 1, buf);
+      LCD.print(1, valuePos - 3, "0x");
+    }
+    
+    if (Encoder.ok()) {
+      if (cursorPos == digits) {
+        break;
+      }
+      else {
+        cursorState = cursorState ^ 1;
+        if (cursorState) {
+          if (cursorPos < digits) {
+            LCD.writeCustChar(2, valuePos + cursorPos - 1, 2);
+          }
+          else {
+            LCD.writeCustChar(2, valuePos + cursorPos, 2);
+          }
+          Encoder.setMin(0);
+          Encoder.setMax(0x0f);
+          Encoder.setCount(retValue / multiplier % 16);
+        } 
+        else {
+          if (cursorPos < digits) {
+            LCD.writeCustChar(2, valuePos + cursorPos - 1, 1);
+          }
+          else LCD.writeCustChar(2, valuePos + cursorPos, 1);
+          Encoder.setMin(0);
+          Encoder.setMax(digits);
+          Encoder.setCount(cursorPos);
+        }
+      }
+    } 
+    else if (Encoder.cancel()) {
+      retValue = defValue;
+      break;
+    }
+    brewCore();
+  }
+  return retValue;
+}
+
 void printTimer(byte timer, byte iRow, byte iCol) {
   if (timerValue[timer] > 0 && !timerStatus[timer]) LCD.print(iRow, iCol, "PAUSED");
   else if (alarmStatus || timerStatus[timer]) {
@@ -1790,7 +1902,7 @@ byte enc2ASCII(byte charin) {
 //*****************************************************************************************************************************
 #ifndef UI_NO_SETUP
 void menuSetup() {
-  menu setupMenu(3, 7);
+  menu setupMenu(3, 8);
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 0);
   setupMenu.setItem_P(PSTR("Outputs"), 1);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 2);
@@ -1800,6 +1912,11 @@ void menuSetup() {
   setupMenu.setItem_P(INIT_EEPROM, 4);
   #ifdef UI_DISPLAY_SETUP
     setupMenu.setItem_P(PSTR("Display"), 5);
+  #endif
+  #ifdef RGBIO8_ENABLE
+  #ifdef RGBIO8_SETUP
+    setupMenu.setItem_P(PSTR("RGB Setup"), 6);
+  #endif
   #endif  
   setupMenu.setItem_P(EXIT, 255);
   
@@ -1819,9 +1936,69 @@ void menuSetup() {
     #ifdef UI_DISPLAY_SETUP
       else if (lastOption == 5) adjustLCD();
     #endif
+    #ifdef RGBIO8_ENABLE
+    #ifdef RGBIO8_SETUP
+      else if (lastOption == 6) {
+        cfgRgb();
+      }
+    #endif
+    #endif  
     else return;
   }
 }
+
+#ifdef RGBIO8_ENABLE
+#ifdef RGBIO8_SETUP
+
+void cfgRgb() {
+  byte targetAddr = 0x7f;
+  boolean identifyOn = false;
+  
+  menu m(3, 5);
+  RGBIO8 rgb;
+  rgb.begin(0, targetAddr);
+
+  while (1) {
+    m.setItem_P(PSTR("Target Addr: "), 0);
+    sprintf(buf, "0x%02x", targetAddr);
+    m.appendItem(buf, 0);
+    m.setItem_P(PSTR("Set Address"), 1);
+    m.setItem_P(PSTR("Identify: "), 2);
+    m.appendItem((char*) (identifyOn ? "On" : "Off"), 2);
+    m.setItem_P(PSTR("Restart"), 3);
+    m.setItem_P(EXIT, 255);
+    byte lastOption = scrollMenu("RGB Setup", &m);
+    if (lastOption == 0) {
+      targetAddr = (byte) getHexValue("Target Address", targetAddr);
+    }
+    else if (lastOption == 1) {
+      byte address = (byte) getHexValue("Set Address", targetAddr);
+      RGBIO8 rgb;
+      rgb.begin(0, targetAddr);
+      rgb.setAddress(address);
+      delay(250);
+      rgb.restart();
+      targetAddr = address;
+    }
+    else if (lastOption == 2) {
+      RGBIO8 rgb;
+      rgb.begin(0, targetAddr);
+      identifyOn = !identifyOn;
+      rgb.setIdMode(identifyOn);
+    }
+    else if (lastOption == 3) {
+      RGBIO8 rgb;
+      rgb.begin(0, targetAddr);
+      rgb.restart();
+    }
+    else if (lastOption == 255) {
+      return;
+    }
+  }
+}
+
+#endif
+#endif
 
 void assignSensor() {
   menu tsMenu(1, 9);

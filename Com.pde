@@ -30,6 +30,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //**********************************************************************************
 #include "Config.h"
 #include "Enum.h"
+#include "Com_RGBIO8.h"
 
 void comInit() {
   #ifdef COM_SERIAL0
@@ -42,6 +43,9 @@ void comInit() {
     Wire.onReceive(btnicRX);
   #endif
   
+  #ifdef RGBIO8_ENABLE
+    RGBIO8_Init();
+  #endif
 }
 
 void logASCIIVersion() {
@@ -86,6 +90,9 @@ void updateCom() {
   //BTPD Support
   #ifdef BTPD_SUPPORT
     updateBTPD();
+  #endif
+  #ifdef RGBIO8_ENABLE
+    RGBIO8_Update();
   #endif
 }
 

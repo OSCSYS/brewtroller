@@ -83,7 +83,7 @@ const char BTVER[] PROGMEM = "2.5";
   #define BTNIC_PROTOCOL
 #endif
 
-#if defined BTPD_SUPPORT || defined UI_LCD_I2C || defined TS_ONEWIRE_I2C || defined BTNIC_EMBEDDED
+#if defined BTPD_SUPPORT || defined UI_LCD_I2C || defined TS_ONEWIRE_I2C || defined BTNIC_EMBEDDED || defined RGBIO8_ENABLE
   #define USE_I2C
 #endif
 
