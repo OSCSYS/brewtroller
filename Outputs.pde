@@ -532,12 +532,10 @@ void processHeatOutputs() {
 }
 
 #ifdef PVOUT
-  unsigned long prevProfiles;
-  
   void updateValves() {
-    if (actProfiles != prevProfiles) {
-      Valves.set(computeValveBits());
-      prevProfiles = actProfiles;
+    unsigned long vlvBits = computeValveBits();
+    if (vlvBits != Valves.get()) {
+      Valves.set(vlvBits);
     }
   }
 
@@ -644,8 +642,10 @@ unsigned long computeValveBits() {
     }
   }
   #ifdef RGBIO8_ENABLE
-  // build the softswitch masks
+  // Build the softswitch masks
+  // Any bits set to 1 on offMask will force the corresponding valve off.
   unsigned long offMask = 0;
+  // Any bits set to 1 on onMask will force the corresponding valve on.
   unsigned long onMask = 0;
   for (int i = 0; i < PVOUT_COUNT; i++) {
     if (softSwitchPv[i] == 0) {
@@ -655,6 +655,7 @@ unsigned long computeValveBits() {
       onMask |= (1 << i);
     }
   }
+  // Apply the masks to the pre-computed valve bits.
   offMask = ~offMask;
   vlvBits &= offMask;
   vlvBits |= onMask;

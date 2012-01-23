@@ -6,6 +6,7 @@
   {
     private:
     pin* valvePin;
+    unsigned long vlvBits;
     
     public:
     PVOutGPIO(byte pinCount) {
@@ -28,7 +29,10 @@
       for (byte i = 0; i < 11; i++) {
         if (vlvBits & (1<<i)) valvePin[i].set(); else valvePin[i].clear();
       }
+      this->vlvBits = vlvBits;
     }
+    
+    unsigned long get() { return vlvBits; }
   };
   
   class PVOutMUX
@@ -36,6 +40,7 @@
     private:
     pin muxLatchPin, muxDataPin, muxClockPin, muxEnablePin;
     boolean muxEnableLogic;
+    unsigned long vlvBits;
     
     public:
     PVOutMUX(byte latchPin, byte dataPin, byte clockPin, byte enablePin, boolean enableLogic) {
@@ -84,13 +89,20 @@
       muxLatchPin.set();
       delayMicroseconds(10);
       muxLatchPin.clear();
+      this->vlvBits = vlvBits;
     }
+    
+    unsigned long get() { return vlvBits; }
   };
   
   class PVOutMODBUS
   {
+    private:
+    unsigned long vlvBits;
+
     public:
     void init(void);
-    void set(unsigned long);
+    void set(unsigned long) { this->vlvBits = vlvBits; }
+    unsigned long get() { return vlvBits; }
   };
 #endif //ifndef PVOUT_H

@@ -4,7 +4,6 @@
 #include "Com_RGBIO8.h"
 
 // TODO: Still need to implement softSwitchHeat honoring in Heat outputs
-// TODO: Need to make sure that updateValves() is checking softSwitches even when profiles have not changed
 
 
 // 0 = Off, 1 = On, 2 = Auto
@@ -146,6 +145,8 @@ void RGBIO8::update(void) {
   }
   
   // Update any assigned outputs
+  unsigned long vlvBits = Valves.get();
+  Serial.println(vlvBits, BIN);
   for (int i = 0; i < 8; i++) {
     RGBIO8_output_assignment *a = &output_assignments[i];
     if (a->type) {
@@ -170,9 +171,6 @@ void RGBIO8::update(void) {
       }
       else if (a->type == 2) {
         // this is a PV output
-        // TODO: Since this is computing, it does not really reflect the output state.
-        // Need to make sure it does. See updateValves().
-        unsigned long vlvBits = computeValveBits();
         if (vlvBits & (1 << a->index)) {
           if (softSwitchPv[a->index] == 2) {
             setOutput(i, output_recipes[a->recipe_id][2]);
