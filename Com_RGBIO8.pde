@@ -145,8 +145,9 @@ void RGBIO8::update(void) {
   }
   
   // Update any assigned outputs
+  #ifdef PVOUT
   unsigned long vlvBits = Valves.get();
-  Serial.println(vlvBits, BIN);
+  #endif
   for (int i = 0; i < 8; i++) {
     RGBIO8_output_assignment *a = &output_assignments[i];
     if (a->type) {
@@ -171,6 +172,7 @@ void RGBIO8::update(void) {
       }
       else if (a->type == 2) {
         // this is a PV output
+        #ifdef PVOUT
         if (vlvBits & (1 << a->index)) {
           if (softSwitchPv[a->index] == 2) {
             setOutput(i, output_recipes[a->recipe_id][2]);
@@ -187,6 +189,7 @@ void RGBIO8::update(void) {
             setOutput(i, output_recipes[a->recipe_id][0]);
           }
         }
+        #endif
       }
     }
   }
