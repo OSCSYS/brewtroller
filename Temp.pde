@@ -24,10 +24,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-#include "Config.h"
-#include "Enum.h"
-#include "HWProfile.h"
-
 #ifdef TS_ONEWIRE
   #ifdef TS_ONEWIRE_GPIO
     #include <OneWire.h>
@@ -40,7 +36,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   //One Wire Bus on 
   
   void tempInit() {
-    for (byte i = TS_HLT; i <= TS_RIMS; i++) temp[i] = BAD_TEMP;
+    for (byte i = 0; i < NUM_TS; i++) temp[i] = BAD_TEMP;
     #ifdef TS_ONEWIRE_I2C
       ds.configure(DS2482_CONFIG_APU | DS2482_CONFIG_SPU);
     #endif
@@ -92,7 +88,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         logFieldI(convStart);
         logEnd();
       #endif
-      for (byte i = TS_HLT; i <= TS_RIMS; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]); else temp[i] = BAD_TEMP;
+      for (byte i = 0; i < NUM_TS; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]); else temp[i] = BAD_TEMP;
       convStart = 0;
       
       #if defined MASH_AVG
@@ -132,7 +128,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
          ) 
       {
         boolean found = 0;
-        for (byte i = TS_HLT; i <= TS_RIMS; i++) {
+        for (byte i = 0; i <  NUM_TS; i++) {
           boolean match = 1;
           for (byte j = 0; j < 8; j++) {
             //Try to confirm a match by checking every byte of the scanned address with those of each sensor.

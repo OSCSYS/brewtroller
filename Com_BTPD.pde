@@ -31,8 +31,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 
 #ifdef BTPD_SUPPORT
-#include "Config.h"
-#include "Enum.h"
 
 #define BTPD_HLT_TEMP 0x20 // BTPD_HLT_TEMP: Displays HLT temp and setpoint on specified channel
 #define BTPD_MASH_TEMP 0x22 // BTPD_MASH_TEMP: Displays Mash temp and setpoint on specified channel
@@ -44,8 +42,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //#define BTPD_MASH_VOL 0x27 // BTPD_MASH_VOL: Displays current and target Mash volume
 //#define BTPD_KETTLE_VOL 0x28 // BTPD_KETTLE_VOL: Displays current and target Kettle volume
 //#define BTPD_STEAM_PRESS 0x29 // BTPD_STEAM_PRESS: Displays current and target Steam pressure
-#define BTPD_RIMS_TEMP 0x21 // THe RIMS tube temp probe temperature
-
+#ifdef RIMS_TEMP_SENSOR
+  #define BTPD_RIMS_TEMP 0x21 // THe RIMS tube temp probe temperature
+#endif
 unsigned long lastBTPD;
 
 #ifndef BTPD_ALTERNATE_TEMP_VOLUME
@@ -80,7 +79,7 @@ void updateBTPD() {
 			sendVsVol(BTPD_KETTLE_VOL, VS_KETTLE);
 		#endif
 		#ifdef BTPD_RIMS_TEMP
-			sendVsTemp(BTPD_RIMS_TEMP, TS_RIMS, VS_MASH);
+			sendVsTemp(BTPD_RIMS_TEMP, RIMS_TEMP_SENSOR, VS_MASH);
 		#endif
 		lastBTPD = millis();
 	}

@@ -8,9 +8,9 @@
 #define TS_H2OIN 3
 #define TS_H2OOUT 4
 #define TS_BEEROUT 5
-#define TS_RIMS 6
-#define TS_AUX1 7
-#define TS_AUX2 8
+#define TS_AUX1 6
+#define TS_AUX2 7
+#define TS_AUX3 8
 #define NUM_TS 9
 #define BAD_TEMP -32768
 
@@ -93,7 +93,7 @@
 #define EVENT_STEPINIT 0
 #define EVENT_STEPEXIT 1
 #define EVENT_SETPOINT 2
-
+#define EVENT_ESTOP 3
 
 //Log Constants
 #define CMD_MSG_FIELDS 25
@@ -107,5 +107,11 @@
 #define ASCII 0
 #define BTNIC 1
 #define BINARY 2
+
+#define TRIGGER_ESTOP 0
+#define TRIGGER_SPARGEMAX 1
+#define TRIGGER_HLTMIN 2
+#define TRIGGER_MASHMIN 3
+#define TRIGGER_KETTLEMIN 4
 
 #endif

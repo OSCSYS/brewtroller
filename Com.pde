@@ -28,10 +28,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //**********************************************************************************
 //Code Shared by all Schemas
 //**********************************************************************************
-#include "Config.h"
-#include "Enum.h"
-#include "Com_RGBIO8.h"
-
 void comInit() {
   #ifdef COM_SERIAL0
     Serial.begin(SERIAL0_BAUDRATE);

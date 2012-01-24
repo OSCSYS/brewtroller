@@ -23,10 +23,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
-
-#include "Config.h"
-#include "Enum.h"
-
 unsigned long lastHop, grainInStart;
 unsigned int boilAdds, triggered;
 

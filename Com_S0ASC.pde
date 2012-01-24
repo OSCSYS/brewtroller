@@ -26,10 +26,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   Update 9/22/2010 to support enhanced functions and mutiple schemas.
   
 */
-#include "Config.h"
-#include "Enum.h"
-#include <avr/eeprom.h>
-#include <EEPROM.h>
 
 #ifdef COM_SERIAL0
 #if COM_SERIAL0 == ASCII

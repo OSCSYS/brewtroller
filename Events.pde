@@ -24,8 +24,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-#include "Config.h"
-#include "Enum.h"
 
 void eventHandler(byte eventID, int eventParam) {
   //Global Event handler
@@ -46,9 +44,68 @@ void eventHandler(byte eventID, int eventParam) {
   }
   
   #ifndef NOUI
-  //Pass Event Info to UI Event Handler
-  uiEvent(eventID, eventParam);
+    //Pass Event Info to UI Event Handler
+    uiEvent(eventID, eventParam);
+  #endif
+
   //Pass Event Info to Com Event Handler
   comEvent(eventID, eventParam);
-#endif
+
 }
+
+#ifdef DIGITAL_INPUTS
+  void triggerSetup() {
+    for (byte i = 0; i < 5; i++) {
+      if (TriggerPin[i] != NULL) TriggerPin[i]->detachPCInt();
+      if (getTriggerPin(i)) {
+        TriggerPin[i] = &digInPin[getTriggerPin(i) - 1];
+        if (i == TRIGGER_ESTOP) TriggerPin[i]->attachPCInt(CHANGE, eStopISR);
+        else if (i == TRIGGER_SPARGEMAX) TriggerPin[i]->attachPCInt(RISING, spargeMaxISR);
+        else if (i == TRIGGER_HLTMIN) TriggerPin[i]->attachPCInt(FALLING, hltMinISR);
+        else if (i == TRIGGER_MASHMIN) TriggerPin[i]->attachPCInt(FALLING, mashMinISR);
+        else if (i == TRIGGER_KETTLEMIN) TriggerPin[i]->attachPCInt(FALLING, kettleMinISR);
+      }
+    }
+  }
+
+  void eStopISR() {
+    //Either clear E-Stop condition if e-Stop trigger goes high
+    //or perform E-Stop actions on trigger low
+    if (TriggerPin[TRIGGER_ESTOP]->get()) estop = 0;
+    else {
+      estop = 1;
+      setAlarm(1);
+      processHeatOutputs();
+      #ifdef PVOUT
+        updateValves();
+      #endif
+      updateTimers();
+    }
+  }
+  
+  void spargeMaxISR() {
+    bitClear(actProfiles, VLV_SPARGEIN);
+  }
+  
+  void hltMinISR() {
+    heatPin[VS_HLT].set(LOW);
+    heatStatus[VS_HLT] = 1;
+    bitClear(actProfiles, VLV_HLTHEAT);
+  }
+  
+  void mashMinISR() {
+    heatPin[VS_MASH].set(LOW);
+    heatStatus[VS_MASH] = 1;
+    bitClear(actProfiles, VLV_MASHHEAT);
+    #ifdef DIRECT_FIRED_RIMS
+      heatPin[VS_STEAM].set(LOW);
+      heatStatus[VS_STEAM] = 0;
+    #endif
+  }
+  
+  void kettleMinISR() {
+    heatPin[VS_KETTLE].set(LOW);
+    heatStatus[VS_KETTLE] = 1;    
+    bitClear(actProfiles, VLV_KETTLEHEAT);
+  }
+#endif

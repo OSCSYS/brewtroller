@@ -25,12 +25,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 #ifndef NOUI
-#include "Config.h"
-#include "Enum.h"
-#include "HWProfile.h"
-#include <encoder.h>
-#include "UI_LCD.h"
-
 //*****************************************************************************************************************************
 // UI COMPILE OPTIONS
 //*****************************************************************************************************************************
@@ -328,6 +322,7 @@ void lockUI() {
 // screenCore: Called in main loop to handle all UI functions
 //**********************************************************************************
 void uiCore() {
+  if (estop) uiEstop();
   if (!screenLock) {
     int encValue = Encoder.change();
     if (encValue >= 0) {
@@ -585,7 +580,7 @@ void screenRefresh(byte screen) {
     // does not work.  So two blocks are required.
 #ifdef DIRECT_FIRED_RIMS
     byte vessels[3] = {VS_HLT, VS_MASH, VS_MASH};
-    byte temps[3] = {TS_HLT, TS_MASH, TS_RIMS};
+    byte temps[3] = {TS_HLT, TS_MASH, RIMS_TEMP_SENSOR};
     byte heatSources[3] = {VS_HLT, VS_MASH, VS_STEAM};
     for (byte i = 0; i <= 2; i++) {
       vftoa(setpoint[vessels[i]], buf, 100, 1);
@@ -1078,6 +1073,30 @@ void screenEnter(byte screen) {
       }
     }
   }
+}
+
+void uiEstop() {
+  LCD.clear();
+  LCD.print_P(0, 0, PSTR("E-Stop Triggered"));
+  Encoder.setMin(0);
+  Encoder.setMax(1);
+  Encoder.setCount(0);
+  LCD.print_P(1, 0, PSTR(">Clear Alarm"));
+  LCD.print_P(2, 0, PSTR(" Clear E-Stop"));
+
+  while (estop) {
+    if (Encoder.change() >= 0) {
+      LCD.print(2 - Encoder.getCount(), 0, " ");
+      LCD.print(Encoder.getCount() + 1, 0, ">");
+      LCD.update();
+    }
+    if (Encoder.ok()) {
+      if (Encoder.getCount() == 0) setAlarm(0);
+      else if (Encoder.getCount() == 1) estop = 0;
+    }
+    brewCore();
+  }
+  screenInit(activeScreen); 
 }
 
 void continueClick() {
@@ -1918,6 +1937,9 @@ void menuSetup() {
     setupMenu.setItem_P(PSTR("RGB Setup"), 6);
   #endif
   #endif  
+  #ifdef DIGITAL_INPUTS
+    setupMenu.setItem_P(PSTR("Triggers"), 7);
+  #endif
   setupMenu.setItem_P(EXIT, 255);
   
   while(1) {
@@ -1943,6 +1965,9 @@ void menuSetup() {
       }
     #endif
     #endif  
+    #ifdef DIGITAL_INPUTS
+      else if (lastOption == 7) cfgTriggers();
+    #endif
     else return;
   }
 }
@@ -2008,11 +2033,13 @@ void assignSensor() {
   tsMenu.setItem_P(PSTR("H2O In"), TS_H2OIN);
   tsMenu.setItem_P(PSTR("H2O Out"), TS_H2OOUT);
   tsMenu.setItem_P(PSTR("Beer Out"), TS_BEEROUT);
-  tsMenu.setItem_P(PSTR("RIMS"), TS_RIMS);
   tsMenu.setItem_P(PSTR("AUX 1"), TS_AUX1);
   tsMenu.setItem_P(PSTR("AUX 2"), TS_AUX2);
-
-
+  tsMenu.setItem_P(PSTR("AUX 3"), TS_AUX3);
+  #ifdef RIMS_TEMP_SENSOR
+    tsMenu.setItem_P(PSTR("RIMS"), RIMS_TEMP_SENSOR);
+  #endif
+  
   Encoder.setMin(0);
   Encoder.setMax(tsMenu.getItemCount() - 1);
   Encoder.setCount(tsMenu.getSelected());
@@ -2642,6 +2669,29 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     }
   }
 #endif //#ifdef UI_DISPLAY_SETUP
+
+#ifdef DIGITAL_INPUTS
+  void cfgTriggers() {
+    menu triggerMenu(3, 6);
+   
+    while(1) {
+      triggerMenu.setItem_P(PSTR("E-Stop: "), 0);
+      triggerMenu.setItem_P(PSTR("Sparge Max: "), 1);
+      triggerMenu.setItem_P(PSTR("HLT Min: "), 2);
+      triggerMenu.setItem_P(PSTR("Mash Min: "), 3);
+      triggerMenu.setItem_P(PSTR("Kettle Min: "), 4);
+      triggerMenu.setItem_P(PSTR("Exit"), 255);
+      for (byte i = 0; i < 5; i++) {
+        if (getTriggerPin(i)) triggerMenu.appendItem(itoa(getTriggerPin(i), buf, 10), i);
+        else triggerMenu.appendItem_P(PSTR("None"), i);
+      }
+      
+      byte lastOption = scrollMenu("Trigger Assignment", &triggerMenu);
+      if (lastOption < 5) setTriggerPin(lastOption, getValue_P(PSTR("Input Pin (0=None):"), getTriggerPin(lastOption), 1, DIGIN_COUNT, PSTR("")));
+      else return;
+    }
+  }
+#endif
 
 #endif //#ifndef UI_NO_SETUP
 

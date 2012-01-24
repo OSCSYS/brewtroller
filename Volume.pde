@@ -24,9 +24,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-#include "Config.h"
-#include "Enum.h"
-
 unsigned long volReadings[3][VOLUME_READ_COUNT], prevFlowVol[3];
 unsigned long lastVolChk, lastFlowChk;
 byte volCount;

@@ -23,13 +23,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
-#include "wiring_private.h"
-
-#include "Config.h"
-#include "Enum.h"
-#include "HWProfile.h"
-#include "PVOut.h"
-
 extern const int HEAT_OUTPUTS_COUNT;
 extern const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2];
 
@@ -113,7 +106,7 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
                 cycleStart[i] += PIDOutputCountEquivalent[i][0];
             //check to see if the pin should be high or low (note when our 16 bit integer wraps we will have 1 period where 
             // the PWM % if cut short, because from the time of wrap until the next period 
-            if (PIDOutputCountEquivalent[i][1] >= timer1_overflow_count - cycleStart[i] 
+            if ((!estop) && PIDOutputCountEquivalent[i][1] >= timer1_overflow_count - cycleStart[i] 
                   && timer1_overflow_count != cycleStart[i]) 
                 heatPin[i].set(HIGH); else heatPin[i].set(LOW);
         }
@@ -317,12 +310,11 @@ void processPID_FLOW_CONTROL(byte vessel) {
 /**
  * Called by processHeatOutputs to process a PID-enabled heat output.
  */
-void processHeatOutoutsPIDEnabled(const byte vessel[]) {
+void processHeatOutputsPIDEnabled(const byte vessel[]) {
   unsigned long millistemp;
   #ifdef PWM_BY_TIMER
     uint8_t oldSREG;
   #endif
-
   if (vessel[VS] != VS_STEAM && vessel[VS] != VS_KETTLE && temp[vessel[TS]] == BAD_TEMP) {
     PIDOutput[vessel[VS]] = 0;
   } else {
@@ -351,6 +343,8 @@ void processHeatOutoutsPIDEnabled(const byte vessel[]) {
       if(vessel[VS] == VS_HLT && volAvg[vessel[VS]] < HLT_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
       if(vesse[VSl == VS_KETTLE && volAvg[vessel[VS]] < KET_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
     #endif
+    //Trigger based element save
+    if (vesselMinTrigger(vessel[VS]) != NULL) if(!vesselMinTrigger(vessel[VS])->get()) PIDOutput[vessel[VS]] = 0;
     }
   #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
     processPID_FLOW_CONTROL(vessel[VS]);
@@ -361,7 +355,7 @@ void processHeatOutoutsPIDEnabled(const byte vessel[]) {
     millistemp = millis();
     if (cycleStart[vessel[VS]] == 0) cycleStart[vessel[VS]] = millistemp;
     if (millistemp - cycleStart[vessel[VS]] > PIDCycle[vessel[VS]] * 100) cycleStart[vessel[VS]] += PIDCycle[vessel[VS]] * 100;
-    if (PIDOutput[vessel[VS]] >= millistemp - cycleStart[vessel[VS]] && millistemp != cycleStart[vessel[VS]]) heatPin[vessel[VS]].set(HIGH); else heatPin[vessel[VS]].set(LOW);
+    if ((!estop) && PIDOutput[vessel[VS]] >= millistemp - cycleStart[vessel[VS]] && millistemp != cycleStart[vessel[VS]]) heatPin[vessel[VS]].set(HIGH); else heatPin[vessel[VS]].set(LOW);
   #else
     //here we do as much math as we can OUT SIDE the ISR, we calculate the PWM cycle time in counter/timer counts
     // and place it in the [vessel][0] value, then calculate the timer counts to get the desired PWM % and place it in [vessel][1]
@@ -383,12 +377,17 @@ void processHeatOutputsNonPIDEnabledWithHeatOn(const byte vessel[]) {
   // determine if setpoint has ben reached, or there is a bad temp reading.
   // If it either condition, set the pin low (turn it off).
 	// we do not want the RIMS (in DIRECT_FIRED_RIMS) processed here either; it is taken care of in the MASH loop
-  if ((vessel[VS] != VS_STEAM &&
+
+  //Indicates if the minimum volume has been reached (defaults to true in case trigger is not used)
+  boolean vesselMinTrig = 1;
+  if (vesselMinTrigger(vessel[VS]) != NULL) vesselMinTrig = (vesselMinTrigger(vessel[VS])->get());
+  
+  if (estop || (!vesselMinTrig) || ((vessel[VS] != VS_STEAM &&
         (temp[vessel[TS]] == BAD_TEMP || temp[vessel[TS]] >= setpoint[vessel[VS]])
       #ifndef DIRECT_FIRE_RIMS
         )|| (vessel[VS] == VS_STEAM && steamPressure >= setpoint[vessel[VS]])
       #endif
-  ) { 
+  )) { 
     // For DIRECT_FIRED_RIMS, the setpoint for both VS_MASH & VS_STEAM should be the same, 
     // so nothing to do here.
     heatPin[vessel[VS]].set(LOW);
@@ -404,7 +403,7 @@ void processHeatOutputsNonPIDEnabledWithHeatOn(const byte vessel[]) {
         if (temp[TS_MASH] >= setpoint[VS_MASH] - (RIMS_TEMP_OFFSET * 100)) {
           heatPin[VS_MASH].set(LOW);
           heatStatus[VS_MASH] = 0;
-          if ((temp[TS_MASH] < setpoint[VS_MASH]) && (temp[TS_RIMS] < (RIMS_MAX_TEMP * 100))) {
+          if ((temp[TS_MASH] < setpoint[VS_MASH]) && (temp[RIMS_TEMP_SENSOR] < (RIMS_MAX_TEMP * 100))) {
             heatPin[VS_STEAM].set(HIGH);
             heatStatus[VS_STEAM] = 1;
           } else {
@@ -434,7 +433,12 @@ void processHeatOutputsNonPIDEnabledWithHeatOn(const byte vessel[]) {
 void processHeatOutputsNonPIDEnabledWithHeatOff(const byte vessel[]) {
   // Determine is the vessel temperature is below the setpoint, accounting for hysteresis.
   // we do not want the RIMS (in DIRECT_FIRED_RIMS) processed here either; it is taken care of in the MASH loop
-  if ((vessel[VS] != VS_STEAM &&
+
+  //Indicates if the minimum volume has been reached (defaults to true in case trigger is not used)
+  boolean vesselMinTrig = 1;
+  if (vesselMinTrigger(vessel[VS]) != NULL) vesselMinTrig = (vesselMinTrigger(vessel[VS])->get());
+
+  if (!estop && vesselMinTrig && (vessel[VS] != VS_STEAM &&
       (temp[vessel[TS]] != BAD_TEMP && (setpoint[vessel[VS]] - temp[vessel[TS]]) >= hysteresis[vessel[VS]] * 10) 
     #ifndef DIRECT_FIRE_RIMS
       ) || (vessel[VS] == VS_STEAM && (setpoint[vessel[VS]] - steamPressure) >= hysteresis[vessel[VS]] * 100)
@@ -450,7 +454,7 @@ void processHeatOutputsNonPIDEnabledWithHeatOff(const byte vessel[]) {
         if (temp[TS_MASH] >= setpoint[VS_MASH] - (RIMS_TEMP_OFFSET * 100)) {
           heatPin[VS_MASH].set(LOW);
           heatStatus[VS_MASH] = 0;
-          if ((temp[TS_MASH] < setpoint[VS_MASH]) && (temp[TS_RIMS] < (RIMS_MAX_TEMP * 100))) {
+          if ((temp[TS_MASH] < setpoint[VS_MASH]) && (temp[RIMS_TEMP_SENSOR] < (RIMS_MAX_TEMP * 100))) {
             heatPin[VS_STEAM].set(HIGH);
             heatStatus[VS_STEAM] = 1;
           } else {
@@ -477,8 +481,9 @@ void processHeatOutputsNonPIDEnabledWithHeatOff(const byte vessel[]) {
     // so nothing to do here.
     heatPin[vessel[VS]].set(LOW);
     heatStatus[vessel[VS]] = 0;
+    #ifdef DIRECT_FIRED_RIMS
       if (vessel[VS] == VS_MASH) {
-        if ((temp[TS_MASH] < setpoint[VS_MASH]) && (temp[TS_RIMS] < (RIMS_MAX_TEMP * 100))) {
+        if ((!estop) && (temp[TS_MASH] < setpoint[VS_MASH]) && (temp[RIMS_TEMP_SENSOR] < (RIMS_MAX_TEMP * 100))) {
           heatPin[VS_STEAM].set(HIGH);
           heatStatus[VS_STEAM] = 1;
         } else {
@@ -486,6 +491,7 @@ void processHeatOutputsNonPIDEnabledWithHeatOff(const byte vessel[]) {
           heatStatus[VS_STEAM] = 0;
         }
       }
+    #endif
   }
 }
 
@@ -501,7 +507,7 @@ void processHeatOutputsNonPIDEnabled(const byte vessel[]) {
   
 #ifdef DIRECT_FIRED_RIMS
   // Check to insure RIMS is below safe level
-  if (temp[TS_RIMS] >= (RIMS_ALARM_TEMP * 100)  ) {
+  if (temp[RIMS_TEMP_SENSOR] >= (RIMS_ALARM_TEMP * 100)  ) {
     alarmPin.set(1); //Sound the alarm.
   } else {
     alarmPin.set(0);
@@ -524,7 +530,7 @@ void processHeatOutputs() {
       if (HEAT_OUTPUTS[vesselIndex][VS] == VS_KETTLE && setpoint[VS_HLT]) continue;
     #endif
     if (PIDEnabled[HEAT_OUTPUTS[vesselIndex][VS]]) {
-      processHeatOutoutsPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
+      processHeatOutputsPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
     } else {
       processHeatOutputsNonPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
     }
@@ -586,7 +592,7 @@ void processHeatOutputs() {
             #else
                if(volAvg[VS_HLT] > getVolLoss(VS_HLT) + 20)
             #endif
-                bitSet(actProfiles, VLV_SPARGEIN);
+                 bitSet(actProfiles, VLV_SPARGEIN);
              prevSpargeVol[0] = volAvg[VS_KETTLE];
           }
           #ifdef HLT_FLY_SPARGE_STOP
@@ -635,7 +641,15 @@ void processHeatOutputs() {
 #endif //#ifdef PVOUT
   
 unsigned long computeValveBits() {
+  if (estop) return 0;
   unsigned long vlvBits = 0;
+  
+  //Force certain valve profiles off based on trigger pins if enabled
+  if (TriggerPin[TRIGGER_SPARGEMAX] != NULL) if(TriggerPin[TRIGGER_SPARGEMAX]->get()) bitClear(actProfiles, VLV_SPARGEIN);
+  if (TriggerPin[TRIGGER_HLTMIN] != NULL) if(!TriggerPin[TRIGGER_HLTMIN]->get()) bitClear(actProfiles, VLV_HLTHEAT);
+  if (TriggerPin[TRIGGER_MASHMIN] != NULL) if(!TriggerPin[TRIGGER_MASHMIN]->get()) bitClear(actProfiles, VLV_MASHHEAT);
+  if (TriggerPin[TRIGGER_KETTLEMIN] != NULL) if(!TriggerPin[TRIGGER_KETTLEMIN]->get()) bitClear(actProfiles, VLV_KETTLEHEAT);
+  
   for (byte i = 0; i < NUM_VLVCFGS; i++) {
     if (bitRead(actProfiles, i)) {
       vlvBits |= vlvConfig[i];
@@ -689,3 +703,9 @@ byte vesselVLVIdle(byte vessel) {
   else if (vessel == VS_KETTLE) return VLV_KETTLEIDLE;
 }
 
+pin * vesselMinTrigger(byte vessel) {
+  if (vessel == VS_HLT) return TriggerPin[TRIGGER_HLTMIN];
+  else if (vessel == VS_MASH) return TriggerPin[TRIGGER_MASHMIN];
+  else if (vessel == VS_KETTLE) return TriggerPin[TRIGGER_KETTLEMIN];
+  else return NULL;
+}

@@ -52,6 +52,11 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 #include "Enum.h"
 #include "PVOut.h"
 #include "UI_LCD.h"
+#include <avr/eeprom.h>
+#include <EEPROM.h>
+#include "wiring_private.h"
+#include <encoder.h>
+#include "Com_RGBIO8.h"
 
 void(* softReset) (void) = 0;
 
@@ -108,6 +113,8 @@ pin heatPin[4], alarmPin;
 
 #ifdef DIGITAL_INPUTS
   pin digInPin[DIGIN_COUNT];
+  pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
+  boolean estop = 0;
 #endif
 
 #ifdef HEARTBEAT
@@ -201,7 +208,7 @@ boolean heatStatus[4], PIDEnabled[4];
 unsigned int steamPSens, steamZero;
 
 byte pidLimits[4] = { PIDLIMIT_HLT, PIDLIMIT_MASH, PIDLIMIT_KETTLE, PIDLIMIT_STEAM };
-
+  
 //Steam Pressure in thousandths
 unsigned long steamPressure;
 byte boilPwr;
@@ -344,6 +351,9 @@ void setup() {
   
   //Load global variable values stored in EEPROM (EEPROM.pde)
   loadSetup();
+  
+  //Digital Input Interrupt Setup
+  triggerSetup();
   
   //PID Initialization (Outputs.pde)
   pidInit();

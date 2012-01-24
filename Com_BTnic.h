@@ -28,8 +28,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 #ifdef BTNIC_PROTOCOL
-  #include "Config.h"
-  #include "Enum.h"
   
 /********************************************************************************************************************
  * BTnic Class
