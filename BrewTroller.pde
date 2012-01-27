@@ -1,4 +1,4 @@
-#define BUILD 902
+#define BUILD 910
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -113,9 +113,10 @@ pin heatPin[4], alarmPin;
 
 #ifdef DIGITAL_INPUTS
   pin digInPin[DIGIN_COUNT];
-  pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
-  boolean estop = 0;
 #endif
+
+pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
+boolean estop = 0;
 
 #ifdef HEARTBEAT
   pin hbPin;
@@ -352,8 +353,10 @@ void setup() {
   //Load global variable values stored in EEPROM (EEPROM.pde)
   loadSetup();
   
-  //Digital Input Interrupt Setup
-  triggerSetup();
+  #ifdef DIGITAL_INPUTS
+    //Digital Input Interrupt Setup
+    triggerSetup();
+  #endif
   
   //PID Initialization (Outputs.pde)
   pidInit();
