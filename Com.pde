@@ -119,21 +119,21 @@ void updateCom() {
 
       if(btnicI2C.getState() == BTNIC_STATE_TX) {
         //TX Ready
-        Wire.beginTransmission(BTNIC_I2C_ADDR);
-        char timestamp[11];
-        Wire.send(ultoa(millis(), timestamp, 10));
-        Wire.send(0x09);
         #ifdef DEBUG_BTNIC
           Serial.print("btnicEmb TX: ");
         #endif
+        Wire.beginTransmission(BTNIC_I2C_ADDR);
         while(btnicI2C.getState() == BTNIC_STATE_TX) {
           byte data = btnicI2C.tx();
           #ifdef DEBUG_BTNIC
             Serial.print(data);
           #endif
-          Wire.send(data);        
+          Wire.send(data);
         }
         Wire.endTransmission();
+        #ifdef DEBUG_BTNIC
+          Serial.println();
+        #endif
       }
     }
 

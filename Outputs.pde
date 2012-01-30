@@ -121,19 +121,27 @@ void pinInit() {
   #ifdef HLTHEAT_PIN
     heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
   #endif
-  #ifdef MASHHEAT_PIN
-    heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
-  #endif
-  #ifdef HLT_AS_KETTLE
+
+  #ifdef SINGLE_VESSEL_SUPPORT
     #ifdef HLTHEAT_PIN
+      heatPin[VS_MASH].setup(HLTHEAT_PIN, OUTPUT);
       heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
-    #endif      
+    #endif
   #else
-    #ifdef KETTLEHEAT_PIN
-      heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
+    #ifdef MASHHEAT_PIN
+      heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
+    #endif
+    #ifdef HLT_AS_KETTLE
+      #ifdef HLTHEAT_PIN
+        heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
+      #endif      
+    #else
+      #ifdef KETTLEHEAT_PIN
+        heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
+      #endif
     #endif
   #endif
-
+  
   #ifdef DIRECT_FIRED_RIMS
     //MASHHEAT_PIN should be defined, so setup above.
     heatPin[VS_STEAM].setup(STEAMHEAT_PIN, OUTPUT);
