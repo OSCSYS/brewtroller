@@ -6,7 +6,10 @@
 // TODO: Still need to implement softSwitchHeat honoring in Heat outputs
 
 
-// 0 = Off, 1 = On, 2 = Auto
+#define SOFTSWITCH_OFF 0
+#define SOFTSWITCH_ON 1
+#define SOFTSWITCH_AUTO 2
+
 byte softSwitchPv[PVOUT_COUNT];
 byte softSwitchHeat[4];
 
@@ -120,25 +123,25 @@ void RGBIO8::update(void) {
       if (a->type == 1) {
         // this is a heat input
         if (inputs_manual & (1 << i)) {
-          softSwitchHeat[a->index] = 1;
+          softSwitchHeat[a->index] = SOFTSWITCH_ON;
         }
         else if (inputs_auto & (1 << i)) {
-          softSwitchHeat[a->index] = 2;
+          softSwitchHeat[a->index] = SOFTSWITCH_AUTO;
         }
         else {
-          softSwitchHeat[a->index] = 0;
+          softSwitchHeat[a->index] = SOFTSWITCH_OFF;
         }
       }
       else if (a->type == 2) {
         // this is a PV input
         if (inputs_manual & (1 << i)) {
-          softSwitchPv[a->index] = 1;
+          softSwitchPv[a->index] = SOFTSWITCH_ON;
         }
         else if (inputs_auto & (1 << i)) {
-          softSwitchPv[a->index] = 2;
+          softSwitchPv[a->index] = SOFTSWITCH_AUTO;
         }
         else {
-          softSwitchPv[a->index] = 0;
+          softSwitchPv[a->index] = SOFTSWITCH_OFF;
         }
       }
     }
@@ -154,7 +157,7 @@ void RGBIO8::update(void) {
       if (a->type == 1) {
         // this is a heat output
         if (heatStatus[a->index]) {
-          if (softSwitchHeat[a->index] == 2) {
+          if (softSwitchHeat[a->index] == SOFTSWITCH_AUTO) {
             setOutput(i, output_recipes[a->recipe_id][2]);
           }
           else {
@@ -162,7 +165,7 @@ void RGBIO8::update(void) {
           }
         }
         else {
-          if (softSwitchHeat[a->index] == 2) {
+          if (softSwitchHeat[a->index] == SOFTSWITCH_AUTO) {
             setOutput(i, output_recipes[a->recipe_id][1]);
           }
           else {
@@ -174,7 +177,7 @@ void RGBIO8::update(void) {
         // this is a PV output
         #ifdef PVOUT
         if (vlvBits & (1 << a->index)) {
-          if (softSwitchPv[a->index] == 2) {
+          if (softSwitchPv[a->index] == SOFTSWITCH_AUTO) {
             setOutput(i, output_recipes[a->recipe_id][2]);
           }
           else {
@@ -182,7 +185,7 @@ void RGBIO8::update(void) {
           }
         }
         else {
-          if (softSwitchPv[a->index] == 2) {
+          if (softSwitchPv[a->index] == SOFTSWITCH_AUTO) {
             setOutput(i, output_recipes[a->recipe_id][1]);
           }
           else {

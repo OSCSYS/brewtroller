@@ -382,6 +382,8 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
  * Called by processHeatOutputsNonPIDEnabled to process a heat output when heatStatus[vessel] == true.
  */
 void processHeatOutputsNonPIDEnabledWithHeatOn(const byte vessel[]) {
+  // see if softswitches needs to override the data
+  
   // determine if setpoint has ben reached, or there is a bad temp reading.
   // If it either condition, set the pin low (turn it off).
 	// we do not want the RIMS (in DIRECT_FIRED_RIMS) processed here either; it is taken care of in the MASH loop
@@ -508,6 +510,7 @@ void processHeatOutputsNonPIDEnabledWithHeatOff(const byte vessel[]) {
  */
 void processHeatOutputsNonPIDEnabled(const byte vessel[]) {
   if (heatStatus[vessel[VS]]) {
+    // SoftSwitch
     processHeatOutputsNonPIDEnabledWithHeatOn(vessel);
   } else {
     processHeatOutputsNonPIDEnabledWithHeatOff(vessel);
@@ -540,6 +543,7 @@ void processHeatOutputs() {
     if (PIDEnabled[HEAT_OUTPUTS[vesselIndex][VS]]) {
       processHeatOutputsPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
     } else {
+      // SoftSwitch
       processHeatOutputsNonPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
     }
   }
@@ -670,10 +674,10 @@ unsigned long computeValveBits() {
   // Any bits set to 1 on onMask will force the corresponding valve on.
   unsigned long onMask = 0;
   for (int i = 0; i < PVOUT_COUNT; i++) {
-    if (softSwitchPv[i] == 0) {
+    if (softSwitchPv[i] == SOFTSWITCH_OFF) {
       offMask |= (1 << i);
     }
-    else if (softSwitchPv[i] == 1) {
+    else if (softSwitchPv[i] == SOFTSWITCH_ON) {
       onMask |= (1 << i);
     }
   }
