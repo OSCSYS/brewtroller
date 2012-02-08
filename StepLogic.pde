@@ -609,18 +609,33 @@ void smartHERMSHLT() {
 #endif
   
 unsigned long calcStrikeVol(byte pgm) {
-  unsigned long retValue = round(getProgGrain(pgm) * getProgRatio(pgm) / 100.0);
-  //Convert qts to gal for US
-  #ifndef USEMETRIC
-    retValue = round(retValue / 4.0);
-  #endif
-  retValue += getVolLoss(TS_MASH);
+  unsigned int mashRatio = getProgRatio(pgm);
+  unsigned long retValue;
+  if (mashRatio) {
+    retValue = round(getProgGrain(pgm) * mashRatio / 100.0);
+
+    //Convert qts to gal for US
+    #ifndef USEMETRIC
+      retValue = round(retValue / 4.0);
+    #endif
+    retValue += getVolLoss(TS_MASH);
+  }
+  else {
+    //No Sparge Logic (Matio Ratio = 0)
+    retValue = calcPreboilVol(pgm);
+  
+    //Add Water Lost in Spent Grain
+    retValue += calcGrainLoss(pgm);
+    
+    //Add Loss from other Vessels
+    retValue += (getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
+  }
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("StrikeVol:"));
-  logFieldI( retValue);
-  logEnd();
+    logStart_P(LOGDEBUG);
+    logField_P(PSTR("StrikeVol:"));
+    logFieldI( retValue);
+    logEnd();
   #endif
   
   return retValue;
@@ -640,10 +655,10 @@ unsigned long calcSpargeVol(byte pgm) {
   retValue -= calcStrikeVol(pgm);
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("SpargeVol:"));
-  logFieldI( retValue);
-  logEnd();
+    logStart_P(LOGDEBUG);
+    logField_P(PSTR("SpargeVol:"));
+    logFieldI( retValue);
+    logEnd();
   #endif
   
   return retValue;
@@ -654,16 +669,16 @@ unsigned long calcPreboilVol(byte pgm) {
   // It is (((batch volume + kettle loss) / thermo shrinkage factor ) / evap loss factor )
   //unsigned long retValue = (getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0)) + getVolLoss(TS_KETTLE); // old logic 
   #ifdef BOIL_OFF_GALLONS
-  unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) + (((unsigned long)getEvapRate() * EvapRateConversion) * getProgBoil(pgm) / 60.0));
+    unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) + (((unsigned long)getEvapRate() * EvapRateConversion) * getProgBoil(pgm) / 60.0));
   #else
-  unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0));
+    unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0));
   #endif
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("PreBoilVol:"));
-  logFieldI( round(retValue));
-  logEnd();
+    logStart_P(LOGDEBUG);
+    logField_P(PSTR("PreBoilVol:"));
+    logFieldI( round(retValue));
+    logEnd();
   #endif
   
   return round(retValue);
@@ -671,31 +686,19 @@ unsigned long calcPreboilVol(byte pgm) {
 
 unsigned long calcGrainLoss(byte pgm) {
   unsigned long retValue;
-  #ifdef USEMETRIC
-    retValue = round(getProgGrain(pgm) * 1.7884);
-  #else
-    retValue = round(getProgGrain(pgm) * .2143); // This is pretty conservative (err on more absorbtion) - Ray Daniels suggests .20 - Denny Conn suggest .10
-  #endif
+  retValue = round(getProgGrain(pgm) * GRAIN_VOL_LOSS);
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("GrainLoss"));
-  logFieldI(retValue);
-  logEnd();
+    logStart_P(LOGDEBUG);
+    logField_P(PSTR("GrainLoss"));
+    logFieldI(retValue);
+    logEnd();
   #endif
   
   return retValue;
 }
 
 unsigned long calcGrainVolume(byte pgm) {
-  //Grain-to-volume factor for mash tun capacity
-  //Conservatively 1 lb = 0.15 gal 
-  //Aggressively 1 lb = 0.093 gal
-  #ifdef USEMETRIC
-    #define GRAIN2VOL 1.25
-  #else
-    #define GRAIN2VOL .15
-  #endif
   return round (getProgGrain(pgm) * GRAIN2VOL);
 }
 

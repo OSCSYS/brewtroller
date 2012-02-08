@@ -15,6 +15,29 @@
 //#define USEMETRIC
 //**********************************************************************************
 
+
+//**********************************************************************************
+// Brewing Calculation Factors
+//**********************************************************************************
+// GRAIN2VOL: The amount of volume in l/kg or gal/lb that grain occupies in the mash
+// Conservatively 1 lb = 0.15 gal 
+// Aggressively 1 lb = 0.093 gal
+#ifdef USEMETRIC
+  #define GRAIN2VOL 1.25
+#else
+  #define GRAIN2VOL .15
+#endif
+
+// GRAIN_VOL_LOSS: The amount of liquid volume lost with spent grain. This value can
+// vary by grain types, crush, etc.
+// Default values are pretty conservative (err on more absorbtion)
+// Ray Daniels suggests .20, Denny Conn suggests .10
+#ifdef USEMETRIC
+  #define GRAIN_VOL_LOSS 1.7884
+#else
+  #define GRAIN_VOL_LOSS .2143
+#endif
+
 //**********************************************************************************
 // Vessel Options
 //**********************************************************************************
@@ -227,8 +250,8 @@ static const byte TS = 1;
 //**********************************************************************************
 // Boil Off Unit Change
 //**********************************************************************************
-// This option will change the units of the boil off from % per hour to 0.1 gallons per hour, or to 1 liter per hour 
-// if use metric is on
+// This option will change the units of the boil off from % per hour to 0.1 gallons
+// or 1 liter per hour
 //#define BOIL_OFF_GALLONS
 //**********************************************************************************
 

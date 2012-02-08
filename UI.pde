@@ -1232,10 +1232,16 @@ void editProgram(byte pgm) {
     progMenu.appendItem_P(PSTR(" min"), 2);
     
     progMenu.setItem_P(PSTR("Mash Ratio:"), 3);
-    vftoa(getProgRatio(pgm), buf, 100, 1);
-    truncFloat(buf, 4);
-    progMenu.appendItem(buf, 3);
-    progMenu.appendItem_P(PSTR(":1"), 3);
+    unsigned int mashRatio = getProgRatio(pgm);
+    if (mashRatio) {
+      vftoa(mashRatio, buf, 100, 1);
+      truncFloat(buf, 4);
+      progMenu.appendItem(buf, 3);
+      progMenu.appendItem_P(PSTR(":1"), 3);
+    }
+    else {
+      progMenu.appendItem_P(PSTR("NoSparge"), 3);
+    }
     
     progMenu.setItem_P( PSTR("HLT Temp:"), 4);
     vftoa(getProgHLT(pgm) * SETPOINT_MULT, buf, 100, 1);
