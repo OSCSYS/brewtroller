@@ -232,6 +232,7 @@ const byte BELL[] PROGMEM = {B00100, B01110, B01110, B01110, B11111, B00000, B00
 byte activeScreen;
 boolean screenLock;
 unsigned long timerLastPrint;
+boolean doInit = 1;
 
 //**********************************************************************************
 // uiInit:  One time intialization of all UI logic
@@ -259,8 +260,7 @@ void uiInit() {
     LCD.clear();
   }
 
-  activeScreen = SCREEN_HOME;
-  screenInit(SCREEN_HOME);
+  setActive(SCREEN_HOME);
   unlockUI();
 }
 
@@ -278,7 +278,7 @@ void uiEvent(byte eventID, byte eventParam) {
   if (eventID == EVENT_STEPINIT) {
     if (eventParam == STEP_FILL 
       || eventParam == STEP_REFILL
-    ) activeScreen = SCREEN_FILL;
+    ) setActive(SCREEN_FILL);
     else if (eventParam == STEP_DELAY
       || eventParam == STEP_PREHEAT
       || eventParam == STEP_DOUGHIN
@@ -288,16 +288,14 @@ void uiEvent(byte eventID, byte eventParam) {
       || eventParam == STEP_SACCH2
       || eventParam == STEP_MASHOUT
       || eventParam == STEP_MASHHOLD
-    ) activeScreen = SCREEN_MASH;
+    ) setActive(SCREEN_MASH);
     else if (eventParam == STEP_ADDGRAIN
       || eventParam == STEP_SPARGE
-    ) activeScreen = SCREEN_SPARGE;
-    else if (eventParam == STEP_BOIL) activeScreen = SCREEN_BOIL;
-    else if (eventParam == STEP_CHILL) activeScreen = SCREEN_CHILL;
-    screenInit(activeScreen);
+    ) setActive(SCREEN_SPARGE);
+    else if (eventParam == STEP_BOIL) setActive(SCREEN_BOIL);
+    else if (eventParam == STEP_CHILL) setActive(SCREEN_CHILL);
   }
-  else if (eventID == EVENT_STEPEXIT) screenInit(activeScreen);
-    
+  else if (eventID == EVENT_STEPEXIT) doInit = 1;
 }
 
 //**********************************************************************************
@@ -309,13 +307,13 @@ void unlockUI() {
   Encoder.setCount(activeScreen);
   screenLock = 0;
   //Reinit screen to show unlock icon hide parts not visible while locked
-  screenInit(activeScreen);
+  doInit = 1;
 }
 
 void lockUI() {
   screenLock = 1;
   //Recall screenInit to setup encoder and other functions available only when locked
-  screenInit(activeScreen);
+  doInit = 1;
 }
 
 //**********************************************************************************
@@ -326,29 +324,37 @@ void uiCore() {
   if (!screenLock) {
     int encValue = Encoder.change();
     if (encValue >= 0) {
-      activeScreen = encValue;
-      screenInit(activeScreen);
+      setActive(encValue);
     }
   }
-  screenEnter(activeScreen);
-  screenRefresh(activeScreen);
+  if (doInit) {
+    screenInit();
+    doInit = 0;
+  }
+  screenEnter();
+  screenRefresh();
+}
+
+void setActive(byte screen) {
+  activeScreen = screen;
+  doInit = 1;
 }
 
 //**********************************************************************************
 // screenInit: Initialize active screen
 //**********************************************************************************
-void screenInit(byte screen) {
+void screenInit() {
   LCD.clear();
   LCD.setCustChar_P(7, UNLOCK_ICON);
   
   //Print Program Active Char (Overwritten if no program active)
-  if (screen != SCREEN_HOME) {
+  if (activeScreen != SCREEN_HOME) {
     LCD.setCustChar_P(6, PROG_ICON);
     LCD.writeCustChar(0, 0, 6);
     LCD.setCustChar_P(5, BELL);
   }
   
-  if (screen == SCREEN_HOME) {
+  if (activeScreen == SCREEN_HOME) {
     //Screen Init: Home
     #ifdef LOGO_TROLL
       LCD.setCustChar_P(0, BMP0);
@@ -388,7 +394,7 @@ void screenInit(byte screen) {
       LCD.print_P(3, 0, PSTR("www.brewtroller.com"));
     #endif
     
-  } else if (screen == SCREEN_FILL) {
+  } else if (activeScreen == SCREEN_FILL) {
     //Screen Init: Fill/Refill
     if (stepIsActive(STEP_FILL)) LCD.print_P(0, 1, PSTR("Fill"));
     else if (stepIsActive(STEP_REFILL)) LCD.print_P(0, 1, PSTR("Refill"));
@@ -413,7 +419,7 @@ void screenInit(byte screen) {
       Encoder.setCount(0);
     }
     
-  } else if (screen == SCREEN_MASH) {
+  } else if (activeScreen == SCREEN_MASH) {
     //Screen Init: Preheat/Mash
     //Delay Start Indication
     timerLastPrint = 0;
@@ -457,7 +463,7 @@ void screenInit(byte screen) {
     LCD.print_P(2, 19, TUNIT);
 #endif
 
-  } else if (screen == SCREEN_SPARGE) {
+  } else if (activeScreen == SCREEN_SPARGE) {
     //Screen Init: Sparge
     if (stepIsActive(STEP_SPARGE)) LCD.print_P(0, 1, PSTR("Sparge"));
     else if (stepIsActive(STEP_ADDGRAIN)) LCD.print_P(0, 1, PSTR("Grain In"));
@@ -484,7 +490,7 @@ void screenInit(byte screen) {
       Encoder.setCount(0);
     }
     
-  } else if (screen == SCREEN_BOIL) {
+  } else if (activeScreen == SCREEN_BOIL) {
     //Screen Init: Boil
     timerLastPrint = 0;
     if (stepIsActive(STEP_BOIL)) LCD.print_P(0, 1, PSTR("Boil"));
@@ -497,7 +503,7 @@ void screenInit(byte screen) {
         Encoder.setCount(PIDOutput[VS_KETTLE]/PIDCycle[VS_KETTLE]);
     }
 
-  } else if (screen == SCREEN_CHILL) {
+  } else if (activeScreen == SCREEN_CHILL) {
     //Screen Init: Chill
     if (stepIsActive(STEP_CHILL)) LCD.print_P(0, 1, PSTR("Chill"));
     else LCD.print_P(0, 0, PSTR("Chill"));
@@ -520,7 +526,7 @@ void screenInit(byte screen) {
       Encoder.setCount(0);
     }
 
-  } else if (screen == SCREEN_AUX) {
+  } else if (activeScreen == SCREEN_AUX) {
     //Screen Init: AUX
     LCD.print_P(0,0,PSTR("AUX Temps"));
     LCD.print_P(1,1,PSTR("AUX1"));
@@ -541,11 +547,11 @@ void screenInit(byte screen) {
 //**********************************************************************************
 // screenRefresh:  Refresh active screen
 //**********************************************************************************
-void screenRefresh(byte screen) {
-  if (screen == SCREEN_HOME) {
+void screenRefresh() {
+  if (activeScreen == SCREEN_HOME) {
     //Refresh Screen: Home
 
-  } else if (screen == SCREEN_FILL) {
+  } else if (activeScreen == SCREEN_FILL) {
     vftoa(volAvg[VS_HLT], buf, 1000, 1);
     truncFloat(buf, 5);
     LCD.lPad(2, 9, buf, 5, ' ');
@@ -573,7 +579,7 @@ void screenRefresh(byte screen) {
       }
     }
     
-  } else if (screen == SCREEN_MASH) {
+  } else if (activeScreen == SCREEN_MASH) {
     //Refresh Screen: Preheat/Mash
     
     // The DIRECT_FIRED_RIMS option uses a different screen layout, so the logic just
@@ -638,7 +644,7 @@ void screenRefresh(byte screen) {
 
 
 
-  } else if (screen == SCREEN_SPARGE) {
+  } else if (activeScreen == SCREEN_SPARGE) {
     //Refresh Screen: Sparge
     #ifdef VOLUME_MANUAL
       // In manual volume mode show the target volumes instead of the current volumes
@@ -690,7 +696,7 @@ void screenRefresh(byte screen) {
       truncFloat(buf, 4);
       if (temp[i] == BAD_TEMP) LCD.print_P(i + 1, 8, PSTR("----")); else LCD.lPad(i + 1, 8, buf, 4, ' ');
     }
-  } else if (screen == SCREEN_BOIL) {
+  } else if (activeScreen == SCREEN_BOIL) {
     //Refresh Screen: Boil
     if (screenLock) {
       if (doAutoBoil) LCD.print_P(0, 14, PSTR("  Auto"));
@@ -726,7 +732,7 @@ void screenRefresh(byte screen) {
       if (doAutoBoil) Encoder.setCount(PIDOutput[VS_KETTLE] / PIDCycle[VS_KETTLE]);
     }
     
-  } else if (screen == SCREEN_CHILL) {
+  } else if (activeScreen == SCREEN_CHILL) {
     //Refresh Screen: Chill
     if (screenLock) {
       int encValue = Encoder.change();
@@ -748,7 +754,7 @@ void screenRefresh(byte screen) {
     if (vlvConfigIsActive(VLV_CHILLBEER)) LCD.print_P(3, 12, PSTR(" On")); else LCD.print_P(3, 12, PSTR("Off"));
     if (vlvConfigIsActive(VLV_CHILLH2O)) LCD.print_P(3, 17, PSTR(" On")); else LCD.print_P(3, 17, PSTR("Off"));
 
-  } else if (screen == SCREEN_AUX) {
+  } else if (activeScreen == SCREEN_AUX) {
     //Screen Refresh: AUX
     for (byte i = TS_AUX1; i <= TS_AUX2; i++) {
       if (temp[i] == BAD_TEMP) LCD.print_P(i - 5, 6, PSTR("-----")); else {
@@ -764,7 +770,7 @@ void screenRefresh(byte screen) {
 //**********************************************************************************
 // screenEnter:  Check enterStatus and handle based on screenLock and activeScreen
 //**********************************************************************************
-void screenEnter(byte screen) {
+void screenEnter() {
   if (Encoder.cancel()) {
     //Unlock screens
     unlockUI();
@@ -772,7 +778,7 @@ void screenEnter(byte screen) {
     if (alarmStatus) setAlarm(0);
     else if (!screenLock) lockUI();
     else {
-      if (screen == SCREEN_HOME) {
+      if (activeScreen == SCREEN_HOME) {
       //Screen Enter: Home
         menu homeMenu(3, 9);
 
@@ -809,7 +815,7 @@ void screenEnter(byte screen) {
           else if (lastOption == 2) {
               startProgramMenu();
               if (activeScreen == SCREEN_FILL) {
-                screenInit(activeScreen);
+                doInit = 1;
                 break;
               }
           }
@@ -848,15 +854,14 @@ void screenEnter(byte screen) {
 #endif
           else {
             //On exit of the Main menu go back to Splash/Home screen.
-            activeScreen = SCREEN_HOME;
-            screenInit(activeScreen);
+            setActive(SCREEN_HOME);
             unlockUI();
             break;
           }
         }
-        screenInit(activeScreen);
+        doInit = 1;
 
-      } else if (screen == SCREEN_FILL) {
+      } else if (activeScreen == SCREEN_FILL) {
         //Sceeen Enter: Fill/Refill
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
@@ -884,10 +889,10 @@ void screenEnter(byte screen) {
               else stepExit(STEP_REFILL); //Abort STEP_REFILL or manual operation
             }
           }
-          screenInit(activeScreen);
+          doInit = 1;
         }
 
-      } else if (screen == SCREEN_MASH) {
+      } else if (activeScreen == SCREEN_MASH) {
         //Screen Enter: Preheat/Mash
         menu mashMenu(3, 7);
 
@@ -955,9 +960,9 @@ void screenEnter(byte screen) {
             else stepExit(STEP_MASHHOLD); //Abort STEP_MASHOUT or manual operation
           }
         }
-        screenInit(activeScreen);
+        doInit = 1;
         
-      } else if (screen == SCREEN_SPARGE) {
+      } else if (activeScreen == SCREEN_SPARGE) {
         //Screen Enter: Sparge
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
@@ -990,11 +995,11 @@ void screenEnter(byte screen) {
               else stepExit(STEP_SPARGE); //Abort STEP_SPARGE or manual operation
             }
           }
-          screenInit(activeScreen);
+          doInit = 1;
         }
        
 
-      } else if (screen == SCREEN_BOIL) {
+      } else if (activeScreen == SCREEN_BOIL) {
         //Screen Enter: Boil
         menu boilMenu(3, 9);
         boilMenu.setItem_P(PSTR("Set Timer"), 0);
@@ -1050,20 +1055,18 @@ void screenEnter(byte screen) {
               stepAdvanceFailDialog();
             }
           } else {
-            activeScreen = SCREEN_CHILL;
-            screenInit(activeScreen);
+            setActive(SCREEN_CHILL);
           }
         } else if (lastOption == 7) { if (confirmAbort()) stepExit(STEP_BOIL); }
-        screenInit(activeScreen);
+        doInit = 1;
         
-      } else if (screen == SCREEN_CHILL) {
+      } else if (activeScreen == SCREEN_CHILL) {
         //Screen Enter: Chill
 
         int encValue = Encoder.getCount();
         if (encValue == 0) {
           stepExit(STEP_CHILL);
-          activeScreen = SCREEN_HOME;
-          screenInit(activeScreen);
+          setActive(SCREEN_HOME);
         }
         else if (encValue == 1) { autoValve[AV_CHILL] = 0; bitSet(actProfiles, VLV_CHILLH2O); bitSet(actProfiles, VLV_CHILLBEER); }
         else if (encValue == 2) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLBEER); bitSet(actProfiles, VLV_CHILLH2O); }
@@ -1096,7 +1099,7 @@ void uiEstop() {
     }
     brewCore();
   }
-  screenInit(activeScreen); 
+  doInit = 1; 
 }
 
 void continueClick() {
@@ -1110,8 +1113,8 @@ void continueClick() {
       //Failed to advance step
       stepAdvanceFailDialog();
     }
-  } else activeScreen = activeScreen + 1; 
-  screenInit(activeScreen); 
+  } else setActive(activeScreen + 1);
+  doInit = 1;
 }
 
 void stepAdvanceFailDialog() {
@@ -1196,8 +1199,8 @@ void startProgramMenu() {
             LCD.print(3, 15, "<");
             while (!Encoder.ok()) brewCore();
           } else {
-            activeScreen = SCREEN_FILL;
-            //screenInit called by screenEnter upon return
+            setActive(SCREEN_FILL);
+            //screenInit called on next uiCore() call
             break;
           }
         }
