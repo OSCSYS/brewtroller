@@ -1210,7 +1210,7 @@ void startProgramMenu() {
 }
 
 void editProgram(byte pgm) {
-  menu progMenu(3, 11);
+  menu progMenu(3, 12);
 
   while (1) {
     
@@ -1270,6 +1270,7 @@ void editProgram(byte pgm) {
     else progMenu.appendItem_P(PSTR("UNKWN"), 8);
 
     progMenu.setItem_P(BOILADDS, 9);
+    progMenu.setItem_P(PSTR("Program Calcs"), 10);
     progMenu.setItem_P(EXIT, 255);
 
     byte lastOption = scrollMenu("Program Parameters", &progMenu);
@@ -1290,6 +1291,7 @@ void editProgram(byte pgm) {
     else if (lastOption == 7) editMashSchedule(pgm);
     else if (lastOption == 8) setProgMLHeatSrc(pgm, MLHeatSrcMenu(getProgMLHeatSrc(pgm)));
     else if (lastOption == 9) setProgAdds(pgm, editHopSchedule(getProgAdds(pgm)));
+    else if (lastOption == 10) showProgCalcs(pgm);
     else return;
     unsigned long spargeVol = calcSpargeVol(pgm);
     unsigned long mashVol = calcStrikeVol(pgm);
@@ -1299,6 +1301,56 @@ void editProgram(byte pgm) {
     if (mashVol + grainVol > getCapacity(VS_MASH)) warnMash(mashVol, grainVol);
     if (preboilVol > getCapacity(VS_KETTLE)) warnBoil(preboilVol);
   }
+}
+
+void showProgCalcs(byte pgm) {
+  menu calcsMenu(3, 6);
+  unsigned long value;
+  char valtxt[8];
+
+  calcsMenu.setItem_P(PSTR("Strike Temp:"), 0);
+  value = calcStrikeTemp(pgm);
+  vftoa(value * SETPOINT_MULT, buf, 100, 1);
+  truncFloat(buf, 3);
+  calcsMenu.appendItem(buf, 0);
+  calcsMenu.appendItem_P(TUNIT, 0);
+  
+  calcsMenu.setItem_P(PSTR("Strike Vol:"), 1);
+  value = calcStrikeVol(pgm);
+  vftoa(value, buf, 1000, 1);
+  truncFloat(buf, 4);
+  calcsMenu.appendItem(buf, 1);
+  calcsMenu.appendItem_P(VOLUNIT, 1);
+  
+  calcsMenu.setItem_P(PSTR("Sparge Vol:"), 2);
+  value = calcSpargeVol(pgm);
+  vftoa(value, buf, 1000, 1);
+  truncFloat(buf, 4);
+  calcsMenu.appendItem(buf, 2);
+  calcsMenu.appendItem_P(VOLUNIT, 2);
+
+  calcsMenu.setItem_P(PSTR("Preboil Vol:"), 3);
+  value = calcPreboilVol(pgm);
+  vftoa(value, buf, 1000, 1);
+  truncFloat(buf, 4);
+  calcsMenu.appendItem(buf, 3);
+  calcsMenu.appendItem_P(VOLUNIT, 3);
+
+  calcsMenu.setItem_P(PSTR("Grain Vol:"), 4);
+  value = calcGrainVolume(pgm);
+  vftoa(value, buf, 1000, 1);
+  truncFloat(buf, 4);
+  calcsMenu.appendItem(buf, 4);
+  calcsMenu.appendItem_P(VOLUNIT, 4);
+
+  calcsMenu.setItem_P(PSTR("Grain Loss:"), 5);
+  value = calcGrainLoss(pgm);
+  vftoa(value, buf, 1000, 1);
+  truncFloat(buf, 4);
+  calcsMenu.appendItem(buf, 5);
+  calcsMenu.appendItem_P(VOLUNIT, 5);
+  
+  scrollMenu("Program Calcs", &calcsMenu);
 }
 
 

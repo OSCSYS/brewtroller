@@ -708,9 +708,11 @@ unsigned long calcGrainVolume(byte pgm) {
 byte calcStrikeTemp(byte pgm) {
   float strikeTemp = (float)getFirstStepTemp(pgm) / SETPOINT_DIV;
   #ifdef USEMETRIC
-    return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    //return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (calcStrikeVol(pgm) / getProgGrain(pgm))) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
   #else
-    return (strikeTemp + round(.192 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    //return (strikeTemp + round(.192 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    return (strikeTemp + round(.192 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / ((calcStrikeVol(pgm) * 4) / getProgGrain(pgm))) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
   #endif
 }
 
