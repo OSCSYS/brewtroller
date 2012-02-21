@@ -522,9 +522,25 @@ void BTnic::execCmd(void) {
       else if (_bufData[0] == CMD_ADV_STEP) stepAdvance(cmdIndex);
       else if (_bufData[0] == CMD_EXIT_STEP) stepExit(cmdIndex);
     case CMD_STEPPRG:  //n
-      logFieldCmd(CMD_STEPPRG, NO_CMDINDEX);
-      for (byte i = 0; i < NUM_BREW_STEPS; i++) logFieldI(stepProgram[i]);
+        logFieldCmd(CMD_STEPPRG, NO_CMDINDEX);
+        if (zoneIsActive(ZONE_MASH)){
+          for (byte i = 0; i < NUM_BREW_STEPS - 2; i++) {
+            if (stepProgram[i] != PROGRAM_IDLE){
+              logFieldI(i);
+              logFieldI(stepProgram[i]);
+            }
+          }
+        }else {logFieldI(PROGRAM_IDLE); logFieldI(PROGRAM_IDLE);}
+        if (zoneIsActive(ZONE_BOIL)) {
+          for (byte i = NUM_BREW_STEPS - 2; i < NUM_BREW_STEPS; i++){
+            if (stepProgram[i] != PROGRAM_IDLE){
+              logFieldI(i);
+              logFieldI(stepProgram[i]);
+            }
+          }
+        }else {logFieldI(PROGRAM_IDLE); logFieldI(PROGRAM_IDLE);}
       break;
+
 
 
     case CMD_SET_ALARM:  //V
