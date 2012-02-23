@@ -1,6 +1,7 @@
 /*
-BrewTroller 4.0 Lite Hardware Configuration
-  RIMS / Direct Fired: Three Heat Outputs + 2 Pump/Valve Outputs + Alarm
+OpenTroller BX1 Hardware Configuration
+  Steam/PWM Pump: Four Heat Outputs + 1 Pump/Valve Outputs + Alarm
+  I2CLCD
 */
 
 #ifndef BT_HWPROFILE
@@ -14,14 +15,15 @@ BrewTroller 4.0 Lite Hardware Configuration
   #define ALARM_PIN 15 //OUT6
   
   #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 2 //2 Outputs
+  #define PVOUT_COUNT 1 //1 Output
   
-  #define VALVE1_PIN 19 //OUT4
-  #define VALVE2_PIN 18 //OUT5
-
+  #define VALVE1_PIN 18 //OUT5
+  
   #define HLTHEAT_PIN 22 //OUT1
   #define MASHHEAT_PIN 21//OUT2
   #define KETTLEHEAT_PIN 20 //OUT3
+  #define STEAMHEAT_PIN 19 //OUT4
+  #define PWMPUMP_PIN 19 //OUT4
   
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
@@ -31,17 +33,9 @@ BrewTroller 4.0 Lite Hardware Configuration
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
   
-  #define UI_LCD_4BIT
-  #define LCD_RS_PIN 4
-  #define LCD_ENABLE_PIN 23
-  #define LCD_DATA4_PIN 28
-  #define LCD_DATA5_PIN 29
-  #define LCD_DATA6_PIN 30
-  #define LCD_DATA7_PIN 31
-  
+  #define UI_LCD_I2C
+  #define UI_LCD_I2CADDR 0x01
   #define UI_DISPLAY_SETUP
-  #define LCD_BRIGHT_PIN 13
-  #define LCD_CONTRAST_PIN 14
 
   
 //**********************************************************************************

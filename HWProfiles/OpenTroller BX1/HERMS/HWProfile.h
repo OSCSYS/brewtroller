@@ -1,5 +1,5 @@
 /*
-BrewTroller 4.0 Lite Hardware Configuration
+OpenTroller BX1 Hardware Configuration
   HERMS: Two Heat Outputs (HLT, Kettle) + 3 Pump/Valve Outputs + Alarm
 */
 
