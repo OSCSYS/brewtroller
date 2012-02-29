@@ -353,6 +353,13 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
     #endif
     //Trigger based element save
     if (vesselMinTrigger(vessel[VS]) != NULL) if(!vesselMinTrigger(vessel[VS])->get()) PIDOutput[vessel[VS]] = 0;
+    #ifdef HLT_AS_KETTLE
+      //Disable kettle heat if HLT setpoint is active 
+      if (vesel[VS] == VS_KETTLE && setpoint[VS_HLT]) PIDOutput[vessel[VS]] = 0;
+    #elif defined SINGLEVESSEL_SUPPORT
+      //Set output priority for shared output to Mash, Kettle then HLT
+      if (vesel[VS] == VS_KETTLE && (setpoint[VS_MASH]) || vesel[VS] == VS_HLT && (setpoint[VS_MASH] || setpoint[VS_KETTLE])) PIDOutput[vessel[VS]] = 0;
+    #endif
     }
   #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
     processPID_FLOW_CONTROL(vessel[VS]);
@@ -391,13 +398,21 @@ void processHeatOutputsNonPIDEnabledWithHeatOn(const byte vessel[]) {
   //Indicates if the minimum volume has been reached (defaults to true in case trigger is not used)
   boolean vesselMinTrig = 1;
   if (vesselMinTrigger(vessel[VS]) != NULL) vesselMinTrig = (vesselMinTrigger(vessel[VS])->get());
-  
-  if (estop || (!vesselMinTrig) || ((vessel[VS] != VS_STEAM &&
-        (temp[vessel[TS]] == BAD_TEMP || temp[vessel[TS]] >= setpoint[vessel[VS]])
-      #ifndef DIRECT_FIRE_RIMS
-        )|| (vessel[VS] == VS_STEAM && steamPressure >= setpoint[vessel[VS]])
-      #endif
-  )) { 
+
+  if (
+    estop 
+    || (!vesselMinTrig) 
+    || (vessel[VS] != VS_STEAM && (temp[vessel[TS]] == BAD_TEMP || temp[vessel[TS]] >= setpoint[vessel[VS]]))
+    #ifndef DIRECT_FIRE_RIMS
+      || (vessel[VS] == VS_STEAM && steamPressure >= setpoint[vessel[VS]])
+    #endif
+    #ifdef HLT_AS_KETTLE
+      || (vessel[VS] == VS_KETTLE && setpoint[VS_HLT])
+    #elif defined SINGLE_VESSEL_SUPPORT
+      || (vessel[VS] == VS_KETTLE && setpoint[VS_MASH])
+      || (vessel[VS] == VS_HLT && (setpoint[VS_MASH] || setpoint[VS_KETTLE]))
+    #endif
+  ) { 
     // For DIRECT_FIRED_RIMS, the setpoint for both VS_MASH & VS_STEAM should be the same, 
     // so nothing to do here.
     heatPin[vessel[VS]].set(LOW);
@@ -448,12 +463,25 @@ void processHeatOutputsNonPIDEnabledWithHeatOff(const byte vessel[]) {
   boolean vesselMinTrig = 1;
   if (vesselMinTrigger(vessel[VS]) != NULL) vesselMinTrig = (vesselMinTrigger(vessel[VS])->get());
 
-  if (!estop && vesselMinTrig && (vessel[VS] != VS_STEAM &&
-      (temp[vessel[TS]] != BAD_TEMP && (setpoint[vessel[VS]] - temp[vessel[TS]]) >= hysteresis[vessel[VS]] * 10) 
+  if (
+    !estop 
+    && vesselMinTrig 
+    && (
+      (vessel[VS] != VS_STEAM && temp[vessel[TS]] != BAD_TEMP && (setpoint[vessel[VS]] - temp[vessel[TS]]) >= hysteresis[vessel[VS]] * 10) 
     #ifndef DIRECT_FIRE_RIMS
-      ) || (vessel[VS] == VS_STEAM && (setpoint[vessel[VS]] - steamPressure) >= hysteresis[vessel[VS]] * 100)
+      || (vessel[VS] == VS_STEAM && (setpoint[vessel[VS]] - steamPressure) >= hysteresis[vessel[VS]] * 100)
     #endif
-    ) {
+       )
+    #ifdef HLT_AS_KETTLE
+      //Conditions for setting heat active: Either not the kettle heat (we don't care) or if the kettle heat then make sure there is no HLT setpoint
+      && (vessel[VS] != VS_KETTLE || !setpoint[VS_HLT])
+    #elif defined SINGLE_VESSEL_SUPPORT
+      //Conditions for setting Kettle heat active: No MASH setpoint
+      && (vessel[VS] != VS_KETTLE || !setpoint[VS_MASH])
+      //Conditions for setting HLT heat active: No MASH setpoint and no KETTLE setpoint
+      && (vessel[VS] != VS_HLT || (!setpoint[VS_MASH] && !setpoint[VS_KETTLE]))
+    #endif
+  ) {
       // The temperature of the vessel is below what we want, so insure the correct pin is tunred on,
       // and the heatStatus is updated.
     #ifdef DIRECT_FIRED_RIMS
@@ -537,9 +565,6 @@ void processHeatOutputs() {
   #endif
   
   for (int vesselIndex = 0; vesselIndex <= HEAT_OUTPUTS_COUNT; vesselIndex++) {
-    #ifdef HLT_AS_KETTLE
-      if (HEAT_OUTPUTS[vesselIndex][VS] == VS_KETTLE && setpoint[VS_HLT]) continue;
-    #endif
     if (PIDEnabled[HEAT_OUTPUTS[vesselIndex][VS]]) {
       processHeatOutputsPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
     } else {

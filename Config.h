@@ -78,16 +78,11 @@
 // The secondary purpose is to provide a safe way to enumerate the heat outputs, 
 // safely decoupling the #defines values from loop-control.
 #if defined PID_FLOW_CONTROL
-static const int HEAT_OUTPUTS_COUNT = 4;
-static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}, {VS_PUMP, TS_MASH}};
+  static const int HEAT_OUTPUTS_COUNT = 4;
+  static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}, {VS_PUMP, TS_MASH}};
 #else
-  #ifdef SINGLE_VESSEL_SUPPORT
-    static const int HEAT_OUTPUTS_COUNT = 3;
-    static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_HLT}, {VS_KETTLE, }};  
-  #else
-    static const int HEAT_OUTPUTS_COUNT = 3;
-    static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}};
-  #endif
+  static const int HEAT_OUTPUTS_COUNT = 3;
+  static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}};
 #endif
 // These two should be used as the array index when operating on a HEAT_OUTPUT array.
 // They need to be variables instead of #defines because of use as index subscripts.
@@ -493,19 +488,6 @@ static const byte TS = 1;
  ***********************************************************************************
  The following options are experimental with little to no testing.
  **********************************************************************************/
-
-
-
-
-   
-//**********************************************************************************
-// Steam Mash Infusion Support
-//**********************************************************************************
-// EXPERIMENTAL: Uncomment the following line to enable steam mash infusion support.
-// USE CAUTION! TESTING REQUIRED.
-//
-//#define USESTEAM
-//**********************************************************************************
 
 //**********************************************************************************
 // Save HLT and KET heating elements Support
