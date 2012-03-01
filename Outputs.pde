@@ -356,9 +356,9 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
     #ifdef HLT_AS_KETTLE
       //Disable kettle heat if HLT setpoint is active 
       if (vesel[VS] == VS_KETTLE && setpoint[VS_HLT]) PIDOutput[vessel[VS]] = 0;
-    #elif defined SINGLEVESSEL_SUPPORT
+    #elif defined SINGLE_VESSEL_SUPPORT
       //Set output priority for shared output to Mash, Kettle then HLT
-      if (vesel[VS] == VS_KETTLE && (setpoint[VS_MASH]) || vesel[VS] == VS_HLT && (setpoint[VS_MASH] || setpoint[VS_KETTLE])) PIDOutput[vessel[VS]] = 0;
+      if ((vesel[VS] == VS_KETTLE && setpoint[VS_MASH]) || (vesel[VS] == VS_HLT && (setpoint[VS_MASH] || setpoint[VS_KETTLE]))) PIDOutput[vessel[VS]] = 0;
     #endif
     }
   #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
