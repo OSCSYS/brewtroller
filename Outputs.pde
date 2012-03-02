@@ -353,13 +353,6 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
     #endif
     //Trigger based element save
     if (vesselMinTrigger(vessel[VS]) != NULL) if(!vesselMinTrigger(vessel[VS])->get()) PIDOutput[vessel[VS]] = 0;
-    #ifdef HLT_AS_KETTLE
-      //Disable kettle heat if HLT setpoint is active 
-      if (vesel[VS] == VS_KETTLE && setpoint[VS_HLT]) PIDOutput[vessel[VS]] = 0;
-    #elif defined SINGLE_VESSEL_SUPPORT
-      //Set output priority for shared output to Mash, Kettle then HLT
-      if ((vessel[VS] == VS_KETTLE && setpoint[VS_MASH]) || (vessel[VS] == VS_HLT && (setpoint[VS_MASH] || setpoint[VS_KETTLE]))) PIDOutput[vessel[VS]] = 0;
-    #endif
     }
   #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
     processPID_FLOW_CONTROL(vessel[VS]);
@@ -405,12 +398,6 @@ void processHeatOutputsNonPIDEnabledWithHeatOn(const byte vessel[]) {
     || (vessel[VS] != VS_STEAM && (temp[vessel[TS]] == BAD_TEMP || temp[vessel[TS]] >= setpoint[vessel[VS]]))
     #ifndef DIRECT_FIRE_RIMS
       || (vessel[VS] == VS_STEAM && steamPressure >= setpoint[vessel[VS]])
-    #endif
-    #ifdef HLT_AS_KETTLE
-      || (vessel[VS] == VS_KETTLE && setpoint[VS_HLT])
-    #elif defined SINGLE_VESSEL_SUPPORT
-      || (vessel[VS] == VS_KETTLE && setpoint[VS_MASH])
-      || (vessel[VS] == VS_HLT && (setpoint[VS_MASH] || setpoint[VS_KETTLE]))
     #endif
   ) { 
     // For DIRECT_FIRED_RIMS, the setpoint for both VS_MASH & VS_STEAM should be the same, 
@@ -472,15 +459,6 @@ void processHeatOutputsNonPIDEnabledWithHeatOff(const byte vessel[]) {
       || (vessel[VS] == VS_STEAM && (setpoint[vessel[VS]] - steamPressure) >= hysteresis[vessel[VS]] * 100)
     #endif
        )
-    #ifdef HLT_AS_KETTLE
-      //Conditions for setting heat active: Either not the kettle heat (we don't care) or if the kettle heat then make sure there is no HLT setpoint
-      && (vessel[VS] != VS_KETTLE || !setpoint[VS_HLT])
-    #elif defined SINGLE_VESSEL_SUPPORT
-      //Conditions for setting Kettle heat active: No MASH setpoint
-      && (vessel[VS] != VS_KETTLE || !setpoint[VS_MASH])
-      //Conditions for setting HLT heat active: No MASH setpoint and no KETTLE setpoint
-      && (vessel[VS] != VS_HLT || (!setpoint[VS_MASH] && !setpoint[VS_KETTLE]))
-    #endif
   ) {
       // The temperature of the vessel is below what we want, so insure the correct pin is tunred on,
       // and the heatStatus is updated.
@@ -565,6 +543,14 @@ void processHeatOutputs() {
   #endif
   
   for (int vesselIndex = 0; vesselIndex <= HEAT_OUTPUTS_COUNT; vesselIndex++) {
+    #ifdef HLT_AS_KETTLE
+      //Disable kettle heat if HLT setpoint is active 
+      if (vesselIndex == VS_KETTLE && setpoint[VS_HLT]) continue;
+    #elif defined SINGLE_VESSEL_SUPPORT
+      //Set output priority for shared output to Mash, Kettle then HLT y skipping output processing when higher prority vessel setpoint is enabled
+      if ((vesselIndex == VS_KETTLE && setpoint[VS_MASH]) || (vesselIndex == VS_HLT && (setpoint[VS_MASH] || setpoint[VS_KETTLE]))) continue;
+    #endif
+
     if (PIDEnabled[HEAT_OUTPUTS[vesselIndex][VS]]) {
       processHeatOutputsPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
     } else {
