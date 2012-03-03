@@ -319,6 +319,8 @@ void processPID_FLOW_CONTROL(byte vessel) {
  * Called by processHeatOutputs to process a PID-enabled heat output.
  */
 void processHeatOutputsPIDEnabled(const byte vessel[]) {
+  Serial.print("Process PID:");
+  Serial.println(vessel[VS], DEC);
   unsigned long millistemp;
   #ifdef PWM_BY_TIMER
     uint8_t oldSREG;
@@ -542,13 +544,23 @@ void processHeatOutputs() {
     }
   #endif
   
-  for (int vesselIndex = 0; vesselIndex <= HEAT_OUTPUTS_COUNT; vesselIndex++) {
+  //Process Auto Boil Control Logic
+  boilController();
+  
+  for (int vesselIndex = 0; vesselIndex < HEAT_OUTPUTS_COUNT; vesselIndex++) {
+    Serial.print("Heat Output:");
+    Serial.println(vesselIndex, DEC);
     #ifdef HLT_AS_KETTLE
-      //Disable kettle heat if HLT setpoint is active 
-      if (vesselIndex == VS_KETTLE && setpoint[VS_HLT]) continue;
+      if (
+        (vesselIndex == VS_KETTLE && setpoint[VS_HLT]) //Skip kettle heat if HLT setpoint is active
+        || (vesselIndex == VS_HLT && !setpoint[VS_HLT] && setpoint[VS_KETTLE]) //Skip HLT if HLT setpoint is inactive and Kettle setpoint is active
+      ) continue;
     #elif defined SINGLE_VESSEL_SUPPORT
-      //Set output priority for shared output to Mash, Kettle then HLT y skipping output processing when higher prority vessel setpoint is enabled
-      if ((vesselIndex == VS_KETTLE && setpoint[VS_MASH]) || (vesselIndex == VS_HLT && (setpoint[VS_MASH] || setpoint[VS_KETTLE]))) continue;
+      if (
+        (!setpoint[vesselIndex] && (setpoint[VS_HLT] || setpoint[VS_MASH] || setpoint[VS_KETTLE]))
+        || (setpoint[VS_MASH] && vesselIndex != VS_MASH)
+        || (setpoint[VS_KETTLE] && vesselIndex == VS_HLT)
+      ) continue;
     #endif
 
     if (PIDEnabled[HEAT_OUTPUTS[vesselIndex][VS]]) {
@@ -706,6 +718,12 @@ boolean vlvConfigIsActive(byte profile) {
   return bitRead(actProfiles, profile);
 }
 
+void boilController () {
+  if (boilControlState == CONTROLSTATE_AUTO) {
+    if(temp[TS_KETTLE] < setpoint[TS_KETTLE]) PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE;
+    else PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * min(boilPwr, PIDLIMIT_KETTLE);
+  }
+}
 
 //Map AutoValve Profiles to Vessels
 byte vesselAV(byte vessel) {

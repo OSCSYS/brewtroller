@@ -226,6 +226,7 @@ const byte BMP4[] PROGMEM = {B00010, B00011, B11111, B11110, B00010, B00011, B11
 const byte UNLOCK_ICON[] PROGMEM = {B00110, B01001, B01001, B01000, B01111, B01111, B01111, B00000};
 const byte PROG_ICON[] PROGMEM = {B00001, B11101, B10101, B11101, B10001, B10001, B00001, B11111};
 const byte BELL[] PROGMEM = {B00100, B01110, B01110, B01110, B11111, B00000, B00100, B00000};
+
 //**********************************************************************************
 // UI Globals
 //**********************************************************************************
@@ -501,6 +502,8 @@ void screenInit() {
         Encoder.setMin(0);
         Encoder.setMax(PIDLIMIT_KETTLE);
         Encoder.setCount(PIDOutput[VS_KETTLE]/PIDCycle[VS_KETTLE]);
+        //If Kettle is off keep it off until unlocked
+        if (!setpoint[VS_KETTLE]) boilControlState = CONTROLSTATE_OFF;
     }
 
   } else if (activeScreen == SCREEN_CHILL) {
@@ -699,8 +702,17 @@ void screenRefresh() {
   } else if (activeScreen == SCREEN_BOIL) {
     //Refresh Screen: Boil
     if (screenLock) {
-      if (doAutoBoil) LCD.print_P(0, 14, PSTR("  Auto"));
-      else LCD.print_P(0, 14, PSTR("Manual"));
+      switch (boilControlState) {
+        case CONTROLSTATE_OFF:
+          LCD.print_P(0, 14, PSTR("   Off"));
+          break;
+        case CONTROLSTATE_AUTO:
+          LCD.print_P(0, 14, PSTR("  Auto"));
+          break;
+        case CONTROLSTATE_ON:
+          LCD.print_P(0, 14, PSTR("Manual"));
+          break;
+      }
     }
     
     printTimer(TIMER_BOIL, 3, 0);
@@ -724,12 +736,15 @@ void screenRefresh() {
     truncFloat(buf, 5);
     if (temp[TS_KETTLE] == BAD_TEMP) LCD.print_P(1, 14, PSTR("-----")); else LCD.lPad(1, 14, buf, 5, ' ');
     if (screenLock) {
-      int encValue = Encoder.change();
-      if (encValue >= 0) {
-        doAutoBoil = 0;
-        PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * encValue;
+      if (boilControlState != CONTROLSTATE_OFF) {
+        int encValue = Encoder.change();
+        if (encValue >= 0) {
+          boilControlState = CONTROLSTATE_ON;
+          setpoint[VS_KETTLE] = encValue ? getBoilTemp() : 0;
+          PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * encValue;
+        }
       }
-      if (doAutoBoil) Encoder.setCount(PIDOutput[VS_KETTLE] / PIDCycle[VS_KETTLE]);
+      if (boilControlState == CONTROLSTATE_AUTO) Encoder.setCount(PIDOutput[VS_KETTLE] / PIDCycle[VS_KETTLE]);
     }
     
   } else if (activeScreen == SCREEN_CHILL) {
@@ -1007,7 +1022,19 @@ void screenEnter() {
         if (timerStatus[TIMER_BOIL]) boilMenu.setItem_P(PSTR("Pause Timer"), 1);
         else boilMenu.setItem_P(PSTR("Start Timer"), 1);
         
-        boilMenu.setItem_P(PSTR("Auto Boil"), 2);
+        boilMenu.setItem_P(PSTR("Boil Ctrl: "), 2);
+        switch (boilControlState) {
+          case CONTROLSTATE_OFF:
+            boilMenu.appendItem_P(PSTR("Off"), 2);
+            break;
+          case CONTROLSTATE_AUTO:
+            boilMenu.appendItem_P(PSTR("Auto"), 2);
+            break;
+          case CONTROLSTATE_ON:
+            boilMenu.appendItem_P(PSTR("Manual"), 2);
+            break;
+        }
+
         
         boilMenu.setItem_P(PSTR("Boil Temp: "), 3);
         vftoa(getBoilTemp() * 100, buf, 100, 1);
@@ -1037,7 +1064,7 @@ void screenEnter() {
           //Force Preheated
           preheated[VS_KETTLE] = 1;
         } 
-        else if (lastOption == 2) doAutoBoil = 1;
+        else if (lastOption == 2) boilControlMenu();
         else if (lastOption == 3) {
           setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
           setSetpoint(VS_KETTLE, getBoilTemp());
@@ -1100,6 +1127,27 @@ void uiEstop() {
     brewCore();
   }
   doInit = 1; 
+}
+
+void boilControlMenu() {
+  menu boilMenu(3, 3);
+  boilMenu.setItem_P(PSTR("Off"), CONTROLSTATE_OFF);
+  boilMenu.setItem_P(PSTR("Auto"), CONTROLSTATE_AUTO);
+  boilMenu.setItem_P(PSTR("Manual"), CONTROLSTATE_ON);
+  byte lastOption = scrollMenu("Boil Control Menu", &boilMenu);
+  if (lastOption < NUM_CONTROLSTATES) boilControlState = (ControlState) lastOption;
+  switch (boilControlState) {
+    case CONTROLSTATE_OFF:
+      PIDOutput[VS_KETTLE] = 0;
+      setpoint[VS_KETTLE] = 0;
+      break;
+    case CONTROLSTATE_AUTO:
+      setpoint[VS_KETTLE] = getBoilTemp();
+      break;
+    case CONTROLSTATE_ON:
+      setpoint[VS_KETTLE] = 1;
+      break;
+  }
 }
 
 void continueClick() {

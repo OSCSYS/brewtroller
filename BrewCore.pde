@@ -54,7 +54,7 @@ void brewCore() {
   //Communications: Com.pde
   updateCom();  
 
-  #ifndef PID_FLOW_CONTROL
+  #if defined STEAMPRESS_APIN && !defined PID_FLOW_CONTROL
     steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
   #endif
   

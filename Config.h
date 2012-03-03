@@ -67,7 +67,7 @@
 
 //SINGLE_VESSEL_SUPPORT: This is a crude hack that uses the HLT sensor and output
 //for the HLT, Mash and Kettle functions.
-//#define SINGLE_VESSEL_SUPPORT
+#define SINGLE_VESSEL_SUPPORT
 //**********************************************************************************
 
 //**********************************************************************************
