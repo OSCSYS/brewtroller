@@ -55,7 +55,8 @@ void eventHandler(byte eventID, int eventParam) {
 
 #ifdef DIGITAL_INPUTS
   void triggerSetup() {
-    for (byte i = 0; i < 5; i++) {
+    //For each logical trigger type see what the assigned trigger pin is (if any)
+    for (byte i = 0; i < NUM_TRIGGERS; i++) {
       if (TriggerPin[i] != NULL) TriggerPin[i]->detachPCInt();
       if (getTriggerPin(i)) {
         TriggerPin[i] = &digInPin[getTriggerPin(i) - 1];

@@ -38,6 +38,12 @@
   #define GRAIN_VOL_LOSS .2143
 #endif
 
+// VOL_SHRINKAGE: The amount of liquid volume reduced as a result of decrease in temperature. 
+// This value used to be .96 in BrewTroller 2.4 and earlier versions but this value should
+// not be used in volume calculations for water at ground temperature when targeting pitch temps.
+#define VOL_SHRINKAGE 0
+//#define VOL_SHRINKAGE .96
+
 //**********************************************************************************
 // Vessel Options
 //**********************************************************************************
@@ -67,7 +73,7 @@
 
 //SINGLE_VESSEL_SUPPORT: This is a crude hack that uses the HLT sensor and output
 //for the HLT, Mash and Kettle functions.
-#define SINGLE_VESSEL_SUPPORT
+//#define SINGLE_VESSEL_SUPPORT
 //**********************************************************************************
 
 //**********************************************************************************

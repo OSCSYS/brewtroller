@@ -294,6 +294,7 @@ void setup() {
   //Pin initialization (Outputs.pde)
   pinInit();
 
+
 #ifdef PVOUT
   #if defined PVOUT_TYPE_GPIO
     #if PVOUT_COUNT >= 1
@@ -352,6 +353,7 @@ void setup() {
   
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();
+
   
   //Load global variable values stored in EEPROM (EEPROM.pde)
   loadSetup();

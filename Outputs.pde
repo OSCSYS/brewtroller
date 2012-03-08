@@ -319,8 +319,6 @@ void processPID_FLOW_CONTROL(byte vessel) {
  * Called by processHeatOutputs to process a PID-enabled heat output.
  */
 void processHeatOutputsPIDEnabled(const byte vessel[]) {
-  Serial.print("Process PID:");
-  Serial.println(vessel[VS], DEC);
   unsigned long millistemp;
   #ifdef PWM_BY_TIMER
     uint8_t oldSREG;
@@ -548,8 +546,6 @@ void processHeatOutputs() {
   boilController();
   
   for (int vesselIndex = 0; vesselIndex < HEAT_OUTPUTS_COUNT; vesselIndex++) {
-    Serial.print("Heat Output:");
-    Serial.println(vesselIndex, DEC);
     #ifdef HLT_AS_KETTLE
       if (
         (vesselIndex == VS_KETTLE && setpoint[VS_HLT]) //Skip kettle heat if HLT setpoint is active

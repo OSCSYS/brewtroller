@@ -240,7 +240,7 @@ boolean doInit = 1;
 //**********************************************************************************
 void uiInit() {
   LCD.init();
-
+   
   #ifndef ENCODER_I2C
     #ifndef ENCODER_OLD_CONSTRUCTOR
       Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
