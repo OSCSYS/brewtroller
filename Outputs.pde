@@ -317,6 +317,11 @@ void processPID_FLOW_CONTROL(byte vessel) {
 
 /**
  * Called by processHeatOutputs to process a PID-enabled heat output.
+ * Main things that happen here are updates to the PIDOutput and PIDInput arrays
+ *   before calling compute() for the PID.
+ * Once the PID has been computed we check if it results in heat being needed
+ *   and we call either heatPin[vessel[VS]].set(HIGH); or heatPin[vessel[VS]].set(LOW);
+ * NOTE: If PID is being processed by timer that happens elsewhere.
  */
 void processHeatOutputsPIDEnabled(const byte vessel[]) {
   unsigned long millistemp;
@@ -382,11 +387,9 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
  * Called by processHeatOutputsNonPIDEnabled to process a heat output when heatStatus[vessel] == true.
  */
 void processHeatOutputsNonPIDEnabledWithHeatOn(const byte vessel[]) {
-  // see if softswitches needs to override the data
-  
   // determine if setpoint has ben reached, or there is a bad temp reading.
   // If it either condition, set the pin low (turn it off).
-	// we do not want the RIMS (in DIRECT_FIRED_RIMS) processed here either; it is taken care of in the MASH loop
+  // we do not want the RIMS (in DIRECT_FIRED_RIMS) processed here either; it is taken care of in the MASH loop
 
   //Indicates if the minimum volume has been reached (defaults to true in case trigger is not used)
   boolean vesselMinTrig = 1;
@@ -516,7 +519,6 @@ void processHeatOutputsNonPIDEnabledWithHeatOff(const byte vessel[]) {
  */
 void processHeatOutputsNonPIDEnabled(const byte vessel[]) {
   if (heatStatus[vessel[VS]]) {
-    // SoftSwitch
     processHeatOutputsNonPIDEnabledWithHeatOn(vessel);
   } else {
     processHeatOutputsNonPIDEnabledWithHeatOff(vessel);
@@ -532,6 +534,19 @@ void processHeatOutputsNonPIDEnabled(const byte vessel[]) {
 #endif  
 }
 
+/*
+ * Things get a little complex here, so let's break it down.
+ * processHeatOutputs() is called by the main brewCore() loop.
+ *    Processes the RIMS_MLT_SETPOINT_DELAY, which waits a number of
+ *      milliseconds before enabling the setpoint for RIMS.
+ *    Calls boilController() which manages the auto boil process. If
+ *      auto boil is active it may set PIDOutput[VS_KETTLE]
+ *    Then it loops through all of the vessels (using HEAT_OUTPUTS_COUNT
+ *      as a maximum) and:
+ *      Skips various vessels depending on certain conditions.
+ *      If the PID for the vessel is enabled it calls processHeatOutputsPIDEnabled
+ *        otherwise it calls processHeatOutputsNonPIDEnabled.
+ */       
 void processHeatOutputs() {
   //Process Heat Outputs
   #ifdef RIMS_MLT_SETPOINT_DELAY
@@ -558,12 +573,24 @@ void processHeatOutputs() {
         || (setpoint[VS_KETTLE] && vesselIndex == VS_HLT)
       ) continue;
     #endif
-
-    if (PIDEnabled[HEAT_OUTPUTS[vesselIndex][VS]]) {
-      processHeatOutputsPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
-    } else {
-      // SoftSwitch
-      processHeatOutputsNonPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
+    
+    if (softSwitchHeat[vesselIndex] == SOFTSWITCH_AUTO) {
+      // Auto
+      if (PIDEnabled[HEAT_OUTPUTS[vesselIndex][VS]]) {
+        processHeatOutputsPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
+      } else {
+        processHeatOutputsNonPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
+      }
+    }
+    else if (softSwitchHeat[vesselIndex] == SOFTSWITCH_ON) {
+      // On
+      heatPin[vesselIndex].set(HIGH);
+      heatStatus[vesselIndex] = 1;
+    }
+    else {
+      // Off, or invalid, which is as good as Off
+      heatPin[vesselIndex].set(LOW);
+      heatStatus[vesselIndex] = 0;
     }
   }
 }

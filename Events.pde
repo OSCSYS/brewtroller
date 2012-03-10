@@ -90,13 +90,13 @@ void eventHandler(byte eventID, int eventParam) {
   
   void hltMinISR() {
     heatPin[VS_HLT].set(LOW);
-    heatStatus[VS_HLT] = 1;
+    heatStatus[VS_HLT] = 0;
     bitClear(actProfiles, VLV_HLTHEAT);
   }
   
   void mashMinISR() {
     heatPin[VS_MASH].set(LOW);
-    heatStatus[VS_MASH] = 1;
+    heatStatus[VS_MASH] = 0;
     bitClear(actProfiles, VLV_MASHHEAT);
     #ifdef DIRECT_FIRED_RIMS
       heatPin[VS_STEAM].set(LOW);
@@ -106,7 +106,7 @@ void eventHandler(byte eventID, int eventParam) {
   
   void kettleMinISR() {
     heatPin[VS_KETTLE].set(LOW);
-    heatStatus[VS_KETTLE] = 1;    
+    heatStatus[VS_KETTLE] = 0;    
     bitClear(actProfiles, VLV_KETTLEHEAT);
   }
 #endif

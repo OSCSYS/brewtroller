@@ -5,13 +5,12 @@
 
 // TODO: Still need to implement softSwitchHeat honoring in Heat outputs
 
-
 #define SOFTSWITCH_OFF 0
 #define SOFTSWITCH_ON 1
 #define SOFTSWITCH_AUTO 2
 
 byte softSwitchPv[PVOUT_COUNT];
-byte softSwitchHeat[4];
+byte softSwitchHeat[HEAT_OUTPUTS_COUNT];
 
 RGBIO8 rgbio8s[RGBIO8_NUM_BOARDS];
 unsigned long lastRGBIO8 = 0;
@@ -156,6 +155,10 @@ void RGBIO8::update(void) {
     if (a->type) {
       if (a->type == 1) {
         // this is a heat output
+        // If PIDEnabled[a->index] is set and the PID is heating, heatStatus
+        // will always be set. It does not reflect the state of the pin.
+        // If we want to reflect the actual state of the pin we'd also
+        // need to check against heatPin[a->index].get().
         if (heatStatus[a->index]) {
           if (softSwitchHeat[a->index] == SOFTSWITCH_AUTO) {
             setOutput(i, output_recipes[a->recipe_id][2]);
@@ -244,7 +247,6 @@ void RGBIO8::setOutput(byte output, uint16_t rgb) {
   Wire.send(output);
   Wire.send((uint8_t*) &rgb, 2);
   Wire.endTransmission();
-  delay(1);
 }
 
 uint8_t RGBIO8::crc8(uint8_t inCrc, uint8_t inData ) {
