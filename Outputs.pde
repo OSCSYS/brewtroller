@@ -574,15 +574,18 @@ void processHeatOutputs() {
       ) continue;
     #endif
     
+    #ifdef RGBIO8_ENABLE
     if (softSwitchHeat[vesselIndex] == SOFTSWITCH_AUTO) {
       // Auto
+    #endif
       if (PIDEnabled[HEAT_OUTPUTS[vesselIndex][VS]]) {
         processHeatOutputsPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
       } else {
         processHeatOutputsNonPIDEnabled(HEAT_OUTPUTS[vesselIndex]);
       }
+    #ifdef RGBIO8_ENABLE
     }
-    else if (softSwitchHeat[vesselIndex] == SOFTSWITCH_ON) {
+    else if (!estop && softSwitchHeat[vesselIndex] == SOFTSWITCH_ON) {
       // On
       heatPin[vesselIndex].set(HIGH);
       heatStatus[vesselIndex] = 1;
@@ -592,6 +595,7 @@ void processHeatOutputs() {
       heatPin[vesselIndex].set(LOW);
       heatStatus[vesselIndex] = 0;
     }
+    #endif
   }
 }
 
