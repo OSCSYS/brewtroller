@@ -41,7 +41,8 @@
 // VOL_SHRINKAGE: The amount of liquid volume reduced as a result of decrease in temperature. 
 // This value used to be .96 in BrewTroller 2.4 and earlier versions but this value should
 // not be used in volume calculations for water at ground temperature when targeting pitch temps.
-#define VOL_SHRINKAGE 0
+// A value of '1' (default) will eliminate this from brewing calculations.
+#define VOL_SHRINKAGE 1
 //#define VOL_SHRINKAGE .96
 
 //**********************************************************************************
