@@ -520,7 +520,7 @@ unsigned long getProgGrain(byte preset) { return EEPROMreadLong(PROGRAM_START_AD
 //**********************************************************************************
 
 //**********************************************************************************
-//Trigger Piins (2050-2054) ATMEGA1284P Only
+//Trigger Pins (2050-2054) ATMEGA1284P Only
 //**********************************************************************************
 #ifdef DIGITAL_INPUTS
   byte getTriggerPin(byte triggerIndex) {
@@ -565,13 +565,21 @@ boolean checkConfig() {
       for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
       //Set cfgVersion = 1
       EEPROM.write(2047, 1);
+    case 1:
+      //Set triggers to disabled by default
+      for (byte trig = 0; trig < NUM_TRIGGERS; trig++) EEPROM.write(2050 + trig, 0);
+      EEPROM.write(2047, 2);
   }
   return 0;
 }
 
 void initEEPROM() {
   //Format EEPROM to 0's
-  for (int i=0; i<2048; i++) EEPROM.write(i, 0);
+#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
+  for (int i = 0; i < 4096; i++) EEPROM.write(i, 0);
+#else
+  for (int i = 0; i < 2048; i++) EEPROM.write(i, 0);
+#endif
 
   //Set BT 1.3 Fingerprint (252)
   EEPROM.write(2046, 252);

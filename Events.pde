@@ -55,6 +55,8 @@ void eventHandler(byte eventID, int eventParam) {
 
 #ifdef DIGITAL_INPUTS
   void triggerSetup() {
+    //If EEPROM is not initialized skip trigger init
+    if (checkConfig()) return;
     //For each logical trigger type see what the assigned trigger pin is (if any)
     for (byte i = 0; i < NUM_TRIGGERS; i++) {
       if (TriggerPin[i] != NULL) TriggerPin[i]->detachPCInt();

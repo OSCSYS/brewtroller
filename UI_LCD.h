@@ -343,7 +343,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
     private:
       byte screen[80];
-      byte i2cLCDAddr;
+      uint8_t i2cLCDAddr;
 
       void i2cLcdBegin(byte iCols, byte iRows) {
         Wire.beginTransmission(i2cLCDAddr);
@@ -436,7 +436,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x09);
         Wire.endTransmission();
-        Wire.requestFrom((int)i2cLCDAddr, (int)1);
+        Wire.requestFrom(i2cLCDAddr, (uint8_t) 1);
         while(Wire.available())
         {
           return Wire.receive();
@@ -447,7 +447,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x0A);
         Wire.endTransmission();
-        Wire.requestFrom((int)i2cLCDAddr, (int)1);
+        Wire.requestFrom(i2cLCDAddr, (uint8_t) 1);
         while(Wire.available())
         {
           return Wire.receive();
