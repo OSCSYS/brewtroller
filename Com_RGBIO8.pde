@@ -3,8 +3,6 @@
 #include "Config.h"
 #include "Com_RGBIO8.h"
 
-// TODO: Still need to implement softSwitchHeat honoring in Heat outputs
-
 #define SOFTSWITCH_OFF 0
 #define SOFTSWITCH_ON 1
 #define SOFTSWITCH_AUTO 2
@@ -15,41 +13,106 @@ byte softSwitchHeat[HEAT_OUTPUTS_COUNT];
 RGBIO8 rgbio8s[RGBIO8_NUM_BOARDS];
 unsigned long lastRGBIO8 = 0;
 
+// Initializes the RGBIO8 system. If you want to provide custom IO mappings
+// this is the place to do it. See the CUSTOM CONFIGURATION section below for
+// further instructions.
 void RGBIO8_Init() {
   // Initialize and address each RGB board that is attached
   for (int i = 0; i < RGBIO8_NUM_BOARDS; i++) {
     rgbio8s[i].begin(0, RGBIO8_START_ADDR + i);
   }
   
-  // Create the recipes that we'll use
-  // Off  Auto Off  Auto On  On
-  // =============================
-  // Red  Yellow    Blue     Green
-  RGBIO8::setOutputRecipe(0, 0xf00, 0xff0, 0x00f, 0x0f0);
+  // Set the default coniguration. The user can override this with the
+  // custom configuration information below.
+  int ioIndex = 0;
+  for (int i = 0; i < HEAT_OUTPUTS_COUNT && (ioIndex / 8) < RGBIO8_NUM_BOARDS; i++, ioIndex++) {
+    rgbio8s[ioIndex / 8].assignHeatInput(i, ioIndex % 8);
+    rgbio8s[ioIndex / 8].assignHeatOutputRecipe(i, ioIndex % 8, 0);
+  }
   
-  // Create input and output assignments to wire everything together
+  for (int i = 0; i < PVOUT_COUNT && (ioIndex / 8) < RGBIO8_NUM_BOARDS; i++, ioIndex++) {
+    rgbio8s[ioIndex / 8].assignPvInput(i, ioIndex % 8);
+    rgbio8s[ioIndex / 8].assignPvOutputRecipe(i, ioIndex % 8, 1);
+  }
   
-  // Inputs
-  // Assign board 0, input 0 to PV 0
-  rgbio8s[0].assignPvInput(0, 0);
-  // Assign board 0, input 1 to PV 1
-  rgbio8s[0].assignPvInput(1, 1);
-  // Assign board 0, input 2 to PV 2
-  rgbio8s[0].assignPvInput(2, 2);
+  ////////////////////////////////////////////////////////////////////////
+  // CUSTOM CONFIGURATION
+  ////////////////////////////////////////////////////////////////////////
+  // To provide your own custom IO mappings you will have to add code to
+  // this section. The code is very simple and the mappings are very
+  // powerful.
+  //
+  // The system is configured by providing input and output mappings
+  // for heat outputs and pump/valve outputs. Each of these outputs
+  // can be in one of four states:
+  // Off:       The output is forced off, no matter what other systems attempt.
+  // Auto Off:  The output is under auto control of BrewTroller, and is
+  //            currently set to off. It may turn on at any time.
+  // Auto On:   The output is under auto control of BrewTroller, and is
+  //            currently set to on. It may turn off at any time.
+  // On:        The output is forced on and is not under control of 
+  //            BrewTroller.
+  // 
+  // The first thing that is configured are output "recipes". These recipes
+  // define the color that will be shown for each of the states above.
+  // 
+  // Often times you will see colors on a web page expressed in RGB
+  // hexidecimal, such as #FF0000 meaning bright red or #FFFF00 meaning
+  // bright yellow. The RGBIO8 board uses a similar system for color,
+  // except it uses 3 digits instead of 6. In most cases, if you find
+  // a color you like that is in the #ABCDEF format, you can convert it
+  // to the right code for RGBIO8 by removing the second, fourth and
+  // last digit. So, for instance, #ABCDEF would become #ACE.
+  // 
+  // The system has room for four recipes, so you can create 4 different
+  // color schemes that map to your outputs.
+  // 
+  // By default we use two recipes. One for heat outputs and another for
+  // pump/valve outputs. They are listed below. If you like, you can just
+  // change the colors in a recipe, or you can create entirely new recipes.
   
-  // Assign board 0, input 3 to HLT heat
-  rgbio8s[0].assignHeatInput(VS_HLT, 3);
+  // Recipe 0, used for Heat Outputs
+  // Off:       0xF00 (Red)
+  // Auto Off:  0xFF0 (Yellow)
+  // Auto On:   0xF40 (Orange)
+  // On:        0x0F0 (Green)
+  RGBIO8::setOutputRecipe(0, 0xF00, 0xFF0, 0xF40, 0x0F0);
+  
+  // Recipe 1, used for Pump/Valve Outputs
+  // Off:       0xF00 (Red)
+  // Auto Off:  0xFF0 (Yellow)
+  // Auto On:   0x00F (Blue)
+  // On:        0x0F0 (Green)
+  RGBIO8::setOutputRecipe(1, 0xF00, 0xFF0, 0x00F, 0x0F0);
 
-  // Outputs
-  // Assign board 0, output 0 to PV 0 using recipe 0.
-  rgbio8s[0].assignPvOutputRecipe(0, 0, 0);
-  // Assign board 0, output 1 to PV 1 using recipe 0.
-  rgbio8s[0].assignPvOutputRecipe(1, 1, 0);
-  // Assign board 0, output 2 to PV 2 using recipe 0.
-  rgbio8s[0].assignPvOutputRecipe(2, 2, 0);
-  
-  // Assign board 0, output 3 to HLT heat using recipe 0.
-  rgbio8s[0].assignHeatOutputRecipe(VS_HLT, 3, 0);
+  //
+  // Now we move on to mappings. A mapping ties a given input or output to
+  // either a heat output or a pump/valve output. 
+  // 
+  // To create a mapping between a heat output you use one of the following
+  // two functions:
+  // assignHeatInput(vesselNumber, inputNumber);
+  // assignHeatOutput(vesselNumber, outputNumber, recipeNumber);
+  //
+  // To create a mapping between a pump/valve output you use one of the
+  // following two functions.
+  // assignPvInput(pvOutputNumber, inputNumber);
+  // assignPvOutputRecipe(pvOutputNumber, outputNumber, recipeNumber);
+  //
+  // When creating a mapping, you have to specify which RGB board the mapping
+  // belongs to. That is done by using rgbio8s[boardNumber]. before the
+  // function calls above. Some example mappings are shown below:
+  // 
+  // Map board 0, heat output 0 (HLT) to input/output 0 using recipe 0.
+  // rgbio8s[0].assignHeatInput(0, 0);
+  // rgbio8s[0].assignHeatOutput(0, 0, 0);
+  //
+  // 
+  // Map board 1, pump/valve output 2 to input/output 3 using recipe 1.
+  // rgbio8s[1].assignPvInput(2, 3);
+  // rgbio8s[1].assignPvOutput(2, 3, 1);
+  //
+  // Add your custom mappings below this line
 }
 
 void RGBIO8_Update() {

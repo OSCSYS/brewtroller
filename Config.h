@@ -598,18 +598,75 @@ static const byte TS = 1;
 // RGB Board options
 //**********************************************************************************
 // The RGB Board allows you to have RGB LEDs show the status of 8 heat or PV outputs
-// and allows you to have up to 8 switches connected to control them. 
+// and allows you to have up to 8 switches connected to control them. You can connect
+// multiple RGB boards to the BrewTroller to expand the number of inputs and outputs.
+//
+// Each numbered output provides the 4 neccesary connections for a common anode RGB
+// LED. Each numbered input provides 2 commons, an auto and a manual input connection
+// for connecting a 3 position toggle switch, or similar switch.
+//
+// By default, BrewTroller is configured to use the first sets of inputs and outputs
+// on the RGB boards for heat outputs and then any remaining sets that are available
+// for pump/valve outputs. 
+// 
+// For instance, if you have 3 heat outputs and 1 RGB board, the RGB board will have
+// it's inputs and outputs set up like this:
+//
+// RGB Board 1, Input/Output 0 = Heat Output 0 (HLT)
+// RGB Board 1, Input/Output 1 = Heat Output 1 (Mash)
+// RGB Board 1, Input/Output 2 = Heat Output 2 (Boil)
+// RGB Board 1, Input/Output 3 = PV Output 0
+// RGB Board 1, Input/Output 4 = PV Output 1
+// RGB Board 1, Input/Output 5 = PV Output 2
+// RGB Board 1, Input/Output 6 = PV Output 3
+// RGB Board 1, Input/Output 7 = PV Output 4
+// 
+// Adding a second RGB board would add the following mappings:
+//
+// RGB Board 2, Input/Output 0 = PV Output 5
+// RGB Board 2, Input/Output 1 = PV Output 6
+// RGB Board 2, Input/Output 2 = PV Output 7
+// RGB Board 2, Input/Output 3 = PV Output 8
+// RGB Board 2, Input/Output 4 = PV Output 9
+// RGB Board 2, Input/Output 5 = PV Output A
+// RGB Board 2, Input/Output 6 = PV Output B
+// RGB Board 2, Input/Output 7 = PV Output C
+// 
+// And finally, adding a third RGB board would add:
+//
+// RGB Board 3, Input/Output 0 = PV Output D
+// RGB Board 3, Input/Output 0 = PV Output E
+// RGB Board 3, Input/Output 0 = PV Output F
+// RGB Board 3, Input/Output 0 = PV Output G
+// RGB Board 3, Input/Output 0 = PV Output H
+// RGB Board 3, Input/Output 0 = PV Output I
+// RGB Board 3, Input/Output 0 = PV Output J
+// RGB Board 3, Input/Output 0 = PV Output K
+//
+// If this default configuration does not suit you, check out the Com_RGBIO8 file
+// in the RGBIO8_Init() function to see how to customize it to your specific
+// configuration.
+//
+// Enables the RGBIO8 system.
+//
 //#define RGBIO8_ENABLE
-// Enables the UI setup for the RGBIO8 board. This takes up quite a bit of code
+//
+// Enables the setup UI for the RGBIO8 board. This takes up quite a bit of code
 // space so it can be disabled once you have set up all of your boards. It is
 // not needed in day to day use.
+//
 #define RGBIO8_SETUP
+//
 // The first address of your RGB Boards. Other boards should follow using the next
 // address. So, for instance, if this value is 0x30, board 2 should be 0x31, board
 // 3 should be 0x32, etc.
+//
 #define RGBIO8_START_ADDR 0x30
+//
 // The number of RGB boards you have connnected.
+//
 #define RGBIO8_NUM_BOARDS 1
+//
 //**********************************************************************************
 
 
