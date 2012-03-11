@@ -180,8 +180,8 @@ void updateCom() {
           Serial.print(millis(),DEC);
           Serial.write(0x09);
           while(btnicS0.getState() == BTNIC_STATE_TX) Serial.write(btnicS0.tx());
-          Serial.write(0x0D); //Carriage Return
-          Serial.write(0x0A); //New Line
+          //Serial.write(0x0D); //Carriage Return
+          //Serial.write(0x0A); //New Line
         }
       }
     #endif
