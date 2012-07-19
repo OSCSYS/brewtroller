@@ -126,7 +126,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     clearTimer(TIMER_MASH);
     #ifdef MASH_PREHEAT_SENSOR
       //Overwrite mash temp sensor address from EEPROM using the memory location of the specified sensor (sensor element number * 8 bytes)
-      PROMreadBytes(MASH_PREHEAT_SENSOR * 8, tSensor[TS_MASH], 8);
+      EEPROMreadBytes(MASH_PREHEAT_SENSOR * 8, tSensor[TS_MASH], 8);
     #endif
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Init: Add Grain
@@ -549,7 +549,7 @@ void stepExit(byte brewStep) {
 #endif
     #ifdef MASH_PREHEAT_SENSOR
     //Restore mash temp sensor address from EEPROM (address 8)
-      PROMreadBytes(8, tSensor[TS_MASH], 8);
+      EEPROMreadBytes(8, tSensor[TS_MASH], 8);
     #endif
     #ifdef MASH_PREHEAT_NOVALVES
       loadVlvConfigs();
