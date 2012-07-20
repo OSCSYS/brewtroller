@@ -405,7 +405,7 @@ void stepCore() {
   
   if (stepIsActive(STEP_BOIL)) {
     #ifdef PREBOIL_ALARM
-      if (!(triggered & 32768) && temp[TS_KETTLE] >= PREBOIL_ALARM) {
+      if (!(triggered & 32768) && temp[TS_KETTLE] != BAD_TEMP && temp[TS_KETTLE] >= PREBOIL_ALARM * 100) {
         setAlarm(1);
         triggered |= 32768; 
         setBoilAddsTrig(triggered);
