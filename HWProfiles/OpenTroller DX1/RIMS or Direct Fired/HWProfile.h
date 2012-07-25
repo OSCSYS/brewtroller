@@ -13,20 +13,20 @@ OpenTroller DX1 HERMS Hardware Configuration
   #define PVOUT_TYPE_GPIO
   #define PVOUT_COUNT 10 //10 Outputs
 
-  #define VALVE1_PIN 31	//OUT4
-  #define VALVE2_PIN 7	//OUT5
-  #define VALVE3_PIN 6	//OUT6
-  #define VALVE4_PIN 3	//OUT7
-  #define VALVE5_PIN 4	//OUT8
-  #define VALVE6_PIN 12	//OUT9
-  #define VALVE7_PIN 15	//OUT10
-  #define VALVE8_PIN 14	//OUT11
-  #define VALVE9_PIN 13	//OUT12
-  #define VALVEA_PIN 1	//OUT13
-    
-  #define HLTHEAT_PIN 28	//OUT1
-  #define MASHHEAT_PIN 29	//OUT2
-  #define KETTLEHEAT_PIN 30	//OUT3
+  #define VALVE1_PIN 28	//OUT1
+  #define VALVE2_PIN 29	//OUT2
+  #define VALVE3_PIN 30	//OUT3
+  #define VALVE4_PIN 31	//OUT4
+  #define VALVE5_PIN 7	//OUT5
+  #define VALVE6_PIN 6	//OUT6
+  #define VALVE7_PIN 3	//OUT7
+  #define VALVE8_PIN 4	//OUT8
+  #define VALVE9_PIN 12	//OUT9
+  #define VALVEA_PIN 15	//OUT10
+  
+  #define HLTHEAT_PIN 1	 //OUT13
+  #define MASHHEAT_PIN 13	//OUT12
+  #define KETTLEHEAT_PIN 14	//OUT11
 
   #define DIGITAL_INPUTS
   #define DIGIN_COUNT 4
