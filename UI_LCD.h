@@ -317,7 +317,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       void update() {
         for (byte row = 0; row < 4; row++) {
-          i2cLcdWrite(0, row, 20, (char*)&screen[row * 20]);
+          for (byte col = 0; col < 20; col++) i2cLcdWriteCustChar(col, row, screen[row * 20 + col]);
         }
       }
       
@@ -351,25 +351,21 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.send(iCols);
         Wire.send(iRows);
         Wire.endTransmission();
-        delay(5);
       }
       
       void i2cLcdClear() {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x02);
         Wire.endTransmission();
-        delay(3);
       }
       
-      /*
       void i2cLcdSetCursor(byte iCol, byte iRow) {
-        Wire.beginTransmission(I2CLCD_ADDR);
+        Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x03);
         Wire.send(iCol);
         Wire.send(iRow);
         Wire.endTransmission();
       }
-      */
       
       void i2cLcdPrint(byte iCol, byte iRow, char s[]) {
         Wire.beginTransmission(i2cLCDAddr);
@@ -381,7 +377,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
           Wire.send(*p++);
         }
         Wire.endTransmission();
-        delay(3);
       }
       
       void i2cLcdWrite(byte iCol, byte iRow, byte len, char s[]) {
@@ -392,7 +387,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.send(len);
         for (byte i = 0; i < len; i++) Wire.send(s[i]);
         Wire.endTransmission();
-        delay(3);
+      }
+      
+      void i2cLcdWriteByte(char s) {
+        Wire.beginTransmission(i2cLCDAddr);
+        Wire.send(0x15);
+        Wire.send(s);
+        Wire.endTransmission();
       }
       
       void i2cLcdSetCustChar_P(byte slot, const byte *charDef) {
@@ -403,7 +404,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
           Wire.send(pgm_read_byte(charDef++));
         }
         Wire.endTransmission();
-        delay(5);
       }
       
       void i2cLcdWriteCustChar(byte iCol, byte iRow, byte c) {
@@ -413,7 +413,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.send(iRow);
         Wire.send(c);
         Wire.endTransmission();
-        delay(3);
       }
       
       void i2cSetBright(byte val) {
@@ -421,7 +420,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.send(0x07);
         Wire.send(val);
         Wire.endTransmission();
-        delay(3);
       }
       
       void i2cSetContrast(byte val) {
@@ -429,7 +427,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.send(0x08);
         Wire.send(val);
         Wire.endTransmission();
-        delay(3);
       }
       
       byte i2cGetBright(void) {
@@ -458,14 +455,12 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x0B);
         Wire.endTransmission();
-        delay(10);
       }
       
       byte i2cLoadConfig(void) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x0C);
         Wire.endTransmission();
-        delay(10);
       }
   };
 #endif
