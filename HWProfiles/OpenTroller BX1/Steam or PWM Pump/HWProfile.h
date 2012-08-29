@@ -24,10 +24,10 @@ OpenTroller BX1 Hardware Configuration
   #define STEAMHEAT_PIN 19 //OUT4
   #define PWMPUMP_PIN 19 //OUT4
   
-  #define HLTVOL_APIN 3
-  #define MASHVOL_APIN 2
-  #define KETTLEVOL_APIN 1
-  #define STEAMPRESS_APIN 0
+  #define HLTVOL_APIN 7
+  #define MASHVOL_APIN 6
+  #define KETTLEVOL_APIN 5
+  #define STEAMPRESS_APIN 4
   
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
