@@ -2030,7 +2030,7 @@ byte enc2ASCII(byte charin) {
 //*****************************************************************************************************************************
 #ifndef UI_NO_SETUP
 void menuSetup() {
-  menu setupMenu(3, 8);
+  menu setupMenu(3, 9);
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 0);
   setupMenu.setItem_P(PSTR("Outputs"), 1);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 2);
