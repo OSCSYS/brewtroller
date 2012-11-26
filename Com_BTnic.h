@@ -102,6 +102,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_GET_PROGVOLS	120 	//x
   #define CMD_SET_PROGVOLS	121 	//y
   #define CMD_GET_GRAINVOLS	122 	//z
+  #define CMD_SET_TGTVOL        123     //{
+  #define CMD_GET_TGTVOL        124     //|
+  #define CMD_SET_BOILCTL       125     //}
+  #define CMD_GET_BOILCTL       126     //~
   
   #define BTNIC_STATE_RX 0
   #define BTNIC_STATE_EXE 1
@@ -110,7 +114,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define BTNIC_BUF_LEN 256
 
   #define CMDCODE_MIN 65
-  #define CMDCODE_MAX 122
+  #define CMDCODE_MAX 126
   #define NO_CMDINDEX -1
   
   static byte CMD_PARAM_COUNTS[] PROGMEM = 
@@ -172,7 +176,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0,  //CMD_VLVPRF
     0,  //CMD_GET_PROGVOLS
     3,  //CMD_SET_PROGVOLS
-    0   //CMD_GET_GRAINVOLS
+    0,  //CMD_GET_GRAINVOLS
+    1,  //CMD_SET_TGTVOL
+    0,  //CMD_GET_TGTVOL
+    2,  //CMD_SET_BOILCNT
+    0   //CMD_GET_BOILCNT
   };
 
   static byte CMD_INDEX_MAXVALUE[] PROGMEM = 
@@ -234,7 +242,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_VLVPRF
     NUM_PROGRAMS - 1,   //CMD_GET_PROGVOLS
     NUM_PROGRAMS - 1,   //CMD_SET_PROGVOLS
-    NUM_PROGRAMS - 1    //CMD_GET_GRAINVOLS
+    NUM_PROGRAMS - 1,   //CMD_GET_GRAINVOLS
+    VS_KETTLE,          //CMD_SET_TGTVOL
+    VS_KETTLE,          //CMD_GET_TGTVOL
+    0,                  //CMD_SET_BOILCTL
+    0                   //CMD_GET_BOILCTL
   };
   
 class BTnic
@@ -699,6 +711,33 @@ void BTnic::execCmd(void) {
       logFieldI(computeValveBits());
       break;
       
+    case CMD_SET_TGTVOL:  //{
+      tgtVol[cmdIndex] = min(getCmdParamNum(1), getCapacity(cmdIndex));
+    case CMD_GET_TGTVOL:  //|
+      logFieldCmd(CMD_GET_TGTVOL, cmdIndex);
+      logFieldI(tgtVol[cmdIndex]);
+      break;
+      
+    case CMD_SET_BOILCTL: //}
+      boilControlState = (ControlState)getCmdParamNum(1);
+      switch (boilControlState) {
+        case CONTROLSTATE_OFF:
+          PIDOutput[VS_KETTLE] = 0;
+          setpoint[VS_KETTLE] = 0;
+          break;
+        case CONTROLSTATE_AUTO:
+          setpoint[VS_KETTLE] = getBoilTemp();
+          break;
+        case CONTROLSTATE_ON:
+          setpoint[VS_KETTLE] = 1;
+          PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * getCmdParamNum(2);
+        break;
+      }
+    case CMD_GET_BOILCTL: //~
+      logFieldCmd(CMD_GET_BOILCTL, NO_CMDINDEX);
+      logFieldI(boilControlState);
+      logFieldI(PIDOutput[VS_KETTLE] / PIDCycle[VS_KETTLE]);
+      break;
       
     default: 
       return rejectCmd(CMD_REJECT); //Reject Command Code (CMD_REJECT);
