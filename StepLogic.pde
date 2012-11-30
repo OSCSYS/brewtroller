@@ -523,7 +523,9 @@ void stepExit(byte brewStep) {
   } else if (brewStep == STEP_DELAY) {
   //Step Exit: Delay
     clearTimer(TIMER_MASH);
-  
+    #ifdef DELAYSTART_NOALARM
+      setAlarm(0);
+    #endif
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Exit: Add Grain
     tgtVol[VS_HLT] = 0;
