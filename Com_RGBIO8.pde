@@ -92,7 +92,7 @@ void RGBIO8_Init() {
   // To create a mapping between a heat output you use one of the following
   // two functions:
   // assignHeatInput(vesselNumber, inputNumber);
-  // assignHeatOutput(vesselNumber, outputNumber, recipeNumber);
+  // assignHeatOutputRecipe(vesselNumber, outputNumber, recipeNumber);
   //
   // To create a mapping between a pump/valve output you use one of the
   // following two functions.
@@ -105,12 +105,12 @@ void RGBIO8_Init() {
   // 
   // Map board 0, heat output 0 (HLT) to input/output 0 using recipe 0.
   // rgbio8s[0].assignHeatInput(0, 0);
-  // rgbio8s[0].assignHeatOutput(0, 0, 0);
+  // rgbio8s[0].assignHeatOutputRecipe(0, 0, 0);
   //
   // 
   // Map board 1, pump/valve output 2 to input/output 3 using recipe 1.
   // rgbio8s[1].assignPvInput(2, 3);
-  // rgbio8s[1].assignPvOutput(2, 3, 1);
+  // rgbio8s[1].assignPvOutputRecipe(2, 3, 1);
   //
   // Add your custom mappings below this line
 }
