@@ -32,6 +32,8 @@ void loadSetup() {
   EEPROMreadBytes(0, *tSensor, 72);
   #ifdef HLT_AS_KETTLE
     EEPROMreadBytes(0, tSensor[TS_KETTLE], 8);
+  #elif defined KETTLE_AS_MASH
+    EEPROMreadBytes(16, tSensor[TS_MASH], 8);
   #elif defined SINGLE_VESSEL_SUPPORT
     EEPROMreadBytes(0, tSensor[TS_MASH], 8);
     EEPROMreadBytes(0, tSensor[TS_KETTLE], 8);
@@ -78,6 +80,9 @@ void loadSetup() {
   #ifdef HLT_AS_KETTLE
     eeprom_read_block(&calibVols[VS_KETTLE], (unsigned char *) 119, 40);
     eeprom_read_block(&calibVals[VS_KETTLE], (unsigned char *) 239, 20);
+  #ifdef KETTLE_AS_MASH
+    eeprom_read_block(&calibVols[VS_MASH], (unsigned char *) 199, 40);
+    eeprom_read_block(&calibVals[VS_MASH], (unsigned char *) 279, 20);
   #elif defined SINGLE_VESSEL_SUPPORT
     eeprom_read_block(&calibVols[VS_MASH], (unsigned char *) 119, 40);
     eeprom_read_block(&calibVals[VS_MASH], (unsigned char *) 239, 20);
@@ -283,6 +288,13 @@ void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) 
       calibVols[VS_KETTLE][slot] = vol;
       calibVals[VS_KETTLE][slot] = value;
       vessel = VS_HLT; //Set vessel for EEPROM write
+    }
+  #elif defined KETTLE_AS_MASH
+    if (vessel == VS_MASH || vessel == VS_KETTLE) {
+      //Also copy Kettle setting to Mash
+      calibVols[VS_MASH][slot] = vol;
+      calibVals[VS_MASH][slot] = value;
+      vessel = VS_KETTLE; //Set vessel for EEPROM write
     }
   #elif defined SINGLE_VESSEL_SUPPORT
     calibVols[VS_MASH][slot] = vol;

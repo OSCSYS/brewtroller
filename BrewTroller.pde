@@ -1,4 +1,4 @@
-#define BUILD 1006
+#define BUILD 1008
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -125,6 +125,8 @@ boolean estop = 0;
 //Volume Sensor Pin Array
 #ifdef HLT_AS_KETTLE
   byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, HLTVOL_APIN};
+#elif defined KETTLE_AS_MASH
+  byte vSensor[3] = { HLTVOL_APIN, KETTLEVOL_APIN, KETTLEVOL_APIN};
 #elif defined SINGLE_VESSEL_SUPPORT
   byte vSensor[3] = { HLTVOL_APIN, HLTVOL_APIN, HLTVOL_APIN};
 #else

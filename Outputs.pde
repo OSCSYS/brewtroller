@@ -118,24 +118,37 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 
 void pinInit() {
   alarmPin.setup(ALARM_PIN, OUTPUT);
+  //Setup HLT Pin
   #ifdef HLTHEAT_PIN
     heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
   #endif
 
   #ifdef SINGLE_VESSEL_SUPPORT
+    //Single Vessel: Also setup HLT pin for Mash/Kettle
     #ifdef HLTHEAT_PIN
       heatPin[VS_MASH].setup(HLTHEAT_PIN, OUTPUT);
       heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
     #endif
   #else
-    #ifdef MASHHEAT_PIN
-      heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
+    //Setup Mash/Kettle Vessel Heat Pins for non-Single Vessel
+    #ifdef KETTLE_AS_MASH
+      //Kettle as Mash option
+      #ifdef KETTLEHEAT_PIN
+        heatPin[VS_MASH].setup(KETTLEHEAT_PIN, OUTPUT);
+      #endif
+    #else
+      //Normal Mash Vessel
+      #ifdef MASHHEAT_PIN
+        heatPin[VS_MASH].setup(MASHHEAT_PIN, OUTPUT);
+      #endif
     #endif
     #ifdef HLT_AS_KETTLE
+      //HLT as Kettle Option
       #ifdef HLTHEAT_PIN
         heatPin[VS_KETTLE].setup(HLTHEAT_PIN, OUTPUT);
       #endif      
     #else
+      //Normal Kettle
       #ifdef KETTLEHEAT_PIN
         heatPin[VS_KETTLE].setup(KETTLEHEAT_PIN, OUTPUT);
       #endif
@@ -565,6 +578,11 @@ void processHeatOutputs() {
       if (
         (vesselIndex == VS_KETTLE && setpoint[VS_HLT]) //Skip kettle heat if HLT setpoint is active
         || (vesselIndex == VS_HLT && !setpoint[VS_HLT] && setpoint[VS_KETTLE]) //Skip HLT if HLT setpoint is inactive and Kettle setpoint is active
+      ) continue;
+    #elif defined KETTLE_AS_MASH
+      if (
+        (vesselIndex == VS_KETTLE && setpoint[VS_MASH]) //Skip kettle heat if Mash setpoint is active
+        || (vesselIndex == VS_MASH && !setpoint[VS_MASH] && setpoint[VS_KETTLE]) //Skip Mash if Mash setpoint is inactive and Kettle setpoint is active
       ) continue;
     #elif defined SINGLE_VESSEL_SUPPORT
       if (
