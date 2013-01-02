@@ -112,8 +112,9 @@ void loadSetup() {
     lastTime[i] = millis();
   }
   alarmStatus = bitRead(options, 2);
+#ifdef ALARM_PIN
   alarmPin.set(alarmStatus);
-  
+#endif
   #ifdef DEBUG_TIMERALARM
     logStart_P(LOGDEBUG);
     logField("TimerAlarmStatus");

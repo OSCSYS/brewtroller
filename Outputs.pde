@@ -117,7 +117,9 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 
 
 void pinInit() {
-  alarmPin.setup(ALARM_PIN, OUTPUT);
+  #ifdef ALARM_PIN
+    alarmPin.setup(ALARM_PIN, OUTPUT);
+  #endif
   //Setup HLT Pin
   #ifdef HLTHEAT_PIN
     heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
@@ -547,9 +549,13 @@ void processHeatOutputsNonPIDEnabled(const byte vessel[]) {
 #ifdef DIRECT_FIRED_RIMS
   // Check to insure RIMS is below safe level
   if (temp[RIMS_TEMP_SENSOR] >= (RIMS_ALARM_TEMP * 100)  ) {
+  #ifdef ALARM_PIN
     alarmPin.set(1); //Sound the alarm.
+  #endif
   } else {
+  #ifdef ALARM_PIN
     alarmPin.set(0);
+  #endif
   }
 #endif  
 }

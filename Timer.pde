@@ -107,6 +107,7 @@ void setAlarm(boolean alarmON) {
 //The modulation varies according the custom parameters.
 //The modulation occurs when the buzzerCycleTime value is larger than the buzzerOnDuration
 void setBuzzer(boolean alarmON) {
+#ifdef ALARM_PIN
   if (alarmON) {
     #ifdef BUZZER_CYCLE_TIME
       //Alarm status is ON, Buzzer will go ON or OFF based on modulation.
@@ -133,4 +134,5 @@ void setBuzzer(boolean alarmON) {
     //Alarm status is OFF, Buzzer goes Off
     alarmPin.set(0);
   }
+#endif
 }
