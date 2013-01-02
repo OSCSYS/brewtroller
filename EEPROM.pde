@@ -80,7 +80,7 @@ void loadSetup() {
   #ifdef HLT_AS_KETTLE
     eeprom_read_block(&calibVols[VS_KETTLE], (unsigned char *) 119, 40);
     eeprom_read_block(&calibVals[VS_KETTLE], (unsigned char *) 239, 20);
-  #ifdef KETTLE_AS_MASH
+  #elif defined KETTLE_AS_MASH
     eeprom_read_block(&calibVols[VS_MASH], (unsigned char *) 199, 40);
     eeprom_read_block(&calibVals[VS_MASH], (unsigned char *) 279, 20);
   #elif defined SINGLE_VESSEL_SUPPORT
