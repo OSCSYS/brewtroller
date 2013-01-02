@@ -365,10 +365,17 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
                                                              // this fixes the bug but still lets the integral gain learn to compensate for the FFBias while 
                                                              // the setpoint is 0. 
     #endif
-    #ifdef HLT_KET_ELEMENT_SAVE
+    
+    #ifdef HLT_MIN_HEAT_VOL
       if(vessel[VS] == VS_HLT && volAvg[vessel[VS]] < HLT_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
-      if(vesse[VS] == VS_KETTLE && volAvg[vessel[VS]] < KET_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
     #endif
+    #ifdef MASH_MIN_HEAT_VOL
+      if(vessel[VS] == VS_MASH && volAvg[vessel[VS]] < MASH_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
+    #endif
+    #ifdef KETTLE_MIN_HEAT_VOL
+      if(vesse[VS] == VS_KETTLE && volAvg[vessel[VS]] < KETTLE_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
+    #endif
+    
     //Trigger based element save
     if (vesselMinTrigger(vessel[VS]) != NULL) if(!vesselMinTrigger(vessel[VS])->get()) PIDOutput[vessel[VS]] = 0;
     }
