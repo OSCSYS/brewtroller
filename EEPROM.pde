@@ -153,6 +153,26 @@ void loadSetup() {
 //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
 //**********************************************************************************
 void setTSAddr(byte sensor, byte addr[8]) {
+    #ifdef HLT_AS_KETTLE
+    if (sensor == TS_HLT || sensor == TS_KETTLE) {
+      //Also copy HLT setting to Kettle
+      memcpy(tSensor[TS_KETTLE], addr, 8);
+      sensor = VS_HLT; //Set sensor for EEPROM write
+    }
+  #elif defined KETTLE_AS_MASH
+    if (sensor == TS_MASH || sensor == TS_KETTLE) {
+      //Also copy Kettle setting to Mash
+      memcpy(tSensor[TS_MASH], addr, 8);
+      sensor = VS_KETTLE; //Set sensor for EEPROM write
+    }
+  #elif defined SINGLE_VESSEL_SUPPORT
+    if (sensor == TS_HLT || sensor == TS_MASH || sensor == TS_KETTLE) {
+      //Also copy HLT setting to Mash/Kettle
+      memcpy(tSensor[TS_MASH], addr, 8);
+      memcpy(tSensor[TS_KETTLE], addr, 8);
+      sensor = VS_HLT; //Set sensor for EEPROM write
+    }
+  #endif
   memcpy(tSensor[sensor], addr, 8);
   EEPROMwriteBytes(sensor * 8, addr, 8);
 }

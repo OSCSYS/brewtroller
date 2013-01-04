@@ -740,7 +740,7 @@ void screenRefresh() {
         int encValue = Encoder.change();
         if (encValue >= 0) {
           boilControlState = CONTROLSTATE_ON;
-          setpoint[VS_KETTLE] = encValue ? getBoilTemp() : 0;
+          setpoint[VS_KETTLE] = encValue ? getBoilTemp() * SETPOINT_MULT : 0;
           PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * encValue;
         }
       }
@@ -1037,7 +1037,7 @@ void screenEnter() {
 
         
         boilMenu.setItem_P(PSTR("Boil Temp: "), 3);
-        vftoa(getBoilTemp() * 100, buf, 100, 1);
+        vftoa(getBoilTemp() * SETPOINT_MULT, buf, 100, 1);
         truncFloat(buf, 5);
         boilMenu.appendItem(buf, 3);
         boilMenu.appendItem_P(TUNIT, 3);
@@ -1067,7 +1067,7 @@ void screenEnter() {
         else if (lastOption == 2) boilControlMenu();
         else if (lastOption == 3) {
           setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
-          setSetpoint(VS_KETTLE, getBoilTemp());
+          setSetpoint(VS_KETTLE, getBoilTemp() * SETPOINT_MULT);
         }
         else if (lastOption == 4) setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
         else if (lastOption == 5) {
@@ -1142,7 +1142,7 @@ void boilControlMenu() {
       setpoint[VS_KETTLE] = 0;
       break;
     case CONTROLSTATE_AUTO:
-      setpoint[VS_KETTLE] = getBoilTemp();
+      setpoint[VS_KETTLE] = getBoilTemp() * SETPOINT_MULT;
       break;
     case CONTROLSTATE_ON:
       setpoint[VS_KETTLE] = 1;
