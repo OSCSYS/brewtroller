@@ -25,20 +25,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 #ifndef NOUI
-//*****************************************************************************************************************************
-// UI COMPILE OPTIONS
-//*****************************************************************************************************************************
-
-//**********************************************************************************
-// ENCODER TYPE
-//**********************************************************************************
-// You must uncomment one and only one of the following ENCODER_ definitions
-// Use ENCODER_ALPS for ALPS and Panasonic Encoders
-// Use ENCODER_CUI for older CUI encoders
-//
-#define ENCODER_TYPE ALPS
-//#define ENCODER_TYPE CUI
-//**********************************************************************************
 
 //*****************************************************************************************************************************
 // Begin UI Code
@@ -246,6 +232,9 @@ void uiInit() {
       Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
     #else
       Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN, ENTER_INT, ENCA_INT);
+    #endif
+    #ifdef ENCODER_ACTIVELOW
+      Encoder.setActiveLow(1);
     #endif
   #else
      Encoder.begin(ENCODER_I2CADDR);
