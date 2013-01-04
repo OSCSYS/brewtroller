@@ -375,7 +375,7 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
       if(vessel[VS] == VS_MASH && volAvg[vessel[VS]] < MASH_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
     #endif
     #ifdef KETTLE_MIN_HEAT_VOL
-      if(vesse[VS] == VS_KETTLE && volAvg[vessel[VS]] < KETTLE_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
+      if(vessel[VS] == VS_KETTLE && volAvg[vessel[VS]] < KETTLE_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
     #endif
     
     //Trigger based element save
