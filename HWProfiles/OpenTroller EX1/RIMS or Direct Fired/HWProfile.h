@@ -29,13 +29,13 @@ OpenTroller EX1 Hardware Configuration
   #define PVOUT_TYPE_GPIO
   #define PVOUT_COUNT 3 //2 Outputs
   
-  #define VALVE1_PIN 19 //OUT4
-  #define VALVE2_PIN 18 //OUT5
-  #define VALVE3_PIN 15 //OUT6
+  #define VALVE1_PIN 18 //OUT4
+  #define VALVE2_PIN 20 //OUT5
+  #define VALVE3_PIN 19 //OUT6
 
   #define HLTHEAT_PIN 22 //OUT1
-  #define MASHHEAT_PIN 21//OUT2
-  #define KETTLEHEAT_PIN 20 //OUT3
+  #define MASHHEAT_PIN 15//OUT2
+  #define KETTLEHEAT_PIN 21 //OUT3
   
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
