@@ -347,44 +347,45 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
     PIDOutput[vessel[VS]] = 0;
   } else {
     if (pid[vessel[VS]].GetMode() == AUTO) {
-  #ifdef PID_FLOW_CONTROL
-      if(vessel[VS] == VS_PUMP) PIDInput[vessel[VS]] = flowRate[VS_KETTLE];
-  #else
-      if (vessel[VS] == VS_STEAM) PIDInput[vessel[VS]] = steamPressure; 
-  #endif
+      #ifdef PID_FLOW_CONTROL
+        if(vessel[VS] == VS_PUMP) PIDInput[vessel[VS]] = flowRate[VS_KETTLE];
+      #else
+        if (vessel[VS] == VS_STEAM) PIDInput[vessel[VS]] = steamPressure; 
+      #endif
       else { 
         PIDInput[vessel[VS]] = temp[vessel[TS]];
-  #ifdef PID_FEED_FORWARD
+      #ifdef PID_FEED_FORWARD
         if(vessel[VS] == VS_MASH ) FFBias = temp[FEED_FORWARD_SENSOR];
-  #endif
+      #endif
       }
       pid[vessel[VS]].Compute();
-    #ifdef PID_FLOW_CONTROL
-      if(vessel[VS] == VS_PUMP && setpoint[vessel[VS]] == 0) PIDOutput[vessel[VS]] = 0; // if the setpoint is 0 then make sure we output 0, as dont want the min output always on. 
-    #endif
-    #ifdef PID_FEED_FORWARD
-      if(vessel[VS] == VS_MASH && setpoint[vessel[VS]] == 0) PIDOutput[vessel[VS]] = 0; // found a bug where the mash output could be turned on if setpoint was 0 but FFBias was not 0. 
+      #ifdef PID_FLOW_CONTROL
+        if(vessel[VS] == VS_PUMP && setpoint[vessel[VS]] == 0) PIDOutput[vessel[VS]] = 0; // if the setpoint is 0 then make sure we output 0, as dont want the min output always on. 
+      #endif
+      #ifdef PID_FEED_FORWARD
+        if(vessel[VS] == VS_MASH && setpoint[vessel[VS]] == 0) PIDOutput[vessel[VS]] = 0; // found a bug where the mash output could be turned on if setpoint was 0 but FFBias was not 0. 
                                                              // this fixes the bug but still lets the integral gain learn to compensate for the FFBias while 
                                                              // the setpoint is 0. 
-    #endif
-    
-    #ifdef HLT_MIN_HEAT_VOL
-      if(vessel[VS] == VS_HLT && volAvg[vessel[VS]] < HLT_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
-    #endif
-    #ifdef MASH_MIN_HEAT_VOL
-      if(vessel[VS] == VS_MASH && volAvg[vessel[VS]] < MASH_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
-    #endif
-    #ifdef KETTLE_MIN_HEAT_VOL
-      if(vessel[VS] == VS_KETTLE && volAvg[vessel[VS]] < KETTLE_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
-    #endif
-    
-    //Trigger based element save
-    if (vesselMinTrigger(vessel[VS]) != NULL) if(!vesselMinTrigger(vessel[VS])->get()) PIDOutput[vessel[VS]] = 0;
+      #endif
     }
-  #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
-    processPID_FLOW_CONTROL(vessel[VS]);
-  #endif // defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
+    #if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
+      processPID_FLOW_CONTROL(vessel[VS]);
+    #endif // defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
   }
+  
+  #ifdef HLT_MIN_HEAT_VOL
+    if(vessel[VS] == VS_HLT && volAvg[vessel[VS]] < HLT_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
+  #endif
+  #ifdef MASH_MIN_HEAT_VOL
+    if(vessel[VS] == VS_MASH && volAvg[vessel[VS]] < MASH_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
+  #endif
+  #ifdef KETTLE_MIN_HEAT_VOL
+    if(vessel[VS] == VS_KETTLE && volAvg[vessel[VS]] < KETTLE_MIN_HEAT_VOL) PIDOutput[vessel[VS]] = 0;
+  #endif
+    
+  //Trigger based element save
+  if (vesselMinTrigger(vessel[VS]) != NULL) if(!vesselMinTrigger(vessel[VS])->get()) PIDOutput[vessel[VS]] = 0;
+  
   #ifndef PWM_BY_TIMER
     //only 1 call to millis needed here, and if we get hit with an interrupt we still want to calculate based on the first read value of it
     millistemp = millis();
