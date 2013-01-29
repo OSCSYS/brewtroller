@@ -72,10 +72,11 @@
 #endif
 
 #ifdef BTBOARD_4
-  #define DIGIN1_PIN 21
-  #define DIGIN2_PIN 20
-  #define DIGIN3_PIN 19
-  #define DIGIN4_PIN 18
+  #define HEARTBEAT_PIN 0
+  #define DIGIN1_PIN 18
+  #define DIGIN2_PIN 19
+  #define DIGIN3_PIN 20
+  #define DIGIN4_PIN 21
   #define DIGIN5_PIN 22
 #endif
 
@@ -107,6 +108,7 @@
 #define TS_AUX2 7
 #define TS_AUX3 8
 #define NUM_TS 9
+#define BAD_TEMP -32768
 
 #define VS_HLT 0
 #define VS_MASH 1
@@ -185,10 +187,21 @@
 
 //Events
 #define EVENT_STEPINIT 0
-#define EVENT_SETPOINT 1
+#define EVENT_STEPEXIT 1
+#define EVENT_SETPOINT 2
+
 
 //Log Constants
 #define CMD_MSG_FIELDS 25
 #define CMD_FIELD_CHARS 21
+
+#define NUM_PROGRAMS 20
+
+#define BT_I2C_ADDR 0x10
+#define BTNIC_I2C_ADDR 0x11
+
+#define ASCII 0
+#define BTNIC 1
+#define BINARY 2
 
 #endif

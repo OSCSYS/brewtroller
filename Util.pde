@@ -27,25 +27,38 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Config.h"
 #include "Enum.h"
 
-//Converts a "Virtual Float" (fixed deciaml value represented in tenths, hundredths, thousandths, etc.) to a string
-void vftoa(unsigned long val, char retStr[], byte precision) {
-  char lbuf[11];
-  unsigned int mult = 1;
-  for(byte i = 0; i< precision; i++) mult *=10;
-  unsigned long whole = val / mult;
-  itoa(whole, retStr, 10);
-  strcat(retStr, ".");
-  itoa(val - whole * mult, lbuf, 10);
-  strcat(retStr, lbuf);
-  for (byte i = 0; i < precision - strlen(lbuf); i++) strcat(retStr, "0");
+void strLPad(char retString[], byte len, char pad) {
+  char strVal[len + 1];
+  strcpy(strVal, retString);
+  memset(retString, pad, len);
+  retString[len - strlen(strVal)] = '\0';
+  strcat(retString, strVal);
 }
 
-//Truncate a string representation of a float to (length) chars but do not end string with a decimal point
-void truncFloat(char string[], byte length) {
-  if (strlen(string) > length) {
-    if (string[length - 1] == '.') string[length - 1] = '\0';
-    else string[length] = '\0';
+//Converts a "Virtual Float" (fixed decimal value represented in tenths, hundredths, thousandths, etc.) to a string
+void vftoa(unsigned long val, char retStr[], unsigned int divisor, boolean decimal) {
+  char lbuf[11];
+  itoa(divisor - 1, lbuf, 10);
+  byte precision = strlen(lbuf);
+  if (divisor == 1) precision = 0;
+  unsigned long whole = val / divisor;
+  ultoa(whole, retStr, 10);
+  if (precision) {
+    if (decimal) strcat(retStr, ".");
+    ultoa((val - whole * divisor) * round((float)pow(10, precision) / divisor), lbuf, 10);
+    strLPad(lbuf, precision, '0');
+    strcat(retStr, lbuf);
   }
 }
 
+//Truncate a string representation of a float to (length) chars but do not end string with a decimal point
+void truncFloat(char retStr[], byte len) {
+  retStr[len] = '\0';
+  if (retStr[len - 1] == '.') retStr[len - 1] = '\0';
+}
 
+unsigned long pow10(byte power) {
+  unsigned long retValue = 1;
+  for (byte i = 0; i < power; i++) retValue *= 10;
+  return retValue;
+}

@@ -29,10 +29,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 void eventHandler(byte eventID, int eventParam) {
   //Global Event handler
-  if (eventID == EVENT_STEPINIT) {
-    //Nothing to do here (Pass to UI handler below)
-  }
-  else if (eventID == EVENT_SETPOINT) {
+  //EVENT_STEPINIT: Nothing to do here (Pass to UI handler below)
+  //EVENT_STEPEXIT: Nothing to do here (Pass to UI handler below)
+  if (eventID == EVENT_SETPOINT) {
     //Setpoint Change (Update AutoValve Logic)
     byte avProfile = vesselAV(eventParam);
     byte vlvHeat = vesselVLVHeat(eventParam);
@@ -47,7 +46,9 @@ void eventHandler(byte eventID, int eventParam) {
   }
   
   #ifndef NOUI
-  //Pass Event Info to UI Even Handler
+  //Pass Event Info to UI Event Handler
   uiEvent(eventID, eventParam);
+  //Pass Event Info to Com Event Handler
+  comEvent(eventID, eventParam);
 #endif
 }

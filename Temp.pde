@@ -39,6 +39,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   //One Wire Bus on 
   
   void tempInit() {
+    for (byte i = TS_HLT; i <= TS_AUX3; i++) temp[i] = BAD_TEMP;
     #ifdef TS_ONEWIRE_I2C
       ds.configure(DS2482_CONFIG_APU | DS2482_CONFIG_SPU);
     #endif
@@ -94,7 +95,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       convStart = 0;
       
       #if defined MASH_AVG
-        mashAvg();
+        //Do not average for Preheat step if using a seperate mash sensor during preheat (dedicated HEX) 
+        #ifdef MASH_PREHEAT_SENSOR
+          if (stepProgram[STEP_PREHEAT] == PROGRAM_IDLE)
+        #endif
+            mashAvg();
       #endif
     }
   }
@@ -158,7 +163,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       for (byte i = 0; i < 2; i++) data[i] = ds.read();
     #else
       for (byte i = 0; i < 9; i++) data[i] = ds.read();
-      if (ds.crc8( data, 8) != data[8]) return -32768;
+      if (ds.crc8( data, 8) != data[8]) return BAD_TEMP;
     #endif
 
     tempOut = (data[1] << 8) + data[0];
@@ -183,19 +188,19 @@ void mashAvg() {
   byte sensorCount = 1;
   unsigned long avgTemp = temp[TS_MASH];
   #if defined MASH_AVG_AUX1
-    if (temp[TS_AUX1] != -32768) {
+    if (temp[TS_AUX1] != BAD_TEMP) {
       avgTemp += temp[TS_AUX1];
       sensorCount++;
     }
   #endif
   #if defined MASH_AVG_AUX2
-    if (temp[TS_AUX2] != -32768) {
+    if (temp[TS_AUX2] != BAD_TEMP) {
       avgTemp += temp[TS_AUX2];
       sensorCount++;
     }
   #endif
   #if defined MASH_AVG_AUX3
-    if (temp[TS_AUX3] != -32768) {
+    if (temp[TS_AUX3] != BAD_TEMP) {
       avgTemp += temp[TS_AUX3];
       sensorCount++;
     }

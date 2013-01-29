@@ -30,31 +30,6 @@
 //**********************************************************************************
 
 //**********************************************************************************
-// MUX Boards
-//**********************************************************************************
-// Uncomment one of the following lines to enable MUX'ing of Pump/Valve Outputs
-// Note: MUX'ing requires 1-4 expansion boards providing 8-32 pump/valve outputs
-// To use the original 11 Pump/valve outputs included in BrewTroller 1.0 - 2.0 leave
-// all lines commented. If you are using BTBOARD_3, MUXBOARDS 2 is used automatically
-// but you can override the default by specifying a value below.
-//
-//#define MUXBOARDS 1
-//#define MUXBOARDS 2
-//#define MUXBOARDS 3
-//#define MUXBOARDS 4
-//**********************************************************************************
-
-//**********************************************************************************
-// Steam Mash Infusion Support
-//**********************************************************************************
-// Uncomment the following line to enable steam mash infusion support. Note: Steam
-// support will disable onboard pump/valve outputs requiring the use of MUX boards
-//
-//#define USESTEAM
-//**********************************************************************************
-
-
-//**********************************************************************************
 // Vessel Options
 //**********************************************************************************
 // BrewTroller was designed to support three vessles (HLT, Mash and Kettle). This
@@ -77,6 +52,9 @@
 // the first mash step temp. aka 'Yorg Option 2'
 //#define MASH_PREHEAT_STRIKE
 //#define MASH_PREHEAT_STEP1
+
+//MASH_PREHEAT_NOVALVES: Disables MASH HEAT/MASH IDLE Valve Profiles during preheat
+//#define MASH_PREHEAT_NOVALVES
 //**********************************************************************************
 
 
@@ -116,8 +94,6 @@
 // You will not however be able to set the the PWM frequency from the UI because it is set at 8khz, the value
 // given in the UI will be ignored. The % output however will be reported properly through the UI and log. 
 //#define PWM_BY_TIMER
-//#define PWM_8K_1 VS_PUMP
-//#define PWM_8K_2 VS_MASH
 //**********************************************************************************
 
 //**********************************************************************************
@@ -126,16 +102,21 @@
 // This #define enables the feeding of the flow rate calcs based on the pressure sensors to be fed into the 
 // PID code to control a pump for fly sparge to get a desired flow rate. Note that the PWM output used to 
 // control the pump takes over the steam output, and thus the steam output cannot be used for steam. 
-// Note: This code is designed to work with PWM_BY_TIMER with one of the PWM_8K outputs set to VS_PUMP
-// if you dont use it that way it may not work as intended. 
-// Note2: Given our current 10 bit dac and the average pressure sensor resolution for volume you only get about 
+// Note: This code is designed to work with PWM_BY_TIMER 
+// Note2: Given our current 10 bit adc and the average pressure sensor resolution for volume you only get about 
 // 7 ADC clicks per quart, thus if you have your flow rate calcs set to happen to fast you'll always show a 0 flow 
 // rate. You'll need at least 20 seconds between flow rate calcs to be able to measure this slow of a flow rate. 
-// Note3: the Pump output must be set to PID for this to work as well, and the PID cycle is always set to what
-// will appear to be 10 seconds, but in reality it's 8khz = 125uS. 
+// Note3: the Pump output must be set to PID for this to work as well.
 // Note4: In the UI when you enter the Pump flow rate it's entered in 10ths of a quart per minute, so 1 quart per
 // minute would be 10. 
 //#define PID_FLOW_CONTROL
+//#define PID_CONTROL_MANUAL  // modified manual control (still has to be set to PID in settings menu) in case you 
+                            //just cant get PID to work
+#define PID_FLOW_MIN 30     // this is the minimum PID output duty cycle % to be used when the setpoint is non zero
+                            // this is used because under a certain duty cycle a pump wont even spin or just
+                            // make foam, etc so we need the pump to at least move liquid before we try to 
+                            // control it or your process + intregral variables can just run away while you're trying
+                            // to spin up. 
 //**********************************************************************************
 
 //**********************************************************************************
@@ -145,9 +126,8 @@
 // into the kettle from the MLT. It will then shut off the pump when that equal amount of sparge water has been
 // pumped out of the HLT. 
 // Note: SPARGE_IN_HYSTERSIS is in 1000ths of a gallon or liter. 
-// Note2: This code also has no way to work with HLT_AS_KETTLE at the moment
 //#define SPARGE_IN_PUMP_CONTROL
-//#define SPARGE_IN_HYSTERESIS 250
+#define SPARGE_IN_HYSTERESIS 250
 //**********************************************************************************
 
 //**********************************************************************************
@@ -184,9 +164,10 @@
 // Smart HERMS HLT
 //**********************************************************************************
 // SMART_HERMS_HLT: Varies HLT setpoint based on mash target + variance
-// MASH_HEAT_LOSS: acts a s a floor value to ensure HLT temp is at least target + 
+// HLT_MAX_TEMP: Ceiling value for HLT (Actual max temp in C or F, Decimal values allowed)
+// MASH_HEAT_LOSS: Acts as a floor value to ensure HLT temp is at least target + 
 // specified value
-// HLT_MAX_TEMP: Ceiling value for HLT
+
 
 //#define SMART_HERMS_HLT
 #define MASH_HEAT_LOSS 0
@@ -225,7 +206,7 @@
 
 // TS_ONEWIRE_FASTREAD: Enables faster reads of temperatures by reading only the first
 // 2 bytes of temperature data and ignoring CRC check.
-//#define TS_ONEWIRE_FASTREAD
+#define TS_ONEWIRE_FASTREAD
 
 // DS2482_ADDR: I2C Address of DS2482 OneWire Master (used for TS_OneWire_I2C)
 // Should be 0x18, 0x19, 0x1A, 0x1B
@@ -238,9 +219,10 @@
 //**********************************************************************************
 // STRIKE_TEMP_OFFSET: Adjusts strike temperature to compensate for thermal mass of
 // mash tun. (Note: This option is used only when Mash Liquor Heat Source is set to
-// HLT.) Specify correction in whole degrees.
+// HLT.)
+// Value may be positive or negative. Decimal values are allowed.
 
-//#define STRIKE_TEMP_OFFSET 1
+#define STRIKE_TEMP_OFFSET 0
 
 //**********************************************************************************
 
@@ -257,18 +239,24 @@
 
 
 //**********************************************************************************
-// Sparge Options
+// Stop fly sparge removing water from HLT at this volume
 //**********************************************************************************
-// BATCH_SPARGE: Uses batch sparge logic instead of fly sparge logic for programs.
-//#define BATCH_SPARGE
+// This feature was added because the dead space for the HLT may be less than the space lost in the tubing. 
+// In particular if you're flushing your RIMS tube wort with fly sparge in water the water in the RIMS tube 
+// will need to be added to the HLT dead space even though the dead space of water actually left in the 
+// HLT will be less than that and we want to continue fly sparging until it's that low. 
+// NOTE: volume is in thousands of a gallon
+//#define HLT_FLY_SPARGE_STOP
+//#define HLT_FLY_SPARGE_STOP_VOLUME 250
+//**********************************************************************************
 
-// BATCH_VOLUME_OFFSET: Adjusts batch volume calculations to increase or reduce the
-// volume of batch sparges.
-//#define BATCH_VOLUME_OFFSET 0
 
-// BATCH_SPARGE_RECIRC: Specifies the number of seconds to run the Mash Heat valve
-// profile between batch sparges.
-//#define BATCH_SPARGE_RECIRC 60
+//**********************************************************************************
+// Boil Off Unit Change
+//**********************************************************************************
+// This option will change the units of the boil off from % per hour to 0.1 gallons per hour, or to 1 liter per hour 
+// if use metric is on
+//#define BOIL_OFF_GALLONS
 //**********************************************************************************
 
 
@@ -295,37 +283,68 @@
 
 
 //**********************************************************************************
-// Serial Logging Options
+// Serial0 Communication Options
 //**********************************************************************************
-// COMTYPE:   Specifies the communication type being used. 
+// COM_SERIAL0: Specifies the communication type being used (Pick One):
+//  ASCII  = Original BrewTroller serial command protocol used with BTRemote and BTLog
+//  BTNIC  = BTnic (Lighterweight implementation of ASCII protocol using single-byte
+//           commands. This protocol is used with BTnic Modules and software for
+//           network connectivity.
+//  BINARY = Binary Messages
+//**********************************************************************************
+
+#define COM_SERIAL0  ASCII
+//#define COM_SERIAL0  BTNIC
+//#define COM_SERIAL0 BINARY
+
+// BAUD_RATE: The baud rate for the Serial0 connection. Previous to BrewTroller 2.0
+// Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
+// was increased to 115200 but can be manually set using this compile option.
+#define SERIAL0_BAUDRATE 115200
+
+
+// ** ASCII Protocol Options:
+//
 // COMSCHEMA: Specifies the schema for a particular type
-//  0 = ASCII Messages
+//  ASCII Messages
 //      0 - Original BT 2.0 Messages
 //      1 - BT 2.1 Enhanced ASCII
 //       Steam, Calc. Vol & Temp, BoilPower, Grain Temp, Delay Start, MLT Heat Source
-//  1 = BTnic Messages - Non-Broadcasting, Single Byte Commands
-//      0 - Original implementation
-//      1 - With CRC
-//  2 = Binary Messages
-//      0 = Original implementation
-//**********************************************************************************
-#define COMTYPE   0
 #define COMSCHEMA 0
-
-// BAUD_RATE: The baud rate for the serial connection. Previous to BrewTroller 2.0
-// Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
-// was increased to 115200 but can be manually set using this compile option.
-#define BAUD_RATE 115200
-
+//
 // LOG_INTERVAL: Specifies how often data is logged via serial in milliseconds. If
 // real time display of data is being used a smaller interval is best (1000 ms). A
 // larger interval can be used for logging applications to reduce log file size 
 // (5000 ms).
 #define LOG_INTERVAL 2000
-
+//
 // LOG_INITSTATUS: Sets whether logging is enabled on bootup. Log status can be
 // toggled using the SET_LOGSTATUS command.
 #define LOG_INITSTATUS 1
+
+//**********************************************************************************
+// BTnic Embedded Module
+//**********************************************************************************
+//#define BTNIC_EMBEDDED
+
+
+//**********************************************************************************
+// BrewTroller PID Display (BTPD)
+//**********************************************************************************
+// BTPD is an external LED display developed by BrewTroller forum member vonnieda. 
+// It is a 2 line, 4 digit (8 digits total) LED display with one line red and one
+// line green. The digits are about a half inch high and can easily be seen across
+// the room. The display connects to the BrewTroller via the I2C header and can be
+// daisy chained to use as many as you like, theoretically up to 127 but in practice
+// probably 10 or so.
+
+// BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
+//#define BTPD_SUPPORT
+
+// BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds
+#define BTPD_INTERVAL 1000
+//**********************************************************************************
+
 //**********************************************************************************
 
 
@@ -360,52 +379,6 @@
 //#define LOGO_TROLL
 #define LOGO_BREWTROLLER
 
-//**********************************************************************************
-// BrewTroller PID Display (BTPD)
-//**********************************************************************************
-// BTPD is an external LED display developed by BrewTroller forum member vonnieda. 
-// It is a 2 line, 4 digit (8 digits total) LED display with one line red and one
-// line green. The digits are about a half inch high and can easily be seen across
-// the room. The display connects to the BrewTroller via the I2C header and can be
-// daisy chained to use as many as you like, theoretically up to 127 but in practice
-// probably 10 or so.
-
-// BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
-//#define BTPD_SUPPORT
-
-// BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds.
-#define BTPD_INTERVAL 1000
-
-// BTPD_HLT_TEMP: Displays HLT temp and setpoint on specified channel
-//#define BTPD_HLT_TEMP 0x20
-
-// BTPD_MASH_TEMP: Displays Mash temp and setpoint on specified channel
-//#define BTPD_MASH_TEMP 0x21
-
-// BTPD_KETTLE_TEMP: Displays Kettle temp and setpoint on specified channel
-//#define BTPD_KETTLE_TEMP 0x22
-
-// BTPD_H2O_TEMPS: Displays H2O In and H2O Out temps on specified channels
-//#define BTPD_H2O_TEMPS 0x23
-
-// BTPD_FERM_TEMP: Displays Beer Out temp and Pitch temp on specified channel
-//#define BTPD_FERM_TEMP 0x24
-
-// BTPD_FERM_TEMP: Displays Beer Out temp and Pitch temp on specified channel
-//#define BTPD_TIMERS 0x25
-
-// BTPD_HLT_VOL: Displays current and target HLT volume
-//#define BTPD_HLT_VOL 0x26
-
-// BTPD_MASH_VOL: Displays current and target Mash volume
-//#define BTPD_MASH_VOL 0x27
-
-// BTPD_KETTLE_VOL: Displays current and target Kettle volume
-//#define BTPD_KETTLE_VOL 0x28
-
-// BTPD_STEAM_PRESS: Displays current and target Steam pressure
-//#define BTPD_STEAM_PRESS 0x29
-//**********************************************************************************
 
 //**********************************************************************************
 // Brew Step Automation
@@ -416,6 +389,10 @@
 // AUTO_FILL_START: This option will enable the Fill AutoValve logic at the start of
 // the Fill step. 
 //#define AUTO_FILL_START
+
+// AUTO_REFILL_START: This option will enable the Fill AutoValve logic at the start of the 
+// ReFill steip
+//#define AUTO_REFILL_START
 
 // AUTO_FILL_EXIT: This option will automatically exit the Fill step once target 
 // volumes have been reached.
@@ -440,6 +417,11 @@
 // the boil zone is inactive.
 //#define AUTO_MASH_HOLD_EXIT
 
+// AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP This option, assuming the AUTO_MASH_HOLD_EXIT
+// option is turned on (else does nothing) wont allow the auto mash hold exit to occur until
+// the HLT has reached the sparge temp of the currently active program. 
+//#define AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP
+
 // AUTO_SPARGE_START: This option will automatically enable batch or fly sparge
 // logic at the start of the sparge step.
 //#define AUTO_SPARGE_START
@@ -455,6 +437,17 @@
 // losing wort or causing personal injury when this profile is enabled
 //#define AUTO_BOIL_RECIRC 20
 //**********************************************************************************
+
+//**********************************************************************************
+// Delay setting the first setpoint for the MLT for a RIMS tube so the RIMS tube can be full before power on
+//**********************************************************************************
+// This code will add a delay of RIMS_DELAY (in miliseconds) to expire before the first MLT setpoint is set. This is to allow the RIMS
+// tube to be filled up with the recirc pump and come to a steady state before turning on the power. 
+//NOTE: Do not use this code if you do not have a dough in time set that is longer than the RIMS_DELAY for any program 
+// start. 
+//#define RIMS_MLT_SETPOINT_DELAY
+#define RIMS_DELAY 60000
+//**********************************
 
 //**********************************************************************************
 // Volume Sensor Settings
@@ -484,8 +477,107 @@
 // volume changes over a specified interval
 // FLOWRATE_READ_INTERVAL: Time in ms between flowrate calculation updates
 //
-#define FLOWRATE_CALCS
+//#define FLOWRATE_CALCS
 #define FLOWRATE_READ_INTERVAL 1000
+//**********************************************************************************
+
+
+
+
+
+/***********************************************************************************
+ * EXPERIMENTAL OPTIONS
+ ***********************************************************************************
+ The following options are experimental with little to no testing.
+ **********************************************************************************/
+
+
+
+
+   
+//**********************************************************************************
+// Steam Mash Infusion Support
+//**********************************************************************************
+// EXPERIMENTAL: Uncomment the following line to enable steam mash infusion support.
+// USE CAUTION! TESTING REQUIRED.
+//
+//#define USESTEAM
+//**********************************************************************************
+
+//**********************************************************************************
+// Save HLT and KET heating elements Support
+//**********************************************************************************
+// EXPERIMENTAL: Uncomment the following line to enable forcing the HLT and KET outputs to 0
+// if the volume in said vessel is less than the #defined value support.
+// NOTE: Volume is in thousandths of a Gallons/Liters
+// USE CAUTION! TESTING REQUIRED.
+//
+//#define HLT_KET_ELEMENT_SAVE
+//#define HLT_MIN_HEAT_VOL 4000
+//#define KET_MIN_HEAT_VOL 4000
+//**********************************************************************************
+
+//**********************************************************************************
+// Min HLT refill volume
+//**********************************************************************************
+// EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT
+// during the refill step. This is so that you can make any amount of sparge water needed by making
+// sure your heating elements are covered by water so they can heat your sparge water even if you're
+// only going to use 0.25 gallons of it or some other small amount of sparge water.
+// NOTE: Volume is in thousandths of a Gallons/Liters
+// USE CAUTION! TESTING REQUIRED.
+//
+//#define HLT_MIN_REFILL
+//#define HLT_MIN_REFILL_VOL 4000
+//**********************************************************************************
+
+
+//**********************************************************************************
+// HLT Heat During Sparge
+//**********************************************************************************
+// HLT_HEAT_SPARGE: Enables the HLT setpoint during the sparge until a minimum
+// volume level is reached.
+// HLT_MIN_SPARGE: Minimum HLT volume trigger to disable the HLT Setpoint during
+// sparge. Value represents thousandths of Gallons/Litres.
+//
+//  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//  !! WARNING: ENABLING THIS OPTION WITHOUT VOLUME LEVEL SENSING OR USING A MINIMUM !!
+//  !! HLT VOLUME FLOAT SWITCH WILL RESULT IN DRY FIRING THE HLT AND CAUSING DAMAGE  !!
+//  !! AND/OR PERSONAL HARM!                                                         !!
+//  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+//#define HLT_HEAT_SPARGE
+//#define HLT_MIN_SPARGE 2000
+//**********************************************************************************
+
+//**********************************************************************************
+// Sparge Options
+//**********************************************************************************
+// BATCH_SPARGE: Uses batch sparge logic instead of fly sparge logic for programs.
+//#define BATCH_SPARGE
+
+// BATCH_VOLUME_OFFSET: Adjusts batch volume calculations to increase or reduce the
+// volume of batch sparges.
+//#define BATCH_VOLUME_OFFSET 0
+
+// BATCH_SPARGE_RECIRC: Specifies the number of seconds to run the Mash Heat valve
+// profile between batch sparges.
+//#define BATCH_SPARGE_RECIRC 60
+//**********************************************************************************
+
+//**********************************************************************************
+// MUX Boards
+//**********************************************************************************
+// Uncomment one of the following lines to enable MUX'ing of Pump/Valve Outputs
+// Note: MUX'ing requires 1-4 expansion boards providing 8-32 pump/valve outputs
+// To use the original 11 Pump/valve outputs included in BrewTroller 1.0 - 2.0 leave
+// all lines commented. If you are using BTBOARD_3, MUXBOARDS 2 is used automatically
+// but you can override the default by specifying a value below.
+//
+//#define MUXBOARDS 1
+//#define MUXBOARDS 2
+//#define MUXBOARDS 3
+//#define MUXBOARDS 4
 //**********************************************************************************
 
 //**********************************************************************************

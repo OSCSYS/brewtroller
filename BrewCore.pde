@@ -28,6 +28,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Enum.h"
 
 void brewCore() {
+  #ifdef HEARTBEAT
+    heartbeat();
+  #endif
+  
   #ifndef NOUI
     updateLCD();
   #endif
@@ -40,19 +44,19 @@ void brewCore() {
  
   //Alarm update allows to have a beeping alarm
   updateBuzzer();
+
+  //Volumes: Volume.pde
+  updateVols();
+
+  #ifdef FLOWRATE_CALCS
+  updateFlowRates();
+  #endif
  
   //Heat Outputs: Outputs.pde
   processHeatOutputs();
   
-  //Volumes: Volume.pde
-  updateVols();
-
-  //Log: Log.pde
-  updateLog();  
-
-  #ifdef FLOWRATE_CALCS
-    updateFlowRates();
-  #endif
+  //Communications: Com.pde
+  updateCom();  
 
   #ifndef PID_FLOW_CONTROL
   steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
@@ -66,9 +70,14 @@ void brewCore() {
   
   //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
   updateValves();
-  
-  //BTPD Support
-  #ifdef BTPD_SUPPORT
-    updateBTPD();
-  #endif
 }
+
+#ifdef HEARTBEAT
+unsigned long hbStart = 0;
+void heartbeat() {
+  if (millis() - hbStart > 750) {
+    hbPin.toggle();
+    hbStart = millis();
+  }
+}
+#endif

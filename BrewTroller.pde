@@ -1,4 +1,4 @@
-#define BUILD 752
+#define BUILD 770
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -45,10 +45,7 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
 #include <pin.h>
-
-#if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
-  #include <Wire.h>
-#endif
+#include <menu.h>
 
 void(* softReset) (void) = 0;
 
@@ -58,6 +55,7 @@ void(* softReset) (void) = 0;
 
 // Disable On board pump/valve outputs for BT Board 3.0 and older boards using steam
 // Set MUXBOARDS 0 for boards without on board or MUX Pump/valve outputs
+
 #if (defined BTBOARD_3 || defined BTBOARD_4) && !defined MUXBOARDS
   #define MUXBOARDS 2
 #endif
@@ -70,11 +68,6 @@ void(* softReset) (void) = 0;
   #endif
 #endif
 
-//Enable Serial on BTBOARD_22+ boards or if DEBUG is set
-#if !defined BTBOARD_1
-  #define USESERIAL
-#endif
-
 //Enable Mash Avergaing Logic if any Mash_AVG_AUXx options were enabled
 #if defined MASH_AVG_AUX1 || defined MASH_AVG_AUX2 || defined MASH_AVG_AUX3
   #define MASH_AVG
@@ -83,6 +76,7 @@ void(* softReset) (void) = 0;
 //Use I2C LCD for BTBoard_4
 #ifdef BTBOARD_4
   #define UI_LCD_I2C
+  #define HEARTBEAT
 #endif
 
 //Select OneWire Comm Type
@@ -94,6 +88,38 @@ void(* softReset) (void) = 0;
       #define TS_ONEWIRE_GPIO //Previous boards use GPIO unless explicitly configured for I2C
     #endif
   #endif
+#endif
+
+#ifdef USEMETRIC
+  #define SETPOINT_MULT 50
+  #define SETPOINT_DIV 2
+#else
+  #define SETPOINT_MULT 100
+  #define SETPOINT_DIV 1
+#endif
+
+#ifndef STRIKE_TEMP_OFFSET
+  #define STRIKE_TEMP_OFFSET 0
+#endif
+
+#if COM_SERIAL0 == BTNIC || defined BTNIC_EMBEDDED
+  #define BTNIC_PROTOCOL
+#endif
+
+#if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE || defined BTNIC_EMBEDDED
+  #define USE_I2C
+#endif
+
+#ifdef BOIL_OFF_GALLONS
+  #ifdef USEMETRIC
+    #define EvapRateConversion 1000
+  #else
+    #define EvapRateConversion 100
+  #endif
+#endif
+
+#ifdef USE_I2C
+  #include <Wire.h>
 #endif
 
 //**********************************************************************************
@@ -118,6 +144,7 @@ pin heatPin[4], alarmPin;
 
 #ifdef BTBOARD_4
   pin digInPin[6];
+  pin hbPin;
 #endif
 
 //Volume Sensor Pin Array
@@ -135,7 +162,11 @@ int temp[9];
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
 #ifdef SPARGE_IN_PUMP_CONTROL
-unsigned long prevSpargeVol[2] = {0,0xFFFFFFFF};
+unsigned long prevSpargeVol[2] = {0,0};
+#endif
+
+#ifdef HLT_MIN_REFILL
+unsigned long SpargeVol = 0;
 #endif
 
 #ifdef FLOWRATE_CALCS
@@ -148,7 +179,7 @@ unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
 
 //Shared buffers
-char menuopts[21][20], buf[20];
+char buf[20];
 
 //Output Globals
 double PIDInput[4], PIDOutput[4], setpoint[4];
@@ -158,35 +189,46 @@ double FFBias;
 byte PIDCycle[4], hysteresis[4];
 #ifdef PWM_BY_TIMER
 unsigned int cycleStart[4] = {0,0,0,0};
-#ifdef PWM_8K_1
-byte LastSetFullPowerBoolean1 = 0;
-#endif
-#ifdef PWM_8K_2
-byte LastSetFullPowerBoolean2 = 0;
-#endif
 #else
 unsigned long cycleStart[4] = {0,0,0,0};
 #endif
 boolean heatStatus[4], PIDEnabled[4];
 unsigned int steamPSens, steamZero;
+
+byte pidLimits[4] = { PIDLIMIT_HLT, PIDLIMIT_MASH, PIDLIMIT_KETTLE, PIDLIMIT_STEAM };
+
 //Steam Pressure in thousandths
 unsigned long steamPressure;
 byte boilPwr;
 
 PID pid[4] = {
   PID(&PIDInput[VS_HLT], &PIDOutput[VS_HLT], &setpoint[VS_HLT], 3, 4, 1),
+
   #ifdef PID_FEED_FORWARD
-  PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], &FFBias, 3, 4, 1),
+    PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], &FFBias, 3, 4, 1),
   #else
-  PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
+    PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
   #endif
+
   PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
+
   #ifdef PID_FLOW_CONTROL
-  PID(&PIDInput[VS_PUMP], &PIDOutput[VS_PUMP], &setpoint[VS_PUMP], 3, 4, 1)
+    PID(&PIDInput[VS_PUMP], &PIDOutput[VS_PUMP], &setpoint[VS_PUMP], 3, 4, 1)
   #else
-  PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
+    PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
   #endif
 };
+#if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
+  unsigned long nextcompute;
+  byte additioncount[2];
+#endif
+
+#ifdef RIMS_MLT_SETPOINT_DELAY
+  byte steptoset = 0;
+  byte RIMStimeExpired = 0;
+  unsigned long starttime = 0;
+  unsigned long timetoset = 0;
+#endif
 
 //Timer Globals
 unsigned long timerValue[2], lastTime[2];
@@ -206,7 +248,7 @@ unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
 byte pitchTemp;
 
 const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "2.2";
+const char BTVER[] PROGMEM = "2.3";
 
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";
@@ -226,24 +268,20 @@ unsigned int PIDOutputCountEquivalent[4][2] = {{0,0},{0,0},{0,0},{0,0}};
 //**********************************************************************************
 
 void setup() {
-  #if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
-    Wire.begin();
+  #ifdef USE_I2C
+    Wire.begin(BT_I2C_ADDR);
   #endif
   
   //Initialize Brew Steps to 'Idle'
   for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepProgram[brewStep] = PROGRAM_IDLE;
   
   //Log initialization (Log.pde)
-  logInit();
+  comInit();
 
   //Pin initialization (Outputs.pde)
   pinInit();
   
   tempInit();
-  
-  #ifdef BTPD_SUPPORT
-    btpdInit();
-  #endif
 
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();
