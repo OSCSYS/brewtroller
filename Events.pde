@@ -24,25 +24,26 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-//Converts a "Virtual Float" (fixed deciaml value represented in tenths, hundredths, thousandths, etc.) to a string
-void vftoa(unsigned long val, char retStr[], byte precision) {
-  char lbuf[11];
-  unsigned int mult = 1;
-  for(byte i = 0; i< precision; i++) mult *=10;
-  unsigned long whole = val / mult;
-  itoa(whole, retStr, 10);
-  strcat(retStr, ".");
-  itoa(val - whole * mult, lbuf, 10);
-  strcat(retStr, lbuf);
-  for (byte i = 0; i < precision - strlen(lbuf); i++) strcat(retStr, "0");
-}
-
-//Truncate a string representation of a float to (length) chars but do not end string with a decimal point
-void truncFloat(char string[], byte length) {
-  if (strlen(string) > length) {
-    if (string[length - 1] == '.') string[length - 1] = '\0';
-    else string[length] = '\0';
+void eventHandler(byte eventID, int eventParam) {
+  //Global Event handler
+  if (eventID == EVENT_STEPINIT) {
+    //Nothing to do here (Pass to UI handler below)
   }
+  else if (eventID == EVENT_SETPOINT) {
+    //Setpoint Change (Update AutoValve Logic)
+    if (eventParam == VS_MASH) { 
+      if (setpoint[VS_MASH]) autoValve[AV_MASH] = 1; 
+      else { 
+        autoValve[AV_MASH] = 0; 
+        if (vlvConfigIsActive(VLV_MASHIDLE)) setValves(vlvConfig[VLV_MASHIDLE], 0); 
+        if (vlvConfigIsActive(VLV_MASHHEAT)) setValves(vlvConfig[VLV_MASHHEAT], 0); 
+      } 
+    }
+  }
+
+  
+  #ifndef NOUI
+  //Pass Event Info to UI Even Handler
+  uiEvent(eventID, eventParam);
+#endif
 }
-
-

@@ -22,418 +22,519 @@ Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
 Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
-
-Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
-With Sanguino Software v1.4 (http://code.google.com/p/sanguino/downloads/list)
-using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
-using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
 
 #include <avr/eeprom.h>
 #include <EEPROM.h>
 
-void saveSetup() {
-  //Walk through the 6 tSensor elements and store 8-byte address of each
-  //HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39), BEEROUT (40-47)
-  for (byte i = TS_HLT; i <= TS_BEEROUT; i++) PROMwriteBytes(i * 8, tSensor[i], 8);
-
-  //Option Array (48)
-  byte options = B00000000;
-  if (PIDEnabled[VS_HLT]) options |= 2;
-  if (PIDEnabled[VS_MASH]) options |= 4;
-  if (PIDEnabled[VS_KETTLE]) options |= 8;
-  if (PIDEnabled[VS_STEAM]) options |= 16;
-  EEPROM.write(48, options);
-  
-  //Output Settings for HLT (49-53), MASH (54 - 58) and KETTLE (59 - 63)
-  //Volume Settings for HLT (64-71), MASH (72 - 79) and KETTLE (80 - 87)
-  for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-    EEPROM.write(i * 5 + 49, PIDp[i]);
-    EEPROM.write(i * 5 + 50, PIDi[i]);
-    EEPROM.write(i * 5 + 51, PIDd[i]);
-    EEPROM.write(i * 5 + 52, PIDCycle[i]);
-    EEPROM.write(i * 5 + 53, hysteresis[i]);
-    PROMwriteLong(i * 8 + 64, capacity[i]);
-    PROMwriteLong(i * 8 + 68, volLoss[i]);
-  }
-  
-  //88-91, 93 Output Settings for Steam
-  EEPROM.write(88, PIDp[VS_STEAM]);
-  EEPROM.write(89, PIDi[VS_STEAM]);
-  EEPROM.write(90, PIDd[VS_STEAM]);
-  EEPROM.write(91, PIDCycle[VS_STEAM]);
-  EEPROM.write(93, hysteresis[VS_STEAM]);
-    
-  EEPROM.write(92, evapRate);
-
-  //94 - 114 Reserved for Power Recovery
-
-  //115-116 Steam Zero
-  PROMwriteInt(115, steamZero);
-
-  //117 *** OPEN ***
-  //118-125 AUX1 TSensor Addr
-  PROMwriteBytes(118, tSensor[TS_AUX1], 8);
-
-  //126 - 129 Reserved for Power Recovery
-  //130 Boil Temp
-  //131 - 135 Reserved for Power Recovery
-  //136 - 141 Zero Volumes
-  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) PROMwriteInt(136 + vessel * 2, zeroVol[vessel]);
-
-  EEPROM.write(142, steamTgt);
-  PROMwriteInt(143, steamPSens);
-  
-  //145 Boil Power
-  //146 - 149 Reserved for Power Recovery
-  //150 ***OPEN***
-  //151-155 Power Recovery
-  //156-1310 Saved Programs
-  //1311-1797 *** OPEN ***
-  //1798-1849 Valve Profiles
-  PROMwriteLong(1798, vlvConfig[VLV_DRAIN]);
-  PROMwriteLong(1802, vlvConfig[VLV_BOILRECIRC]);
-  for (byte profile = VLV_FILLHLT; profile <= VLV_CHILLBEER; profile ++) PROMwriteLong(1806 + (profile) * 4, vlvConfig[profile]);
-  
-  //1850-1857 AUX2 TSensor Addr
-  PROMwriteBytes(1850, tSensor[TS_AUX2], 8);
-
-  //1858-1860 ***OPEN***
-  
-  //Set all Volume Calibrations for a given vessel (EEPROM Bytes 1861 - 2040)
-  // vessel: 0-2 Corresponding to TS_HLT, TS_MASH, TS_KETTLE
-  // slot: 0-9 Individual slots representing a single volume/value pairing
-  // vol: The volume for this calibration as a long in thousandths (1000 = 1)
-  // val: An int representing the analogReadValue() to pair to the given volume
-  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
-    for (byte slot = 0; slot < 10; slot++) {
-      PROMwriteLong(1861 + slot * 4 + vessel * 60, calibVols[vessel][slot]);
-      PROMwriteInt(1901 + slot * 2 + vessel * 60, calibVals[vessel][slot]);
-    }
-  }
-  //2041-2045 ***OPEN***
-  //2046 BrewTroller Fingerprint
-  //2047 EEPROM Version
-}
-
 void loadSetup() {
-  //Walk through the 6 tSensor elements and load 8-byte address of each
-  //HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39), BEEROUT (40-47)
-  for (byte i = TS_HLT; i <= TS_BEEROUT; i++) PROMreadBytes(i * 8, tSensor[i], 8);
+  //**********************************************************************************
+  //TSensors: HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39),
+  //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
+  //**********************************************************************************
+  for (byte i = TS_HLT; i <= TS_AUX3; i++) PROMreadBytes(i * 8, tSensor[i], 8);
+  #ifdef HLT_AS_KETTLE
+    PROMreadBytes(0, tSensor[TS_KETTLE], 8);
+  #endif
  
-  //Option Array (48)
-  byte options = EEPROM.read(48);
-  if (options & 2) PIDEnabled[VS_HLT] = 1; else PIDEnabled[VS_HLT] = 0;
-  if (options & 4) PIDEnabled[VS_MASH] = 1; else PIDEnabled[VS_MASH] = 0;
-  if (options & 8) PIDEnabled[VS_KETTLE] = 1; else PIDEnabled[VS_KETTLE] = 0;
-  if (options & 16) PIDEnabled[VS_STEAM] = 1; else PIDEnabled[VS_STEAM] = 0;
-  
-  //Output Settings for HLT (49-53), MASH (54 - 58) and KETTLE (59 - 63)
-  //Volume Settings for HLT (64-71), MASH (72 - 79) and KETTLE (80 - 87)
-  for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-    PIDp[i] = EEPROM.read(i * 5 + 49);
-    PIDi[i] = EEPROM.read(i * 5 + 50);
-    PIDd[i] = EEPROM.read(i * 5 + 51);
-    PIDCycle[i] = EEPROM.read(i * 5 + 52);
-    hysteresis[i] = EEPROM.read(i * 5 + 53);
-    capacity[i] = PROMreadLong(i * 8 + 64);
-    volLoss[i] = PROMreadLong(i * 8 + 68);
-  }
-
-  //88-91, 93 Output Settings for Steam
-  PIDp[VS_STEAM] = EEPROM.read(88);
-  PIDi[VS_STEAM] = EEPROM.read(89);
-  PIDd[VS_STEAM] = EEPROM.read(90);
-  PIDCycle[VS_STEAM] = EEPROM.read(91);
-  hysteresis[VS_STEAM] = EEPROM.read(93);
-  
-  evapRate = EEPROM.read(92);
-  pwrRecovery = EEPROM.read(94); 
-  recoveryStep = EEPROM.read(95); 
-  //94 - 114 Reserved for Power Recovery
-
-  //115-116 Steam Zero
-  steamZero = PROMreadInt(115);
-
-  //117 *** OPEN ***
-  //118-125 AUX1 TSensor Addr
-  PROMreadBytes(118, tSensor[TS_AUX1], 8);
-  
-  //126 - 129 Reserved for Power Recovery  //130 Boil Temp
-  //131 - 135 Reserved for Power Recovery
-  //136 - 141 Zero Volumes
-  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) zeroVol[vessel] = PROMreadInt(136 + vessel * 2);
-  
-  steamTgt = EEPROM.read(142);
-  steamPSens = PROMreadInt(143);
-
-  //145 Boil Power
-  //146 - 149 Reserved for Power Recovery
-  //150 ***OPEN***
-  //151-155 Power Recovery
-  //156-1310 Saved Programs
-  //1311-1797 *** OPEN ***
-  //1798-1849 Valve Profiles
-  vlvConfig[VLV_DRAIN] = PROMreadLong(1798);
-  vlvConfig[VLV_BOILRECIRC] = PROMreadLong(1802);
-  for (byte profile = VLV_FILLHLT; profile <= VLV_CHILLBEER; profile ++) vlvConfig[profile] = PROMreadLong(1806 + (profile) * 4);
-
-  //1850 - 1857 AUX2 TSensor Addr
-  PROMreadBytes(1850, tSensor[TS_AUX2], 8);
-  
-  // 1858 - 1860 ***OPEN***
-
-  //Get all Volume Calibrations for a given vessel (EEPROM Bytes 1861 - 2040)
-  // vessel: 0-2 Corresponding to TS_HLT, TS_MASH, TS_KETTLE
-  // vol: The volume for this calibration as a long in thousandths (1000 = 1)
-  // val: An int representing the analogReadValue() to pair to the given volume
-  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
-    for (byte slot = 0; slot < 10; slot++) {
-      calibVols[vessel][slot] = PROMreadLong(1861 + slot * 4 + vessel * 60);
-      calibVals[vessel][slot] = PROMreadInt(1901 + slot * 2 + vessel * 60);
+  //**********************************************************************************
+  //PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam
+  //PIDp HLT (73), Mash (78), Kettle (83), Steam (88)
+  //PIDi HLT (74), Mash (79), Kettle (84), Steam (89)
+  //PIDd HLT (75), Mash (80), Kettle (85), Steam (90)
+  //PIDCycle HLT (76), Mash (81), Kettle (86), Steam (91)
+  //Hysteresis HLT (77), Mash (82), Kettle (87), Steam (92)
+  //**********************************************************************************
+  {
+    byte options = EEPROM.read(72);
+    for (byte i = VS_HLT; i <= VS_STEAM; i++) {
+      PIDEnabled[i] = bitRead(options, i);
+      PIDCycle[i] = EEPROM.read(76 + i * 5);
+      hysteresis[i] = EEPROM.read(77 + i * 5);
     }
   }
   
-  //2041-2045 ***OPEN***
-  //2046 BrewTroller Fingerprint
-  //2047 EEPROM Version
-}
+  //**********************************************************************************
+  //boilPwr (112)
+  //**********************************************************************************
+  boilPwr = EEPROM.read(112);
+  //**********************************************************************************
+  //steamZero (114)
+  //**********************************************************************************
+  steamZero = PROMreadInt(114);
+  //**********************************************************************************
+  //steamPSens (117-118)
+  //**********************************************************************************
+  steamPSens = PROMreadInt(117);
 
-void PROMwriteBytes(int addr, byte bytes[], byte numBytes) {
-  for (byte i = 0; i < numBytes; i++) {
-    EEPROM.write(addr + i, bytes[i]);
+  //**********************************************************************************
+  //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
+  //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
+  //**********************************************************************************
+  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
+    for (byte slot = 0; slot < 10; slot++) {
+      calibVols[vessel][slot] = PROMreadLong(119 + vessel * 40 + slot * 4);
+      calibVals[vessel][slot] = PROMreadInt(239 + vessel * 20 + slot * 2);
+    }
   }
-}
 
-void PROMreadBytes(int addr, byte bytes[], byte numBytes) {
-  for (byte i = 0; i < numBytes; i++) {
-    bytes[i] = EEPROM.read(addr + i);
+  //**********************************************************************************
+  //setpoints (299-301)
+  //**********************************************************************************
+  for (byte i=VS_HLT; i<=VS_KETTLE; i++) { 
+    setpoint[i] = EEPROM.read(299 + i) * 100;
+    eventHandler(EVENT_SETPOINT, i);
   }
+  
+  //**********************************************************************************
+  //timers (302-305)
+  //**********************************************************************************
+  for (byte i=TIMER_MASH; i<=TIMER_BOIL; i++) { timerValue[i] = PROMreadInt(302 + i * 2) * 60000; }
+
+  //**********************************************************************************
+  //Timer/Alarm Status (306)
+  //**********************************************************************************
+  byte options = EEPROM.read(306);
+  for (byte i = TIMER_MASH; i <= TIMER_BOIL; i++) {
+    timerStatus[i] = bitRead(options, i);
+    lastTime[i] = millis();
+  }
+  alarmStatus = bitRead(options, 2);
+  alarmPin.set(alarmStatus);
+  
+  #ifdef DEBUG_TIMERALARM
+    logStart_P(LOGDEBUG);
+    logField("TimerAlarmStatus");
+    logFieldI(bitRead(options, 0));
+    logFieldI(bitRead(options, 1));
+    logFieldI(bitRead(options, 2));
+    logEnd();
+  #endif
+  
+
+  //**********************************************************************************
+  //Step (313-327) NUM_BREW_STEPS (15)
+  //**********************************************************************************
+  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepInit(EEPROM.read(313 + brewStep), brewStep);
+
+  //**********************************************************************************
+  //401-452 Valve Profiles
+  //**********************************************************************************
+  for (byte profile = VLV_FILLHLT; profile <= VLV_DRAIN; profile++) vlvConfig[profile] = PROMreadLong(401 + profile * 4);
+
 }
 
-void checkConfig() {
+
+//*****************************************************************************************************************************
+// Individual EEPROM Get/Set Variable Functions
+//*****************************************************************************************************************************
+
+//**********************************************************************************
+//TSensors: HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39), 
+//          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
+//**********************************************************************************
+void setTSAddr(byte sensor, byte addr[8]) {
+  for (byte i = 0; i<8; i++) tSensor[sensor][i] = addr[i];
+  PROMwriteBytes(sensor * 8, addr, 8);
+}
+
+//**********************************************************************************
+//PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam
+//**********************************************************************************
+void setPIDEnabled(byte vessel, boolean setting) {
+  PIDEnabled[vessel] = setting;
+  byte options = EEPROM.read(72);
+  bitWrite(options, vessel, setting);
+  EEPROM.write(72, options);
+}
+
+
+//**********************************************************************************
+//PIDp HLT (73), Mash (78), Kettle (83), Steam (88)
+//**********************************************************************************
+void setPIDp(byte vessel, byte value) {
+  pid[vessel].SetTunings(value, pid[vessel].GetI_Param(), pid[vessel].GetD_Param());
+  EEPROM.write(73 + vessel * 5, value);
+}
+byte getPIDp(byte vessel) { return EEPROM.read(73 + vessel * 5); }
+
+//**********************************************************************************
+//PIDi HLT (74), Mash (79), Kettle (84), Steam (89)
+//**********************************************************************************
+void setPIDi(byte vessel, byte value) {
+  pid[vessel].SetTunings(pid[vessel].GetP_Param(), value, pid[vessel].GetD_Param());
+  EEPROM.write(74 + vessel * 5, value);
+}
+byte getPIDi(byte vessel) { return EEPROM.read(74 + vessel * 5); }
+
+//**********************************************************************************
+//PIDd HLT (75), Mash (80), Kettle (85), Steam (90)
+//**********************************************************************************
+void setPIDd(byte vessel, byte value) {
+  pid[vessel].SetTunings(pid[vessel].GetP_Param(), pid[vessel].GetI_Param(), value);
+  EEPROM.write(75 + vessel * 5, value);
+}
+byte getPIDd(byte vessel) { return EEPROM.read(75 + vessel * 5); }
+
+//**********************************************************************************
+//PIDCycle HLT (76), Mash (81), Kettle (86), Steam (91)
+//**********************************************************************************
+void setPIDCycle(byte vessel, byte value) {
+  PIDCycle[vessel] = value;
+  EEPROM.write(76 + vessel * 5, value);
+}
+
+//**********************************************************************************
+//Hysteresis HLT (77), Mash (82), Kettle (87), Steam (92)
+//**********************************************************************************
+void setHysteresis(byte vessel, byte value) {
+  hysteresis[vessel] = value;
+  EEPROM.write(77 + vessel * 5, value);
+}
+
+//**********************************************************************************
+//Capacity HLT (93-96), Mash (97-100), Kettle (101-104)
+//**********************************************************************************
+void setCapacity(byte vessel, unsigned long value) {
+  PROMwriteLong(93 + vessel * 4, value);
+}
+unsigned long getCapacity(byte vessel) { return PROMreadLong(93 + vessel * 4); }
+
+//**********************************************************************************
+//volLoss HLT (105-106), Mash (107-108), Kettle (109-110)
+//**********************************************************************************
+void setVolLoss(byte vessel, unsigned int value) {
+  PROMwriteInt(105 + vessel * 2, value);
+}
+unsigned int getVolLoss(byte vessel) { return PROMreadInt(105 + vessel * 2); }
+
+//**********************************************************************************
+//Boil Temp (111)
+//**********************************************************************************
+byte getBoilTemp() { return EEPROM.read(111); }
+void setBoilTemp(byte boilTemp) { EEPROM.write(111, boilTemp); }
+
+//**********************************************************************************
+//Boil Power (112)
+//**********************************************************************************
+void setBoilPwr(byte value) { 
+  boilPwr = value;
+  EEPROM.write(112, value); 
+}
+
+//**********************************************************************************
+//evapRate (113)
+//**********************************************************************************
+void setEvapRate(byte value) {
+  EEPROM.write(113, value);
+}
+byte getEvapRate() { return EEPROM.read(113); }
+
+//**********************************************************************************
+//steamZero (114-115)
+//**********************************************************************************
+void setSteamZero(unsigned int value) {
+  steamZero = value;
+  PROMwriteInt(114, value);
+}
+
+//**********************************************************************************
+//steamTgt (116)
+//**********************************************************************************
+void setSteamTgt(byte value) { EEPROM.write(116, value); }
+byte getSteamTgt() { return EEPROM.read(116); }
+
+//**********************************************************************************
+//steamPSens (117-118)
+//**********************************************************************************
+void setSteamPSens(unsigned int value) {
+  steamPSens = value;
+  #ifdef USEMETRIC
+    pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
+  #else
+    pid[VS_STEAM].SetInputLimits(0, 7250 / steamPSens);
+  #endif
+  PROMwriteInt(117, value);
+}
+
+//**********************************************************************************
+//calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
+//calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
+//**********************************************************************************
+void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) {
+  calibVols[vessel][slot] = vol;
+  calibVals[vessel][slot] = value;
+  PROMwriteLong(119 + vessel * 40 + slot * 4, vol);
+  PROMwriteInt(239 + vessel * 20 + slot * 2, value);
+}
+
+//*****************************************************************************************************************************
+// Power Loss Recovery Functions
+//*****************************************************************************************************************************
+
+//**********************************************************************************
+//setpoints (299-301)
+//**********************************************************************************
+void setSetpoint(byte vessel, byte value) { 
+  setpoint[vessel] = value * 100;
+  EEPROM.write(299 + vessel, value);
+  eventHandler(EVENT_SETPOINT, vessel);
+}
+
+//**********************************************************************************
+//timers (302-305)
+//**********************************************************************************
+void setTimerRecovery(byte timer, unsigned int newMins) { PROMwriteInt(302 + timer * 2, newMins); }
+
+//**********************************************************************************
+//Timer/Alarm Status (306)
+//**********************************************************************************
+void setTimerStatus(byte timer, boolean value) {
+  timerStatus[timer] = value;
+  byte options = EEPROM.read(306);
+  bitWrite(options, timer, value);
+  EEPROM.write(306, options);
+  
+  #ifdef DEBUG_TIMERALARM
+    logStart_P(LOGDEBUG);
+    logField("setTimerStatus");
+    logFieldI(value);
+    options = EEPROM.read(306);
+    logFieldI(bitRead(options, timer));    
+    logEnd();
+  #endif
+}
+
+void setAlarmStatus(boolean value) {
+  alarmStatus = value;
+  byte options = EEPROM.read(306);
+  bitWrite(options, 2, value);
+  EEPROM.write(306, options);
+  
+  #ifdef DEBUG_TIMERALARM
+    logStart_P(LOGDEBUG);
+    logField("setAlarmStatus");
+    logFieldI(value);
+    options = EEPROM.read(306);
+    logFieldI(bitRead(options, 2));
+    logEnd();
+  #endif
+}
+
+
+
+//**********************************************************************************
+//Triggered Boil Addition Alarms (307-308)
+//**********************************************************************************
+unsigned int getBoilAddsTrig() { return PROMreadInt(307); }
+void setBoilAddsTrig(unsigned int adds) { PROMwriteInt(307, adds); }
+
+//**********************************************************************************
+// ***OPEN*** (309-312)
+//**********************************************************************************
+
+
+//**********************************************************************************
+//Step (313-327) NUM_BREW_STEPS (15)
+//**********************************************************************************
+void setProgramStep(byte brewStep, byte actPgm) {
+  stepProgram[brewStep] = actPgm;
+  EEPROM.write(313 + brewStep, actPgm); 
+}
+
+//**********************************************************************************
+//Reserved (328-399)
+//**********************************************************************************
+
+//**********************************************************************************
+//Delay Start (Mins) (398-399)
+//**********************************************************************************
+unsigned int getDelayMins() { return PROMreadInt(398); }
+void setDelayMins(unsigned int mins) { PROMwriteInt(398, mins); }
+
+//**********************************************************************************
+//Grain Temp (400)
+//**********************************************************************************
+void setGrainTemp(byte grainTemp) { EEPROM.write(400, grainTemp); }
+byte getGrainTemp() { return EEPROM.read(400); }
+
+//*****************************************************************************************************************************
+// Valve Profile Configuration (401-452; 453-785 Reserved)
+//*****************************************************************************************************************************
+void setValveCfg(byte profile, unsigned long value) {
+  vlvConfig[profile] = value;
+  PROMwriteLong(401 + profile * 4, value);
+}
+
+//*****************************************************************************************************************************
+// Program Load/Save Functions (786- 2045)
+//*****************************************************************************************************************************
+#define PROGRAM_SIZE 60
+#define PROGRAM_START_ADDR 786
+
+//**********************************************************************************
+//Program Name (P:0-20)
+//**********************************************************************************
+void setProgName(byte preset, char name[20]) {
+  for (byte i = 0; i < 19; i++) EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + i, name[i]);
+}
+
+void getProgName(byte preset, char name[20]) {
+  for (byte i = 0; i < 19; i++) name[i] = EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + i);
+  name[19] = '\0';
+}
+
+//**********************************************************************************
+//Sparge Temp (P:21)
+//**********************************************************************************
+void setProgSparge(byte preset, byte sparge) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 21, sparge); }
+byte getProgSparge(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 21); }
+
+//**********************************************************************************
+//Boil Mins (P:22-23)
+//**********************************************************************************
+void setProgBoil(byte preset, unsigned int boilMins) { PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22, boilMins); }
+unsigned int getProgBoil(byte preset) { return PROMreadInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22); }
+
+//**********************************************************************************
+//Mash Ratio (P:24-25)
+//**********************************************************************************
+void setProgRatio(byte preset, unsigned int ratio) { PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 24, ratio); }
+unsigned int getProgRatio(byte preset) { return PROMreadInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 24); }
+
+//**********************************************************************************
+//Mash Temps (P:26-31)
+//**********************************************************************************
+void setProgMashTemp(byte preset, byte mashStep, byte mashTemp) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 26 + mashStep, mashTemp); }
+byte getProgMashTemp(byte preset, byte mashStep) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 26 + mashStep); }
+
+//**********************************************************************************
+//Mash Times (P:32-37)
+//**********************************************************************************
+void setProgMashMins(byte preset, byte mashStep, byte mashMins) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep, mashMins); }
+byte getProgMashMins(byte preset, byte mashStep) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep); }
+
+//**********************************************************************************
+//Batch Vol (P:38-41)
+//**********************************************************************************
+unsigned long getProgBatchVol(byte preset) { return PROMreadLong(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 38); }
+void setProgBatchVol (byte preset, unsigned long vol) { PROMwriteLong(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 38, vol); }
+
+//**********************************************************************************
+//Mash Liquor Heat Source (P:42)
+//**********************************************************************************
+void setProgMLHeatSrc(byte preset, byte vessel) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 42, vessel); }
+byte getProgMLHeatSrc(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 42); }
+
+//**********************************************************************************
+//HLT Temp (P:43)
+//**********************************************************************************
+void setProgHLT(byte preset, byte HLT) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 43, HLT); }
+byte getProgHLT(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 43); }
+
+//**********************************************************************************
+//Pitch Temp (P:44)
+//**********************************************************************************
+void setProgPitch(byte preset, byte pitch) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 44, pitch); }
+byte getProgPitch(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 44); }
+
+//**********************************************************************************
+//Boil Addition Alarms (P:45-46)
+//**********************************************************************************
+void setProgAdds(byte preset, unsigned int adds) { PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 45, adds); }
+unsigned int getProgAdds(byte preset) { return PROMreadInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 45); }
+
+//**********************************************************************************
+//Grain Weight (P:47-50)
+//**********************************************************************************
+void setProgGrain(byte preset, unsigned long grain) { PROMwriteLong(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 47, grain); }
+unsigned long getProgGrain(byte preset) { return PROMreadLong(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 47); }
+
+//**********************************************************************************
+//OPEN (P:51-59)
+//**********************************************************************************
+
+//**********************************************************************************
+//BrewTroller Fingerprint (2046)
+//**********************************************************************************
+
+//**********************************************************************************
+//EEPROM Version (2047)
+//**********************************************************************************
+
+
+//*****************************************************************************************************************************
+// Check/Update/Format EEPROM
+//*****************************************************************************************************************************
+boolean checkConfig() {
   byte cfgVersion = EEPROM.read(2047);
   byte BTFinger = EEPROM.read(2046);
-  
-#ifdef DEBUG
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("CFGVER"));
-  logFieldI(cfgVersion);
-  logEnd();
-#endif
 
-  //If the cfgVersion is newer than 6 and the BT fingerprint is missing force a init of EEPROM
+  //If the BT 1.3 fingerprint is missing force a init of EEPROM
   //FermTroller will bump to a cfgVersion starting at 7
-  if (BTFinger != 254 && cfgVersion > 6) cfgVersion = 0;
-  if (cfgVersion == 255) cfgVersion = 0;
+  if (BTFinger != 252 || cfgVersion == 255) return 1;
+
+  //In the future, incremental EEPROM settings will be included here
   switch(cfgVersion) {
     case 0:
-      clearLCD();
-      printLCD_P(0, 0, PSTR("Missing Config"));
-      {
-        strcpy_P(menuopts[0], INIT_EEPROM);
-        strcpy_P(menuopts[1], CANCEL);
-        if (!getChoice(2, 3)) {
-          clearLCD();
-          logString_P(LOGSYS, INIT_EEPROM);
-          printLCD_P(1, 0, INIT_EEPROM);
-          printLCD_P(2, 3, PSTR("Please Wait..."));
-          //Format EEPROM to 0's
-          for (int i=0; i<2048; i++) EEPROM.write(i, 0);
-          {
-            //Default Output Settings: p: 3, i: 4, d: 2, cycle: 4s, Hysteresis 0.3C(0.5F)
-            #ifdef USEMETRIC
-              byte defOutputSettings[5] = {3, 4, 2, 4, 3};
-            #else
-              byte defOutputSettings[5] = {3, 4, 2, 4, 5};
-            #endif
-            PROMwriteBytes(49, defOutputSettings, 5);
-            PROMwriteBytes(54, defOutputSettings, 5);
-            PROMwriteBytes(59, defOutputSettings, 5);
-          }
-        }
-      }
+      //Supported PID cycle is changing from 1-255 to .1-25.5
+      //All current PID cycle settings will be multiplied by 10 to represent tenths (s)
+      for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
       //Set cfgVersion = 1
       EEPROM.write(2047, 1);
-    case 1:
-      //Default Grain Temp = 60F/16C
-      //If F else C
-      #ifdef USEMETRIC
-        EEPROM.write(156, 16);
-      #else
-        EEPROM.write(156, 60);
-      #endif
-      EEPROM.write(2047, 2);
-    case 2:
-      //Default Programs
-#ifdef MODULE_DEFAULTABPROGS
-      {
-        setProgName(0, "Single Infusion");
-        #ifdef USEMETRIC
-          byte temps[4] = {0, 0, 67, 0};
-          byte mins[4] = {0, 0, 60, 0};
-          setProgSchedule(0, temps, mins);
-          setProgSparge(0, 76);
-          setProgHLT(0, 82);
-          setProgRatio(0, 277);
-          setProgPitch(0, 21);
-          setProgGrainT(0, 16);
-        #else
-          byte temps[4] = {0, 0, 153, 0};
-          byte mins[4] = {0, 0, 60, 0};
-          setProgSchedule(0, temps, mins);
-          setProgSparge(0, 168);
-          setProgHLT(0, 180);
-          setProgRatio(0, 133);
-          setProgPitch(0, 70);
-          setProgGrainT(0, 60);
-        #endif
-        setProgBoil(0, 60);
-        setProgGrain(0, 0);
-        setProgDelay(0, 0);
-        setProgMLHeatSrc(0, 0);
-        setProgAdds(0, 0);
-      }
-      {
-        setProgName(1, "Multi-Rest");
-        #ifdef USEMETRIC
-          byte temps[4] = {40, 50, 67, 0};
-          byte mins[4] = {20, 20, 60, 0};
-          setProgSchedule(1, temps, mins);
-          setProgSparge(1, 76);
-          setProgHLT(1, 82);
-          setProgRatio(1, 277);
-          setProgPitch(1, 21);
-          setProgGrainT(1, 16);
-        #else
-          byte temps[4] = {104, 122, 153, 0};
-          byte mins[4] = {20, 20, 60, 0};
-          setProgSchedule(1, temps, mins);
-          setProgSparge(1, 168);
-          setProgHLT(1, 180);
-          setProgRatio(1, 133);
-          setProgPitch(1, 70);
-          setProgGrainT(1, 60);
-        #endif
-
-        setProgBoil(1, 60);
-        setProgGrain(1, 0);
-        setProgDelay(1, 0);
-        setProgMLHeatSrc(1, 0);
-        setProgAdds(1, 0);
-      }
-#endif
-      EEPROM.write(2047, 3);
-    case 3:
-      //Move Valve Configs from old 2-Byte EEPROM (136-151) to new 4-Byte Locations
-      for (byte profile = VLV_FILLHLT; profile <= VLV_CHILLBEER; profile ++) PROMwriteLong(1806 + (profile) * 4, PROMreadInt(136 + profile * 2));
-      EEPROM.write(2047, 4);
-    case 4:
-      //Default Steam Output Settings
-      EEPROM.write(88, 3);
-      EEPROM.write(89, 4);
-      EEPROM.write(90, 2);
-      EEPROM.write(91, 4);
-      #ifdef USEMETRIC
-        EEPROM.write(93, 3);
-      #else
-        EEPROM.write(93, 5);
-      #endif
-      EEPROM.write(2047, 5);
-    case 5:
-      //Set Default Boil temp 212F/100C
-      #ifdef USEMETRIC
-        setBoilTemp(100);
-      #else
-        setBoilTemp(212);
-      #endif
-      EEPROM.write(2047, 6);
-    case 6:
-      //Add BT Fingerprint (254)
-      EEPROM.write(2046, 254);
-      EEPROM.write(2047, 7);
-    case 7:
-      //Move Profiles 6 & 7 +12 
-      PROMwriteLong(1846, PROMreadLong(1834));
-      PROMwriteLong(1842, PROMreadLong(1830));
-      //Move Profiles 2 - 5 +4
-      PROMwriteLong(1830, PROMreadLong(1826));
-      PROMwriteLong(1826, PROMreadLong(1822));
-      PROMwriteLong(1822, PROMreadLong(1818));
-      PROMwriteLong(1818, PROMreadLong(1814));
-      //Zero out new profiles
-      PROMwriteLong(1814, 0);
-      PROMwriteLong(1834, 0);
-      PROMwriteLong(1838, 0);
-      EEPROM.write(2047, 8);
-    case 8:
-      setBoilPwr(100);
-      EEPROM.write(2047, 9);
-    case 9:
-      setMLHeatSrc(VS_MASH);
-      //Zero out unused program tgtvol bytes and set MLHeatSrc for each program to Mash Tun
-      for (byte preset = 0; preset < 20; preset++) {
-        EEPROM.write(preset * 55 + 198, 1);
-        for (byte i = 199; i <= 205; i++) EEPROM.write(preset * 55 + i, 0);
-      }
-      EEPROM.write(2047, 10);
-    case 10:
-      //Zero Out Aux1/AUX2 TSensor Addresses
-      for (byte i = 118; i <= 125; i++) EEPROM.write(i, 0);
-      for (unsigned int i = 1850; i <= 1857; i++) EEPROM.write(i, 0);
-      EEPROM.write(2047, 11);
-    case 11: 
-      //Swap P/V 3&4 in existing Valve Profiles
-      for (byte i = VLV_FILLHLT; i <= VLV_CHILLBEER; i++) {
-        unsigned long vlvs = PROMreadLong(1806 + i * 4);
-        vlvs = (vlvs & 0xFFFFFFF3) | ((vlvs>>1) & B100) | ((vlvs<<1) & B1000);
-        PROMwriteLong(1806 + i * 4, vlvs);
-      }
-      EEPROM.write(2047, 12);
-      
-    case 12: 
-      //Zero Out Boil Recirc Profile
-      PROMwriteLong(1802, 0);
-      EEPROM.write(2047, 13);
-      
-    case 13:
-      //Add Clean Program
-      {
-        setProgName(20, "Clean");
-        #ifdef USEMETRIC
-          byte temps[4] = {0, 0, 60, 0};
-          byte mins[4] = {0, 0, 5, 0};
-          setProgSchedule(20, temps, mins);
-          setProgSparge(20, 76);
-          setProgHLT(20, 82);
-          setProgRatio(20, 277);
-          setProgPitch(20, 21);
-          setProgGrainT(20, 16);
-        #else
-          byte temps[4] = {0, 0, 140, 0};
-          byte mins[4] = {0, 0, 5, 0};
-          setProgSchedule(20, temps, mins);
-          setProgSparge(20, 168);
-          setProgHLT(20, 180);
-          setProgRatio(20, 133);
-          setProgPitch(20, 70);
-          setProgGrainT(20, 60);
-        #endif
-
-        setProgBoil(20, 0);
-        setProgGrain(20, 0);
-        setProgDelay(20, 0);
-        setProgMLHeatSrc(20, 0);
-        setProgAdds(20, 0);
-      }
-      EEPROM.write(2047, 14);
-    default:
-      //No EEPROM Upgrade Required
-      return;
   }
+  return 0;
 }
 
+void initEEPROM() {
+  //Format EEPROM to 0's
+  for (int i=0; i<2048; i++) EEPROM.write(i, 0);
+
+  //Set BT 1.3 Fingerprint (252)
+  EEPROM.write(2046, 252);
+
+  //Default Output Settings: p: 3, i: 4, d: 2, cycle: 4s, Hysteresis 0.3C(0.5F)
+  for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) {
+    setPIDp(vessel, 3);
+    setPIDi(vessel, 4);
+    setPIDd(vessel, 2);
+    setPIDCycle(vessel, 4);
+    if (vessel != VS_STEAM)
+    #ifdef USEMETRIC
+      setHysteresis(vessel, 3);
+    #else
+      setHysteresis(vessel, 5);      
+    #endif
+  }
+
+  //Default Grain Temp = 60F/16C
+  //If F else C
+  #ifdef USEMETRIC
+    setGrainTemp(16);
+  #else
+    setGrainTemp(60);
+  #endif
+
+  //Set Default Boil temp 212F/100C
+  #ifdef USEMETRIC
+    setBoilTemp(100);
+  #else
+    setBoilTemp(212);
+  #endif
+
+  setBoilPwr(100);
+
+  //Set all steps idle
+  for (byte i = 0; i < NUM_BREW_STEPS; i++) setProgramStep(i, PROGRAM_IDLE);
+
+  //Set cfgVersion = 0
+  EEPROM.write(2047, 0);
+}
+
+//*****************************************************************************************************************************
+// EEPROM Type Read/Write Functions
+//*****************************************************************************************************************************
 long PROMreadLong(int address) {
   long out;
   eeprom_read_block((void *) &out, (unsigned char *) address, 4);
@@ -454,137 +555,15 @@ void PROMwriteInt(int address, int value) {
   eeprom_write_block((void *) &value, (unsigned char *) address, 2);
 }
 
-void setPwrRecovery(byte funcValue) {
-  pwrRecovery = funcValue;
-  EEPROM.write(94, funcValue);
-}
-
-void setABRecovery(byte ABStep) { 
-  recoveryStep = ABStep;
-  EEPROM.write(95, ABStep);
-}
-
-byte getABSparge() { return EEPROM.read(96); }
-void setABSparge(byte spargeTemp) { EEPROM.write(96, spargeTemp); }
-unsigned long getABGrain() { return PROMreadLong(97); }
-void setABGrain(unsigned long grainWeight) { PROMwriteLong(97, grainWeight); }
-unsigned int getABDelay() { return PROMreadInt(101); }
-void setABDelay(unsigned int delayMins) { PROMwriteInt(101, delayMins); }
-unsigned int getABBoil() { return PROMreadInt(103); }
-void setABBoil(unsigned int boilMins) { PROMwriteInt(103, boilMins); }
-unsigned int getABRatio() { return PROMreadInt(105); }
-void setABRatio(unsigned int mashRatio) { PROMwriteInt(105, mashRatio); }
-void loadABSteps(byte stepTemp[4], byte stepMins[4]) { 
-  for (byte i=0; i<4; i++) {
-    stepTemp[i] = EEPROM.read(107 + i);
-    stepMins[i] = EEPROM.read(111 + i);
-  }
-}
-void saveABSteps(byte stepTemp[4], byte stepMins[4]) {
-  for (byte i=0; i<4; i++) {
-    EEPROM.write(107 + i, stepTemp[i]);
-    EEPROM.write(111 + i, stepMins[i]);
-  }  
-}
-
-unsigned long getABBatchVol() { return PROMreadLong(146); }
-void setABBatchVol (unsigned long vol) { PROMwriteLong(146, vol); }
-
-unsigned int getABAddsTrig() { return PROMreadInt(128); }
-void setABAddsTrig(unsigned int adds) { PROMwriteInt(128, adds); }
-
-byte getBoilTemp() { return EEPROM.read(130); }
-void setBoilTemp(byte boilTemp) { EEPROM.write(130, boilTemp); }
-
-void loadSetpoints() { for (byte i=TS_HLT; i<=TS_KETTLE; i++) { setpoint[i] = EEPROM.read(131 + i); } }
-void saveSetpoints() { for (byte i=TS_HLT; i<=TS_KETTLE; i++) { EEPROM.write(131 + i, setpoint[i]); } }
-
-unsigned int getTimerRecovery() { return PROMreadInt(134); }
-void setTimerRecovery(unsigned int newMins) { PROMwriteInt(134, newMins); }
-
-//Zero Volumes 136-141 (analogRead of Empty Vessels)
-/* unsigned int loadZeroVols() { for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) zeroVol[vessel] = PROMreadInt(136 + vessel * 2); }
-void saveZeroVols() { 
-  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
-    zeroVol[vessel] = analogRead(vSensor[vessel]);
-    PROMwriteInt(136 + vessel * 2, zeroVol[vessel]);
-  }
-} */
-
-byte getBoilPwr() { return EEPROM.read(145); }
-void setBoilPwr(byte boilPwr) { EEPROM.write(145, boilPwr); }
-
-byte getMLHeatSrc() { return EEPROM.read(151); }
-void setMLHeatSrc(byte vessel) { EEPROM.write(151, vessel); }
-
-byte getABPitch() { return EEPROM.read(152); }
-void setABPitch(byte pitchTemp) { EEPROM.write(152, pitchTemp); }
-
-unsigned int getABAdds() { return PROMreadInt(153); }
-void setABAdds(unsigned int adds) { PROMwriteInt(153, adds); }
-
-byte getABGrainTemp() { return EEPROM.read(127); }
-void setABGrainTemp(byte grainTemp) { EEPROM.write(127, grainTemp); }
-
-byte getABHLTTemp() { return EEPROM.read(155); }
-void setABHLTTemp(byte grainTemp) { EEPROM.write(155, grainTemp); }
-
-
-void setProgName(byte preset, char name[20]) {
-  for (byte i = 0; i < 19; i++) EEPROM.write(preset * 55 + 156 + i, name[i]);
-}
-
-void getProgName(byte preset, char name[20]) {
-  for (byte i = 0; i < 19; i++) name[i] = EEPROM.read(preset * 55 + 156 + i);
-  name[19] = '\0';
-}
-
-void setProgSparge(byte preset, byte sparge) { EEPROM.write(preset * 55 + 175, sparge); }
-byte getProgSparge(byte preset) { return EEPROM.read(preset * 55 + 175); }
-
-void setProgGrain(byte preset, unsigned long grain) { PROMwriteLong(preset * 55 + 176, grain); }
-unsigned long getProgGrain(byte preset) { return PROMreadLong(preset * 55 + 176); }
-
-void setProgDelay(byte preset, unsigned int delayMins) { PROMwriteInt(preset * 55 + 180, delayMins); }
-unsigned int getProgDelay(byte preset) { return PROMreadInt(preset * 55 + 180); }
-
-void setProgBoil(byte preset, unsigned int boilMins) { PROMwriteInt(preset * 55 + 182, boilMins); }
-unsigned int getProgBoil(byte preset) { return PROMreadInt(preset * 55 + 182); }
-
-void setProgRatio(byte preset, unsigned int ratio) { PROMwriteInt(preset * 55 + 184, ratio); }
-unsigned int getProgRatio(byte preset) { return PROMreadInt(preset * 55 + 184); }
-
-void setProgSchedule(byte preset, byte stepTemp[4], byte stepMins[4]) {
-  for (byte i=0; i<4; i++) {
-     EEPROM.write(preset * 55 + 186 + i, stepTemp[i]);
-     EEPROM.write(preset * 55 + 190 + i, stepMins[i]);
+void PROMwriteBytes(int addr, byte bytes[], byte numBytes) {
+  for (byte i = 0; i < numBytes; i++) {
+    EEPROM.write(addr + i, bytes[i]);
   }
 }
 
-void getProgSchedule(byte preset, byte stepTemp[4], byte stepMins[4]) {
-  for (byte i=0; i<4; i++) {
-    stepTemp[i] = EEPROM.read(preset * 55 + 186 + i);
-    stepMins[i] = EEPROM.read(preset * 55 + 190 + i);
+void PROMreadBytes(int addr, byte bytes[], byte numBytes) {
+  for (byte i = 0; i < numBytes; i++) {
+    bytes[i] = EEPROM.read(addr + i);
   }
 }
-
-unsigned long getProgBatchVol(byte preset) { return PROMreadLong(preset * 55 + 194); }
-void setProgBatchVol (byte preset, unsigned long vol) { PROMwriteLong(preset * 55 + 194, vol); }
-
-void setProgMLHeatSrc(byte preset, byte vessel) { EEPROM.write(preset * 55 + 198, vessel); }
-byte getProgMLHeatSrc(byte preset) { return EEPROM.read(preset * 55 + 198); }
-
-// 7 Bytes free per program (+199 through +205)
-
-void setProgHLT(byte preset, byte HLT) { EEPROM.write(preset * 55 + 206, HLT); }
-byte getProgHLT(byte preset) { return EEPROM.read(preset * 55 + 206); }
-
-void setProgPitch(byte preset, byte pitch) { EEPROM.write(preset * 55 + 207, pitch); }
-byte getProgPitch(byte preset) { return EEPROM.read(preset * 55 + 207); }
-
-void setProgAdds(byte preset, unsigned int adds) { PROMwriteInt(preset * 55 + 208, adds); }
-unsigned int getProgAdds(byte preset) { return PROMreadInt(preset * 55 + 208); }
-
-void setProgGrainT(byte preset, byte grain) { EEPROM.write(preset * 55 + 210, grain); }
-byte getProgGrainT(byte preset) { return EEPROM.read(preset * 55 + 210); }
 

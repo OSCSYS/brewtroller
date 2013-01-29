@@ -22,25 +22,50 @@ Software Lead: Matt Reba (matt_AT_brewtroller_DOT_com)
 Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
-
-Compiled on Arduino-0017 (http://arduino.cc/en/Main/Software)
-With Sanguino Software v1.4 (http://code.google.com/p/sanguino/downloads/list)
-using PID Library v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
-using OneWire Library (http://www.arduino.cc/playground/Learning/OneWire)
 */
 
+unsigned long volReadings[3][VOLUME_READ_COUNT], prevFlowVol[3];
+unsigned long lastVolChk, lastFlowChk;
+byte volCount;
 
-unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned int calibrationValues[10], unsigned int zeroValue ) {
+void updateVols() {
+  //Check volume on VOLUME_READ_INTERVAL and update vol with average of VOLUME_READ_COUNT readings
+  if (millis() - lastVolChk > VOLUME_READ_INTERVAL) {
+    for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+      volReadings[i][volCount] = readVolume(vSensor[i], calibVols[i], calibVals[i]);
+	  unsigned long volAvgTemp = volReadings[i][0];
+	  for (byte j = 1; j < VOLUME_READ_COUNT; j++)
+	  volAvgTemp += volReadings[i][j];
+	  volAvg[i] = volAvgTemp / VOLUME_READ_COUNT; 
+    }
+    volCount++;
+    if (volCount >= VOLUME_READ_COUNT) volCount = 0;
+    lastVolChk = millis();
+  }
+}
+
+#ifdef FLOWRATE_CALCS
+void updateFlowRates() {
+  //Check flowrate periodically (FLOWRATE_READ_INTERVAL)
+  if (millis() - lastFlowChk > FLOWRATE_READ_INTERVAL) {
+    for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+      flowRate[i] = (prevFlowVol[i] - volAvg[i]) * (millis() - lastFlowChk) * 3 / 50;
+      prevFlowVol[i] = volAvg[i];
+    }
+    lastFlowChk = millis();
+  }
+}
+#endif
+
+unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned int calibrationValues[10] ) {
   unsigned int aValue = analogRead(pin);
   unsigned long retValue;
-  #ifdef DEBUG
+  #ifdef DEBUG_VOL_READ
     logStart_P(LOGDEBUG);
     logField_P(PSTR("VOL_READ"));
     logFieldI(pin);
     logFieldI(aValue);
-    logFieldI(zeroValue);
   #endif
-  if (aValue <= zeroValue) aValue = 0; else aValue -= zeroValue;
   
   byte upperCal = 0;
   byte lowerCal = 0;
@@ -63,7 +88,7 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
     }
   }
   
-  #ifdef DEBUG
+  #ifdef DEBUG_VOL_READ
     logFieldI(aValue);
     logFieldI(upperCal);
     logFieldI(lowerCal);
@@ -89,7 +114,7 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
   //Otherwise plot value between lower and greater calibrations
   else retValue = round((float) (aValue - calibrationValues[lowerCal]) / (float) (calibrationValues[upperCal] - calibrationValues[lowerCal]) * (calibrationVols[upperCal] - calibrationVols[lowerCal])) + calibrationVols[lowerCal];
 
-  #ifdef DEBUG
+  #ifdef DEBUG_VOL_READ
     logFieldI(retValue);
     logEnd();
   #endif
@@ -97,12 +122,12 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
 }
 
 //Read Analog value of aPin and calculate kPA or psi based on unit and sensitivity (sens in tenths of mv per kpa)
-float readPressure( byte aPin, unsigned int sens, unsigned int zero) {
+unsigned long readPressure( byte aPin, unsigned int sens, unsigned int zero) {
   if (sens == 0) return 999;
-  float retValue = (analogRead(aPin) - zero) * .0049 / (sens / 10000.0);
+  unsigned long retValue = (analogRead(aPin) - zero) * 500000 / sens * 25 / 256;
   #ifdef USEMETRIC
     return retValue; 
   #else
-    return retValue * .145; 
+    return retValue * 29 / 200; 
   #endif
 }
