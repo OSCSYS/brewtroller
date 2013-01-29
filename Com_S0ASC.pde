@@ -26,10 +26,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   Update 9/22/2010 to support enhanced functions and mutiple schemas.
   
 */
-#include "Config.h"
-#include "Enum.h"
-#include <avr/eeprom.h>
-#include <EEPROM.h>
 
 #ifdef COM_SERIAL0
 #if COM_SERIAL0 == ASCII
@@ -108,7 +104,7 @@ boolean chkMsg() {
           } else rejectParam();
         } else if (strcasecmp(msg[0], "GET_TS") == 0) {
           byte val = atoi(msg[1]);
-          if (msgField == 1 && val >= TS_HLT && val <= TS_AUX3) {
+          if (msgField == 1 && val >= TS_HLT && val <= TS_RIMS) {
             logTSensor(val);
             clearMsg();
           } else rejectParam();
@@ -217,7 +213,7 @@ boolean chkMsg() {
           } else rejectParam();
         } else if(strcasecmp(msg[0], "SET_TS") == 0) {
           byte val = atoi(msg[1]);
-          if (msgField == 9 && val >= TS_HLT && val <= TS_AUX3) {
+          if (msgField == 9 && val >= TS_HLT && val <= TS_RIMS) {
             byte addr[8];
             for (byte i=0; i<8; i++) addr[i] = (byte)atoi(msg[i+2]);
             setTSAddr(val, addr);

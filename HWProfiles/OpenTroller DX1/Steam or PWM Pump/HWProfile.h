@@ -1,61 +1,57 @@
 /*
-OpenTroller BX1 Hardware Configuration
-  RIMS / Direct Fired: Three Heat Outputs + 2 Pump/Valve Outputs + Alarm
+OpenTroller DX1 Steam/PWM Pump Hardware Configuration
 */
 
 #ifndef BT_HWPROFILE
 #define BT_HWPROFILE
-  #include "Config.h"
-  
-  //**********************************************************************************
-  // ENCODER TYPE
-  //**********************************************************************************
-  // You must uncomment one and only one of the following ENCODER_ definitions
-  // Use ENCODER_ALPS for ALPS and Panasonic Encoders
-  // Use ENCODER_CUI for older CUI encoders
-  //
-  //#define ENCODER_TYPE ALPS
-  #define ENCODER_TYPE CUI
-  //**********************************************************************************
-  
-  #define ENCA_PIN 3
-  #define ENCB_PIN 2
-  #define ENTER_PIN 1
-  
-  #define ALARM_PIN 15 //OUT6
+
+  #define ENCODER_I2C
+  #define ENCODER_I2CADDR 0x01
+
+  #define ALARM_PIN 2	//OUT14
   
   #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 2 //2 Outputs
-  
-  #define VALVE1_PIN 19 //OUT4
-  #define VALVE2_PIN 18 //OUT5
+  #define PVOUT_COUNT 9 //9 Outputs
 
-  #define HLTHEAT_PIN 22 //OUT1
-  #define MASHHEAT_PIN 21//OUT2
-  #define KETTLEHEAT_PIN 20 //OUT3
+  #define VALVE1_PIN 28	//OUT1
+  #define VALVE2_PIN 29	//OUT2
+  #define VALVE3_PIN 30	//OUT3
+  #define VALVE4_PIN 31	//OUT4
+  #define VALVE5_PIN 7	//OUT5
+  #define VALVE6_PIN 6	//OUT6
+  #define VALVE7_PIN 3	//OUT7
+  #define VALVE8_PIN 4	//OUT8
+  #define VALVE9_PIN 12	//OUT9
+      
+  #define HLTHEAT_PIN 1	 //OUT13
+  #define MASHHEAT_PIN 13	//OUT12
+  #define KETTLEHEAT_PIN 14	//OUT11
+  #define STEAMHEAT_PIN 15	//OUT10
+  #define PWMPUMP_PIN 15	//OUT10
+  //Note: OUT 10 has HARDWARE PWM
+
+  #define DIGITAL_INPUTS
+  #define DIGIN_COUNT 6
+  #define DIGIN1_PIN 21
+  #define DIGIN2_PIN 20
+  #define DIGIN3_PIN 19
+  #define DIGIN4_PIN 18
+  #define DIGIN5_PIN 5
+  #define DIGIN6_PIN 22
   
   #define HLTVOL_APIN 7
   #define MASHVOL_APIN 6
   #define KETTLEVOL_APIN 5
   #define STEAMPRESS_APIN 4
   
-  #define HEARTBEAT
-  #define HEARTBEAT_PIN 0
-  
-  #define UI_LCD_4BIT
-  #define LCD_RS_PIN 4
-  #define LCD_ENABLE_PIN 23
-  #define LCD_DATA4_PIN 28
-  #define LCD_DATA5_PIN 29
-  #define LCD_DATA6_PIN 30
-  #define LCD_DATA7_PIN 31
-  
+  #define UI_LCD_I2C
+  #define UI_LCD_I2CADDR 0x01
   #define UI_DISPLAY_SETUP
-  #define LCD_BRIGHT_PIN 13
-  #define LCD_CONTRAST_PIN 14
   #define LCD_DEFAULT_CONTRAST 100
   #define LCD_DEFAULT_BRIGHTNESS 255
   
+  #define HEARTBEAT
+  #define HEARTBEAT_PIN 0
 //**********************************************************************************
 // OneWire Temperature Sensor Options
 //**********************************************************************************
@@ -89,8 +85,5 @@ OpenTroller BX1 Hardware Configuration
 // Should be 0x18, 0x19, 0x1A, 0x1B
 #define DS2482_ADDR 0x1B
 //**********************************************************************************
-
-#define RS485_MASTER
-#define RS485_RXTX_PIN 12
 
 #endif

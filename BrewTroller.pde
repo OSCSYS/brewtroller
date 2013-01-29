@@ -1,4 +1,4 @@
-#define BUILD 788
+#define BUILD 1021
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -41,21 +41,27 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 //*****************************************************************************************************************************
 // BEGIN CODE
 //*****************************************************************************************************************************
+
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
 #include <pin.h>
 #include <menu.h>
 
+#include "HWProfile.h"
 #include "Config.h"
 #include "Enum.h"
-#include "HWProfile.h"
 #include "PVOut.h"
 #include "UI_LCD.h"
+#include <avr/eeprom.h>
+#include <EEPROM.h>
+#include "wiring_private.h"
+#include <encoder.h>
+#include "Com_RGBIO8.h"
 
 void(* softReset) (void) = 0;
 
 const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "2.4";
+const char BTVER[] PROGMEM = "2.5";
 
 //**********************************************************************************
 // Compile Time Logic
@@ -82,7 +88,7 @@ const char BTVER[] PROGMEM = "2.4";
   #define BTNIC_PROTOCOL
 #endif
 
-#if defined BTPD_SUPPORT || defined UI_LCD_I2C || defined TS_ONEWIRE_I2C || defined BTNIC_EMBEDDED
+#if defined BTPD_SUPPORT || defined UI_LCD_I2C || defined TS_ONEWIRE_I2C || defined BTNIC_EMBEDDED || defined RGBIO8_ENABLE
   #define USE_I2C
 #endif
 
@@ -106,8 +112,11 @@ const char BTVER[] PROGMEM = "2.4";
 pin heatPin[4], alarmPin;
 
 #ifdef DIGITAL_INPUTS
-  pin digInPin[6];
+  pin digInPin[DIGIN_COUNT];
 #endif
+
+pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
+boolean estop = 0;
 
 #ifdef HEARTBEAT
   pin hbPin;
@@ -116,6 +125,10 @@ pin heatPin[4], alarmPin;
 //Volume Sensor Pin Array
 #ifdef HLT_AS_KETTLE
   byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, HLTVOL_APIN};
+#elif defined KETTLE_AS_MASH
+  byte vSensor[3] = { HLTVOL_APIN, KETTLEVOL_APIN, KETTLEVOL_APIN};
+#elif defined SINGLE_VESSEL_SUPPORT
+  byte vSensor[3] = { HLTVOL_APIN, HLTVOL_APIN, HLTVOL_APIN};
 #else
   byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, KETTLEVOL_APIN};
 #endif
@@ -156,6 +169,7 @@ long flowRate[3] = {0,0,0};
 #endif
 
 
+ 
 //Valve Variables
 unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
@@ -199,7 +213,7 @@ boolean heatStatus[4], PIDEnabled[4];
 unsigned int steamPSens, steamZero;
 
 byte pidLimits[4] = { PIDLIMIT_HLT, PIDLIMIT_MASH, PIDLIMIT_KETTLE, PIDLIMIT_STEAM };
-
+  
 //Steam Pressure in thousandths
 unsigned long steamPressure;
 byte boilPwr;
@@ -244,7 +258,8 @@ boolean logData = LOG_INITSTATUS;
 //Active program for each brew step
 #define PROGRAM_IDLE 255
 byte stepProgram[NUM_BREW_STEPS];
-boolean preheated[4], doAutoBoil;
+boolean preheated[4];
+ControlState boilControlState = CONTROLSTATE_OFF;
 
 //Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
 unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
@@ -280,6 +295,7 @@ void setup() {
 
   //Pin initialization (Outputs.pde)
   pinInit();
+
 
 #ifdef PVOUT
   #if defined PVOUT_TYPE_GPIO
@@ -339,9 +355,15 @@ void setup() {
   
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();
+
   
   //Load global variable values stored in EEPROM (EEPROM.pde)
   loadSetup();
+  
+  #ifdef DIGITAL_INPUTS
+    //Digital Input Interrupt Setup
+    triggerSetup();
+  #endif
   
   //PID Initialization (Outputs.pde)
   pidInit();

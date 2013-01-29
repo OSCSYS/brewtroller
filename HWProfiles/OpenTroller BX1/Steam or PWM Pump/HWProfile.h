@@ -7,6 +7,18 @@ OpenTroller BX1 Hardware Configuration
 #define BT_HWPROFILE
   #include "Config.h"
   
+  //**********************************************************************************
+  // ENCODER TYPE
+  //**********************************************************************************
+  // You must uncomment one and only one of the following ENCODER_ definitions
+  // Use ENCODER_ALPS for ALPS and Panasonic Encoders
+  // Use ENCODER_CUI for older CUI encoders
+  //
+  //#define ENCODER_TYPE ALPS
+  #define ENCODER_TYPE CUI
+  //**********************************************************************************
+  
+  
   #define ENCA_PIN 3
   #define ENCB_PIN 2
   #define ENTER_PIN 1
@@ -24,10 +36,10 @@ OpenTroller BX1 Hardware Configuration
   #define STEAMHEAT_PIN 19 //OUT4
   #define PWMPUMP_PIN 19 //OUT4
   
-  #define HLTVOL_APIN 3
-  #define MASHVOL_APIN 2
-  #define KETTLEVOL_APIN 1
-  #define STEAMPRESS_APIN 0
+  #define HLTVOL_APIN 7
+  #define MASHVOL_APIN 6
+  #define KETTLEVOL_APIN 5
+  #define STEAMPRESS_APIN 4
   
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
@@ -43,7 +55,8 @@ OpenTroller BX1 Hardware Configuration
   #define UI_DISPLAY_SETUP
   #define LCD_BRIGHT_PIN 13
   #define LCD_CONTRAST_PIN 14
-
+  #define LCD_DEFAULT_CONTRAST 100
+  #define LCD_DEFAULT_BRIGHTNESS 255
   
 //**********************************************************************************
 // OneWire Temperature Sensor Options

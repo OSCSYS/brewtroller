@@ -1,6 +1,6 @@
 /*
 OpenTroller BX1 Hardware Configuration
-  RIMS / Direct Fired: Three Heat Outputs + 2 Pump/Valve Outputs + Alarm
+  Single Vessel: One Heat Output (HLT/Mash/Kettle Combined) + 4 Pump/Valve Outputs + Alarm
 */
 
 #ifndef BT_HWPROFILE
@@ -25,20 +25,22 @@ OpenTroller BX1 Hardware Configuration
   #define ALARM_PIN 15 //OUT6
   
   #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 2 //2 Outputs
+  #define PVOUT_COUNT 4 //4 Outputs
   
-  #define VALVE1_PIN 19 //OUT4
-  #define VALVE2_PIN 18 //OUT5
+  #define VALVE1_PIN 21 //OUT2
+  #define VALVE2_PIN 20 //OUT3
+  #define VALVE3_PIN 19 //OUT4
+  #define VALVE4_PIN 18 //OUT5
 
   #define HLTHEAT_PIN 22 //OUT1
-  #define MASHHEAT_PIN 21//OUT2
-  #define KETTLEHEAT_PIN 20 //OUT3
+  //#define MASHHEAT_PIN //Not used in Single Vessel
+  //#define KETTLEHEAT_PIN //Not used in Single Vessel
   
   #define HLTVOL_APIN 7
   #define MASHVOL_APIN 6
   #define KETTLEVOL_APIN 5
   #define STEAMPRESS_APIN 4
-  
+
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
   

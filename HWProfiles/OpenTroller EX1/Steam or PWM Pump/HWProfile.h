@@ -1,5 +1,5 @@
 /*
-OpenTroller BX1 Hardware Configuration
+OpenTroller EX1 Hardware Configuration
   RIMS / Direct Fired: Three Heat Outputs + 2 Pump/Valve Outputs + Alarm
 */
 
@@ -21,23 +21,26 @@ OpenTroller BX1 Hardware Configuration
   #define ENCA_PIN 3
   #define ENCB_PIN 2
   #define ENTER_PIN 1
+  #define ENCODER_ACTIVELOW
   
-  #define ALARM_PIN 15 //OUT6
+  #define ALARM_PIN 27 //EX1 Alarm
   
   #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 2 //2 Outputs
+  #define PVOUT_COUNT 2 //2 Output
   
-  #define VALVE1_PIN 19 //OUT4
-  #define VALVE2_PIN 18 //OUT5
-
+  #define VALVE1_PIN 20 //OUT5
+  #define VALVE2_PIN 19 //OUT6
+  
   #define HLTHEAT_PIN 22 //OUT1
-  #define MASHHEAT_PIN 21//OUT2
-  #define KETTLEHEAT_PIN 20 //OUT3
+  #define MASHHEAT_PIN 15//OUT2
+  #define KETTLEHEAT_PIN 21 //OUT3
+  #define STEAMHEAT_PIN 18 //OUT4
+  #define PWMPUMP_PIN 18 //OUT4
   
-  #define HLTVOL_APIN 7
-  #define MASHVOL_APIN 6
-  #define KETTLEVOL_APIN 5
-  #define STEAMPRESS_APIN 4
+  #define HLTVOL_APIN 3
+  #define MASHVOL_APIN 2
+  #define KETTLEVOL_APIN 1
+  #define STEAMPRESS_APIN 0
   
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0

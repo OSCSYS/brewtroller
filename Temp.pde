@@ -24,10 +24,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-#include "Config.h"
-#include "Enum.h"
-#include "HWProfile.h"
-
 #ifdef TS_ONEWIRE
   #ifdef TS_ONEWIRE_GPIO
     #include <OneWire.h>
@@ -40,7 +36,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   //One Wire Bus on 
   
   void tempInit() {
-    for (byte i = TS_HLT; i <= TS_AUX3; i++) temp[i] = BAD_TEMP;
+    for (byte i = 0; i < NUM_TS; i++) temp[i] = BAD_TEMP;
     #ifdef TS_ONEWIRE_I2C
       ds.configure(DS2482_CONFIG_APU | DS2482_CONFIG_SPU);
     #endif
@@ -92,7 +88,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         logFieldI(convStart);
         logEnd();
       #endif
-      for (byte i = TS_HLT; i <= TS_AUX3; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]);
+      for (byte i = 0; i < NUM_TS; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]); else temp[i] = BAD_TEMP;
       convStart = 0;
       
       #if defined MASH_AVG
@@ -126,24 +122,30 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         ds.reset_search();
         return;
       }
-      boolean found = 0;
-      for (byte i = TS_HLT; i <= TS_AUX3; i++) {
-        boolean match = 1;
-        for (byte j = 0; j < 8; j++) {
-          //Try to confirm a match by checking every byte of the scanned address with those of each sensor.
-          if (scanAddr[j] != tSensor[i][j]) {
-            match = 0;
+      if (
+          scanAddr[0] == 0x28 ||  //DS18B20
+          scanAddr[0] == 0x10     //DS18S20
+         ) 
+      {
+        boolean found = 0;
+        for (byte i = 0; i <  NUM_TS; i++) {
+          boolean match = 1;
+          for (byte j = 0; j < 8; j++) {
+            //Try to confirm a match by checking every byte of the scanned address with those of each sensor.
+            if (scanAddr[j] != tSensor[i][j]) {
+              match = 0;
+              break;
+            }
+          }
+          if (match) { 
+            found = 1;
             break;
           }
         }
-        if (match) { 
-          found = 1;
-          break;
+        if (!found) {
+          for (byte k = 0; k < 8; k++) addrRet[k] = scanAddr[k];
+          return;
         }
-      }
-      if (!found) {
-        for (byte k = 0; k < 8; k++) addrRet[k] = scanAddr[k];
-        return;
       }
       limit++;
     }      
@@ -197,8 +199,8 @@ void mashAvg() {
     }
   #endif
   #if defined MASH_AVG_AUX3
-    if (temp[TS_AUX3] != BAD_TEMP) {
-      avgTemp += temp[TS_AUX3];
+    if (temp[TS_RIMS] != BAD_TEMP) {
+      avgTemp += temp[TS_RIMS];
       sensorCount++;
     }
   #endif

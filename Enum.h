@@ -93,7 +93,7 @@
 #define EVENT_STEPINIT 0
 #define EVENT_STEPEXIT 1
 #define EVENT_SETPOINT 2
-
+#define EVENT_ESTOP 3
 
 //Log Constants
 #define CMD_MSG_FIELDS 25
@@ -107,5 +107,21 @@
 #define ASCII 0
 #define BTNIC 1
 #define BINARY 2
+
+typedef enum {
+  TRIGGER_ESTOP,
+  TRIGGER_SPARGEMAX,
+  TRIGGER_HLTMIN,
+  TRIGGER_MASHMIN,
+  TRIGGER_KETTLEMIN,
+  NUM_TRIGGERS
+} TriggerType;
+
+typedef enum {
+  CONTROLSTATE_OFF,
+  CONTROLSTATE_AUTO,
+  CONTROLSTATE_ON,
+  NUM_CONTROLSTATES
+} ControlState;
 
 #endif

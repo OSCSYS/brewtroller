@@ -1,5 +1,6 @@
 #ifndef BT_CONFIGURATION
 #define BT_CONFIGURATION
+#include "Enum.h"
 
 //*****************************************************************************************************************************
 // USER COMPILE OPTIONS
@@ -14,6 +15,36 @@
 //#define USEMETRIC
 //**********************************************************************************
 
+
+//**********************************************************************************
+// Brewing Calculation Factors
+//**********************************************************************************
+// GRAIN2VOL: The amount of volume in l/kg or gal/lb that grain occupies in the mash
+// Conservatively 1 lb = 0.15 gal 
+// Aggressively 1 lb = 0.093 gal
+#ifdef USEMETRIC
+  #define GRAIN2VOL 1.25
+#else
+  #define GRAIN2VOL .15
+#endif
+
+// GRAIN_VOL_LOSS: The amount of liquid volume lost with spent grain. This value can
+// vary by grain types, crush, etc.
+// Default values are pretty conservative (err on more absorbtion)
+// Ray Daniels suggests .20, Denny Conn suggests .10
+#ifdef USEMETRIC
+  #define GRAIN_VOL_LOSS 1.7884
+#else
+  #define GRAIN_VOL_LOSS .2143
+#endif
+
+// VOL_SHRINKAGE: The amount of liquid volume reduced as a result of decrease in temperature. 
+// This value used to be .96 in BrewTroller 2.4 and earlier versions but this value should
+// not be used in volume calculations for water at ground temperature when targeting pitch temps.
+// A value of '1' (default) will eliminate this from brewing calculations.
+#define VOL_SHRINKAGE 1
+//#define VOL_SHRINKAGE .96
+
 //**********************************************************************************
 // Vessel Options
 //**********************************************************************************
@@ -23,6 +54,12 @@
 // HLT_AS_KETTLE: This option remaps the Kettle temp sensor, volume sensor and heat
 // output to the HLT's devices to  allow the HLT to be reused as a kettle.
 //#define HLT_AS_KETTLE
+
+// KETTLE_AS_MASH: This option remaps the Mash temp sensor, volume sensor and heat
+// output to the Kettle's devices to allow the Kettle to also serve as Mash Tun.
+// Use with HERMS HWProfile for BX1/DX1/EX1 which defines only HLT and Kettle Heat
+// Outputs leaving an additional output to use for pumps/valves.
+//#define KETTLE_AS_MASH
 
 // MASH_PREHEAT_SENSOR: This option allows for an alternate temperature sensor to
 // control the mash heat output during the Preheat step. This is used to control the
@@ -40,8 +77,30 @@
 
 //MASH_PREHEAT_NOVALVES: Disables MASH HEAT/MASH IDLE Valve Profiles during preheat
 //#define MASH_PREHEAT_NOVALVES
+
+//SINGLE_VESSEL_SUPPORT: This is a crude hack that uses the HLT sensor and output
+//for the HLT, Mash and Kettle functions.
+//#define SINGLE_VESSEL_SUPPORT
 //**********************************************************************************
 
+//**********************************************************************************
+// Vessel to temperature sensor mapping
+//**********************************************************************************
+// The purpose of this array is to provide a safe way to map a vessel to the 
+// temperaure sensor to read for that vessels setpoint.
+// The secondary purpose is to provide a safe way to enumerate the heat outputs, 
+// safely decoupling the #defines values from loop-control.
+#if defined PID_FLOW_CONTROL
+  static const int HEAT_OUTPUTS_COUNT = 4;
+  static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}, {VS_PUMP, TS_MASH}};
+#else
+  static const int HEAT_OUTPUTS_COUNT = 3;
+  static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}};
+#endif
+// These two should be used as the array index when operating on a HEAT_OUTPUT array.
+// They need to be variables instead of #defines because of use as index subscripts.
+static const byte VS = 0;
+static const byte TS = 1;
 
 //**********************************************************************************
 // PID Output Power Limit
@@ -63,7 +122,7 @@
 // NOTE: not a good idea to use any sensor you average into the MASH sensor as your feed forward
 //
 //#define PID_FEED_FORWARD
-#define FEED_FORWARD_SENSOR TS_AUX1
+//#define FEED_FORWARD_SENSOR TS_AUX1
 
 //**********************************************************************************
 // PWM ouputs controled by timer rather than brew core loop
@@ -199,8 +258,8 @@
 //**********************************************************************************
 // Boil Off Unit Change
 //**********************************************************************************
-// This option will change the units of the boil off from % per hour to 0.1 gallons per hour, or to 1 liter per hour 
-// if use metric is on
+// This option will change the units of the boil off from % per hour to 0.1 gallons
+// or 1 liter per hour
 //#define BOIL_OFF_GALLONS
 //**********************************************************************************
 
@@ -282,39 +341,23 @@
 // the room. The display connects to the BrewTroller via the I2C header and can be
 // daisy chained to use as many as you like, theoretically up to 127 but in practice
 // probably 10 or so.
+// You need to set the addresses of each display in the Com_BTPD.h file.
 
 // BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
-//#define BTPD_SUPPORT
+#define BTPD_SUPPORT
 
 // BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds
 #define BTPD_INTERVAL 1000
-//**********************************************************************************
+
+// Show temperature and volume per kettle on the same display.  Every other update
+// interval the display will switch from temperature to volume.  Make sure that the
+// values in Com_BTPD.h use the same address per kettle for both volume and temperature.
+//#define BTPD_ALTERNATE_TEMP_VOLUME
 
 //**********************************************************************************
 
-
-//**********************************************************************************
-// UI Support
-//**********************************************************************************
-// NOUI: Disable built-in user interface 
-// UI_NO_SETUP: 'Light UI' removes system setup code to reduce compile size (~8 KB)
-// UI_LCD_I2C: Enables the I2C LCD interface instead of the 4 bit interface
-//
-//#define NOUI
-//#define UI_NO_SETUP
-//#define UI_LCD_I2C
 //**********************************************************************************
 
-//**********************************************************************************
-// UI: ENCODER TYPE
-//**********************************************************************************
-// You must uncomment one and only one of the following ENCODER_ definitions
-// Use ENCODER_ALPS for ALPS and Panasonic Encoders
-// Use ENCODER_CUI for older CUI encoders
-//
-#define ENCODER_TYPE ALPS
-//#define ENCODER_TYPE CUI
-//**********************************************************************************
 
 //**********************************************************************************
 // UI: Home Screen Options
@@ -331,6 +374,10 @@
 // Uncomment the following line(s) to enable various steps to start/stop 
 // automatically 
 //
+
+// DELAYSTART_NOALARM: Automatically clear the alarm at the end of Delay Start.
+//#define DELAYSTART_NOALARM
+
 // AUTO_FILL_START: This option will enable the Fill AutoValve logic at the start of
 // the Fill step. 
 //#define AUTO_FILL_START
@@ -436,30 +483,18 @@
  The following options are experimental with little to no testing.
  **********************************************************************************/
 
-
-
-
-   
-//**********************************************************************************
-// Steam Mash Infusion Support
-//**********************************************************************************
-// EXPERIMENTAL: Uncomment the following line to enable steam mash infusion support.
-// USE CAUTION! TESTING REQUIRED.
-//
-//#define USESTEAM
-//**********************************************************************************
-
 //**********************************************************************************
 // Save HLT and KET heating elements Support
 //**********************************************************************************
-// EXPERIMENTAL: Uncomment the following line to enable forcing the HLT and KET outputs to 0
-// if the volume in said vessel is less than the #defined value support.
+// EXPERIMENTAL: Uncomment one or more of the following lines to enable forcing the
+// HLT, Mash or Kettle outputs to 0 if the volume in said vessel is less than the 
+// defined value.
 // NOTE: Volume is in thousandths of a Gallons/Liters
 // USE CAUTION! TESTING REQUIRED.
 //
-//#define HLT_KET_ELEMENT_SAVE
 //#define HLT_MIN_HEAT_VOL 4000
-//#define KET_MIN_HEAT_VOL 4000
+//#define MASH_MIN_HEAT_VOL 4000
+//#define KETTLE_MIN_HEAT_VOL 4000
 //**********************************************************************************
 
 //**********************************************************************************
@@ -496,6 +531,43 @@
 //**********************************************************************************
 
 //**********************************************************************************
+// Direct-fired RIMS support
+//**********************************************************************************
+// DIRECT_FIRED_RIMS/RIMS_TEMP_OFFSET/RIMS_DURING_SPARGE: specifies that the mash 
+// kettle is direct-fired, either with gas, or a heating element, and that the RIMS
+// has it's own element. With this option, the VS_MASH is used for the mash, and the
+// VS_STEAM is used for the RIMS. Only the VS_MASH is used to change the temp; when 
+// the temp is within RIMS_TEMP_OFFSET of the set temp, the VS_MASH is turned off, 
+// and VS_STEAM is turned on, to reach and maintain the set temp. When the strike temp
+// is beaing reached, or any other step change grater than RIMS_TEMP_OFFSET, this 
+// allows VS_MASH to be used for the quicker temeperature change, then for VS_STEAM to
+// take over for finer temperaature control.
+//#define DIRECT_FIRED_RIMS
+#ifdef DIRECT_FIRED_RIMS
+  // If you are not recirculating your mash, the offset should probably be greater.
+  #define RIMS_TEMP_OFFSET 5
+  // Specify the temperature sensor used in the RIMS tube. TS_AUX1, TS_AUX2 or TS_AUX3 is recommended.
+  #define RIMS_TEMP_SENSOR TS_AUX1
+  // You really should have a sensor in your RIMS tube: this #defines allow you to set 
+  // the maximum temp that the RIMS tuube is allowed to reach.  It is important to note 
+  // that both the sensor and the heating element should be submersed in liqued, with 
+  // the input and output ports facing up, so that the tube can not run dry.
+  #define RIMS_MAX_TEMP 180
+  // As the SSD can get stuck in the ON state, if the RIMS_ALARM_TEMP temperature is
+  // reached, turn on the alarm.
+  #define RIMS_ALARM_TEMP 190
+  // If your HLT output passes through your RIMS tube to your mash kettle, you may want
+  // to define RIMS_DURING_SPARGE so that it can also control the temp of your sparge
+  // water.  The logic here is somehwat different than for mashing, in that it will only
+  // control the VS_STEAM output.  You can use this in conjuction with HLT_HEAT_SPARGE
+  // to fire the HLT too.
+  #define RIMS_DURING_SPARGE
+#endif
+//**********************************************************************************
+
+
+
+//**********************************************************************************
 // Sparge Options
 //**********************************************************************************
 // BATCH_SPARGE: Uses batch sparge logic instead of fly sparge logic for programs.
@@ -508,6 +580,81 @@
 // BATCH_SPARGE_RECIRC: Specifies the number of seconds to run the Mash Heat valve
 // profile between batch sparges.
 //#define BATCH_SPARGE_RECIRC 60
+//**********************************************************************************
+
+//**********************************************************************************
+// RGB Board options
+//**********************************************************************************
+// The RGB Board allows you to have RGB LEDs show the status of 8 heat or PV outputs
+// and allows you to have up to 8 switches connected to control them. You can connect
+// multiple RGB boards to the BrewTroller to expand the number of inputs and outputs.
+//
+// Each numbered output provides the 4 neccesary connections for a common anode RGB
+// LED. Each numbered input provides 2 commons, an auto and a manual input connection
+// for connecting a 3 position toggle switch, or similar switch.
+//
+// By default, BrewTroller is configured to use the first sets of inputs and outputs
+// on the RGB boards for heat outputs and then any remaining sets that are available
+// for pump/valve outputs. 
+// 
+// For instance, if you have 3 heat outputs and 1 RGB board, the RGB board will have
+// it's inputs and outputs set up like this:
+//
+// RGB Board 1, Input/Output 0 = Heat Output 0 (HLT)
+// RGB Board 1, Input/Output 1 = Heat Output 1 (Mash)
+// RGB Board 1, Input/Output 2 = Heat Output 2 (Boil)
+// RGB Board 1, Input/Output 3 = PV Output 0
+// RGB Board 1, Input/Output 4 = PV Output 1
+// RGB Board 1, Input/Output 5 = PV Output 2
+// RGB Board 1, Input/Output 6 = PV Output 3
+// RGB Board 1, Input/Output 7 = PV Output 4
+// 
+// Adding a second RGB board would add the following mappings:
+//
+// RGB Board 2, Input/Output 0 = PV Output 5
+// RGB Board 2, Input/Output 1 = PV Output 6
+// RGB Board 2, Input/Output 2 = PV Output 7
+// RGB Board 2, Input/Output 3 = PV Output 8
+// RGB Board 2, Input/Output 4 = PV Output 9
+// RGB Board 2, Input/Output 5 = PV Output A
+// RGB Board 2, Input/Output 6 = PV Output B
+// RGB Board 2, Input/Output 7 = PV Output C
+// 
+// And finally, adding a third RGB board would add:
+//
+// RGB Board 3, Input/Output 0 = PV Output D
+// RGB Board 3, Input/Output 0 = PV Output E
+// RGB Board 3, Input/Output 0 = PV Output F
+// RGB Board 3, Input/Output 0 = PV Output G
+// RGB Board 3, Input/Output 0 = PV Output H
+// RGB Board 3, Input/Output 0 = PV Output I
+// RGB Board 3, Input/Output 0 = PV Output J
+// RGB Board 3, Input/Output 0 = PV Output K
+//
+// If this default configuration does not suit you, check out the Com_RGBIO8 file
+// in the RGBIO8_Init() function to see how to customize it to your specific
+// configuration.
+//
+// Enables the RGBIO8 system.
+//
+//#define RGBIO8_ENABLE
+//
+// Enables the setup UI for the RGBIO8 board. This takes up quite a bit of code
+// space so it can be disabled once you have set up all of your boards. It is
+// not needed in day to day use.
+//
+#define RGBIO8_SETUP
+//
+// The first address of your RGB Boards. Other boards should follow using the next
+// address. So, for instance, if this value is 0x30, board 2 should be 0x31, board
+// 3 should be 0x32, etc.
+//
+#define RGBIO8_START_ADDR 0x30
+//
+// The number of RGB boards you have connnected.
+//
+#define RGBIO8_NUM_BOARDS 1
+//
 //**********************************************************************************
 
 

@@ -259,7 +259,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       void init(){
         delay(1000);
         Wire.begin();
-        i2cLcdBegin(20, 4);
+        fastWrite = (i2cLcdGetVersion() > 968 ? 1 : 0);
       }
       
       void print(byte iRow, byte iCol, char sText[]){
@@ -317,7 +317,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       void update() {
         for (byte row = 0; row < 4; row++) {
-          i2cLcdWrite(0, row, 20, (char*)&screen[row * 20]);
+          if (fastWrite) i2cLcdSetCursor(0, row);
+          for (byte col = 0; col < 20; col++) {
+            if (fastWrite) i2cLcdWriteByte(screen[row * 20 + col]);
+            else i2cLcdWriteCustChar(col, row, screen[row * 20 + col]);
+          }
         }
       }
       
@@ -343,35 +347,44 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
     private:
       byte screen[80];
-      byte i2cLCDAddr;
+      uint8_t i2cLCDAddr;
+      boolean fastWrite;
 
-      void i2cLcdBegin(byte iCols, byte iRows) {
+      uint8_t i2cLcdBegin(byte iCols, byte iRows) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x01);
         Wire.send(iCols);
         Wire.send(iRows);
-        Wire.endTransmission();
-        delay(5);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(5);
+        #endif
+        return retValue;
       }
       
-      void i2cLcdClear() {
+      uint8_t i2cLcdClear() {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x02);
-        Wire.endTransmission();
-        delay(3);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(3);
+        #endif
+        return retValue;
       }
       
-      /*
-      void i2cLcdSetCursor(byte iCol, byte iRow) {
-        Wire.beginTransmission(I2CLCD_ADDR);
+      uint8_t i2cLcdSetCursor(byte iCol, byte iRow) {
+        Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x03);
         Wire.send(iCol);
         Wire.send(iRow);
-        Wire.endTransmission();
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(1);
+        #endif
+        return retValue;
       }
-      */
       
-      void i2cLcdPrint(byte iCol, byte iRow, char s[]) {
+      uint8_t i2cLcdPrint(byte iCol, byte iRow, char s[]) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x04);
         Wire.send(iCol);
@@ -380,92 +393,157 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         while (*p) {
           Wire.send(*p++);
         }
-        Wire.endTransmission();
-        delay(3);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(3);
+        #endif
+        return retValue;
       }
       
-      void i2cLcdWrite(byte iCol, byte iRow, byte len, char s[]) {
+      uint8_t i2cLcdWrite(byte iCol, byte iRow, byte len, char s[]) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x14);
         Wire.send(iCol);
         Wire.send(iRow);
         Wire.send(len);
         for (byte i = 0; i < len; i++) Wire.send(s[i]);
-        Wire.endTransmission();
-        delay(3);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(3);
+        #endif
+        return retValue;
       }
       
-      void i2cLcdSetCustChar_P(byte slot, const byte *charDef) {
+      uint8_t i2cLcdWriteByte(char s) {
+        Wire.beginTransmission(i2cLCDAddr);
+        Wire.send(0x15);
+        Wire.send(s);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(1);
+        #endif
+        return retValue;
+      }
+      
+      uint8_t i2cLcdSetCustChar_P(byte slot, const byte *charDef) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x05);
         Wire.send(slot);
         for (byte i = 0; i < 8; i++) {
           Wire.send(pgm_read_byte(charDef++));
         }
-        Wire.endTransmission();
-        delay(5);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(5);
+        #endif
+        return retValue;
       }
       
-      void i2cLcdWriteCustChar(byte iCol, byte iRow, byte c) {
+      uint8_t i2cLcdWriteCustChar(byte iCol, byte iRow, byte c) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x06);
         Wire.send(iCol);
         Wire.send(iRow);
         Wire.send(c);
-        Wire.endTransmission();
-        delay(3);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(1);
+        #endif
+        return retValue;
       }
       
-      void i2cSetBright(byte val) {
+      uint8_t i2cSetBright(byte val) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x07);
         Wire.send(val);
-        Wire.endTransmission();
-        delay(3);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(3);
+        #endif
+        return retValue;
       }
       
-      void i2cSetContrast(byte val) {
+      uint8_t i2cSetContrast(byte val) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x08);
         Wire.send(val);
-        Wire.endTransmission();
-        delay(3);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(3);
+        #endif
+        return retValue;
       }
       
-      byte i2cGetBright(void) {
+      uint8_t i2cGetBright(void) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x09);
         Wire.endTransmission();
-        Wire.requestFrom((int)i2cLCDAddr, (int)1);
+        #ifdef UI_LCD_I2CDELAYS
+          delay(10);
+        #endif
+        Wire.requestFrom(i2cLCDAddr, (uint8_t) 1);
         while(Wire.available())
         {
           return Wire.receive();
         }
       }
       
-      byte i2cGetContrast(void) {
+      uint8_t i2cGetContrast(void) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x0A);
         Wire.endTransmission();
-        Wire.requestFrom((int)i2cLCDAddr, (int)1);
+        #ifdef UI_LCD_I2CDELAYS
+          delay(10);
+        #endif
+        Wire.requestFrom(i2cLCDAddr, (uint8_t) 1);
         while(Wire.available())
         {
           return Wire.receive();
         }
       }
       
-      byte i2cSaveConfig(void) {
+      uint8_t i2cSaveConfig(void) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x0B);
-        Wire.endTransmission();
-        delay(10);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(10);
+        #endif
+        return retValue;
       }
       
-      byte i2cLoadConfig(void) {
+      uint8_t i2cLoadConfig(void) {
         Wire.beginTransmission(i2cLCDAddr);
         Wire.send(0x0C);
-        Wire.endTransmission();
-        delay(10);
+        uint8_t retValue = Wire.endTransmission();
+        #ifdef UI_LCD_I2CDELAYS
+          delay(10);
+        #endif
+        return retValue;
+      }
+      
+      int i2cLcdGetVersion(void) {
+        //This command may not be implemented in which case bogus values are returned
+        //Executing the command twice after other differing requests will validate the result
+	int retValue[2];
+        for (byte pass = 0; pass < 2; pass++) {
+          if (pass) i2cGetBright();
+          else i2cGetContrast();
+          
+          uint8_t * p = (uint8_t *) &retValue[pass];
+          Wire.beginTransmission(i2cLCDAddr);
+          Wire.send(0x16);
+          Wire.endTransmission();
+          #ifdef UI_LCD_I2CDELAYS
+            delay(10);
+          #endif
+          Wire.requestFrom(i2cLCDAddr, (uint8_t) 2);
+          while (Wire.available()) {
+            *(p++) = Wire.receive();
+          }
+        }
+        if (retValue[0] == retValue[1]) return retValue[0];
+        else return 0;
       }
   };
 #endif

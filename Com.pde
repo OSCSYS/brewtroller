@@ -28,9 +28,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //**********************************************************************************
 //Code Shared by all Schemas
 //**********************************************************************************
-#include "Config.h"
-#include "Enum.h"
-
 void comInit() {
   #ifdef COM_SERIAL0
     Serial.begin(SERIAL0_BAUDRATE);
@@ -42,6 +39,9 @@ void comInit() {
     Wire.onReceive(btnicRX);
   #endif
   
+  #ifdef RGBIO8_ENABLE
+    RGBIO8_Init();
+  #endif
 }
 
 void logASCIIVersion() {
@@ -87,6 +87,9 @@ void updateCom() {
   #ifdef BTPD_SUPPORT
     updateBTPD();
   #endif
+  #ifdef RGBIO8_ENABLE
+    RGBIO8_Update();
+  #endif
 }
 
 /********************************************************************************************************************
@@ -116,21 +119,21 @@ void updateCom() {
 
       if(btnicI2C.getState() == BTNIC_STATE_TX) {
         //TX Ready
-        Wire.beginTransmission(BTNIC_I2C_ADDR);
-        char timestamp[11];
-        Wire.send(ultoa(millis(), timestamp, 10));
-        Wire.send(0x09);
         #ifdef DEBUG_BTNIC
           Serial.print("btnicEmb TX: ");
         #endif
+        Wire.beginTransmission(BTNIC_I2C_ADDR);
         while(btnicI2C.getState() == BTNIC_STATE_TX) {
           byte data = btnicI2C.tx();
           #ifdef DEBUG_BTNIC
             Serial.print(data);
           #endif
-          Wire.send(data);        
+          Wire.send(data);
         }
         Wire.endTransmission();
+        #ifdef DEBUG_BTNIC
+          Serial.println();
+        #endif
       }
     }
 
@@ -177,8 +180,8 @@ void updateCom() {
           Serial.print(millis(),DEC);
           Serial.write(0x09);
           while(btnicS0.getState() == BTNIC_STATE_TX) Serial.write(btnicS0.tx());
-          Serial.write(0x0D); //Carriage Return
-          Serial.write(0x0A); //New Line
+          //Serial.write(0x0D); //Carriage Return
+          //Serial.write(0x0A); //New Line
         }
       }
     #endif

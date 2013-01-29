@@ -23,17 +23,20 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
-
-#include "Config.h"
-#include "Enum.h"
-
 unsigned long lastHop, grainInStart;
 unsigned int boilAdds, triggered;
 
+/**
+ * Used to determine if the given step is the active step in the program.
+ */
 boolean stepIsActive(byte brewStep) {
   if (stepProgram[brewStep] != PROGRAM_IDLE) return true; else return false;
 }
 
+/**
+ * Usd to determine if the given ZONE is the active ZONE in the program.
+ * Returns true is any step in the given ZONE is the active step, false otherwise.
+ */
 boolean zoneIsActive(byte brewZone) {
   if (brewZone == ZONE_MASH) {
     if (stepIsActive(STEP_FILL) 
@@ -122,8 +125,8 @@ boolean stepInit(byte pgm, byte brewStep) {
     //No timer used for preheat
     clearTimer(TIMER_MASH);
     #ifdef MASH_PREHEAT_SENSOR
-    //Overwrite mash temp sensor address from EEPROM using the memory location of the specified sensor (sensor element number * 8 bytes)
-      PROMreadBytes(MASH_PREHEAT_SENSOR * 8, tSensor[TS_MASH], 8);
+      //Overwrite mash temp sensor address from EEPROM using the memory location of the specified sensor (sensor element number * 8 bytes)
+      EEPROMreadBytes(MASH_PREHEAT_SENSOR * 8, tSensor[TS_MASH], 8);
     #endif
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Init: Add Grain
@@ -151,7 +154,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
     #ifdef HLT_MIN_REFILL
       SpargeVol = calcSpargeVol(pgm);
-      tgtVol[VS_HLT] = min(SpargeVol, HLT_MIN_REFILL_VOL);
+      tgtVol[VS_HLT] = max(SpargeVol, HLT_MIN_REFILL_VOL);
     #else
       tgtVol[VS_HLT] = calcSpargeVol(pgm);
     #endif
@@ -316,7 +319,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     #ifdef PID_FLOW_CONTROL
     resetHeatOutput(VS_PUMP); // turn off the pump if we are moving to boil. 
     #endif
-    setSetpoint(VS_KETTLE, getBoilTemp());
+        setSetpoint(VS_KETTLE, getBoilTemp());
     preheated[VS_KETTLE] = 0;
     boilAdds = getProgAdds(pgm);
     
@@ -333,7 +336,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     //Leave timer paused until preheated
     timerStatus[TIMER_BOIL] = 0;
     lastHop = 0;
-    doAutoBoil = 1;
+    boilControlState = CONTROLSTATE_AUTO;
     
   } else if (brewStep == STEP_CHILL) {
   //Step Init: Chill
@@ -364,7 +367,10 @@ void stepCore() {
       } 
     #endif
     //Turn off Sparge In AutoValve if tgtVol has been reached
-    if (autoValve[AV_SPARGEIN] && volAvg[VS_HLT] <= tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 0;
+    //Because this function is called before processautovalves() if we clear the auto valve here the bit in the active profile will still be set until the
+    // user exits the grain in step, causing it to not shut off when target volume is reached. 
+    if (autoValve[AV_SPARGEIN] && volAvg[VS_HLT] <= tgtVol[VS_HLT]) { autoValve[AV_SPARGEIN] = 0; bitClear(actProfiles, VLV_SPARGEIN);}
+    else if (volAvg[VS_HLT] <= tgtVol[VS_HLT]) bitClear(actProfiles, VLV_SPARGEIN);
   }
 
   if (stepIsActive(STEP_REFILL)) stepFill(STEP_REFILL);
@@ -398,12 +404,8 @@ void stepCore() {
   }
   
   if (stepIsActive(STEP_BOIL)) {
-    if (doAutoBoil) {
-      if(temp[TS_KETTLE] < setpoint[TS_KETTLE]) PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE;
-      else PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * min(boilPwr, PIDLIMIT_KETTLE);
-    }
     #ifdef PREBOIL_ALARM
-      if (!(triggered & 32768) && temp[TS_KETTLE] >= PREBOIL_ALARM) {
+      if (!(triggered & 32768) && temp[TS_KETTLE] != BAD_TEMP && temp[TS_KETTLE] >= PREBOIL_ALARM * 100) {
         setAlarm(1);
         triggered |= 32768; 
         setBoilAddsTrig(triggered);
@@ -459,6 +461,10 @@ void stepCore() {
 void stepFill(byte brewStep) {
   #ifdef AUTO_FILL_EXIT
     if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH]) stepAdvance(brewStep);
+  #else
+  #ifndef VOLUME_MANUAL
+    if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH]) bitClear(actProfiles, VLV_FILLHLT);
+  #endif
   #endif
 }
 
@@ -517,7 +523,9 @@ void stepExit(byte brewStep) {
   } else if (brewStep == STEP_DELAY) {
   //Step Exit: Delay
     clearTimer(TIMER_MASH);
-  
+    #ifdef DELAYSTART_NOALARM
+      setAlarm(0);
+    #endif
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Exit: Add Grain
     tgtVol[VS_HLT] = 0;
@@ -543,7 +551,7 @@ void stepExit(byte brewStep) {
 #endif
     #ifdef MASH_PREHEAT_SENSOR
     //Restore mash temp sensor address from EEPROM (address 8)
-      PROMreadBytes(8, tSensor[TS_MASH], 8);
+      EEPROMreadBytes(8, tSensor[TS_MASH], 8);
     #endif
     #ifdef MASH_PREHEAT_NOVALVES
       loadVlvConfigs();
@@ -599,18 +607,33 @@ void smartHERMSHLT() {
 #endif
   
 unsigned long calcStrikeVol(byte pgm) {
-  unsigned long retValue = round(getProgGrain(pgm) * getProgRatio(pgm) / 100.0);
-  //Convert qts to gal for US
-  #ifndef USEMETRIC
-    retValue = round(retValue / 4.0);
-  #endif
-  retValue += getVolLoss(TS_MASH);
+  unsigned int mashRatio = getProgRatio(pgm);
+  unsigned long retValue;
+  if (mashRatio) {
+    retValue = round(getProgGrain(pgm) * mashRatio / 100.0);
+
+    //Convert qts to gal for US
+    #ifndef USEMETRIC
+      retValue = round(retValue / 4.0);
+    #endif
+    retValue += getVolLoss(TS_MASH);
+  }
+  else {
+    //No Sparge Logic (Matio Ratio = 0)
+    retValue = calcPreboilVol(pgm);
+  
+    //Add Water Lost in Spent Grain
+    retValue += calcGrainLoss(pgm);
+    
+    //Add Loss from other Vessels
+    retValue += (getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
+  }
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("StrikeVol:"));
-  logFieldI( retValue);
-  logEnd();
+    logStart_P(LOGDEBUG);
+    logField_P(PSTR("StrikeVol:"));
+    logFieldI( retValue);
+    logEnd();
   #endif
   
   return retValue;
@@ -630,10 +653,10 @@ unsigned long calcSpargeVol(byte pgm) {
   retValue -= calcStrikeVol(pgm);
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("SpargeVol:"));
-  logFieldI( retValue);
-  logEnd();
+    logStart_P(LOGDEBUG);
+    logField_P(PSTR("SpargeVol:"));
+    logFieldI( retValue);
+    logEnd();
   #endif
   
   return retValue;
@@ -644,16 +667,16 @@ unsigned long calcPreboilVol(byte pgm) {
   // It is (((batch volume + kettle loss) / thermo shrinkage factor ) / evap loss factor )
   //unsigned long retValue = (getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0)) + getVolLoss(TS_KETTLE); // old logic 
   #ifdef BOIL_OFF_GALLONS
-  unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) + (((unsigned long)getEvapRate() * EvapRateConversion) * getProgBoil(pgm) / 60.0));
+    unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / VOL_SHRINKAGE) + (((unsigned long)getEvapRate() * EvapRateConversion) * getProgBoil(pgm) / 60.0));
   #else
-  unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0));
+    unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / VOL_SHRINKAGE) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0));
   #endif
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("PreBoilVol:"));
-  logFieldI( round(retValue));
-  logEnd();
+    logStart_P(LOGDEBUG);
+    logField_P(PSTR("PreBoilVol:"));
+    logFieldI( round(retValue));
+    logEnd();
   #endif
   
   return round(retValue);
@@ -661,40 +684,33 @@ unsigned long calcPreboilVol(byte pgm) {
 
 unsigned long calcGrainLoss(byte pgm) {
   unsigned long retValue;
-  #ifdef USEMETRIC
-    retValue = round(getProgGrain(pgm) * 1.7884);
-  #else
-    retValue = round(getProgGrain(pgm) * .2143); // This is pretty conservative (err on more absorbtion) - Ray Daniels suggests .20 - Denny Conn suggest .10
-  #endif
+  retValue = round(getProgGrain(pgm) * GRAIN_VOL_LOSS);
   
   #ifdef DEBUG_PROG_CALC_VOLS
-  logStart_P(LOGDEBUG);
-  logField_P(PSTR("GrainLoss"));
-  logFieldI(retValue);
-  logEnd();
+    logStart_P(LOGDEBUG);
+    logField_P(PSTR("GrainLoss"));
+    logFieldI(retValue);
+    logEnd();
   #endif
   
   return retValue;
 }
 
 unsigned long calcGrainVolume(byte pgm) {
-  //Grain-to-volume factor for mash tun capacity
-  //Conservatively 1 lb = 0.15 gal 
-  //Aggressively 1 lb = 0.093 gal
-  #ifdef USEMETRIC
-    #define GRAIN2VOL 1.25
-  #else
-    #define GRAIN2VOL .15
-  #endif
   return round (getProgGrain(pgm) * GRAIN2VOL);
 }
 
+/**
+ * Calculates the strike temperature for the mash.
+ */
 byte calcStrikeTemp(byte pgm) {
   float strikeTemp = (float)getFirstStepTemp(pgm) / SETPOINT_DIV;
   #ifdef USEMETRIC
-    return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    //return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (calcStrikeVol(pgm) / getProgGrain(pgm))) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
   #else
-    return (strikeTemp + round(.192 * (strikeTemp - getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    //return (strikeTemp + round(.192 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    return (strikeTemp + round(.192 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / ((calcStrikeVol(pgm) * 4) / getProgGrain(pgm))) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
   #endif
 }
 

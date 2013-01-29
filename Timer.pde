@@ -23,10 +23,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
-
-#include "Config.h"
-#include "Enum.h"
-
 unsigned long buzzerCycleStart = millis(); //last time the alarm went on
 
 byte lastEEPROMWrite[2];
@@ -64,6 +60,7 @@ void clearTimer(byte timer) {
 void updateTimers() {
   for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
     if (timerStatus[timer]) {
+      if (estop) pauseTimer(timer);
       unsigned long now = millis();
       if (timerValue[timer] > now - lastTime[timer]) {
         timerValue[timer] -= now - lastTime[timer];
@@ -110,6 +107,7 @@ void setAlarm(boolean alarmON) {
 //The modulation varies according the custom parameters.
 //The modulation occurs when the buzzerCycleTime value is larger than the buzzerOnDuration
 void setBuzzer(boolean alarmON) {
+#ifdef ALARM_PIN
   if (alarmON) {
     #ifdef BUZZER_CYCLE_TIME
       //Alarm status is ON, Buzzer will go ON or OFF based on modulation.
@@ -136,4 +134,5 @@ void setBuzzer(boolean alarmON) {
     //Alarm status is OFF, Buzzer goes Off
     alarmPin.set(0);
   }
+#endif
 }

@@ -24,9 +24,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-#include "Config.h"
-#include "Enum.h"
-
 void strLPad(char retString[], byte len, char pad) {
   char strVal[len + 1];
   strcpy(strVal, retString);

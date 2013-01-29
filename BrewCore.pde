@@ -23,11 +23,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
-
-#include "Config.h"
-#include "Enum.h"
-#include "HWProfile.h"
-
 void brewCore() {
   #ifdef HEARTBEAT
     heartbeat();
@@ -59,7 +54,7 @@ void brewCore() {
   //Communications: Com.pde
   updateCom();  
 
-  #ifndef PID_FLOW_CONTROL
+  #if defined STEAMPRESS_APIN && !defined PID_FLOW_CONTROL
     steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
   #endif
   
