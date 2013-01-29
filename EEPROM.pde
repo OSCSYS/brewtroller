@@ -124,12 +124,16 @@ void loadSetup() {
   //**********************************************************************************
   //401-480 Valve Profiles
   //**********************************************************************************
-  loadVlvConfigs();
+  #ifdef PVOUT
+    loadVlvConfigs();
+  #endif
 }
 
-void loadVlvConfigs() {
-  eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
-}
+#ifdef PVOUT
+  void loadVlvConfigs() {
+    eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
+  }
+#endif
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions
@@ -392,8 +396,10 @@ byte getGrainTemp() { return EEPROM.read(400); }
 // Valve Profile Configuration (401-480; 481-785 Reserved)
 //*****************************************************************************************************************************
 void setValveCfg(byte profile, unsigned long value) {
-  vlvConfig[profile] = value;
-  PROMwriteLong(401 + profile * 4, value);
+  #ifdef PVOUT
+    vlvConfig[profile] = value;
+    PROMwriteLong(401 + profile * 4, value);
+  #endif
 }
 
 //*****************************************************************************************************************************
@@ -504,6 +510,10 @@ unsigned long getProgGrain(byte preset) { return PROMreadLong(PROGRAM_START_ADDR
 //EEPROM Version (2047)
 //**********************************************************************************
 
+//**********************************************************************************
+//LCD Bright/Contrast (2048-2049) ATMEGA1284P Only
+//**********************************************************************************
+
 
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
@@ -514,7 +524,14 @@ boolean checkConfig() {
 
   //If the BT 1.3 fingerprint is missing force a init of EEPROM
   //FermTroller will bump to a cfgVersion starting at 7
-  if (BTFinger != 252 || cfgVersion == 255) return 1;
+  if (BTFinger != 252 || cfgVersion == 255) {
+    //Force default LCD Bright/Contrast to allow user to see 'Missing Config' prompt
+    #if (defined __AVR_ATmega1284P__ || defined __AVR_ATmega1284__) && defined UI_DISPLAY_SETUP && defined UI_LCD_4BIT
+      EEPROM.write(2048, 240);
+      EEPROM.write(2049, 10);
+    #endif
+    return 1;
+  }
 
   //In the future, incremental EEPROM settings will be included here
   switch(cfgVersion) {
@@ -569,11 +586,18 @@ void initEEPROM() {
   //Set all steps idle
   for (byte i = 0; i < NUM_BREW_STEPS; i++) setProgramStep(i, PROGRAM_IDLE);
 
+  //Set default LCD Bright/Contrast
+  #if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
+    EEPROM.write(2048, 240);
+    EEPROM.write(2049, 10);
+  #endif
+  
   //Set cfgVersion = 0
   EEPROM.write(2047, 0);
 
   // re-load Setup 
   loadSetup();
+  LCD.init();
 }
 
 //*****************************************************************************************************************************

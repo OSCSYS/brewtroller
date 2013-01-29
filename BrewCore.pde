@@ -26,6 +26,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 #include "Config.h"
 #include "Enum.h"
+#include "HWProfile.h"
 
 void brewCore() {
   #ifdef HEARTBEAT
@@ -33,7 +34,7 @@ void brewCore() {
   #endif
   
   #ifndef NOUI
-    updateLCD();
+    LCD.update();
   #endif
   
   //Timers: Timer.pde
@@ -49,7 +50,7 @@ void brewCore() {
   updateVols();
 
   #ifdef FLOWRATE_CALCS
-  updateFlowRates();
+    updateFlowRates();
   #endif
  
   //Heat Outputs: Outputs.pde
@@ -59,25 +60,27 @@ void brewCore() {
   updateCom();  
 
   #ifndef PID_FLOW_CONTROL
-  steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
+    steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
   #endif
   
   //Step Logic: StepLogic.pde
   stepCore();
 
-  //Auto Valve Logic: Outputs.pde
-  processAutoValve();
-  
-  //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
-  updateValves();
+  #ifdef PVOUT
+    //Auto Valve Logic: Outputs.pde
+    processAutoValve();
+    
+    //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
+    updateValves();
+  #endif
 }
 
 #ifdef HEARTBEAT
-unsigned long hbStart = 0;
-void heartbeat() {
-  if (millis() - hbStart > 750) {
-    hbPin.toggle();
-    hbStart = millis();
+  unsigned long hbStart = 0;
+  void heartbeat() {
+    if (millis() - hbStart > 750) {
+      hbPin.toggle();
+      hbStart = millis();
+    }
   }
-}
 #endif

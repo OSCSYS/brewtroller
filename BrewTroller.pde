@@ -1,4 +1,4 @@
-#define BUILD 770
+#define BUILD 788
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -26,7 +26,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 /*
-Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
+Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
   With Sanguino Software "Sanguino-0018r2_1_4.zip" (http://code.google.com/p/sanguino/downloads/list)
 
   Using the following libraries:
@@ -36,8 +36,7 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
     FastPin and modified LiquidCrystal with FastPin by CodeRage (http://www.brewtroller.com/forum/showthread.php?t=626)
 */
 
-#include "Config.h"
-#include "Enum.h"
+
 
 //*****************************************************************************************************************************
 // BEGIN CODE
@@ -47,47 +46,24 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
 #include <pin.h>
 #include <menu.h>
 
+#include "Config.h"
+#include "Enum.h"
+#include "HWProfile.h"
+#include "PVOut.h"
+#include "UI_LCD.h"
+
 void(* softReset) (void) = 0;
+
+const char BT[] PROGMEM = "BrewTroller";
+const char BTVER[] PROGMEM = "2.4";
 
 //**********************************************************************************
 // Compile Time Logic
 //**********************************************************************************
 
-// Disable On board pump/valve outputs for BT Board 3.0 and older boards using steam
-// Set MUXBOARDS 0 for boards without on board or MUX Pump/valve outputs
-
-#if (defined BTBOARD_3 || defined BTBOARD_4) && !defined MUXBOARDS
-  #define MUXBOARDS 2
-#endif
-
-#if !defined BTBOARD_3 && !defined BTBOARD_4 && !defined USESTEAM && !defined MUXBOARDS
-  #define ONBOARDPV
-#else
-  #if !defined MUXBOARDS
-    #define MUXBOARDS 0
-  #endif
-#endif
-
 //Enable Mash Avergaing Logic if any Mash_AVG_AUXx options were enabled
 #if defined MASH_AVG_AUX1 || defined MASH_AVG_AUX2 || defined MASH_AVG_AUX3
   #define MASH_AVG
-#endif
-
-//Use I2C LCD for BTBoard_4
-#ifdef BTBOARD_4
-  #define UI_LCD_I2C
-  #define HEARTBEAT
-#endif
-
-//Select OneWire Comm Type
-#ifdef TS_ONEWIRE
-  #ifdef BTBOARD_4
-    #define TS_ONEWIRE_I2C //BTBOARD_4 uses I2C if OneWire support is used
-  #else
-    #ifndef TS_ONEWIRE_I2C
-      #define TS_ONEWIRE_GPIO //Previous boards use GPIO unless explicitly configured for I2C
-    #endif
-  #endif
 #endif
 
 #ifdef USEMETRIC
@@ -106,7 +82,7 @@ void(* softReset) (void) = 0;
   #define BTNIC_PROTOCOL
 #endif
 
-#if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE || defined BTNIC_EMBEDDED
+#if defined BTPD_SUPPORT || defined UI_LCD_I2C || defined TS_ONEWIRE_I2C || defined BTNIC_EMBEDDED
   #define USE_I2C
 #endif
 
@@ -129,21 +105,11 @@ void(* softReset) (void) = 0;
 //Heat Output Pin Array
 pin heatPin[4], alarmPin;
 
-#ifdef ONBOARDPV
-  pin valvePin[11];
-#endif
-
-#if MUXBOARDS > 0
-  pin muxLatchPin, muxDataPin, muxClockPin;
-  #ifdef BTBOARD_4
-    pin muxMRPin;
-  #else
-    pin muxOEPin;
-  #endif
-#endif
-
-#ifdef BTBOARD_4
+#ifdef DIGITAL_INPUTS
   pin digInPin[6];
+#endif
+
+#ifdef HEARTBEAT
   pin hbPin;
 #endif
 
@@ -174,9 +140,46 @@ unsigned long SpargeVol = 0;
 long flowRate[3] = {0,0,0};
 #endif
 
+
+//Create the appropriate 'LCD' object for the hardware configuration (4-Bit GPIO, I2C)
+#if defined UI_LCD_4BIT
+  #include <LiquidCrystalFP.h>
+  
+  #ifndef UI_DISPLAY_SETUP
+    LCD4Bit LCD(LCD_RS_PIN, LCD_ENABLE_PIN, LCD_DATA4_PIN, LCD_DATA5_PIN, LCD_DATA6_PIN, LCD_DATA7_PIN);
+  #else
+    LCD4Bit LCD(LCD_RS_PIN, LCD_ENABLE_PIN, LCD_DATA4_PIN, LCD_DATA5_PIN, LCD_DATA6_PIN, LCD_DATA7_PIN, LCD_BRIGHT_PIN, LCD_CONTRAST_PIN);
+  #endif
+  
+#elif defined UI_LCD_I2C
+  LCDI2C LCD(UI_LCD_I2CADDR);
+#endif
+
+
 //Valve Variables
 unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
+
+//Create the appropriate 'Valves' object for the hardware configuration (GPIO, MUX, MODBUS)
+#if defined PVOUT_TYPE_GPIO
+  #define PVOUT
+  PVOutGPIO Valves(PVOUT_COUNT);
+
+#elif defined PVOUT_TYPE_MUX
+  #define PVOUT
+  PVOutMUX Valves( 
+    MUX_LATCH_PIN,
+    MUX_DATA_PIN,
+    MUX_CLOCK_PIN,
+    MUX_ENABLE_PIN,
+    MUX_ENABLE_LOGIC
+  );
+  
+#elif defined PVOUT_TYPE_MODBUS
+  #define PVOUT
+  PVOutMODBUS Valves();
+
+#endif
 
 //Shared buffers
 char buf[20];
@@ -247,9 +250,6 @@ boolean preheated[4], doAutoBoil;
 unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
 byte pitchTemp;
 
-const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "2.3";
-
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";
 const char LOGDEBUG[] PROGMEM = "DEBUG";
@@ -280,20 +280,74 @@ void setup() {
 
   //Pin initialization (Outputs.pde)
   pinInit();
-  
-  tempInit();
 
+#ifdef PVOUT
+  #if defined PVOUT_TYPE_GPIO
+    #if PVOUT_COUNT >= 1
+      Valves.setup(0, VALVE1_PIN);
+    #endif
+    #if PVOUT_COUNT >= 2
+      Valves.setup(1, VALVE2_PIN);
+    #endif
+    #if PVOUT_COUNT >= 3
+      Valves.setup(2, VALVE3_PIN);
+    #endif
+    #if PVOUT_COUNT >= 4
+      Valves.setup(3, VALVE4_PIN);
+    #endif
+    #if PVOUT_COUNT >= 5
+      Valves.setup(4, VALVE5_PIN);
+    #endif
+    #if PVOUT_COUNT >= 6
+      Valves.setup(5, VALVE6_PIN);
+    #endif
+    #if PVOUT_COUNT >= 7
+      Valves.setup(6, VALVE7_PIN);
+    #endif
+    #if PVOUT_COUNT >= 8
+      Valves.setup(7, VALVE8_PIN);
+    #endif
+    #if PVOUT_COUNT >= 9
+      Valves.setup(8, VALVE9_PIN);
+    #endif
+    #if PVOUT_COUNT >= 10
+      Valves.setup(9, VALVEA_PIN);
+    #endif
+    #if PVOUT_COUNT >= 11
+      Valves.setup(10, VALVEB_PIN);
+    #endif
+    #if PVOUT_COUNT >= 12
+      Valves.setup(11, VALVEC_PIN);
+    #endif
+    #if PVOUT_COUNT >= 13
+      Valves.setup(12, VALVED_PIN);
+    #endif
+    #if PVOUT_COUNT >= 14
+      Valves.setup(13, VALVEE_PIN);
+    #endif
+    #if PVOUT_COUNT >= 15
+      Valves.setup(14, VALVEF_PIN);
+    #endif
+    #if PVOUT_COUNT >= 16
+      Valves.setup(15, VALVEG_PIN);
+    #endif
+  #endif
+  Valves.init();
+#endif
+
+  tempInit();
+  
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
   checkConfig();
-
+  
   //Load global variable values stored in EEPROM (EEPROM.pde)
   loadSetup();
-
+  
   //PID Initialization (Outputs.pde)
   pidInit();
-
+  
   #ifdef PWM_BY_TIMER
-  pwmInit();
+    pwmInit();
   #endif
 
   //User Interface Initialization (UI.pde)

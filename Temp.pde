@@ -26,6 +26,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 #include "Config.h"
 #include "Enum.h"
+#include "HWProfile.h"
 
 #ifdef TS_ONEWIRE
   #ifdef TS_ONEWIRE_GPIO
@@ -95,11 +96,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       convStart = 0;
       
       #if defined MASH_AVG
-        //Do not average for Preheat step if using a seperate mash sensor during preheat (dedicated HEX) 
-        #ifdef MASH_PREHEAT_SENSOR
-          if (stepProgram[STEP_PREHEAT] == PROGRAM_IDLE)
-        #endif
-            mashAvg();
+        mashAvg();
       #endif
     }
   }

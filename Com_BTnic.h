@@ -30,7 +30,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #ifdef BTNIC_PROTOCOL
   #include "Config.h"
   #include "Enum.h"
-
+  
 /********************************************************************************************************************
  * BTnic Class
  ********************************************************************************************************************/
@@ -702,8 +702,8 @@ int BTnic::getCmdIndex() {
   while (_bufCur < _bufLen && _bufData[_bufCur] != 0x09) tmpbuf[_bufCur - 1] = _bufData[_bufCur++];
 
   if (_bufCur == 1) return NO_CMDINDEX;   //Missing Index
-  tmpbuf[_bufCur] = '\0';
-  byte cmdIndex = strtoul(tmpbuf, NULL, 10);
+  tmpbuf[_bufCur - 1] = '\0';
+  int cmdIndex = atoi(tmpbuf);
   if (cmdIndex > maxValue) return NO_CMDINDEX;
   else return cmdIndex;
 }

@@ -137,7 +137,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     if(getProgMLHeatSrc(pgm) == VS_HLT) {
       unsigned long spargeVol = calcSpargeVol(pgm);
       unsigned long mashVol = calcStrikeVol(pgm);
-      tgtVol[VS_HLT] = (min(spargeVol, getCapacity(VS_HLT)));
+      tgtVol[VS_HLT] = (min((spargeVol + mashVol), getCapacity(VS_HLT)) - mashVol);
       #ifdef VOLUME_MANUAL
         // In manual volume mode show the target mash volume as a guide to the user
         tgtVol[VS_MASH] = mashVol;
