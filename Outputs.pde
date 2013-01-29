@@ -1,5 +1,5 @@
 /*  
-   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -27,6 +27,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 #include "Config.h"
 #include "Enum.h"
+
+unsigned long prevProfiles;
 
 #ifdef PID_FLOW_CONTROL 
   #define LAST_HEAT_OUTPUT VS_PUMP // not this is mostly done for code readability as VS_PUMP = VS_STEAM
@@ -95,14 +97,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 void pwmInit( void )
 {
     // set timer 1 prescale factor to 0
-    sbi(TCCR1B, CS11);
+    sbi(TCCR1B, CS10);
     cbi(TCCR1B, CS12);
-    cbi(TCCR1B, CS10);
+    cbi(TCCR1B, CS11);
 
     //clear timer 1 out of 8 bit phase correct PWM mode from sanguino init
     cbi(TCCR1A, WGM10);
     //set timer 1 into 16 bit phase and frequency correct PWM mode with ICR1 as TOP
-    sbi(TCCR1A, WGM13);
+    sbi(TCCR1B, WGM13);
     //set TOP as 1000, which makes the overflow on return to bottom for this mode happen ever 
     // 125uS given a 16mhz input clock, aka 8khz PWM frequency, the overflow ISR will handle 
     // the PWM outputs that are slower than 8khz, and the OCR1A/B ISR will handle the 8khz PWM outputs
@@ -139,7 +141,7 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 {
     //count the number of times this has been called 
     timer1_overflow_count++;
-    for(byte i = 0; i < LAST_HEAT_OUTPUT; i++)
+    for(byte i = 0; i <= LAST_HEAT_OUTPUT; i++)
     {
         // if PID is enabled, and NOT one of the 8khz PWM outputs then we can use this
         if(PIDEnabled[i] 
@@ -168,19 +170,31 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 #ifdef PWM_8K_1
 ISR(TIMER1_COMPA_vect, ISR_BLOCK )
 {
-	if(PIDEnabled[PWM_8K_1])
-	{
-		//if the output is 1000, we need to set the pin to low 
-		if(PIDOutputCountEquivalent[PWM_8K_1][1] == 1000) heatPin[PWM_8K_1].set(LOW);
-		//if the output is its maxiumum then we just set the pin high 
-		else if(PIDOutputCountEquivalent[PWM_8K_1][1] == 0) heatPin[PWM_8K_1].set(HIGH);
-		// else we need to toggle the pin from its previous state
-		else
-		{
-			if(heatPin[PWM_8K_1].get()) heatPin[PWM_8K_1].set(LOW);
-			else heatPin[PWM_8K_1].set(HIGH);
-		}
-	}
+    if(PIDEnabled[PWM_8K_1])
+    {
+        //if the output is 1000, we need to set the pin to low 
+        if(PIDOutputCountEquivalent[PWM_8K_1][1] == 1000) heatPin[PWM_8K_1].set(LOW);
+        //if the output is its maxiumum then we just set the pin high 
+        else if(PIDOutputCountEquivalent[PWM_8K_1][1] == 0)
+        {
+            heatPin[PWM_8K_1].set(HIGH);
+            LastSetFullPowerBoolean1 = 1;
+        }
+        // if we just exited from full power we need to set the heat output pin to low else we will invert our toggle logic
+        else if(LastSetFullPowerBoolean1) 
+        {
+            heatPin[PWM_8K_1].set(LOW);
+            LastSetFullPowerBoolean1 = 0;
+            if(heatPin[PWM_8K_1].get()) heatPin[PWM_8K_1].set(LOW);
+            else heatPin[PWM_8K_1].set(HIGH);
+        }
+        // else we need to toggle the pin from its previous state
+        else
+        {
+            if(heatPin[PWM_8K_1].get()) heatPin[PWM_8K_1].set(LOW);
+            else heatPin[PWM_8K_1].set(HIGH);
+        }
+    }
 }
 #endif
 
@@ -192,7 +206,19 @@ ISR(TIMER1_COMPB_vect, ISR_BLOCK)
         //if the output is 1000, we need to set the pin to low 
         if(PIDOutputCountEquivalent[PWM_8K_2][1] == 1000) heatPin[PWM_8K_2].set(LOW);
         //if the output is its maxiumum then we just set the pin high 
-        else if(PIDOutputCountEquivalent[PWM_8K_2][1] == 0) heatPin[PWM_8K_2].set(HIGH);
+        else if(PIDOutputCountEquivalent[PWM_8K_2][1] == 0)
+        {
+            heatPin[PWM_8K_2].set(HIGH);
+            LastSetFullPowerBoolean2 = 1;
+        }
+        // if we just exited from full power we need to set the heat output pin to low else we will invert our toggle logic
+        else if(LastSetFullPowerBoolean2) 
+        {
+            heatPin[PWM_8K_2].set(LOW);
+            LastSetFullPowerBoolean2 = 0;
+            if(heatPin[PWM_8K_2].get()) heatPin[PWM_8K_2].set(LOW);
+            else heatPin[PWM_8K_2].set(HIGH)
+        }
         // else we need to toggle the pin from its previous state
         else
         {
@@ -212,8 +238,20 @@ void pinInit() {
     muxLatchPin.setup(MUX_LATCH_PIN, OUTPUT);
     muxDataPin.setup(MUX_DATA_PIN, OUTPUT);
     muxClockPin.setup(MUX_CLOCK_PIN, OUTPUT);
-    muxOEPin.setup(MUX_OE_PIN, OUTPUT);
-    muxOEPin.set();
+    #ifdef BTBOARD_4
+      //MUX in Reset State
+      muxMRPin.setup(MUX_MR_PIN, OUTPUT);
+      muxLatchPin.clear(); //Prepare to copy pin states
+      muxMRPin.clear(); //Force clear of pin registers
+      muxLatchPin.set(); //Copy pin states from registers
+      muxMRPin.set(); //Disable clear
+    #else
+      //MUX in Hi-Z State
+      muxOEPin.setup(MUX_OE_PIN, OUTPUT);
+      setValves(0);
+      muxOEPin.clear();
+      //MUX Enabled
+    #endif
   #endif
   #ifdef ONBOARDPV
     valvePin[0].setup(VALVE1_PIN, OUTPUT);
@@ -242,6 +280,14 @@ void pinInit() {
 #endif
 #ifdef PID_FLOW_CONTROL
   heatPin[VS_PUMP].setup(PWMPUMP_PIN, OUTPUT);
+#endif
+
+#ifdef BTBOARD_4
+  digInPin[0].setup(DIGIN1_PIN, INPUT);
+  digInPin[1].setup(DIGIN2_PIN, INPUT);
+  digInPin[2].setup(DIGIN3_PIN, INPUT);
+  digInPin[3].setup(DIGIN4_PIN, INPUT);
+  digInPin[4].setup(DIGIN5_PIN, INPUT);
 #endif
 }
 
@@ -341,19 +387,26 @@ void resetHeatOutput(byte vessel) {
   #endif
 }  
 
-//Sets the specified valves On or Off
-void setValves (unsigned long vlvBitMask, boolean value) {
-  
-  //Nothing to do with an empty valve profile
-  if(!vlvBitMask) return;
-  
-  if (value) vlvBits |= vlvBitMask;
-  else vlvBits = vlvBits ^ (vlvBits & vlvBitMask);
-  
+void updateValves() {
+  if (actProfiles != prevProfiles) {
+    setValves(computeValveBits());
+    prevProfiles = actProfiles;
+  }
+}
+
+unsigned long computeValveBits() {
+  unsigned long vlvBits = 0;
+  for (byte i = 0; i < NUM_VLVCFGS; i++) {
+    if (bitRead(actProfiles, i)) {
+      vlvBits |= vlvConfig[i];
+    }
+  }
+  return vlvBits;
+}
+
+void setValves(unsigned long vlvBits) {
   #if MUXBOARDS > 0
   //MUX Valve Code
-    //Disable outputs
-    //muxOEPin.set();
     //ground latchPin and hold low for as long as you are transmitting
     muxLatchPin.clear();
     //clear everything out just in case to prepare shift register for bit shifting
@@ -374,8 +427,7 @@ void setValves (unsigned long vlvBitMask, boolean value) {
     //stop shifting
     muxClockPin.clear();
     muxLatchPin.set();
-    //Enable outputs
-    muxOEPin.clear();
+	muxLatchPin.clear();
   #endif
   #ifdef ONBOARDPV
   //Original 11 Valve Code
@@ -436,7 +488,7 @@ void processHeatOutputs() {
          oldSREG = SREG;
          cli();
          PIDOutputCountEquivalent[i][0] = PIDCycle[i] * 800;
-         PIDOutputCountEquivalent[i][1] = PIDOutput[i] * 800;
+         PIDOutputCountEquivalent[i][1] = PIDOutput[i] * 8;
          SREG = oldSREG; // restore interrupts
       }
       else
@@ -444,7 +496,7 @@ void processHeatOutputs() {
          //note that the subtract from 1000 part is here because the way the counter timer works by toggeling the output bit
          // and the fact that the starting state of said bit is always 0 causes us to have to invert the logic. If we didnt subtract
          // the value from 1000 the bit would be set high at say PIDOutput = 20 and left high until we counted up to 1000, then down 
-         // from 1000 to 20 then get set low again, thus 20 is your 20/2000 = 1% time low, not time on as is expected. 
+         // from 1000 to 20 then get set low again, thus 20 is your 40/2000 = 2% time low, not time on as is expected. 
       #ifdef PWM_8K_1
          if(i == PWM_8K_1)
          {
@@ -497,64 +549,64 @@ void processHeatOutputs() {
 boolean vlvConfigIsActive(byte profile) {
   //An empty valve profile cannot be active
   if (!vlvConfig[profile]) return 0;
-  if ((vlvBits & vlvConfig[profile]) == vlvConfig[profile]) return 1; else return 0;
+  return bitRead(actProfiles, profile);
 }
 
 void processAutoValve() {
   //Do Valves
   if (autoValve[AV_FILL]) {
-    if (volAvg[VS_HLT] < tgtVol[VS_HLT]) setValves(vlvConfig[VLV_FILLHLT], 1);
-      else setValves(vlvConfig[VLV_FILLHLT], 0);
+    if (volAvg[VS_HLT] < tgtVol[VS_HLT]) bitSet(actProfiles, VLV_FILLHLT);
+      else bitClear(actProfiles, VLV_FILLHLT);
       
-    if (volAvg[VS_MASH] < tgtVol[VS_MASH]) setValves(vlvConfig[VLV_FILLMASH], 1);
-      else setValves(vlvConfig[VLV_FILLMASH], 0);
-  } 
-  if (autoValve[AV_HLT]) {
-    if (heatStatus[VS_HLT]) {
-      if (!vlvConfigIsActive(VLV_HLTHEAT)) setValves(vlvConfig[VLV_HLTHEAT], 1);
-    } else {
-      if (vlvConfigIsActive(VLV_HLTHEAT)) setValves(vlvConfig[VLV_HLTHEAT], 0);
+    if (volAvg[VS_MASH] < tgtVol[VS_MASH]) bitSet(actProfiles, VLV_FILLMASH);
+      else bitClear(actProfiles, VLV_FILLMASH);
+  }
+  
+  //HLT/MASH/KETTLE AV Logic
+  for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+    byte vlvHeat = vesselVLVHeat(i);
+    byte vlvIdle = vesselVLVIdle(i);
+    if (autoValve[vesselAV(i)]) {
+      if (heatStatus[i]) {
+        if (vlvConfigIsActive(vlvIdle)) bitClear(actProfiles, vlvIdle);
+        if (!vlvConfigIsActive(vlvHeat)) bitSet(actProfiles, vlvHeat);
+      } else {
+        if (vlvConfigIsActive(vlvHeat)) bitClear(actProfiles, vlvHeat);
+        if (!vlvConfigIsActive(vlvIdle)) bitSet(actProfiles, vlvIdle); 
+      }
     }
   }
-  if (autoValve[AV_MASH]) {
-    if (heatStatus[VS_MASH]) {
-      if (vlvConfigIsActive(VLV_MASHIDLE)) setValves(vlvConfig[VLV_MASHIDLE], 0);
-      if (!vlvConfigIsActive(VLV_MASHHEAT)) setValves(vlvConfig[VLV_MASHHEAT], 1);
-    } else {
-      if (vlvConfigIsActive(VLV_MASHHEAT)) setValves(vlvConfig[VLV_MASHHEAT], 0);
-      if (!vlvConfigIsActive(VLV_MASHIDLE)) setValves(vlvConfig[VLV_MASHIDLE], 1); 
-    }
-  } 
+  
   if (autoValve[AV_SPARGEIN]) {
-    if (volAvg[VS_HLT] > tgtVol[VS_HLT]) setValves(vlvConfig[VLV_SPARGEIN], 1);
-      else setValves(vlvConfig[VLV_SPARGEIN], 0);
+    if (volAvg[VS_HLT] > tgtVol[VS_HLT]) bitSet(actProfiles, VLV_SPARGEIN);
+      else bitClear(actProfiles, VLV_SPARGEIN);
   }
   if (autoValve[AV_SPARGEOUT]) {
-    if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) setValves(vlvConfig[VLV_SPARGEOUT], 1);
-    else setValves(vlvConfig[VLV_SPARGEOUT], 0);
+    if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) bitSet(actProfiles, VLV_SPARGEOUT);
+    else bitClear(actProfiles, VLV_SPARGEOUT);
   }
   if (autoValve[AV_FLYSPARGE]) {
     if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
       #ifdef SPARGE_IN_PUMP_CONTROL
       if(volAvg[VS_KETTLE] - prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
       {
-         setValves(vlvConfig[VLV_SPARGEIN], 1);
+         bitSet(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[0] = volAvg[VS_KETTLE];
          prevSpargeVol[1] = volAvg[VS_HLT];
       }
       else if(prevSpargeVol[1] - volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS)
       {
-         setValves(vlvConfig[VLV_SPARGEIN], 0);
+         bitClear(actProfiles, VLV_SPARGEIN);
          prevSpargeVol[1] = volAvg[VS_HLT];
       }
       
       #else
-      setValves(vlvConfig[VLV_SPARGEIN], 1);
+      bitSet(actProfiles, VLV_SPARGEIN);
       #endif
-      setValves(vlvConfig[VLV_SPARGEOUT], 1);
+      bitSet(actProfiles, VLV_SPARGEOUT);
     } else {
-      setValves(vlvConfig[VLV_SPARGEIN], 0);
-      setValves(vlvConfig[VLV_SPARGEOUT], 0);
+      bitClear(actProfiles, VLV_SPARGEIN);
+      bitClear(actProfiles, VLV_SPARGEOUT);
     }
   }
   if (autoValve[AV_CHILL]) {
@@ -563,22 +615,41 @@ void processAutoValve() {
     //If Pumping beer
     if (vlvConfigIsActive(VLV_CHILLBEER)) {
       //Cut beer if exceeds pitch + 1
-      if (temp[TS_BEEROUT] > pitchTemp + 1.0) setValves(vlvConfig[VLV_CHILLBEER], 0);
+      if (temp[TS_BEEROUT] > pitchTemp + 1.0) bitClear(actProfiles, VLV_CHILLBEER);
     } else {
       //Enable beer if chiller H2O output is below pitch
       //ADD MIN DELAY!
-      if (temp[TS_H2OOUT] < pitchTemp - 1.0) setValves(vlvConfig[VLV_CHILLBEER], 1);
+      if (temp[TS_H2OOUT] < pitchTemp - 1.0) bitSet(actProfiles, VLV_CHILLBEER);
     }
     
     //If chiller water is running
     if (vlvConfigIsActive(VLV_CHILLH2O)) {
       //Cut H2O if beer below pitch - 1
-      if (temp[TS_BEEROUT] < pitchTemp - 1.0) setValves(vlvConfig[VLV_CHILLH2O], 0);
+      if (temp[TS_BEEROUT] < pitchTemp - 1.0) bitClear(actProfiles, VLV_CHILLH2O);
     } else {
       //Enable H2O if chiller H2O output is at pitch
       //ADD MIN DELAY!
-      if (temp[TS_H2OOUT] >= pitchTemp) setValves(vlvConfig[VLV_CHILLH2O], 1);
+      if (temp[TS_H2OOUT] >= pitchTemp) bitSet(actProfiles, VLV_CHILLH2O);
     }
     */
   }
+}
+
+//Map AutoValve Profiles to Vessels
+byte vesselAV(byte vessel) {
+  if (vessel == VS_HLT) return AV_HLT;
+  else if (vessel == VS_MASH) return AV_MASH;
+  else if (vessel == VS_KETTLE) return AV_KETTLE;
+}
+
+byte vesselVLVHeat(byte vessel) {
+  if (vessel == VS_HLT) return VLV_HLTHEAT;
+  else if (vessel == VS_MASH) return VLV_MASHHEAT;
+  else if (vessel == VS_KETTLE) return VLV_KETTLEHEAT;
+}
+
+byte vesselVLVIdle(byte vessel) {
+  if (vessel == VS_HLT) return VLV_HLTIDLE;
+  else if (vessel == VS_MASH) return VLV_MASHIDLE;
+  else if (vessel == VS_KETTLE) return VLV_KETTLEIDLE;
 }

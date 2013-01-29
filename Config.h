@@ -25,7 +25,8 @@
 //
 //#define BTBOARD_1
 //#define BTBOARD_22
-#define BTBOARD_3
+//#define BTBOARD_3
+#define BTBOARD_4
 //**********************************************************************************
 
 //**********************************************************************************
@@ -199,6 +200,12 @@
 // support alternatives temperature sensor options.)
 #define TS_ONEWIRE
 
+// TS_ONEWIRE_GPIO: Direct pin connection on microcontroller (Default for BTBOARD_1,
+// BTBOARD_22 and BTBOARD_3)
+// TS_ONEWIRE_I2C: DS2482 OneWire Master over I2C (Default for BTBOARD_4)
+//#define TS_ONEWIRE_GPIO
+//#define TS_ONEWIRE_I2C
+
 // TS_ONEWIRE_PPWR: Specifies whether parasite power is used for OneWire temperature
 // sensors. Parasite power allows sensors to obtain their power from the data line
 // but significantly increases the time required to read the temperature (94-750ms
@@ -214,7 +221,15 @@
 //   11-bit (0.125C  / 0.225F ) = 375ms 
 //   10-bit (0.25C   / 0.45F  ) = 188ms 
 //    9-bit (0.5C    / 0.9F   ) =  94ms   
-#define TS_ONEWIRE_RES 9
+#define TS_ONEWIRE_RES 11
+
+// TS_ONEWIRE_FASTREAD: Enables faster reads of temperatures by reading only the first
+// 2 bytes of temperature data and ignoring CRC check.
+//#define TS_ONEWIRE_FASTREAD
+
+// DS2482_ADDR: I2C Address of DS2482 OneWire Master (used for TS_OneWire_I2C)
+// Should be 0x18, 0x19, 0x1A, 0x1B
+#define DS2482_ADDR 0x1B
 //**********************************************************************************
 
 
@@ -269,13 +284,13 @@
 //**********************************************************************************
 // Buzzer modulation parameters
 //**********************************************************************************
-// These parameters allow to modulate the sound of the alarm. 
+// These parameters allow the alarm sound to be modulated. 
 // The modulation occurs when the BUZZER_CYCLE_TIME value is larger than the BUZZER_ON_TIME
 // When the BUZZER_CYCLE_TIME is zero there is no modulation so the buzzer will buzz  
 // a steady sound
-
-#define BUZZER_CYCLE_TIME 1200 //the value is in milliseconds for the ON and OFF buzzer cycle
-#define BUZZER_ON_TIME 500     //the duration in milliseconds where the alarm will stay on
+//
+//#define BUZZER_CYCLE_TIME 1200 //the value is in milliseconds for the ON and OFF buzzer cycle
+//#define BUZZER_ON_TIME 500     //the duration in milliseconds where the alarm will stay on
 //**********************************************************************************
 
 
@@ -294,7 +309,7 @@
 //  2 = Binary Messages
 //      0 = Original implementation
 //**********************************************************************************
-#define COMTYPE   1
+#define COMTYPE   0
 #define COMSCHEMA 0
 
 // BAUD_RATE: The baud rate for the serial connection. Previous to BrewTroller 2.0
@@ -326,6 +341,24 @@
 //#define UI_LCD_I2C
 //**********************************************************************************
 
+//**********************************************************************************
+// UI: ENCODER TYPE
+//**********************************************************************************
+// You must uncomment one and only one of the following ENCODER_ definitions
+// Use ENCODER_ALPS for ALPS and Panasonic Encoders
+// Use ENCODER_CUI for older CUI encoders
+//
+#define ENCODER_TYPE ALPS
+//#define ENCODER_TYPE CUI
+//**********************************************************************************
+
+//**********************************************************************************
+// UI: Home Screen Options
+//**********************************************************************************
+// LOGO_TROLL: Old Home screen with Troll icon
+// LOGO_BREWTROLLER: New Home Screen based on new BrewTroller logo
+//#define LOGO_TROLL
+#define LOGO_BREWTROLLER
 
 //**********************************************************************************
 // BrewTroller PID Display (BTPD)
@@ -382,7 +415,7 @@
 //
 // AUTO_FILL_START: This option will enable the Fill AutoValve logic at the start of
 // the Fill step. 
-//define AUTO_FILL_START
+//#define AUTO_FILL_START
 
 // AUTO_FILL_EXIT: This option will automatically exit the Fill step once target 
 // volumes have been reached.

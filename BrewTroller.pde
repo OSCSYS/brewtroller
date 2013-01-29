@@ -1,6 +1,6 @@
-#define BUILD 703 
+#define BUILD 752
 /*  
-  Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+  Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -46,6 +46,10 @@ Compiled on Arduino-0019 (http://arduino.cc/en/Main/Software)
 #include <PID_Beta6.h>
 #include <pin.h>
 
+#if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
+  #include <Wire.h>
+#endif
+
 void(* softReset) (void) = 0;
 
 //**********************************************************************************
@@ -54,11 +58,11 @@ void(* softReset) (void) = 0;
 
 // Disable On board pump/valve outputs for BT Board 3.0 and older boards using steam
 // Set MUXBOARDS 0 for boards without on board or MUX Pump/valve outputs
-#if defined BTBOARD_3 && !defined MUXBOARDS
+#if (defined BTBOARD_3 || defined BTBOARD_4) && !defined MUXBOARDS
   #define MUXBOARDS 2
 #endif
 
-#if !defined BTBOARD_3 && !defined USESTEAM && !defined MUXBOARDS
+#if !defined BTBOARD_3 && !defined BTBOARD_4 && !defined USESTEAM && !defined MUXBOARDS
   #define ONBOARDPV
 #else
   #if !defined MUXBOARDS
@@ -76,6 +80,21 @@ void(* softReset) (void) = 0;
   #define MASH_AVG
 #endif
 
+//Use I2C LCD for BTBoard_4
+#ifdef BTBOARD_4
+  #define UI_LCD_I2C
+#endif
+
+//Select OneWire Comm Type
+#ifdef TS_ONEWIRE
+  #ifdef BTBOARD_4
+    #define TS_ONEWIRE_I2C //BTBOARD_4 uses I2C if OneWire support is used
+  #else
+    #ifndef TS_ONEWIRE_I2C
+      #define TS_ONEWIRE_GPIO //Previous boards use GPIO unless explicitly configured for I2C
+    #endif
+  #endif
+#endif
 
 //**********************************************************************************
 // Globals
@@ -89,7 +108,16 @@ pin heatPin[4], alarmPin;
 #endif
 
 #if MUXBOARDS > 0
-  pin muxLatchPin, muxDataPin, muxClockPin, muxOEPin;
+  pin muxLatchPin, muxDataPin, muxClockPin;
+  #ifdef BTBOARD_4
+    pin muxMRPin;
+  #else
+    pin muxOEPin;
+  #endif
+#endif
+
+#ifdef BTBOARD_4
+  pin digInPin[6];
 #endif
 
 //Volume Sensor Pin Array
@@ -116,7 +144,7 @@ long flowRate[3] = {0,0,0};
 #endif
 
 //Valve Variables
-unsigned long vlvConfig[NUM_VLVCFGS], vlvBits;
+unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
 
 //Shared buffers
@@ -130,6 +158,12 @@ double FFBias;
 byte PIDCycle[4], hysteresis[4];
 #ifdef PWM_BY_TIMER
 unsigned int cycleStart[4] = {0,0,0,0};
+#ifdef PWM_8K_1
+byte LastSetFullPowerBoolean1 = 0;
+#endif
+#ifdef PWM_8K_2
+byte LastSetFullPowerBoolean2 = 0;
+#endif
 #else
 unsigned long cycleStart[4] = {0,0,0,0};
 #endif
@@ -172,7 +206,7 @@ unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
 byte pitchTemp;
 
 const char BT[] PROGMEM = "BrewTroller";
-const char BTVER[] PROGMEM = "2.1";
+const char BTVER[] PROGMEM = "2.2";
 
 //Log Strings
 const char LOGCMD[] PROGMEM = "CMD";
@@ -192,6 +226,10 @@ unsigned int PIDOutputCountEquivalent[4][2] = {{0,0},{0,0},{0,0},{0,0}};
 //**********************************************************************************
 
 void setup() {
+  #if defined BTPD_SUPPORT || defined UI_I2C_LCD || defined TS_I2C_ONEWIRE
+    Wire.begin();
+  #endif
+  
   //Initialize Brew Steps to 'Idle'
   for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepProgram[brewStep] = PROGRAM_IDLE;
   
@@ -203,11 +241,6 @@ void setup() {
   
   tempInit();
   
-  //User Interface Initialization (UI.pde)
-  #ifndef NOUI
-    uiInit();
-  #endif
-
   #ifdef BTPD_SUPPORT
     btpdInit();
   #endif
@@ -225,6 +258,11 @@ void setup() {
   pwmInit();
   #endif
 
+  //User Interface Initialization (UI.pde)
+  //Moving this to last of setup() to allow time for I2CLCD to initialize
+  #ifndef NOUI
+    uiInit();
+  #endif
 }
 
 

@@ -1,5 +1,5 @@
 /*  
-   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -82,12 +82,19 @@ const char SPARGEIN[] PROGMEM = "Sparge In";
 const char SPARGEOUT[] PROGMEM = "Sparge Out";
 const char FLYSPARGE[] PROGMEM = "Fly Sparge";
 const char BOILADDS[] PROGMEM = "Boil Additions";
+const char KETTLELID[] PROGMEM = "Kettle Lid";
 const char CHILLNORM[] PROGMEM = "Chill Both";
 const char CHILLH2O[] PROGMEM = "Chill H2O";
 const char CHILLBEER[] PROGMEM = "Chill Beer";
 const char BOILRECIRC[] PROGMEM = "Boil Recirc";
 const char DRAIN[] PROGMEM = "Drain";
 const char HLTHEAT[] PROGMEM = "HLT Heat";
+const char HLTIDLE[] PROGMEM = "HLT Idle";
+const char KETTLEHEAT[] PROGMEM = "Kettle Heat";
+const char KETTLEIDLE[] PROGMEM = "Kettle Idle";
+const char USER1[] PROGMEM = "User Valve 1";
+const char USER2[] PROGMEM = "User Valve 2";
+const char USER3[] PROGMEM = "User Valve 3";
 
 #ifndef UI_NO_SETUP
 const char HLTCYCLE[] PROGMEM = "HLT PID Cycle";
@@ -134,6 +141,8 @@ const char PUNIT[] PROGMEM = "psi";
 const byte CHARFIELD[] PROGMEM = {B11111, B00000, B00000, B00000, B00000, B00000, B00000, B00000};
 const byte CHARCURSOR[] PROGMEM = {B11111, B11111, B00000, B00000, B00000, B00000, B00000, B00000};
 const byte CHARSEL[] PROGMEM = {B10001, B11111, B00000, B00000, B00000, B00000, B00000, B00000};
+
+#ifdef LOGO_TROLL
 const byte BMP0[] PROGMEM = {B00000, B00000, B00000, B00000, B00011, B01111, B11111, B11111};
 const byte BMP1[] PROGMEM = {B00000, B00000, B00000, B00000, B11100, B11110, B11111, B11111};
 const byte BMP2[] PROGMEM = {B00001, B00011, B00111, B01111, B00001, B00011, B01111, B11111};
@@ -141,6 +150,16 @@ const byte BMP3[] PROGMEM = {B11111, B11111, B10001, B00011, B01111, B11111, B11
 const byte BMP4[] PROGMEM = {B01111, B01110, B01100, B00001, B01111, B00111, B00011, B11101};
 const byte BMP5[] PROGMEM = {B11111, B00111, B00111, B11111, B11111, B11111, B11110, B11001};
 const byte BMP6[] PROGMEM = {B11111, B11111, B11110, B11101, B11011, B00111, B11111, B11111};
+#endif
+
+#ifdef LOGO_BREWTROLLER
+const byte BMP0[] PROGMEM = {B00000, B00000, B00000, B11111, B10001, B10001, B11111, B00001};
+const byte BMP1[] PROGMEM = {B00000, B00000, B00000, B00000, B00000, B00011, B01100, B01111};
+const byte BMP2[] PROGMEM = {B00000, B00000, B00000, B00000, B00000, B11100, B00011, B11111};
+const byte BMP3[] PROGMEM = {B00100, B01100, B01111, B00111, B00100, B01100, B01111, B00111};
+const byte BMP4[] PROGMEM = {B00010, B00011, B11111, B11110, B00010, B00011, B11111, B11110};
+#endif
+
 const byte UNLOCK_ICON[] PROGMEM = {B00110, B01001, B01001, B01000, B01111, B01111, B01111, B00000};
 const byte PROG_ICON[] PROGMEM = {B00001, B11101, B10101, B11101, B10001, B10001, B00001, B11111};
 const byte BELL[] PROGMEM = {B00100, B01110, B01110, B01110, B11111, B00000, B00100, B00000};
@@ -156,8 +175,11 @@ unsigned long timerLastPrint;
 //**********************************************************************************
 void uiInit() {
   initLCD();
-  lcdSetCustChar_P(7, UNLOCK_ICON);
-  Encoder.begin(ENCA_PIN, ENCB_PIN, ENTER_PIN, ENTER_INT, ENCODER_TYPE);
+  #ifdef BTBOARD_4
+    Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN);
+  #else
+    Encoder.begin(ENCODER_TYPE, ENTER_PIN, ENCA_PIN, ENCB_PIN, ENTER_INT, ENCA_INT);
+  #endif
 
   //Check to see if EEPROM Initialization is needed
   if (checkConfig()) {
@@ -169,6 +191,7 @@ void uiInit() {
       clearLCD();
       printLCD_P(1, 0, INIT_EEPROM);
       printLCD_P(2, 3, PSTR("Please Wait..."));
+      updateLCD();
       initEEPROM();
       //Apply any EEPROM updates
       checkConfig();
@@ -243,6 +266,7 @@ void uiCore() {
 //**********************************************************************************
 void screenInit(byte screen) {
   clearLCD();
+  lcdSetCustChar_P(7, UNLOCK_ICON);
   
   //Print Program Active Char (Overwritten if no program active)
   if (screen != SCREEN_HOME) {
@@ -253,24 +277,43 @@ void screenInit(byte screen) {
   
   if (screen == SCREEN_HOME) {
     //Screen Init: Home
-    lcdSetCustChar_P(0, BMP0);
-    lcdSetCustChar_P(1, BMP1);
-    lcdSetCustChar_P(2, BMP2);
-    lcdSetCustChar_P(3, BMP3);
-    lcdSetCustChar_P(4, BMP4);
-    lcdSetCustChar_P(5, BMP5);
-    lcdSetCustChar_P(6, BMP6);
-    lcdWriteCustChar(0, 1, 0);
-    lcdWriteCustChar(0, 2, 1);
-    lcdWriteCustChar(1, 0, 2); 
-    lcdWriteCustChar(1, 1, 3); 
-    lcdWriteCustChar(1, 2, 255); 
-    lcdWriteCustChar(2, 0, 4); 
-    lcdWriteCustChar(2, 1, 5); 
-    lcdWriteCustChar(2, 2, 6); 
-    printLCD_P(3, 0, BT);
-    printLCD_P(3, 12, BTVER);
-    printLCDLPad(3, 16, itoa(BUILD, buf, 10), 4, '0');
+    #ifdef LOGO_TROLL
+      lcdSetCustChar_P(0, BMP0);
+      lcdSetCustChar_P(1, BMP1);
+      lcdSetCustChar_P(2, BMP2);
+      lcdSetCustChar_P(3, BMP3);
+      lcdSetCustChar_P(4, BMP4);
+      lcdSetCustChar_P(5, BMP5);
+      lcdSetCustChar_P(6, BMP6);
+      lcdWriteCustChar(0, 1, 0);
+      lcdWriteCustChar(0, 2, 1);
+      lcdWriteCustChar(1, 0, 2); 
+      lcdWriteCustChar(1, 1, 3); 
+      lcdWriteCustChar(1, 2, 255); 
+      lcdWriteCustChar(2, 0, 4); 
+      lcdWriteCustChar(2, 1, 5); 
+      lcdWriteCustChar(2, 2, 6); 
+      printLCD_P(3, 0, BT);
+      printLCD_P(3, 12, BTVER);
+      printLCDLPad(3, 16, itoa(BUILD, buf, 10), 4, '0');
+    #endif
+    #ifdef LOGO_BREWTROLLER
+      lcdSetCustChar_P(0, BMP0);
+      lcdSetCustChar_P(1, BMP1);
+      lcdSetCustChar_P(2, BMP2);
+      lcdSetCustChar_P(3, BMP3);
+      lcdSetCustChar_P(4, BMP4);
+      lcdWriteCustChar(0, 0, 0);
+      lcdWriteCustChar(0, 1, 1);
+      lcdWriteCustChar(0, 2, 2);
+      lcdWriteCustChar(1, 1, 3);
+      lcdWriteCustChar(1, 2, 4);
+      printLCD_P(1, 4, BT);
+      printLCD_P(1, 16, BTVER);
+      printLCD_P(2, 4, PSTR("Build"));
+      printLCDLPad(2, 10, itoa(BUILD, buf, 10), 4, '0');
+      printLCD_P(3, 0, PSTR("www.brewtroller.com"));
+    #endif
     
   } else if (screen == SCREEN_FILL) {
     //Screen Init: Fill/Refill
@@ -416,10 +459,10 @@ void screenRefresh(byte screen) {
     truncFloat(buf, 5);
     printLCDLPad(2, 15, buf, 5, ' ');
 
-    if (vlvConfig[VLV_FILLHLT] != 0 && (vlvBits & vlvConfig[VLV_FILLHLT]) == vlvConfig[VLV_FILLHLT]) printLCD_P(3, 11, PSTR("On "));
+    if (vlvConfigIsActive(VLV_FILLHLT)) printLCD_P(3, 11, PSTR("On "));
     else printLCD_P(3, 11, PSTR("Off"));
 
-    if (vlvConfig[VLV_FILLMASH] != 0 && (vlvBits & vlvConfig[VLV_FILLMASH]) == vlvConfig[VLV_FILLMASH]) printLCD_P(3, 17, PSTR(" On"));
+    if (vlvConfigIsActive(VLV_FILLMASH)) printLCD_P(3, 17, PSTR(" On"));
     else printLCD_P(3, 17, PSTR("Off"));
     
     if (screenLock) {
@@ -559,8 +602,8 @@ void screenRefresh(byte screen) {
     if (temp[TS_BEEROUT] == -32768) printLCD_P(2, 11, PSTR("---")); else printLCDLPad(2, 11, itoa(temp[TS_BEEROUT] / 100, buf, 10), 3, ' ');
     if (temp[TS_H2OIN] == -32768) printLCD_P(1, 16, PSTR("---")); else printLCDLPad(1, 16, itoa(temp[TS_H2OIN] / 100, buf, 10), 3, ' ');
     if (temp[TS_H2OOUT] == -32768) printLCD_P(2, 16, PSTR("---")); else printLCDLPad(2, 16, itoa(temp[TS_H2OOUT] / 100, buf, 10), 3, ' ');
-    if ((vlvBits & vlvConfig[VLV_CHILLBEER]) == vlvConfig[VLV_CHILLBEER]) printLCD_P(3, 12, PSTR(" On")); else printLCD_P(3, 12, PSTR("Off"));
-    if ((vlvBits & vlvConfig[VLV_CHILLH2O]) == vlvConfig[VLV_CHILLH2O]) printLCD_P(3, 17, PSTR(" On")); else printLCD_P(3, 17, PSTR("Off"));
+    if (vlvConfigIsActive(VLV_CHILLBEER)) printLCD_P(3, 12, PSTR(" On")); else printLCD_P(3, 12, PSTR("Off"));
+    if (vlvConfigIsActive(VLV_CHILLH2O)) printLCD_P(3, 17, PSTR(" On")); else printLCD_P(3, 17, PSTR("Off"));
 
   } else if (screen == SCREEN_AUX) {
     //Screen Refresh: AUX
@@ -596,13 +639,21 @@ void screenEnter(byte screen) {
           strcpy_P(menuopts[3], DRAIN);
           if (vlvConfigIsActive(VLV_DRAIN)) strcat_P(menuopts[3], PSTR(": On"));
           else strcat_P(menuopts[3], PSTR(": Off"));
-          strcpy_P(menuopts[4], PSTR("Reset All"));
-          //strcpy_P(menuopts[5], PSTR("System Info"));
-          strcpy_P(menuopts[5], PSTR("System Setup"));
+          strcpy_P(menuopts[4], USER1);
+          if (vlvConfigIsActive(VLV_USER1)) strcat_P(menuopts[4], PSTR(": On"));
+          else strcat_P(menuopts[4], PSTR(": Off"));
+          strcpy_P(menuopts[5], USER2);
+          if (vlvConfigIsActive(VLV_USER2)) strcat_P(menuopts[5], PSTR(": On"));
+          else strcat_P(menuopts[5], PSTR(": Off"));
+          strcpy_P(menuopts[6], USER3);
+          if (vlvConfigIsActive(VLV_USER3)) strcat_P(menuopts[6], PSTR(": On"));
+          else strcat_P(menuopts[6], PSTR(": Off"));
+          strcpy_P(menuopts[7], PSTR("Reset All"));
           #ifdef UI_NO_SETUP
-            lastOption = scrollMenu("Main Menu", 5, lastOption);
+            lastOption = scrollMenu("Main Menu", 8, lastOption);
           #else
-            lastOption = scrollMenu("Main Menu", 6, lastOption);
+            strcpy_P(menuopts[8], PSTR("System Setup"));
+            lastOption = scrollMenu("Main Menu", 9, lastOption);
           #endif
           if (lastOption == 1) editProgramMenu();
           else if (lastOption == 2) {
@@ -614,7 +665,7 @@ void screenEnter(byte screen) {
           }
           else if (lastOption == 3) {
             //Drain
-            if (vlvConfigIsActive(VLV_DRAIN)) setValves(vlvConfig[VLV_DRAIN], 0);
+            if (vlvConfigIsActive(VLV_DRAIN)) bitClear(actProfiles, VLV_DRAIN);
             else {
               if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL)) {
                 clearLCD();
@@ -625,10 +676,15 @@ void screenEnter(byte screen) {
                 printLCD_P(3, 6, CONTINUE);
                 printLCD(3, 15, "<");
                 while (!Encoder.ok()) brewCore();
-              } else setValves(vlvConfig[VLV_DRAIN], 1);
+              } else bitSet(actProfiles, VLV_DRAIN);
             }
           }
-          else if (lastOption == 4) {
+          else if (lastOption >= 4 && lastOption <= 6) {
+            //User Valve 1-3
+            if (vlvConfigIsActive(lastOption + 13)) bitClear(actProfiles, lastOption + 13);
+            else bitSet(actProfiles, lastOption + 13);
+          }          
+          else if (lastOption == 7) {
             //Reset All
             if (confirmAbort()) {
               resetOutputs();
@@ -636,10 +692,11 @@ void screenEnter(byte screen) {
               clearTimer(TIMER_BOIL);
             }
           }
+          
 #ifndef UI_NO_SETUP        
-          else if (lastOption == 5) menuSetup();
+          else if (lastOption == 8) menuSetup();
 #endif
-          else if (lastOption == 0){
+          else {
             //On exit of the Main menu go back to Splash/Home screen.
             activeScreen = SCREEN_HOME;
             screenInit(activeScreen);
@@ -653,10 +710,10 @@ void screenEnter(byte screen) {
         //Sceeen Enter: Fill/Refill
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
-        else if (encValue == 1) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLMASH], 0); setValves(vlvConfig[VLV_FILLHLT], 1);}
-        else if (encValue == 2) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 1);}
-        else if (encValue == 3) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 1); setValves(vlvConfig[VLV_FILLMASH], 1);}
-        else if (encValue == 4) { autoValve[AV_FILL] = 0; setValves(vlvConfig[VLV_FILLHLT], 0); setValves(vlvConfig[VLV_FILLMASH], 0);}
+        else if (encValue == 1) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLMASH); bitSet(actProfiles, VLV_FILLHLT);}
+        else if (encValue == 2) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLHLT); bitSet(actProfiles, VLV_FILLMASH);}
+        else if (encValue == 3) { autoValve[AV_FILL] = 0; bitSet(actProfiles, VLV_FILLHLT); bitSet(actProfiles, VLV_FILLMASH);}
+        else if (encValue == 4) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLHLT); bitClear(actProfiles, VLV_FILLMASH);}
         else if (encValue == 5) {
           strcpy_P(menuopts[0], PSTR("Auto Fill"));
           strcpy_P(menuopts[1], PSTR("HLT Target"));
@@ -741,11 +798,11 @@ void screenEnter(byte screen) {
         //Screen Enter: Sparge
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
-        else if (encValue == 1) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEIN], 1); }
-        else if (encValue == 2) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEOUT], 1); }
-        else if (encValue == 3) { resetSpargeValves(); setValves(vlvConfig[VLV_SPARGEIN], 1); setValves(vlvConfig[VLV_SPARGEOUT], 1); }
-        else if (encValue == 4) { resetSpargeValves(); setValves(vlvConfig[VLV_MASHHEAT], 1); }
-        else if (encValue == 5) { resetSpargeValves();  setValves(vlvConfig[VLV_MASHIDLE], 1); }
+        else if (encValue == 1) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEIN); }
+        else if (encValue == 2) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEOUT); }
+        else if (encValue == 3) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEIN); bitSet(actProfiles, VLV_SPARGEOUT); }
+        else if (encValue == 4) { resetSpargeValves(); bitSet(actProfiles, VLV_MASHHEAT); }
+        else if (encValue == 5) { resetSpargeValves(); bitSet(actProfiles, VLV_MASHIDLE); }
         else if (encValue == 6) { resetSpargeValves(); }
         else if (encValue == 7) {
           strcpy_P(menuopts[0], PSTR("Auto In"));
@@ -809,8 +866,8 @@ void screenEnter(byte screen) {
         }
         else if (lastOption == 4) setBoilPwr(getValue(PSTR("Boil Power"), boilPwr, 3, 0, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
         else if (lastOption == 5) {
-          if (vlvConfigIsActive(VLV_BOILRECIRC)) setValves(vlvConfig[VLV_BOILRECIRC], 0);
-          else setValves(vlvConfig[VLV_BOILRECIRC], 1);
+          if (vlvConfigIsActive(VLV_BOILRECIRC)) bitClear(actProfiles, VLV_BOILRECIRC);
+          else bitSet(actProfiles, VLV_BOILRECIRC);
         } else if (lastOption == 6) {
           byte brewstep = PROGRAM_IDLE;
           if (stepIsActive(STEP_BOIL)) brewstep = STEP_BOIL;
@@ -835,10 +892,10 @@ void screenEnter(byte screen) {
           activeScreen = SCREEN_HOME;
           screenInit(activeScreen);
         }
-        else if (encValue == 1) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 1); setValves(vlvConfig[VLV_CHILLBEER], 1); }
-        else if (encValue == 2) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLBEER], 0); setValves(vlvConfig[VLV_CHILLH2O], 1); }
-        else if (encValue == 3) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 0); setValves(vlvConfig[VLV_CHILLBEER], 1); }
-        else if (encValue == 4) { autoValve[AV_CHILL] = 0; setValves(vlvConfig[VLV_CHILLH2O], 0); setValves(vlvConfig[VLV_CHILLBEER], 0); }
+        else if (encValue == 1) { autoValve[AV_CHILL] = 0; bitSet(actProfiles, VLV_CHILLH2O); bitSet(actProfiles, VLV_CHILLBEER); }
+        else if (encValue == 2) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLBEER); bitSet(actProfiles, VLV_CHILLH2O); }
+        else if (encValue == 3) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLH2O); bitSet(actProfiles, VLV_CHILLBEER); }
+        else if (encValue == 4) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLH2O); bitClear(actProfiles, VLV_CHILLBEER); }
         else if (encValue == 5) autoValve[AV_CHILL] = 1;        
       }
     }
@@ -858,16 +915,6 @@ void continueClick() {
     }
   } else activeScreen = activeScreen + 1; 
   screenInit(activeScreen); 
-}
-
-void resetSpargeValves() {
-  autoValve[AV_SPARGEIN] = 0;
-  autoValve[AV_SPARGEOUT] = 0;
-  autoValve[AV_FLYSPARGE] = 0;
-  setValves(vlvConfig[VLV_SPARGEIN], 0);
-  setValves(vlvConfig[VLV_SPARGEOUT], 0);
-  setValves(vlvConfig[VLV_MASHHEAT], 0);
-  setValves(vlvConfig[VLV_MASHIDLE], 0);
 }
 
 void stepAdvanceFailDialog() {
@@ -1574,9 +1621,14 @@ void menuSetup() {
     strcpy_P(menuopts[2], PSTR("Volume/Capacity"));
     strcpy_P(menuopts[3], PSTR("Configure Valves"));
     strcpy_P(menuopts[4], INIT_EEPROM);
+#ifdef UI_LCD_I2C
+    strcpy_P(menuopts[5], PSTR("Adjust LCD"));
+    strcpy_P(menuopts[6], EXIT);
+    lastOption = scrollMenu("System Setup", 7, lastOption);
+#else
     strcpy_P(menuopts[5], EXIT);
-    
     lastOption = scrollMenu("System Setup", 6, lastOption);
+#endif
     if (lastOption == 0) assignSensor();
     else if (lastOption == 1) cfgOutputs();
     else if (lastOption == 2) cfgVolumes();
@@ -1587,11 +1639,18 @@ void menuSetup() {
       strcpy_P(menuopts[0], INIT_EEPROM);
         strcpy_P(menuopts[1], CANCEL);
         if (getChoice(2, 3) == 0) {
-          EEPROM.write(2047, 0);
+          clearLCD();
+          printLCD_P(1, 0, INIT_EEPROM);
+          printLCD_P(2, 3, PSTR("Please Wait..."));
+          updateLCD();
           initEEPROM();
           checkConfig();
         }
-    } else return;
+    }
+#ifdef UI_LCD_I2C
+    else if (lastOption == 5) adjustLCD();
+#endif
+    else return;
   }
 }
 
@@ -2051,26 +2110,34 @@ void cfgValves() {
   while (1) {
     strcpy_P(menuopts[0], FILLHLT);
     strcpy_P(menuopts[1], FILLMASH);
-    strcpy_P(menuopts[2], HLTHEAT);    
-    strcpy_P(menuopts[3], ADDGRAIN);    
-    strcpy_P(menuopts[4], MASHHEAT);
-    strcpy_P(menuopts[5], MASHIDLE);
-    strcpy_P(menuopts[6], SPARGEIN);
-    strcpy_P(menuopts[7], SPARGEOUT);
-    strcpy_P(menuopts[8], BOILADDS);
-    strcpy_P(menuopts[9], PSTR("Kettle Lid"));
-    strcpy_P(menuopts[10], CHILLH2O);
-    strcpy_P(menuopts[11], CHILLBEER);
-    strcpy_P(menuopts[12], BOILRECIRC);
-    strcpy_P(menuopts[13], DRAIN);
-    strcpy_P(menuopts[14], EXIT);
+    strcpy_P(menuopts[2], HLTHEAT);
+    strcpy_P(menuopts[3], HLTIDLE);
+    strcpy_P(menuopts[4], ADDGRAIN);    
+    strcpy_P(menuopts[5], MASHHEAT);
+    strcpy_P(menuopts[6], MASHIDLE);
+    strcpy_P(menuopts[7], SPARGEIN);
+    strcpy_P(menuopts[8], SPARGEOUT);
+    strcpy_P(menuopts[9], KETTLEHEAT);
+    strcpy_P(menuopts[10], KETTLEIDLE);
+    strcpy_P(menuopts[11], BOILADDS);
+    strcpy_P(menuopts[12], KETTLELID);
+    strcpy_P(menuopts[13], CHILLH2O);
+    strcpy_P(menuopts[14], CHILLBEER);
+    strcpy_P(menuopts[15], BOILRECIRC);
+    strcpy_P(menuopts[16], DRAIN);
+    strcpy_P(menuopts[17], USER1);
+    strcpy_P(menuopts[18], USER2);
+    strcpy_P(menuopts[19], USER3);
+    strcpy_P(menuopts[20], EXIT);
     
-    lastOption = scrollMenu("Valve Configuration", 15, lastOption);
-    if (lastOption > 13) return;
+    lastOption = scrollMenu("Valve Configuration", 21, lastOption);
+    if (lastOption > 19) return;
     else {
       byte vc = lastOption;
-      if (vc == 2) vc = 13; /* Map HLTHEAT to vlvConfig[13] */
-      else if (vc > 2) vc--; /* Subtract 1 for Add Grain - Drain to map to vlvConfig[2] - vlvConfig[12] */
+      if (lastOption == 2 || lastOption == 3) vc += 11; /* Map HLTHEAT/HLTIDLE to vlvConfig[13]/[14] */
+      else if (lastOption > 3 && lastOption < 9) vc -= 2; /* Map Add Grain - Sparge Out vlvConfig[2]-[7] */
+      else if (lastOption == 9 || lastOption == 10) vc += 6; /* Map KETTLEHEAT/KETTLEIDLE to vlvConfig[15]/[16] */
+      else if (lastOption > 10 && lastOption < 17) vc -= 4; /* Map BOILADDS - DRAIN vlvConfig[7]-[12] */
       setValveCfg(vc, cfgValveProfile(menuopts[lastOption], vlvConfig[vc]));
     }
   }
@@ -2142,12 +2209,11 @@ unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
       encValue = Encoder.getCount();
       if (encValue == encMax) return retValue;
       else if (encValue == encMax - 1) {
-        setValves(VLV_ALL, 0);
-        setValves(retValue, 1);
+        setValves(retValue);
         printLCD_P(3, 2, PSTR("["));
         printLCD_P(3, 7, PSTR("]"));
         while (!Encoder.ok()) delay(100);
-        setValves(VLV_ALL, 0);
+        setValves(0);
         redraw = 1;
       } else {
         retValue = retValue ^ ((unsigned long)1<<encValue);
@@ -2157,5 +2223,96 @@ unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
     brewCore();
   }
 }
-#endif
-#endif
+
+#ifdef UI_LCD_I2C
+  void adjustLCD() {
+    byte cursorPos = 0; //0 = brightness, 1 = contrast, 2 = cancel, 3 = save
+    boolean cursorState = 0; //0 = Unselected, 1 = Selected
+
+    Encoder.setMin(0);
+    Encoder.setCount(0);
+    Encoder.setMax(3);
+    
+    clearLCD();
+    printLCD_P(0,0,PSTR("Adjust LCD"));
+    printLCD_P(1, 1, PSTR("Brightness:"));
+    printLCD_P(2, 3, PSTR("Contrast:"));
+    printLCD_P(3, 1, PSTR("Cancel"));
+    printLCD_P(3, 15, PSTR("Save"));
+    byte bright = i2cGetBright();
+    byte contrast = i2cGetContrast();
+    byte origBright = bright;
+    byte origContrast = contrast;
+    boolean redraw = 1;
+    while(1) {
+      int encValue;
+      if (redraw) {
+        redraw = 0;
+        encValue = Encoder.getCount();
+      }
+      else encValue = Encoder.change();
+      if (encValue >= 0) {
+        if (cursorState) {
+          if (cursorPos == 0) { 
+            bright = encValue;
+            i2cSetBright(bright);
+          } else if (cursorPos == 1) {
+            contrast = encValue;
+            i2cSetContrast(contrast);
+          }
+        } else {
+          cursorPos = encValue;
+          printLCD_P(1, 12, PSTR(" "));
+          printLCD_P(1, 16, PSTR(" "));
+          printLCD_P(2, 12, PSTR(" "));
+          printLCD_P(2, 16, PSTR(" "));
+          printLCD_P(3, 0, PSTR(" "));
+          printLCD_P(3, 7, PSTR(" "));
+          printLCD_P(3, 14, PSTR(" "));
+          printLCD_P(3, 19, PSTR(" "));
+          if (cursorPos == 0) {
+            printLCD_P(1, 12, PSTR(">"));
+            printLCD_P(1, 16, PSTR("<"));
+          } else if (cursorPos == 1) {
+            printLCD_P(2, 12, PSTR(">"));
+            printLCD_P(2, 16, PSTR("<"));
+          } else if (cursorPos == 2) {
+            printLCD_P(3, 0, PSTR(">"));
+            printLCD_P(3, 7, PSTR("<"));
+          } else if (cursorPos == 3) {
+            printLCD_P(3, 14, PSTR(">"));
+            printLCD_P(3, 19, PSTR("<"));
+          }
+        }
+        printLCDLPad(1, 13, itoa(bright, buf, 10), 3, ' ');
+        printLCDLPad(2, 13, itoa(contrast, buf, 10), 3, ' ');
+      }
+      if (Encoder.ok()) {
+        if (cursorPos == 2) {
+          i2cSetBright(origBright);
+          i2cSetContrast(origContrast);
+          return;
+        }
+        else if (cursorPos == 3) {
+          i2cSaveConfig();
+          return;
+        }
+        cursorState = cursorState ^ 1;
+        if (cursorState) {
+          Encoder.setMin(0);
+          Encoder.setMax(255);
+          if (cursorPos == 0) Encoder.setCount(bright);
+          else if (cursorPos == 1) Encoder.setCount(contrast);
+        } else {
+          Encoder.setMin(0);
+          Encoder.setMax(3);
+          Encoder.setCount(cursorPos);
+        }
+      } else if (Encoder.cancel()) return;
+      brewCore();
+    }
+  }
+#endif //#ifdef UI_LCD_I2C
+
+#endif //#ifndef UI_NO_SETUP
+#endif //#ifndef NOUI

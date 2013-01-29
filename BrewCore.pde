@@ -1,5 +1,5 @@
 /*  
-   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -28,10 +28,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "Enum.h"
 
 void brewCore() {
+  #ifndef NOUI
+    updateLCD();
+  #endif
+  
   //Timers: Timer.pde
   updateTimers();
   
-   //temps: Temp.pde
+  //temps: Temp.pde
   updateTemps();
  
   //Alarm update allows to have a beeping alarm
@@ -54,11 +58,14 @@ void brewCore() {
   steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
   #endif
   
+  //Step Logic: StepLogic.pde
+  stepCore();
+
   //Auto Valve Logic: Outputs.pde
   processAutoValve();
   
-  //Step Logic: StepLogic.pde
-  stepCore();
+  //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
+  updateValves();
   
   //BTPD Support
   #ifdef BTPD_SUPPORT

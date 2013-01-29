@@ -1,5 +1,5 @@
 /*  
-   Copyright (C) 2009, 2010 Matt Reba, Jermeiah Dillingham
+   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
     This file is part of BrewTroller.
 
@@ -56,6 +56,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 void initLCD(){
   lcd.begin(20, 4);
 }
+
+void updateLCD() {}
 
 void printLCD(byte iRow, byte iCol, char sText[]){
   lcd.setCursor(iCol, iRow);
