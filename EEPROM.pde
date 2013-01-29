@@ -24,7 +24,8 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-
+#include "Config.h"
+#include "Enum.h"
 #include <avr/eeprom.h>
 #include <EEPROM.h>
 
@@ -79,6 +80,14 @@ void loadSetup() {
     }
   }
 
+  //Load HLT calibrations to kettle
+  #ifdef HLT_AS_KETTLE
+    for (byte slot = 0; slot < 10; slot++) {
+      calibVols[VS_KETTLE][slot] = PROMreadLong(119 + VS_HLT * 40 + slot * 4);
+      calibVals[VS_KETTLE][slot] = PROMreadInt(239 + VS_HLT * 20 + slot * 2);
+    }
+  #endif
+
   //**********************************************************************************
   //setpoints (299-301)
   //**********************************************************************************
@@ -119,9 +128,9 @@ void loadSetup() {
   for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepInit(EEPROM.read(313 + brewStep), brewStep);
 
   //**********************************************************************************
-  //401-452 Valve Profiles
+  //401-456 Valve Profiles
   //**********************************************************************************
-  for (byte profile = VLV_FILLHLT; profile <= VLV_DRAIN; profile++) vlvConfig[profile] = PROMreadLong(401 + profile * 4);
+  for (byte profile = VLV_FILLHLT; profile <= VLV_HLTHEAT; profile++) vlvConfig[profile] = PROMreadLong(401 + profile * 4);
 
 }
 
@@ -250,10 +259,12 @@ byte getSteamTgt() { return EEPROM.read(116); }
 //**********************************************************************************
 void setSteamPSens(unsigned int value) {
   steamPSens = value;
+  #ifndef PID_FLOW_CONTROL
   #ifdef USEMETRIC
     pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
   #else
     pid[VS_STEAM].SetInputLimits(0, 7250 / steamPSens);
+  #endif
   #endif
   PROMwriteInt(117, value);
 }
@@ -265,6 +276,19 @@ void setSteamPSens(unsigned int value) {
 void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) {
   calibVols[vessel][slot] = vol;
   calibVals[vessel][slot] = value;
+  #ifdef HLT_AS_KETTLE
+    if (vessel == VS_HLT) {
+      //Also copy HLT setting to Kettle
+      calibVols[VS_KETTLE][slot] = vol;
+      calibVals[VS_KETTLE][slot] = value;  
+    }
+    if (vessel == VS_KETTLE) {
+      //Store actual calibration in HLT EEPROM Table
+      vessel = VS_HLT;
+      calibVols[vessel][slot] = vol;
+      calibVals[vessel][slot] = value;  
+    } 
+  #endif
   PROMwriteLong(119 + vessel * 40 + slot * 4, vol);
   PROMwriteInt(239 + vessel * 20 + slot * 2, value);
 }
@@ -285,7 +309,9 @@ void setSetpoint(byte vessel, byte value) {
 //**********************************************************************************
 //timers (302-305)
 //**********************************************************************************
-void setTimerRecovery(byte timer, unsigned int newMins) { PROMwriteInt(302 + timer * 2, newMins); }
+void setTimerRecovery(byte timer, unsigned int newMins) { 
+  if(newMins != -1) PROMwriteInt(302 + timer * 2, newMins); 
+}
 
 //**********************************************************************************
 //Timer/Alarm Status (306)
@@ -344,14 +370,16 @@ void setProgramStep(byte brewStep, byte actPgm) {
 }
 
 //**********************************************************************************
-//Reserved (328-399)
+//Reserved (328-397)
 //**********************************************************************************
 
 //**********************************************************************************
 //Delay Start (Mins) (398-399)
 //**********************************************************************************
 unsigned int getDelayMins() { return PROMreadInt(398); }
-void setDelayMins(unsigned int mins) { PROMwriteInt(398, mins); }
+void setDelayMins(unsigned int mins) { 
+  if(mins != -1) PROMwriteInt(398, mins); 
+}
 
 //**********************************************************************************
 //Grain Temp (400)
@@ -360,7 +388,7 @@ void setGrainTemp(byte grainTemp) { EEPROM.write(400, grainTemp); }
 byte getGrainTemp() { return EEPROM.read(400); }
 
 //*****************************************************************************************************************************
-// Valve Profile Configuration (401-452; 453-785 Reserved)
+// Valve Profile Configuration (401-456; 457-785 Reserved)
 //*****************************************************************************************************************************
 void setValveCfg(byte profile, unsigned long value) {
   vlvConfig[profile] = value;
@@ -368,13 +396,13 @@ void setValveCfg(byte profile, unsigned long value) {
 }
 
 //*****************************************************************************************************************************
-// Program Load/Save Functions (786- 2045)
+// Program Load/Save Functions (786-1985) - 20 Program Slots Total
 //*****************************************************************************************************************************
 #define PROGRAM_SIZE 60
 #define PROGRAM_START_ADDR 786
 
 //**********************************************************************************
-//Program Name (P:0-20)
+//Program Name (P:1-19)
 //**********************************************************************************
 void setProgName(byte preset, char name[20]) {
   for (byte i = 0; i < 19; i++) EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + i, name[i]);
@@ -386,6 +414,10 @@ void getProgName(byte preset, char name[20]) {
 }
 
 //**********************************************************************************
+//OPEN (P:20)
+//**********************************************************************************
+
+//**********************************************************************************
 //Sparge Temp (P:21)
 //**********************************************************************************
 void setProgSparge(byte preset, byte sparge) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 21, sparge); }
@@ -394,7 +426,9 @@ byte getProgSparge(byte preset) { return EEPROM.read(PROGRAM_START_ADDR + preset
 //**********************************************************************************
 //Boil Mins (P:22-23)
 //**********************************************************************************
-void setProgBoil(byte preset, unsigned int boilMins) { PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22, boilMins); }
+void setProgBoil(byte preset, int boilMins) { 
+  if (boilMins != -1) PROMwriteInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22, boilMins); 
+}
 unsigned int getProgBoil(byte preset) { return PROMreadInt(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 22); }
 
 //**********************************************************************************
@@ -412,7 +446,13 @@ byte getProgMashTemp(byte preset, byte mashStep) { return EEPROM.read(PROGRAM_ST
 //**********************************************************************************
 //Mash Times (P:32-37)
 //**********************************************************************************
-void setProgMashMins(byte preset, byte mashStep, byte mashMins) { EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep, mashMins); }
+void setProgMashMins(byte preset, byte mashStep, byte mashMins) { 
+  //This one is very tricky. Since it is better to avoid memory allocation changes. Here is the trick. 
+  //setProgMashMins is not supposed to received a value larger than 119 unless someone change it. But it can receive -1 
+  //when the user CANCEL its action of editing the mashing time value. -1 is converted as 255 (in a byte format). That is why
+  //the condition is set on 255 instead of -1. 
+  if (mashMins != 255) EEPROM.write(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep, mashMins); 
+}
 byte getProgMashMins(byte preset, byte mashStep) { return EEPROM.read(PROGRAM_START_ADDR + preset * PROGRAM_SIZE + 32 + mashStep); }
 
 //**********************************************************************************
@@ -530,6 +570,9 @@ void initEEPROM() {
 
   //Set cfgVersion = 0
   EEPROM.write(2047, 0);
+
+  // re-load Setup 
+  loadSetup();
 }
 
 //*****************************************************************************************************************************

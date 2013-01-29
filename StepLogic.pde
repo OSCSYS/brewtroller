@@ -24,6 +24,9 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
+#include "Config.h"
+#include "Enum.h"
+
 unsigned long lastHop, grainInStart;
 unsigned int boilAdds, triggered;
 
@@ -75,13 +78,17 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Fill
     //Set Target Volumes
     tgtVol[VS_HLT] = calcSpargeVol(pgm);
-    tgtVol[VS_MASH] = calcMashVol(pgm);
+    tgtVol[VS_MASH] = calcStrikeVol(pgm);
     if (getProgMLHeatSrc(pgm) == VS_HLT) {
       tgtVol[VS_HLT] = min(tgtVol[VS_HLT] + tgtVol[VS_MASH], getCapacity(VS_HLT));
       tgtVol[VS_MASH] = 0;
     }
     #ifdef AUTO_FILL_START
-      autoValve[AV_FILL] = 1;
+    autoValve[AV_FILL] = 1;
+    #endif
+
+    #ifdef SPARGE_IN_PUMP_CONTROL
+    prevSpargeVol[1] = 0xFFFFFFFF; // need to set to 0 when starting a new program so that the logic works properly
     #endif
 
   } else if (brewStep == STEP_DELAY) {
@@ -107,7 +114,9 @@ boolean stepInit(byte pgm, byte brewStep) {
       setSetpoint(TS_HLT, getProgHLT(pgm));
       setSetpoint(TS_MASH, calcStrikeTemp(pgm));
     }
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_HLT] = 0;
     preheated[VS_MASH] = 0;
     //No timer used for preheat
@@ -121,13 +130,18 @@ boolean stepInit(byte pgm, byte brewStep) {
     //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
     resetHeatOutput(VS_HLT);
     resetHeatOutput(VS_MASH);
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     setValves(vlvConfig[VLV_ADDGRAIN], 1);
     if(getProgMLHeatSrc(pgm) == VS_HLT) {
       unsigned long spargeVol = calcSpargeVol(pgm);
-      unsigned long mashVol = calcMashVol(pgm);
-      //tgtVol[VS_HLT] = (min(spargeVol + mashVol, getCapacity(VS_HLT))) - spargeVol;
+      unsigned long mashVol = calcStrikeVol(pgm);
       tgtVol[VS_HLT] = (min(spargeVol, getCapacity(VS_HLT)));
+      #ifdef VOLUME_MANUAL
+        // In manual volume mode show the target mash volume as a guide to the user
+        tgtVol[VS_MASH] = mashVol;
+      #endif
       #ifdef AUTO_ML_XFER
          autoValve[AV_SPARGEIN] = 1;
       #endif
@@ -143,7 +157,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Dough In
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_DOUGHIN));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_DOUGHIN)); 
@@ -154,7 +170,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Acid Rest
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_ACID));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_ACID)); 
@@ -165,7 +183,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Protein
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_PROTEIN));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_PROTEIN)); 
@@ -176,7 +196,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Sacch
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH)); 
@@ -187,7 +209,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Sacch2
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_SACCH2));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_SACCH2)); 
@@ -198,7 +222,9 @@ boolean stepInit(byte pgm, byte brewStep) {
   //Step Init: Mash Out
     setSetpoint(TS_HLT, getProgHLT(pgm));
     setSetpoint(TS_MASH, getProgMashTemp(pgm, MASH_MASHOUT));
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
     preheated[VS_MASH] = 0;
     //Set timer only if empty (for purposed of power loss recovery)
     if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(pgm, MASH_MASHOUT)); 
@@ -213,7 +239,9 @@ boolean stepInit(byte pgm, byte brewStep) {
       byte i = MASH_MASHOUT;
       while (setpoint[TS_MASH] == 0 && i >= MASH_DOUGHIN && i <= MASH_MASHOUT) setSetpoint(TS_MASH, getProgMashTemp(pgm, i--));
     }
+    #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
+    #endif
 
   } else if (brewStep == STEP_SPARGE) {
   //Step Init: Sparge
@@ -224,10 +252,22 @@ boolean stepInit(byte pgm, byte brewStep) {
       #ifdef AUTO_SPARGE_START
         autoValve[AV_FLYSPARGE] = 1;
       #endif
+      #ifdef PID_FLOW_CONTROL
+      #ifdef USEMETRIC
+      // value is given in 10ths of a liter per min, so 1 liter/min would be 10, and 10 * 100 = 1000 which is 1 liter/min in flow rate calcs
+      setSetpoint(VS_PUMP, (getSteamTgt() * 100));
+      #else
+      //value is given in 10ths of a quart per min, so 1 quart/min would be 10, and 10 *25 = 250 which is 1 quart/min in flow rate calcs (1000ths of a gallon/min)
+      setSetpoint(VS_PUMP, getSteamTgt()*25);
+      #endif
+      #endif
     #endif
 
   } else if (brewStep == STEP_BOIL) {
   //Step Init: Boil
+    #ifdef PID_FLOW_CONTROL
+    resetHeatOutput(VS_PUMP); // turn off the pump if we are moving to boil. 
+    #endif
     setSetpoint(VS_KETTLE, getBoilTemp());
     preheated[VS_KETTLE] = 0;
     boilAdds = getProgAdds(pgm);
@@ -395,9 +435,9 @@ boolean stepAdvance(byte brewStep) {
       setProgramStep(program, brewStep); //Show the step we started with as active
       return 1;
     }
-    //Init Successful
-    return 0;
   }
+  //Init Successful
+  return 0;
 }
 
 //Performs exit logic specific to each step
@@ -489,37 +529,66 @@ void smartHERMSHLT() {
 }
 #endif
   
-unsigned long calcMashVol(byte pgm) {
-  unsigned long retValue = round(getProgGrain(pgm) * getProgRatio(pgm) / 100.0);
+unsigned long calcStrikeVol(byte pgm) {
+  unsigned long retValue = round((getProgGrain(pgm) * getProgRatio(pgm) / 100.0) + getVolLoss(TS_MASH));
   //Convert qts to gal for US
   #ifndef USEMETRIC
     retValue = round(retValue / 4.0);
   #endif
+  
+  #ifdef DEBUG_PROG_CALC_VOLS
+  logProgCalcVols("Strike:", retValue);
+  #endif
+  
   return retValue;
 }
 
 unsigned long calcSpargeVol(byte pgm) {
-  //Determine Total Water Needed (Evap + Deadspaces)
+  //Determine Preboil Volume Needed (Batch + Evap + Deadspace + Thermo Shrinkage)
   unsigned long retValue = calcPreboilVol(pgm);
 
   //Add Water Lost in Spent Grain
   retValue += calcGrainLoss(pgm);
+  
+  //Add Loss from other Vessels
+  retValue += (getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
 
-  //Subtract mash volume
-  retValue -= calcMashVol(pgm);
+  //Subtract Strike Water Volume
+  retValue -= calcStrikeVol(pgm);
+  
+  #ifdef DEBUG_PROG_CALC_VOLS
+  logProgCalcVols("Sparge:", retValue);
+  #endif
+  
   return retValue;
 }
 
 unsigned long calcPreboilVol(byte pgm) {
-  return round(getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0) + getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
+  // Pre-Boil Volume is the total volume needed in the kettle to ensure you can collect your anticipated batch volume
+  // It is (((batch volume + kettle loss) / thermo shrinkage factor ) / evap loss factor )
+  //unsigned long retValue = (getProgBatchVol(pgm) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0)) + getVolLoss(TS_KETTLE); // old logic 
+  unsigned long retValue = (((getProgBatchVol(pgm) + getVolLoss(TS_KETTLE)) / .96) / (1.0 - getEvapRate() / 100.0 * getProgBoil(pgm) / 60.0));
+  
+  #ifdef DEBUG_PROG_CALC_VOLS
+  logProgCalcVols("Preboil", round(retValue));
+  #endif
+  
+  return round(retValue);
 }
 
 unsigned long calcGrainLoss(byte pgm) {
+  unsigned long retValue;
   #ifdef USEMETRIC
-    return round(getProgGrain(pgm) * 1.7884);
+    retValue = round(getProgGrain(pgm) * 1.7884);
   #else
-    return round(getProgGrain(pgm) * .2143);
+    retValue = round(getProgGrain(pgm) * .2143); // This is pretty conservative (err on more absorbtion) - Ray Daniels suggests .20 - Denny Conn suggest .10
   #endif
+  
+  #ifdef DEBUG_PROG_CALC_VOLS
+  logProgCalcVols("Grain Loss:", retValue);
+  #endif
+  
+  return retValue;
 }
 
 unsigned long calcGrainVolume(byte pgm) {

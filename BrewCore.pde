@@ -24,28 +24,35 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
+#include "Config.h"
+#include "Enum.h"
 
 void brewCore() {
   //Timers: Timer.pde
   updateTimers();
   
+   //temps: Temp.pde
+  updateTemps();
+ 
+  //Alarm update allows to have a beeping alarm
+  updateBuzzer();
+ 
+  //Heat Outputs: Outputs.pde
+  processHeatOutputs();
+  
   //Volumes: Volume.pde
   updateVols();
-  
+
+  //Log: Log.pde
+  updateLog();  
+
   #ifdef FLOWRATE_CALCS
     updateFlowRates();
   #endif
-  
-  //Log: Log.pde
-  updateLog();
-  
-  //temps: Temp.pde
-  updateTemps();
-  
+
+  #ifndef PID_FLOW_CONTROL
   steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
-  
-  //Heat Outputs: Outputs.pde
-  processHeatOutputs();
+  #endif
   
   //Auto Valve Logic: Outputs.pde
   processAutoValve();
