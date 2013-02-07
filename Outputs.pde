@@ -193,6 +193,9 @@ void pinInit() {
     #if DIGIN_COUNT > 4
       digInPin[4].setup(DIGIN5_PIN, INPUT);
     #endif
+    #if DIGIN_COUNT > 5
+      digInPin[5].setup(DIGIN6_PIN, INPUT);
+    #endif
   #endif
 }
 
