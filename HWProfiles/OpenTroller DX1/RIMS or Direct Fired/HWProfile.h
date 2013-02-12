@@ -1,5 +1,5 @@
 /*
-OpenTroller DX1 HERMS Hardware Configuration
+OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
 */
 
 #ifndef BT_HWPROFILE
