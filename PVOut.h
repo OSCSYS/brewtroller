@@ -7,9 +7,11 @@
     private:
     pin* valvePin;
     unsigned long vlvBits;
+    byte pinCount;
     
     public:
-    PVOutGPIO(byte pinCount) {
+    PVOutGPIO(byte count) {
+      pinCount = count;
       valvePin = (pin *) malloc(pinCount * sizeof(pin));
     }
 
@@ -26,7 +28,7 @@
     }
     
     void set(unsigned long vlvBits) { 
-      for (byte i = 0; i < 11; i++) {
+      for (byte i = 0; i < pinCount; i++) {
         if (vlvBits & (1<<i)) valvePin[i].set(); else valvePin[i].clear();
       }
       this->vlvBits = vlvBits;
