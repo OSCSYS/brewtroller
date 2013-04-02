@@ -2661,11 +2661,17 @@ void volCalibEntryMenu(byte vessel, byte entry) {
         encValue = Encoder.getCount();
         if (encValue == encMax) return retValue;
         else if (encValue == encMax - 1) {
+          //Test Profile
           Valves.set(retValue);
           LCD.print_P(3, 2, PSTR("["));
           LCD.print_P(3, 7, PSTR("]"));
           LCD.update();
-          while (!Encoder.ok()) delay(100);
+          while (!Encoder.ok()) {
+#ifdef HEARTBEAT
+            heartbeat();
+#endif
+            delay(50);
+          }
           Valves.set(0);
           redraw = 1;
         } else {
