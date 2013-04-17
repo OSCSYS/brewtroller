@@ -35,6 +35,14 @@ void RGBIO8_Init() {
     rgbio8s[ioIndex / 8].assignPvOutputRecipe(i, ioIndex % 8, 1);
   }
   
+  // Set the default values of Softswitches to AUTO so that outputs that are not assigned to softswitches are unaffected by this logic
+  for (byte i = 0; i < PVOUT_COUNT; i++)
+    softSwitchPv[i] = SOFTSWITCH_AUTO;
+
+  for (byte i = 0; i < HEAT_OUTPUTS_COUNT; i++)
+    softSwitchHeat[i] = SOFTSWITCH_AUTO;
+
+  
   ////////////////////////////////////////////////////////////////////////
   // CUSTOM CONFIGURATION
   ////////////////////////////////////////////////////////////////////////
