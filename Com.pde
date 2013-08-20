@@ -35,10 +35,6 @@ void comInit() {
     if (logData)
       logASCIIVersion();
   #endif
-  #ifdef BTNIC_EMBEDDED
-    Wire.onReceive(btnicRX);
-  #endif
-  
   #ifdef RGBIO8_ENABLE
     RGBIO8_Init();
   #endif
@@ -101,68 +97,37 @@ void updateCom() {
   #ifdef BTNIC_EMBEDDED
     BTnic btnicI2C;
     
-    #ifdef DEBUG_BTNIC
-      byte lastState = 255;
-    #endif
-    
     void updateI2CBTnic() {
-      
-      #ifdef DEBUG_BTNIC
-        if (btnicI2C.getState() != lastState) {
-          Serial.print("btnicEmb State Change: ");
-          Serial.print(lastState, DEC);
-          Serial.print('>');
-          lastState = btnicI2C.getState();
-          Serial.println(lastState, DEC);
-        }
-      #endif
-
-      if(btnicI2C.getState() == BTNIC_STATE_TX) {
-        //TX Ready
-        #ifdef DEBUG_BTNIC
-          Serial.print("btnicEmb TX: ");
-        #endif
-        Wire.beginTransmission(BTNIC_I2C_ADDR);
-        while(btnicI2C.getState() == BTNIC_STATE_TX) {
-          byte data = btnicI2C.tx();
-          #ifdef DEBUG_BTNIC
-            Serial.print(data);
-          #endif
-          Wire.send(data);
-        }
-        Wire.endTransmission();
-        #ifdef DEBUG_BTNIC
-          Serial.println();
-        #endif
-      }
-    }
-
-    void btnicRX(int numBytes) {
-      byte state = btnicI2C.getState();
-      #ifdef DEBUG_BTNIC
-        Serial.print("btnicEmb RX: ");
-      #endif
-      if(state == BTNIC_STATE_RX) {
-        for (byte i = 0; i < numBytes; i++) {
+      if(btnicI2C.getState() == BTNIC_STATE_RX) {
+        while (1) {
+          Wire.requestFrom(BTNIC_I2C_ADDR, 1);
+          if (! Wire.available())
+            break; //No data
           char data = Wire.receive();
+          if (!data)
+            break; //Null return: No data
           #ifdef DEBUG_BTNIC
-            Serial.print(data);
+            Serial.print("btnicEmb RX: ");
+            Serial.println(data);
           #endif
           btnicI2C.rx(data);
           if(btnicI2C.getState() != BTNIC_STATE_RX) break;
         }
-        #ifdef DEBUG_BTNIC
-          Serial.println();
-        #endif
       }
-      #ifdef DEBUG_BTNIC
-      else {
-        Serial.print("NOT READY(");
-        Serial.print(state, DEC);
-        Serial.println(")");
+      if(btnicI2C.getState() == BTNIC_STATE_TX) {
+        //TX Ready
+        Wire.beginTransmission(BTNIC_I2C_ADDR);
+        while(btnicI2C.getState() == BTNIC_STATE_TX) {
+          byte data = btnicI2C.tx();
+          #ifdef DEBUG_BTNIC
+            Serial.print("btnicEmb TX: ");
+            Serial.println(data);
+          #endif
+          Wire.send(data);
+        }
+        Wire.endTransmission();
       }
-      #endif
-    }    
+    }
   #endif
   
   #ifdef COM_SERIAL0
