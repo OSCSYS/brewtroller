@@ -211,11 +211,14 @@ static const byte TS = 1;
 // HLT_MAX_TEMP: Ceiling value for HLT (Actual max temp in C or F, Decimal values allowed)
 // MASH_HEAT_LOSS: Acts as a floor value to ensure HLT temp is at least target + 
 // specified value
-
+// SMART_HERMS_PREHEAT: Enabling this sub-option will cause SMART_HERMS_HLT
+// logic to be enabled during preheat. By default, a recipe's HLT Temp setting is used
+// during preheat.
 
 //#define SMART_HERMS_HLT
 #define MASH_HEAT_LOSS 0
 #define HLT_MAX_TEMP 180
+//#define SMART_HERMS_PREHEAT
 //**********************************************************************************
 
 //**********************************************************************************

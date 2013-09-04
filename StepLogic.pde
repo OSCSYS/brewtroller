@@ -357,6 +357,9 @@ void stepCore() {
     if ((setpoint[VS_MASH] && temp[VS_MASH] >= setpoint[VS_MASH])
       || (!setpoint[VS_MASH] && temp[VS_HLT] >= setpoint[VS_HLT])
     ) stepAdvance(STEP_PREHEAT);
+    #if defined SMART_HERMS_HLT && defined SMART_HERMS_PREHEAT
+      smartHERMSHLT();
+    #endif
   }
 
   if (stepIsActive(STEP_DELAY)) if (timerValue[TIMER_MASH] == 0) stepAdvance(STEP_DELAY);
@@ -598,7 +601,10 @@ void resetSpargeValves() {
 
 #ifdef SMART_HERMS_HLT
 void smartHERMSHLT() {
-  if (setpoint[VS_MASH] != 0) setpoint[VS_HLT] = constrain(setpoint[VS_MASH] * 2 - temp[TS_MASH], setpoint[VS_MASH] + MASH_HEAT_LOSS * SETPOINT_DIV * 100, HLT_MAX_TEMP *  SETPOINT_DIV * 100);
+  if (!setpoint[VS_MASH]) return;
+  setpoint[VS_HLT] = setpoint[VS_MASH] * 2 - temp[TS_MASH];
+  //Constrain HLT Setpoint to Mash Setpoint + MASH_HEAT_LOSS (minimum) and HLT_MAX_TEMP (Maximum)
+  setpoint[VS_HLT] = constrain(setpoint[VS_HLT], setpoint[VS_MASH] + MASH_HEAT_LOSS * SETPOINT_DIV * 100, HLT_MAX_TEMP *  SETPOINT_DIV * 100);
 }
 #endif
   
