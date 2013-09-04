@@ -107,11 +107,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_SET_BOILCTL       125     //}
   #define CMD_GET_BOILCTL       126     //~
   
-  #define BTNIC_STATE_RX 0
-  #define BTNIC_STATE_EXE 1
-  #define BTNIC_STATE_TX 2
+  typedef enum {
+    BTNIC_STATE_IDLE,
+    BTNIC_STATE_RX,
+    BTNIC_STATE_EXE,
+    BTNIC_STATE_TX,
+  } BTNICState;
   
-  #define BTNIC_BUF_LEN 256
+  #define BTNIC_BUF_LEN 1024
 
   #define CMDCODE_MIN 65
   #define CMDCODE_MAX 126
@@ -256,10 +259,11 @@ public:
   void rx(char); /* Receive a byte into buffer and returns true of tx ready*/
   char tx(void); /* Return a byte from buffer or '/0' if end of buffer */
   void reset(void); /* Sets buf len to 0 */
-  byte getState(void); /* Return current state RX / EXE / TX */
+  BTNICState getState(void); /* Return current state RX / EXE / TX */
   void eventHandler(byte, int);
   
 private:
+  void setState(BTNICState);
   void execCmd(void);
   void rejectCmd(byte);
   void chkBuf(void);
@@ -273,18 +277,22 @@ private:
   char* getCmdParam(byte, char*, byte);
   unsigned long getCmdParamNum(byte);
   
-  byte _state; /* Current state: RX/EXE_R/EXE_W/TX */
+  BTNICState _state; /* Current state: IDLE/RX/EXE/TX */
   unsigned int _bufLen; /* Length of data in buffer */
   char _bufData[BTNIC_BUF_LEN]; /* Buffer */
   unsigned int _bufCur; /* Cursor position in buffer for tx */
 };
 
 BTnic::BTnic(void) {
-  reset();
+  _bufLen = _bufCur = 0;
+  _state = BTNIC_STATE_IDLE;
 }
 
 void BTnic::rx(char byteIn) {
-  if (byteIn == 0x0D) execCmd();
+  if (_state == BTNIC_STATE_IDLE)
+    setState(BTNIC_STATE_RX);
+  if (byteIn == 0x01) reset();
+  else if (byteIn == 0x0D) execCmd();
   else {
     _bufData[_bufLen++] = byteIn;
     if (_bufLen == BTNIC_BUF_LEN) execCmd();
@@ -299,10 +307,10 @@ char BTnic::tx(void) {
 void BTnic::reset(void) {
   _bufLen = 0;
   _bufCur = 0;
-  _state = BTNIC_STATE_RX;
+  setState(BTNIC_STATE_IDLE);
 }
 
-byte BTnic::getState(void) { 
+BTNICState BTnic::getState(void) { 
   if (_state == BTNIC_STATE_TX && _bufCur == _bufLen) reset();
   return _state;
 }
@@ -311,10 +319,19 @@ void BTnic::eventHandler(byte eventID, int eventParam) {
   //Not Implemented
 }
 
+void BTnic::setState(BTNICState state) {
+  #ifdef DEBUG_BTNIC
+    Serial.print("BTNIC State Change: ");
+    Serial.print(_state, DEC);
+    Serial.print(" -> ");
+    Serial.println(state, DEC);
+  #endif
+  _state = state;
+}
 
   //Check and process command. Return error code (0 if OK)
 void BTnic::execCmd(void) {
-  _state = BTNIC_STATE_EXE;
+  setState(BTNIC_STATE_EXE);
 
   // log ASCII version "GET_VER"
   if (strcasecmp(getCmdParam(0, buf, 20), "GET_VER") == 0) {
@@ -409,7 +426,6 @@ void BTnic::execCmd(void) {
         logField(pName);
       }
       break;
-      
       
     case CMD_SET_PROGTEMPS:  //']'
       for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
@@ -791,7 +807,7 @@ void BTnic::logEnd(void) {
   _bufData[_bufLen++] = 0x0D; //Carriage Return
   _bufData[_bufLen++] = 0x0A; //New Line
   _bufCur = 0;
-  _state = BTNIC_STATE_TX;
+  setState(BTNIC_STATE_TX);
 }
 
 int BTnic::getCmdIndex() {

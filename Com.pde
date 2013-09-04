@@ -98,34 +98,40 @@ void updateCom() {
     BTnic btnicI2C;
     
     void updateI2CBTnic() {
-      if(btnicI2C.getState() == BTNIC_STATE_RX) {
-        while (1) {
-          Wire.requestFrom(BTNIC_I2C_ADDR, 1);
-          if (! Wire.available())
-            break; //No data
-          char data = Wire.receive();
-          if (!data)
-            break; //Null return: No data
-          #ifdef DEBUG_BTNIC
-            Serial.print("btnicEmb RX: ");
-            Serial.println(data);
-          #endif
-          btnicI2C.rx(data);
-          if(btnicI2C.getState() != BTNIC_STATE_RX) break;
-        }
-      }
-      if(btnicI2C.getState() == BTNIC_STATE_TX) {
-        //TX Ready
-        Wire.beginTransmission(BTNIC_I2C_ADDR);
-        while(btnicI2C.getState() == BTNIC_STATE_TX) {
-          byte data = btnicI2C.tx();
-          #ifdef DEBUG_BTNIC
-            Serial.print("btnicEmb TX: ");
-            Serial.println(data);
-          #endif
-          Wire.send(data);
-        }
-        Wire.endTransmission();
+      switch (btnicI2C.getState()) {
+        case BTNIC_STATE_IDLE:
+        case BTNIC_STATE_RX:
+          while (1) {
+            Wire.requestFrom(BTNIC_I2C_ADDR, 1);
+            if (! Wire.available())
+              break; //No data
+            char data = Wire.receive();
+            if (!data)
+              break; //Null return: No data
+            #ifdef DEBUG_BTNIC
+              Serial.print("btnicEmb RX: ");
+              Serial.println(data);
+            #endif
+            btnicI2C.rx(data);
+            if(btnicI2C.getState() != BTNIC_STATE_RX) break;
+          }
+          
+        case BTNIC_STATE_TX:
+          //TX Ready
+          while(btnicI2C.getState() == BTNIC_STATE_TX) {
+            byte maxLength = 32;
+            Wire.beginTransmission(BTNIC_I2C_ADDR);
+            while(maxLength-- && btnicI2C.getState() == BTNIC_STATE_TX) {
+              byte data = btnicI2C.tx();
+              #ifdef DEBUG_BTNIC
+                Serial.print("btnicEmb TX: ");
+                Serial.println(data);
+              #endif
+              Wire.send(data);
+            }
+            Wire.endTransmission();
+          }
+          break;
       }
     }
   #endif
@@ -134,19 +140,21 @@ void updateCom() {
     #if COM_SERIAL0 == BTNIC /* BTnic over Serial0 */
       BTnic btnicS0;
       void updateS0BTnic() {
-        if(btnicS0.getState() == BTNIC_STATE_RX) {
-          while (Serial.available()) {
-            btnicS0.rx(Serial.read());
-            if(btnicS0.getState() != BTNIC_STATE_RX) break;
-          }
-        }
-        if(btnicS0.getState() == BTNIC_STATE_TX) {
-          //TX Ready
-          Serial.print(millis(),DEC);
-          Serial.write(0x09);
-          while(btnicS0.getState() == BTNIC_STATE_TX) Serial.write(btnicS0.tx());
-          //Serial.write(0x0D); //Carriage Return
-          //Serial.write(0x0A); //New Line
+        switch (btnicS0.getState()) {
+          case BTNIC_STATE_IDLE:
+          case BTNIC_STATE_RX:
+            while (Serial.available()) {
+              btnicS0.rx(Serial.read());
+              if(btnicS0.getState() != BTNIC_STATE_RX) break;
+            }
+            if(btnicS0.getState() != BTNIC_STATE_TX) break;
+          case BTNIC_STATE_TX:
+            //TX Ready
+            Serial.print(millis(),DEC);
+            Serial.write(0x09);
+            while(btnicS0.getState() == BTNIC_STATE_TX) Serial.write(btnicS0.tx());
+            //Serial.write(0x0D); //Carriage Return
+            //Serial.write(0x0A); //New Line
         }
       }
     #endif
