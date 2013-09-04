@@ -222,8 +222,7 @@ static const byte TS = 1;
 // Strike Temperature Correction
 //**********************************************************************************
 // STRIKE_TEMP_OFFSET: Adjusts strike temperature to compensate for thermal mass of
-// mash tun. (Note: This option is used only when Mash Liquor Heat Source is set to
-// HLT.)
+// mash tun.
 // Value may be positive or negative. Decimal values are allowed.
 
 #define STRIKE_TEMP_OFFSET 0
