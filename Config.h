@@ -376,9 +376,6 @@ static const byte TS = 1;
 // automatically 
 //
 
-// DELAYSTART_NOALARM: Automatically clear the alarm at the end of Delay Start.
-//#define DELAYSTART_NOALARM
-
 // AUTO_FILL_START: This option will enable the Fill AutoValve logic at the start of
 // the Fill step. 
 //#define AUTO_FILL_START
