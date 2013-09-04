@@ -93,7 +93,7 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_DELAY) {
   //Step Init: Delay
     //Load delay minutes from EEPROM if timer is not already populated via Power Loss Recovery
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getDelayMins());
+    if (getDelayMins() && !timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getDelayMins());
 
   } else if (brewStep == STEP_PREHEAT) {
   //Step Init: Preheat
@@ -136,6 +136,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
     #endif
+    setAlarm(1);
     bitSet(actProfiles, VLV_ADDGRAIN);
     if(getProgMLHeatSrc(pgm) == VS_HLT) {
       unsigned long spargeVol = calcSpargeVol(pgm);
@@ -272,6 +273,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     timerStatus[TIMER_MASH] = 0;
     
   } else if (brewStep == STEP_MASHHOLD) {
+     setAlarm(1);
     //Set HLT to Sparge Temp
     setSetpoint(TS_HLT, getProgSparge(pgm));
     //Cycle through steps and use last non-zero step for mash setpoint
@@ -379,11 +381,7 @@ void stepCore() {
   
   if (stepIsActive(STEP_MASHHOLD)) {
     #ifdef AUTO_MASH_HOLD_EXIT 
-      #ifdef AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP
       if (!zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= setpoint[VS_HLT]) stepAdvance(STEP_MASHHOLD);
-      #else
-      if (!zoneIsActive(ZONE_BOIL)) stepAdvance(STEP_MASHHOLD);
-      #endif
     #endif
   }
   
@@ -523,9 +521,7 @@ void stepExit(byte brewStep) {
   } else if (brewStep == STEP_DELAY) {
   //Step Exit: Delay
     clearTimer(TIMER_MASH);
-    #ifdef DELAYSTART_NOALARM
-      setAlarm(0);
-    #endif
+    setAlarm(0);
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Exit: Add Grain
     tgtVol[VS_HLT] = 0;
