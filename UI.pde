@@ -1623,7 +1623,6 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
   byte precision = strlen(strValue);
   if (divisor == 1) precision = 0;
   unsigned int mult = pow10(precision);
-  Serial.println(mult, DEC);
   ultoa(maxValue/divisor, strValue, 10);
   byte digits = strlen(strValue) + precision;
 
