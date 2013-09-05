@@ -35,6 +35,14 @@ void RGBIO8_Init() {
     rgbio8s[ioIndex / 8].assignPvOutputRecipe(i, ioIndex % 8, 1);
   }
   
+  // Set the default values of Softswitches to AUTO so that outputs that are not assigned to softswitches are unaffected by this logic
+  for (byte i = 0; i < PVOUT_COUNT; i++)
+    softSwitchPv[i] = SOFTSWITCH_AUTO;
+
+  for (byte i = 0; i < HEAT_OUTPUTS_COUNT; i++)
+    softSwitchHeat[i] = SOFTSWITCH_AUTO;
+
+  
   ////////////////////////////////////////////////////////////////////////
   // CUSTOM CONFIGURATION
   ////////////////////////////////////////////////////////////////////////
@@ -73,17 +81,17 @@ void RGBIO8_Init() {
   
   // Recipe 0, used for Heat Outputs
   // Off:       0xF00 (Red)
-  // Auto Off:  0xFF0 (Yellow)
+  // Auto Off:  0xFFF (White)
   // Auto On:   0xF40 (Orange)
   // On:        0x0F0 (Green)
-  RGBIO8::setOutputRecipe(0, 0xF00, 0xFF0, 0xF40, 0x0F0);
+  RGBIO8::setOutputRecipe(0, 0xF00, 0xFFF, 0xF40, 0x0F0);
   
   // Recipe 1, used for Pump/Valve Outputs
   // Off:       0xF00 (Red)
-  // Auto Off:  0xFF0 (Yellow)
+  // Auto Off:  0xFFF (White)
   // Auto On:   0x00F (Blue)
   // On:        0x0F0 (Green)
-  RGBIO8::setOutputRecipe(1, 0xF00, 0xFF0, 0x00F, 0x0F0);
+  RGBIO8::setOutputRecipe(1, 0xF00, 0xFFF, 0x00F, 0x0F0);
 
   //
   // Now we move on to mappings. A mapping ties a given input or output to

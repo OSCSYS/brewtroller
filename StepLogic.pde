@@ -93,7 +93,7 @@ boolean stepInit(byte pgm, byte brewStep) {
   } else if (brewStep == STEP_DELAY) {
   //Step Init: Delay
     //Load delay minutes from EEPROM if timer is not already populated via Power Loss Recovery
-    if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getDelayMins());
+    if (getDelayMins() && !timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getDelayMins());
 
   } else if (brewStep == STEP_PREHEAT) {
   //Step Init: Preheat
@@ -136,6 +136,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     #ifndef PID_FLOW_CONTROL
     setSetpoint(VS_STEAM, getSteamTgt());
     #endif
+    setAlarm(1);
     bitSet(actProfiles, VLV_ADDGRAIN);
     if(getProgMLHeatSrc(pgm) == VS_HLT) {
       unsigned long spargeVol = calcSpargeVol(pgm);
@@ -272,6 +273,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     timerStatus[TIMER_MASH] = 0;
     
   } else if (brewStep == STEP_MASHHOLD) {
+     setAlarm(1);
     //Set HLT to Sparge Temp
     setSetpoint(TS_HLT, getProgSparge(pgm));
     //Cycle through steps and use last non-zero step for mash setpoint
@@ -355,6 +357,9 @@ void stepCore() {
     if ((setpoint[VS_MASH] && temp[VS_MASH] >= setpoint[VS_MASH])
       || (!setpoint[VS_MASH] && temp[VS_HLT] >= setpoint[VS_HLT])
     ) stepAdvance(STEP_PREHEAT);
+    #if defined SMART_HERMS_HLT && defined SMART_HERMS_PREHEAT
+      smartHERMSHLT();
+    #endif
   }
 
   if (stepIsActive(STEP_DELAY)) if (timerValue[TIMER_MASH] == 0) stepAdvance(STEP_DELAY);
@@ -379,11 +384,7 @@ void stepCore() {
   
   if (stepIsActive(STEP_MASHHOLD)) {
     #ifdef AUTO_MASH_HOLD_EXIT 
-      #ifdef AUTO_MASH_HOLD_EXIT_AT_SPARGE_TEMP
       if (!zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= setpoint[VS_HLT]) stepAdvance(STEP_MASHHOLD);
-      #else
-      if (!zoneIsActive(ZONE_BOIL)) stepAdvance(STEP_MASHHOLD);
-      #endif
     #endif
   }
   
@@ -523,9 +524,7 @@ void stepExit(byte brewStep) {
   } else if (brewStep == STEP_DELAY) {
   //Step Exit: Delay
     clearTimer(TIMER_MASH);
-    #ifdef DELAYSTART_NOALARM
-      setAlarm(0);
-    #endif
+    setAlarm(0);
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Exit: Add Grain
     tgtVol[VS_HLT] = 0;
@@ -602,7 +601,10 @@ void resetSpargeValves() {
 
 #ifdef SMART_HERMS_HLT
 void smartHERMSHLT() {
-  if (setpoint[VS_MASH] != 0) setpoint[VS_HLT] = constrain(setpoint[VS_MASH] * 2 - temp[TS_MASH], setpoint[VS_MASH] + MASH_HEAT_LOSS * SETPOINT_DIV * 100, HLT_MAX_TEMP *  SETPOINT_DIV * 100);
+  if (!setpoint[VS_MASH]) return;
+  setpoint[VS_HLT] = setpoint[VS_MASH] * 2 - temp[TS_MASH];
+  //Constrain HLT Setpoint to Mash Setpoint + MASH_HEAT_LOSS (minimum) and HLT_MAX_TEMP (Maximum)
+  setpoint[VS_HLT] = constrain(setpoint[VS_HLT], setpoint[VS_MASH] + MASH_HEAT_LOSS * SETPOINT_DIV * 100, HLT_MAX_TEMP *  SETPOINT_DIV * 100);
 }
 #endif
   
@@ -704,14 +706,41 @@ unsigned long calcGrainVolume(byte pgm) {
  * Calculates the strike temperature for the mash.
  */
 byte calcStrikeTemp(byte pgm) {
+  //Metric temps are stored as quantity of 0.5C increments
   float strikeTemp = (float)getFirstStepTemp(pgm) / SETPOINT_DIV;
+  float grainTemp = (float)getGrainTemp() / SETPOINT_DIV;
+  
+  //Imperial units must be converted from gallons to quarts
   #ifdef USEMETRIC
-    //return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
-    return (strikeTemp + round(.4 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (calcStrikeVol(pgm) / getProgGrain(pgm))) + 1.7 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    const uint8_t kMashRatioVolumeFactor = 1;
   #else
-    //return (strikeTemp + round(.192 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / (getProgRatio(pgm) / 100.0)) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
-    return (strikeTemp + round(.192 * (strikeTemp - (float) getGrainTemp() / SETPOINT_DIV) / ((calcStrikeVol(pgm) * 4) / getProgGrain(pgm))) + 3 + STRIKE_TEMP_OFFSET) * SETPOINT_DIV;
+    const uint8_t kMashRatioVolumeFactor = 4;
   #endif
+  
+  //Calculate mash ratio to include logic for no sparge recipes (Using mash ratio of 0 would not work in calcs)
+  float mashRatio = (float)calcStrikeVol(pgm) *  kMashRatioVolumeFactor / getProgGrain(pgm);
+  
+  #ifdef USEMETRIC
+    const float kGrainThermoDynamic = 0.41;
+  #else
+    const float kGrainThermoDynamic = 0.2;
+  #endif
+  
+  //Calculate strike temp using the formula:
+  //  Tw = (TDC/r)(T2 - T1) + T2
+  //  where:
+  //    TDC = Thermodynamic constant (0.2 for Imperial Units and 0.41 for Metric)
+  //    r = The ratio of water to grain in quarts per pound or l per kg
+  //    T1 = The initial temperature of the mash
+  //    T2 = The target temperature of the mash
+  //    Tw = The actual temperature of the infusion water
+  strikeTemp = (kGrainThermoDynamic / mashRatio) * (strikeTemp - grainTemp) + strikeTemp;
+
+  //Add Config.h value for adjustments if any
+  strikeTemp += STRIKE_TEMP_OFFSET;
+  
+  //Return value in EEPROM format which is 0-255F or 0-255 x 0.5C
+  return strikeTemp * SETPOINT_DIV;
 }
 
 byte getFirstStepTemp(byte pgm) {

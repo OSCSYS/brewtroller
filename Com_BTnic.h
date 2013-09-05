@@ -70,13 +70,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_SET_SETPOINT	88 	//X
   #define CMD_SET_TIMERSTATUS	89 	//Y
   #define CMD_SET_TIMERVALUE	90 	//Z
-  #define CMD_GET_PROGNAME	91 	//'['
-  #define CMD_SET_PROGNAME	92 	//'\'
-  #define CMD_GET_PROGTEMPS	93 	//']'
-  #define CMD_SET_PROGTEMPS	94 	//'^'
-  #define CMD_GET_PROGMINS	95 	//'_'
-  #define CMD_SET_PROGMINS	96 	//'`'
-  #define CMD_SET_VLV		97 	//a (No longer Supported)
+  #define CMD_GET_STATUS	97 	//a
   #define CMD_SET_VLVPRF	98 	//b
   #define CMD_RESET		99 	//c
   #define CMD_GET_VLVCFG	100 	//d
@@ -99,19 +93,20 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_AUTOVLV		117 	//u
   #define CMD_VLVBITS		118 	//v
   #define CMD_VLVPRF		119 	//w
-  #define CMD_GET_PROGVOLS	120 	//x
-  #define CMD_SET_PROGVOLS	121 	//y
   #define CMD_GET_GRAINVOLS	122 	//z
   #define CMD_SET_TGTVOL        123     //{
   #define CMD_GET_TGTVOL        124     //|
   #define CMD_SET_BOILCTL       125     //}
   #define CMD_GET_BOILCTL       126     //~
   
-  #define BTNIC_STATE_RX 0
-  #define BTNIC_STATE_EXE 1
-  #define BTNIC_STATE_TX 2
+  typedef enum {
+    BTNIC_STATE_IDLE,
+    BTNIC_STATE_RX,
+    BTNIC_STATE_EXE,
+    BTNIC_STATE_TX,
+  } BTNICState;
   
-  #define BTNIC_BUF_LEN 256
+  #define BTNIC_BUF_LEN 1024
 
   #define CMDCODE_MIN 65
   #define CMDCODE_MAX 126
@@ -133,7 +128,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     2,	//CMD_SET_CAL
     1,	//CMD_SET_EVAP
     8,	//CMD_SET_OSET
-    6,	//CMD_SET_PROG
+    22,	//CMD_SET_PROG
     8,	//CMD_SET_TS
     1,	//CMD_SET_VLVCFG
     2,	//CMD_SET_VSET
@@ -145,13 +140,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     1,	//CMD_SET_SETPOINT
     1,	//CMD_SET_TIMERSTATUS
     1,	//CMD_SET_TIMERVALUE
-    0,  //CMD_GET_PROGNAME
-    1,  //CMD_SET_PROGNAME
-    0,  //CMD_GET_PROGMASHTEMPS
-    6,  //CMD_SET_PROGMASHTEMPS
-    0,  //CMD_GET_PROGMASHMINS
-    6,  //CMD_SET_PROGMASHMINS
-    0,	//CMD_SET_VLV (No Longer Used)
+    0,  //Unused
+    0,  //Unused
+    0,  //Unused
+    0,  //Unused
+    0,  //Unused
+    0,  //Unused
+    0,	//CMD_GET_STATUS
     2,	//CMD_SET_VLVPRF
     0,	//CMD_RESET
     0,	//CMD_GET_VLVCFG
@@ -174,8 +169,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0,	//CMD_AUTOVLV
     0,	//CMD_VLVBITS
     0,  //CMD_VLVPRF
-    0,  //CMD_GET_PROGVOLS
-    3,  //CMD_SET_PROGVOLS
+    0,  //Unused
+    0,  //Unused
     0,  //CMD_GET_GRAINVOLS
     1,  //CMD_SET_TGTVOL
     0,  //CMD_GET_TGTVOL
@@ -211,13 +206,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     VS_STEAM, 		//CMD_SET_SETPOINT
     TIMER_BOIL, 	//CMD_SET_TIMERSTATUS
     TIMER_BOIL, 	//CMD_SET_TIMERVALUE
-    NUM_PROGRAMS - 1, 	//CMD_GET_PROGNAME
-    NUM_PROGRAMS - 1, 	//CMD_SET_PROGNAME
-    NUM_PROGRAMS - 1, 	//CMD_GET_PROGTEMPS
-    NUM_PROGRAMS - 1, 	//CMD_SET_PROGTEMPS
-    NUM_PROGRAMS - 1, 	//CMD_GET_PROGMINS
-    NUM_PROGRAMS - 1, 	//CMD_SET_PROGMINS
-    0, 			//CMD_SET_VLV (No Longer Used)
+    0,           	//Unused
+    0, 	                //Unused
+    0, 	                //Unused
+    0, 	                //Unused
+    0, 	                //Unused
+    0,           	//Unused
+    0, 			//CMD_GET_STATUS
     0, 			//CMD_SET_VLVPRF
     1, 			//CMD_RESET
     NUM_VLVCFGS - 1, 	//CMD_GET_VLVCFG
@@ -240,8 +235,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_AUTOVLV
     0, 			//CMD_VLVBITS
     0, 			//CMD_VLVPRF
-    NUM_PROGRAMS - 1,   //CMD_GET_PROGVOLS
-    NUM_PROGRAMS - 1,   //CMD_SET_PROGVOLS
+    0,                  //Unused
+    0,                  //Unused
     NUM_PROGRAMS - 1,   //CMD_GET_GRAINVOLS
     VS_KETTLE,          //CMD_SET_TGTVOL
     VS_KETTLE,          //CMD_GET_TGTVOL
@@ -256,10 +251,11 @@ public:
   void rx(char); /* Receive a byte into buffer and returns true of tx ready*/
   char tx(void); /* Return a byte from buffer or '/0' if end of buffer */
   void reset(void); /* Sets buf len to 0 */
-  byte getState(void); /* Return current state RX / EXE / TX */
+  BTNICState getState(void); /* Return current state RX / EXE / TX */
   void eventHandler(byte, int);
   
 private:
+  void setState(BTNICState);
   void execCmd(void);
   void rejectCmd(byte);
   void chkBuf(void);
@@ -268,23 +264,28 @@ private:
   void logField_P(const char*);
   void logFieldI(unsigned long);
   void logEnd(void);
+  void logStepPrg(byte zone, byte startStep, byte endStep);
   int getCmdIndex(void);
   byte getCmdParamCount(void);
   char* getCmdParam(byte, char*, byte);
   unsigned long getCmdParamNum(byte);
   
-  byte _state; /* Current state: RX/EXE_R/EXE_W/TX */
+  BTNICState _state; /* Current state: IDLE/RX/EXE/TX */
   unsigned int _bufLen; /* Length of data in buffer */
   char _bufData[BTNIC_BUF_LEN]; /* Buffer */
   unsigned int _bufCur; /* Cursor position in buffer for tx */
 };
 
 BTnic::BTnic(void) {
-  reset();
+  _bufLen = _bufCur = 0;
+  _state = BTNIC_STATE_IDLE;
 }
 
 void BTnic::rx(char byteIn) {
-  if (byteIn == 0x0D) execCmd();
+  if (_state == BTNIC_STATE_IDLE)
+    setState(BTNIC_STATE_RX);
+  if (byteIn == 0x01) reset();
+  else if (byteIn == 0x0D) execCmd();
   else {
     _bufData[_bufLen++] = byteIn;
     if (_bufLen == BTNIC_BUF_LEN) execCmd();
@@ -299,10 +300,10 @@ char BTnic::tx(void) {
 void BTnic::reset(void) {
   _bufLen = 0;
   _bufCur = 0;
-  _state = BTNIC_STATE_RX;
+  setState(BTNIC_STATE_IDLE);
 }
 
-byte BTnic::getState(void) { 
+BTNICState BTnic::getState(void) { 
   if (_state == BTNIC_STATE_TX && _bufCur == _bufLen) reset();
   return _state;
 }
@@ -311,10 +312,19 @@ void BTnic::eventHandler(byte eventID, int eventParam) {
   //Not Implemented
 }
 
+void BTnic::setState(BTNICState state) {
+  #ifdef DEBUG_BTNIC
+    Serial.print("BTNIC State Change: ");
+    Serial.print(_state, DEC);
+    Serial.print(" -> ");
+    Serial.println(state, DEC);
+  #endif
+  _state = state;
+}
 
   //Check and process command. Return error code (0 if OK)
 void BTnic::execCmd(void) {
-  _state = BTNIC_STATE_EXE;
+  setState(BTNIC_STATE_EXE);
 
   // log ASCII version "GET_VER"
   if (strcasecmp(getCmdParam(0, buf, 20), "GET_VER") == 0) {
@@ -328,6 +338,33 @@ void BTnic::execCmd(void) {
   if(cmdIndex == NO_CMDINDEX) return rejectCmd(CMD_REJECT_INDEX);
 
   switch (_bufData[0]) {
+    case CMD_GET_STATUS: //a
+      logFieldCmd(CMD_GET_STATUS, NO_CMDINDEX);
+      logFieldI(alarmStatus);
+      logFieldI(autoValveBitmask());
+      logFieldI(actProfiles);
+      logFieldI(computeValveBits());
+      for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
+        logFieldI(setpoint[vessel] / SETPOINT_MULT);
+        logFieldI(temp[vessel]);
+        logFieldI(getHeatPower(vessel)); 
+        logFieldI(tgtVol[cmdIndex]);
+        logFieldI(volAvg[vessel]);
+        #ifdef FLOWRATE_CALCS
+          logFieldI(flowRate[vessel]);
+        #else
+          logFieldI(0);
+        #endif
+      }
+      for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
+        logFieldI(timerValue[timer]);
+        logFieldI(timerStatus[timer]);
+      }
+      logFieldI(boilControlState);      
+      logStepPrg(ZONE_MASH, STEP_FILL, STEP_SPARGE);
+      logStepPrg(ZONE_BOIL, STEP_BOIL, STEP_CHILL);
+      break;
+    
     case CMD_SET_BOIL:  //K
       setBoilTemp(getCmdParamNum(1));
     case CMD_GET_BOIL:  //A
@@ -393,66 +430,40 @@ void BTnic::execCmd(void) {
         logFieldI(0);
       }
       break;
-
-  
-    case CMD_SET_PROGNAME:  //'['
+    
+    case CMD_SET_PROG:  //O
       {
         char pName[20];
         getCmdParam(1, pName, 19);
         setProgName(cmdIndex, pName);
       }
-    case CMD_GET_PROGNAME:  //'\'
-      logFieldCmd(CMD_GET_PROGNAME, cmdIndex);
+      setProgBatchVol(cmdIndex, getCmdParamNum(2));
+      setProgGrain(cmdIndex, getCmdParamNum(3));
+      setProgRatio(cmdIndex, getCmdParamNum(4));
+      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+        setProgMashTemp(cmdIndex, i, getCmdParamNum(i * 2 + 5));
+        setProgMashMins(cmdIndex, i, getCmdParamNum(i * 2 + 6));
+      }
+      setProgSparge(cmdIndex, getCmdParamNum(17));
+      setProgHLT(cmdIndex, getCmdParamNum(18));
+      setProgBoil(cmdIndex, getCmdParamNum(19));
+      setProgPitch(cmdIndex, getCmdParamNum(20));
+      setProgAdds(cmdIndex, getCmdParamNum(21));
+      setProgMLHeatSrc(cmdIndex, getCmdParamNum(22));
+    case CMD_GET_PROG:  //E
+      logFieldCmd(CMD_GET_PROG, cmdIndex);
       {
         char pName[20];
         getProgName(cmdIndex, pName);
         logField(pName);
       }
-      break;
-      
-      
-    case CMD_SET_PROGTEMPS:  //']'
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
-        setProgMashTemp(cmdIndex, i, getCmdParamNum(i + 1));
-      }
-    case CMD_GET_PROGTEMPS:  //'^'
-      logFieldCmd(CMD_GET_PROGTEMPS, cmdIndex);
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
-        logFieldI(getProgMashTemp(cmdIndex, i));
-      }
-      break;
-
-    case CMD_SET_PROGMINS:  //'_'
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
-        setProgMashMins(cmdIndex, i, getCmdParamNum(i + 1));
-      }
-    case CMD_GET_PROGMINS:  //'`'
-      logFieldCmd(CMD_GET_PROGMINS, cmdIndex);
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
-        logFieldI(getProgMashMins(cmdIndex, i));
-      }
-      break;
-
-    case CMD_SET_PROGVOLS:  //x
-      setProgBatchVol(cmdIndex, getCmdParamNum(1));
-      setProgGrain(cmdIndex, getCmdParamNum(2));
-      setProgRatio(cmdIndex, getCmdParamNum(3));
-    case CMD_GET_PROGVOLS:  //y
-      logFieldCmd(CMD_GET_PROGVOLS, cmdIndex);
       logFieldI(getProgBatchVol(cmdIndex));
       logFieldI(getProgGrain(cmdIndex));
       logFieldI(getProgRatio(cmdIndex));
-      break;
-      
-    case CMD_SET_PROG:  //O
-      setProgSparge(cmdIndex, getCmdParamNum(1));
-      setProgHLT(cmdIndex, getCmdParamNum(2));
-      setProgBoil(cmdIndex, getCmdParamNum(3));
-      setProgPitch(cmdIndex, getCmdParamNum(4));
-      setProgAdds(cmdIndex, getCmdParamNum(5));
-      setProgMLHeatSrc(cmdIndex, getCmdParamNum(6));
-    case CMD_GET_PROG:  //E
-      logFieldCmd(CMD_GET_PROG, cmdIndex);
+      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+        logFieldI(getProgMashTemp(cmdIndex, i));
+        logFieldI(getProgMashMins(cmdIndex, i));
+      }
       logFieldI(getProgSparge(cmdIndex));
       logFieldI(getProgHLT(cmdIndex));
       logFieldI(getProgBoil(cmdIndex));
@@ -535,22 +546,8 @@ void BTnic::execCmd(void) {
       else if (_bufData[0] == CMD_EXIT_STEP) stepExit(cmdIndex);
     case CMD_STEPPRG:  //n
         logFieldCmd(CMD_STEPPRG, NO_CMDINDEX);
-        if (zoneIsActive(ZONE_MASH)){
-          for (byte i = 0; i < NUM_BREW_STEPS - 2; i++) {
-            if (stepProgram[i] != PROGRAM_IDLE){
-              logFieldI(i);
-              logFieldI(stepProgram[i]);
-            }
-          }
-        }else {logFieldI(PROGRAM_IDLE); logFieldI(PROGRAM_IDLE);}
-        if (zoneIsActive(ZONE_BOIL)) {
-          for (byte i = NUM_BREW_STEPS - 2; i < NUM_BREW_STEPS; i++){
-            if (stepProgram[i] != PROGRAM_IDLE){
-              logFieldI(i);
-              logFieldI(stepProgram[i]);
-            }
-          }
-        }else {logFieldI(PROGRAM_IDLE); logFieldI(PROGRAM_IDLE);}
+        logStepPrg(ZONE_MASH, STEP_FILL, STEP_SPARGE);
+        logStepPrg(ZONE_BOIL, STEP_BOIL, STEP_CHILL);
       break;
 
 
@@ -572,10 +569,7 @@ void BTnic::execCmd(void) {
     case CMD_AUTOVLV:  //u
       {
         logFieldCmd(CMD_AUTOVLV, NO_CMDINDEX);
-        byte modeMask = 0;
-        for (byte i = AV_FILL; i <= AV_HLT; i++)
-          if (autoValve[i]) modeMask |= 1<<i;
-        logFieldI(modeMask);
+        logFieldI(autoValveBitmask());
       }
       break;
       
@@ -696,13 +690,7 @@ void BTnic::execCmd(void) {
 
     case CMD_HEATPWR:  //s
       logFieldCmd(CMD_HEATPWR, cmdIndex);
-      {
-        byte pct;
-        if (PIDEnabled[cmdIndex]) pct = PIDOutput[cmdIndex] / PIDCycle[cmdIndex];
-        else if (heatStatus[cmdIndex]) pct = 100;
-        else pct = 0;
-        logFieldI(pct);
-      }
+      logFieldI(getHeatPower(cmdIndex));
       break;
       
 
@@ -743,6 +731,20 @@ void BTnic::execCmd(void) {
       return rejectCmd(CMD_REJECT); //Reject Command Code (CMD_REJECT);
   }
   logEnd();
+}
+
+void BTnic::logStepPrg(byte zone, byte startStep, byte endStep) {
+  if (zoneIsActive(zone)) {
+    for (byte i = startStep; i <= endStep; i++) {
+      if (stepProgram[i] != PROGRAM_IDLE){
+        logFieldI(i);
+        logFieldI(stepProgram[i]);
+      }
+    }
+  } else {
+    logFieldI(PROGRAM_IDLE);
+    logFieldI(PROGRAM_IDLE);
+  }
 }
   
 void BTnic::rejectCmd(byte rejectCode) {
@@ -791,7 +793,7 @@ void BTnic::logEnd(void) {
   _bufData[_bufLen++] = 0x0D; //Carriage Return
   _bufData[_bufLen++] = 0x0A; //New Line
   _bufCur = 0;
-  _state = BTNIC_STATE_TX;
+  setState(BTNIC_STATE_TX);
 }
 
 int BTnic::getCmdIndex() {
@@ -830,7 +832,6 @@ unsigned long BTnic::getCmdParamNum(byte paramNum) {
   getCmdParam(paramNum, tmpbuf, 10);
   return strtoul(tmpbuf, NULL, 10);
 }
-
 
 /********************************************************************************************************************
  * End of BTnic Class

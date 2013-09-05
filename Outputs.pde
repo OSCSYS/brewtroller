@@ -812,3 +812,15 @@ pin * vesselMinTrigger(byte vessel) {
   else if (vessel == VS_KETTLE) return TriggerPin[TRIGGER_KETTLEMIN];
   else return NULL;
 }
+
+byte autoValveBitmask(void) {
+  byte modeMask = 0;
+  for (byte i = AV_FILL; i < NUM_AV; i++)
+    if (autoValve[i]) modeMask |= 1<<i;
+  return modeMask;
+}
+
+byte getHeatPower (byte vessel) {
+  return (PIDEnabled[vessel] ? (PIDOutput[vessel] / PIDCycle[vessel]) : (heatStatus[vessel] ? 100 : 0));
+}
+

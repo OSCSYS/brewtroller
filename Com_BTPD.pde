@@ -43,13 +43,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //#define BTPD_MASH_VOL 0x27 // BTPD_MASH_VOL: Displays current and target Mash volume
 //#define BTPD_KETTLE_VOL 0x28 // BTPD_KETTLE_VOL: Displays current and target Kettle volume
 //#define BTPD_STEAM_PRESS 0x29 // BTPD_STEAM_PRESS: Displays current and target Steam pressure
+#define BTPD_AUX1_TEMP 0x2a
+
 #ifdef RIMS_TEMP_SENSOR
   #define BTPD_RIMS_TEMP 0x21 // THe RIMS tube temp probe temperature
 #endif
 unsigned long lastBTPD;
 
 #ifndef BTPD_ALTERNATE_TEMP_VOLUME
-
 void updateBTPD() {
 	if (millis() - lastBTPD > BTPD_INTERVAL) {
 		#ifdef BTPD_HLT_TEMP
@@ -85,6 +86,9 @@ void updateBTPD() {
 		#ifdef BTPD_RIMS_TEMP
 			sendVsTemp(BTPD_RIMS_TEMP, RIMS_TEMP_SENSOR, VS_MASH);
 		#endif
+                #ifdef BTPD_ AUX1_TEMP
+                	sendVsTemp(BTPD_ AUX1_TEMP, TS_AUX1, VS_MASH);
+                #endif
 		lastBTPD = millis();
 	}
 }

@@ -199,8 +199,8 @@ void mashAvg() {
     }
   #endif
   #if defined MASH_AVG_AUX3
-    if (temp[TS_RIMS] != BAD_TEMP) {
-      avgTemp += temp[TS_RIMS];
+    if (temp[TS_AUX3] != BAD_TEMP) {
+      avgTemp += temp[TS_AUX3];
       sensorCount++;
     }
   #endif
