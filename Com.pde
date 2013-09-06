@@ -130,7 +130,12 @@ void updateCom() {
               byte data = btnicI2C.tx();
               #ifdef DEBUG_BTNIC
                 Serial.print("btnicEmb TX: ");
-                Serial.println(data);
+                Serial.print(data);
+                Serial.print("(0x");
+                Serial.print(data, HEX);
+                Serial.print(", ");
+                Serial.print(data, DEC);
+                Serial.println(")");
               #endif
               Wire.send(data);
             }

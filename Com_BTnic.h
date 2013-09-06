@@ -106,8 +106,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_GET_TGTVOL        124     //|
   #define CMD_SET_BOILCTL       125     //}
   #define CMD_GET_BOILCTL       126     //~
-  #define CMD_SET_PROGRAM       128     
-  #define CMD_GET_PROGRAM       131     
+  #define CMD_SET_PROGRAM       63      //?
+  #define CMD_GET_PROGRAM       64      //@
   
   typedef enum {
     BTNIC_STATE_IDLE,
@@ -118,12 +118,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   
   #define BTNIC_BUF_LEN 1024
 
-  #define CMDCODE_MIN 65
-  #define CMDCODE_MAX 131
+  #define CMDCODE_MIN 63
+  #define CMDCODE_MAX 126
   #define NO_CMDINDEX -1
   
   static byte CMD_PARAM_COUNTS[] PROGMEM = 
   {
+    22, //CMD_SET_PROGRAM (Full)
+    0,  //CMD_GET_PROGRAM (Full)
     0,	//CMD_GET_BOIL
     0,	//CMD_GET_CAL
     0,	//CMD_GET_EVAP
@@ -185,16 +187,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     1,  //CMD_SET_TGTVOL
     0,  //CMD_GET_TGTVOL
     2,  //CMD_SET_BOILCNT
-    0,  //CMD_GET_BOILCNT
-    0,  //Unusable
-    22, //CMD_SET_PROGRAM (Full)
-    0,  //Unusable
-    0,  //Unusable
-    0   //CMD_GET_PROGRAM (Full)
+    0  //CMD_GET_BOILCNT
   };
 
   static byte CMD_INDEX_MAXVALUE[] PROGMEM = 
   {
+    NUM_PROGRAMS - 1,   //CMD_SET_PROGRAM (Full)
+    NUM_PROGRAMS - 1,  //CMD_GET_PROGRAM (Full)
     0, 			//CMD_GET_BOIL
     29, 		//CMD_GET_CAL (0-9 HLT, 10-19 Mash, 20-29 Kettle)
     0, 			//CMD_GET_EVAP
@@ -256,12 +255,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     VS_KETTLE,          //CMD_SET_TGTVOL
     VS_KETTLE,          //CMD_GET_TGTVOL
     0,                  //CMD_SET_BOILCTL
-    0,                  //CMD_GET_BOILCTL
-    0,                  //Unusable
-    NUM_PROGRAMS - 1,   //CMD_SET_PROGRAM (Full)
-    0,                  //Unusable
-    0,                  //Unusable
-    NUM_PROGRAMS - 1   //CMD_GET_PROGRAM (Full)
+    0                   //CMD_GET_BOILCTL
   };
   
 class BTnic
