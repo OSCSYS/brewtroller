@@ -105,12 +105,17 @@ void updateCom() {
             Wire.requestFrom(BTNIC_I2C_ADDR, 1);
             if (! Wire.available())
               break; //No data
-            char data = Wire.receive();
+            byte data = Wire.receive();
             if (!data)
               break; //Null return: No data
             #ifdef DEBUG_BTNIC
               Serial.print("btnicEmb RX: ");
-              Serial.println(data);
+              Serial.print(data);
+              Serial.print("(0x");
+              Serial.print(data, HEX);
+              Serial.print(", ");
+              Serial.print(data, DEC);
+              Serial.println(")");
             #endif
             btnicI2C.rx(data);
             if(btnicI2C.getState() != BTNIC_STATE_RX) break;

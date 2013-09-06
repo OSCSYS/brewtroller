@@ -70,6 +70,12 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_SET_SETPOINT	88 	//X
   #define CMD_SET_TIMERSTATUS	89 	//Y
   #define CMD_SET_TIMERVALUE	90 	//Z
+  #define CMD_GET_PROGNAME	91 	//'['
+  #define CMD_SET_PROGNAME	92 	//'\'
+  #define CMD_GET_PROGTEMPS	93 	//']'
+  #define CMD_SET_PROGTEMPS	94 	//'^'
+  #define CMD_GET_PROGMINS	95 	//'_'
+  #define CMD_SET_PROGMINS	96 	//'`'
   #define CMD_GET_STATUS	97 	//a
   #define CMD_SET_VLVPRF	98 	//b
   #define CMD_RESET		99 	//c
@@ -93,11 +99,15 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_AUTOVLV		117 	//u
   #define CMD_VLVBITS		118 	//v
   #define CMD_VLVPRF		119 	//w
+  #define CMD_GET_PROGVOLS	120 	//x
+  #define CMD_SET_PROGVOLS	121 	//y
   #define CMD_GET_GRAINVOLS	122 	//z
   #define CMD_SET_TGTVOL        123     //{
   #define CMD_GET_TGTVOL        124     //|
   #define CMD_SET_BOILCTL       125     //}
   #define CMD_GET_BOILCTL       126     //~
+  #define CMD_SET_PROGRAM       128     
+  #define CMD_GET_PROGRAM       131     
   
   typedef enum {
     BTNIC_STATE_IDLE,
@@ -109,7 +119,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define BTNIC_BUF_LEN 1024
 
   #define CMDCODE_MIN 65
-  #define CMDCODE_MAX 126
+  #define CMDCODE_MAX 131
   #define NO_CMDINDEX -1
   
   static byte CMD_PARAM_COUNTS[] PROGMEM = 
@@ -128,7 +138,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     2,	//CMD_SET_CAL
     1,	//CMD_SET_EVAP
     8,	//CMD_SET_OSET
-    22,	//CMD_SET_PROG
+    6,	//CMD_SET_PROG
     8,	//CMD_SET_TS
     1,	//CMD_SET_VLVCFG
     2,	//CMD_SET_VSET
@@ -140,12 +150,12 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     1,	//CMD_SET_SETPOINT
     1,	//CMD_SET_TIMERSTATUS
     1,	//CMD_SET_TIMERVALUE
-    0,  //Unused
-    0,  //Unused
-    0,  //Unused
-    0,  //Unused
-    0,  //Unused
-    0,  //Unused
+    0,  //CMD_GET_PROGNAME
+    1,  //CMD_SET_PROGNAME
+    0,  //CMD_GET_PROGMASHTEMPS
+    6,  //CMD_SET_PROGMASHTEMPS
+    0,  //CMD_GET_PROGMASHMINS
+    6,  //CMD_SET_PROGMASHMINS
     0,	//CMD_GET_STATUS
     2,	//CMD_SET_VLVPRF
     0,	//CMD_RESET
@@ -169,13 +179,18 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0,	//CMD_AUTOVLV
     0,	//CMD_VLVBITS
     0,  //CMD_VLVPRF
-    0,  //Unused
-    0,  //Unused
+    0,  //CMD_GET_PROGVOLS
+    3,  //CMD_SET_PROGVOLS
     0,  //CMD_GET_GRAINVOLS
     1,  //CMD_SET_TGTVOL
     0,  //CMD_GET_TGTVOL
     2,  //CMD_SET_BOILCNT
-    0   //CMD_GET_BOILCNT
+    0,  //CMD_GET_BOILCNT
+    0,  //Unusable
+    22, //CMD_SET_PROGRAM (Full)
+    0,  //Unusable
+    0,  //Unusable
+    0   //CMD_GET_PROGRAM (Full)
   };
 
   static byte CMD_INDEX_MAXVALUE[] PROGMEM = 
@@ -206,12 +221,12 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     VS_STEAM, 		//CMD_SET_SETPOINT
     TIMER_BOIL, 	//CMD_SET_TIMERSTATUS
     TIMER_BOIL, 	//CMD_SET_TIMERVALUE
-    0,           	//Unused
-    0, 	                //Unused
-    0, 	                //Unused
-    0, 	                //Unused
-    0, 	                //Unused
-    0,           	//Unused
+    NUM_PROGRAMS - 1, 	//CMD_GET_PROGNAME
+    NUM_PROGRAMS - 1, 	//CMD_SET_PROGNAME
+    NUM_PROGRAMS - 1, 	//CMD_GET_PROGTEMPS
+    NUM_PROGRAMS - 1, 	//CMD_SET_PROGTEMPS
+    NUM_PROGRAMS - 1, 	//CMD_GET_PROGMINS
+    NUM_PROGRAMS - 1, 	//CMD_SET_PROGMINS
     0, 			//CMD_GET_STATUS
     0, 			//CMD_SET_VLVPRF
     1, 			//CMD_RESET
@@ -235,21 +250,26 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_AUTOVLV
     0, 			//CMD_VLVBITS
     0, 			//CMD_VLVPRF
-    0,                  //Unused
-    0,                  //Unused
+    NUM_PROGRAMS - 1,   //CMD_GET_PROGVOLS
+    NUM_PROGRAMS - 1,   //CMD_SET_PROGVOLS
     NUM_PROGRAMS - 1,   //CMD_GET_GRAINVOLS
     VS_KETTLE,          //CMD_SET_TGTVOL
     VS_KETTLE,          //CMD_GET_TGTVOL
     0,                  //CMD_SET_BOILCTL
-    0                   //CMD_GET_BOILCTL
+    0,                  //CMD_GET_BOILCTL
+    0,                  //Unusable
+    NUM_PROGRAMS - 1,   //CMD_SET_PROGRAM (Full)
+    0,                  //Unusable
+    0,                  //Unusable
+    NUM_PROGRAMS - 1   //CMD_GET_PROGRAM (Full)
   };
   
 class BTnic
 {
 public:
   BTnic(void); /* Constructor */
-  void rx(char); /* Receive a byte into buffer and returns true of tx ready*/
-  char tx(void); /* Return a byte from buffer or '/0' if end of buffer */
+  void rx(byte); /* Receive a byte into buffer and returns true of tx ready*/
+  byte tx(void); /* Return a byte from buffer or '/0' if end of buffer */
   void reset(void); /* Sets buf len to 0 */
   BTNICState getState(void); /* Return current state RX / EXE / TX */
   void eventHandler(byte, int);
@@ -272,7 +292,7 @@ private:
   
   BTNICState _state; /* Current state: IDLE/RX/EXE/TX */
   unsigned int _bufLen; /* Length of data in buffer */
-  char _bufData[BTNIC_BUF_LEN]; /* Buffer */
+  byte _bufData[BTNIC_BUF_LEN]; /* Buffer */
   unsigned int _bufCur; /* Cursor position in buffer for tx */
 };
 
@@ -281,7 +301,7 @@ BTnic::BTnic(void) {
   _state = BTNIC_STATE_IDLE;
 }
 
-void BTnic::rx(char byteIn) {
+void BTnic::rx(byte byteIn) {
   if (_state == BTNIC_STATE_IDLE)
     setState(BTNIC_STATE_RX);
   if (byteIn == 0x01) reset();
@@ -292,7 +312,7 @@ void BTnic::rx(char byteIn) {
   }
 }
 
-char BTnic::tx(void) {
+byte BTnic::tx(void) {
   if (_bufCur < _bufLen) return _bufData[_bufCur++];
   else return '\0';
 }
@@ -430,8 +450,74 @@ void BTnic::execCmd(void) {
         logFieldI(0);
       }
       break;
-    
-    case CMD_SET_PROG:  //O
+
+  
+    case CMD_SET_PROGNAME:  //'['
+      {
+        char pName[20];
+        getCmdParam(1, pName, 19);
+        setProgName(cmdIndex, pName);
+      }
+    case CMD_GET_PROGNAME:  //'\'
+      logFieldCmd(CMD_GET_PROGNAME, cmdIndex);
+      {
+        char pName[20];
+        getProgName(cmdIndex, pName);
+        logField(pName);
+      }
+      break;
+      
+    case CMD_SET_PROGTEMPS:  //']'
+      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+        setProgMashTemp(cmdIndex, i, getCmdParamNum(i + 1));
+      }
+    case CMD_GET_PROGTEMPS:  //'^'
+      logFieldCmd(CMD_GET_PROGTEMPS, cmdIndex);
+      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+        logFieldI(getProgMashTemp(cmdIndex, i));
+      }
+      break;
+
+    case CMD_SET_PROGMINS:  //'_'
+      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+        setProgMashMins(cmdIndex, i, getCmdParamNum(i + 1));
+      }
+    case CMD_GET_PROGMINS:  //'`'
+      logFieldCmd(CMD_GET_PROGMINS, cmdIndex);
+      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+        logFieldI(getProgMashMins(cmdIndex, i));
+      }
+      break;
+
+    case CMD_SET_PROGVOLS:  //x
+      setProgBatchVol(cmdIndex, getCmdParamNum(1));
+      setProgGrain(cmdIndex, getCmdParamNum(2));
+      setProgRatio(cmdIndex, getCmdParamNum(3));
+    case CMD_GET_PROGVOLS:  //y
+      logFieldCmd(CMD_GET_PROGVOLS, cmdIndex);
+      logFieldI(getProgBatchVol(cmdIndex));
+      logFieldI(getProgGrain(cmdIndex));
+      logFieldI(getProgRatio(cmdIndex));
+      break;
+      
+    case CMD_SET_PROG:  //O (Partial program data)
+      setProgSparge(cmdIndex, getCmdParamNum(1));
+      setProgHLT(cmdIndex, getCmdParamNum(2));
+      setProgBoil(cmdIndex, getCmdParamNum(3));
+      setProgPitch(cmdIndex, getCmdParamNum(4));
+      setProgAdds(cmdIndex, getCmdParamNum(5));
+      setProgMLHeatSrc(cmdIndex, getCmdParamNum(6));
+    case CMD_GET_PROG:  //E (partial program data)
+      logFieldCmd(CMD_GET_PROG, cmdIndex);
+      logFieldI(getProgSparge(cmdIndex));
+      logFieldI(getProgHLT(cmdIndex));
+      logFieldI(getProgBoil(cmdIndex));
+      logFieldI(getProgPitch(cmdIndex));
+      logFieldI(getProgAdds(cmdIndex));
+      logFieldI(getProgMLHeatSrc(cmdIndex));
+      break;
+      
+    case CMD_SET_PROGRAM:
       {
         char pName[20];
         getCmdParam(1, pName, 19);
@@ -450,8 +536,8 @@ void BTnic::execCmd(void) {
       setProgPitch(cmdIndex, getCmdParamNum(20));
       setProgAdds(cmdIndex, getCmdParamNum(21));
       setProgMLHeatSrc(cmdIndex, getCmdParamNum(22));
-    case CMD_GET_PROG:  //E
-      logFieldCmd(CMD_GET_PROG, cmdIndex);
+    case CMD_GET_PROGRAM:
+      logFieldCmd(CMD_GET_PROGRAM, cmdIndex);
       {
         char pName[20];
         getProgName(cmdIndex, pName);
@@ -471,7 +557,6 @@ void BTnic::execCmd(void) {
       logFieldI(getProgAdds(cmdIndex));
       logFieldI(getProgMLHeatSrc(cmdIndex));
       break;
-      
       
     case CMD_SET_TS:  //P
       {
