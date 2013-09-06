@@ -86,8 +86,8 @@ void updateBTPD() {
 		#ifdef BTPD_RIMS_TEMP
 			sendVsTemp(BTPD_RIMS_TEMP, RIMS_TEMP_SENSOR, VS_MASH);
 		#endif
-                #ifdef BTPD_ AUX1_TEMP
-                	sendVsTemp(BTPD_ AUX1_TEMP, TS_AUX1, VS_MASH);
+                #ifdef BTPD_AUX1_TEMP
+                	sendVsTemp(BTPD_AUX1_TEMP, TS_AUX1, VS_MASH);
                 #endif
 		lastBTPD = millis();
 	}
