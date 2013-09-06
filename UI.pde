@@ -760,7 +760,11 @@ void screenRefresh() {
 
   } else if (activeScreen == SCREEN_AUX) {
     //Screen Refresh: AUX
+  #ifndef DIRECT_FIRED_RIMS
+    for (byte i = TS_AUX1; i <= TS_AUX3; i++) {
+  #else
     for (byte i = TS_AUX1; i <= TS_AUX2; i++) {
+  #endif
       if (temp[i] == BAD_TEMP) LCD.print_P(i - 5, 6, PSTR("-----")); else {
         vftoa(temp[i], buf, 100, 1);
         truncFloat(buf, 5);
