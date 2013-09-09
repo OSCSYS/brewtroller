@@ -87,8 +87,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_SET_BOILPWR	105 	//i
   #define CMD_SET_DELAYTIME	106 	//j
   #define CMD_SET_GRAINTEMP	107 	//k
-  #define CMD_GET_CALCTEMPS	108 	//l
-  #define CMD_GET_CALCVOLS	109 	//m
   #define CMD_STEPPRG		110 	//n
   #define CMD_TIMER		111 	//o
   #define CMD_VOL		112 	//p
@@ -101,7 +99,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_VLVPRF		119 	//w
   #define CMD_GET_PROGVOLS	120 	//x
   #define CMD_SET_PROGVOLS	121 	//y
-  #define CMD_GET_GRAINVOLS	122 	//z
   #define CMD_SET_TGTVOL        123     //{
   #define CMD_GET_TGTVOL        124     //|
   #define CMD_SET_BOILCTL       125     //}
@@ -169,8 +166,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     1,	//CMD_SET_BOILPWR
     1,	//CMD_SET_DELAYTIME
     1,	//CMD_SET_GRAINTEMP
-    0,	//CMD_GET_CALCTEMPS
-    0,	//CMD_GET_CALCVOLS
+    0,	//Unused
+    0,	//Unused
     0,	//CMD_STEPPRG
     0,	//CMD_TIMER
     0,	//CMD_VOL
@@ -183,7 +180,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0,  //CMD_VLVPRF
     0,  //CMD_GET_PROGVOLS
     3,  //CMD_SET_PROGVOLS
-    0,  //CMD_GET_GRAINVOLS
+    0,  //Unused
     1,  //CMD_SET_TGTVOL
     0,  //CMD_GET_TGTVOL
     2,  //CMD_SET_BOILCNT
@@ -237,8 +234,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_SET_BOILPWR
     0, 			//CMD_SET_DELAYTIME
     0, 			//CMD_SET_GRAINTEMP
-    NUM_PROGRAMS - 1, 	//CMD_GET_CALCTEMPS
-    NUM_PROGRAMS - 1, 	//CMD_GET_CALCVOLS
+    0, 	                //Unused
+    0, 	                //Unused
     0, 			//CMD_STEPPRG
     TIMER_BOIL, 	//CMD_TIMER
     VS_KETTLE, 		//CMD_VOL
@@ -251,7 +248,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_VLVPRF
     NUM_PROGRAMS - 1,   //CMD_GET_PROGVOLS
     NUM_PROGRAMS - 1,   //CMD_SET_PROGVOLS
-    NUM_PROGRAMS - 1,   //CMD_GET_GRAINVOLS
+    0, 	                //Unused
     VS_KETTLE,          //CMD_SET_TGTVOL
     VS_KETTLE,          //CMD_GET_TGTVOL
     0,                  //CMD_SET_BOILCTL
@@ -550,6 +547,13 @@ void BTnic::execCmd(void) {
       logFieldI(getProgPitch(cmdIndex));
       logFieldI(getProgAdds(cmdIndex));
       logFieldI(getProgMLHeatSrc(cmdIndex));
+      logFieldI(calcStrikeTemp(cmdIndex));
+      logFieldI(getFirstStepTemp(cmdIndex));
+      logFieldI(calcPreboilVol(cmdIndex));
+      logFieldI(calcStrikeVol(cmdIndex));
+      logFieldI(calcSpargeVol(cmdIndex));
+      logFieldI(calcGrainVolume(cmdIndex));
+      logFieldI(calcGrainLoss(cmdIndex));      
       break;
       
     case CMD_SET_TS:  //P
@@ -720,26 +724,7 @@ void BTnic::execCmd(void) {
       logFieldI(getGrainTemp());
       break;
       
-      
-    case CMD_GET_CALCTEMPS:  //l
-      logFieldCmd(CMD_GET_CALCTEMPS, cmdIndex);
-      logFieldI(calcStrikeTemp(cmdIndex));
-      logFieldI(getFirstStepTemp(cmdIndex));
-      break;
-      
-
-    case CMD_GET_CALCVOLS:  //m
-      logFieldCmd(CMD_GET_CALCVOLS, cmdIndex);
-      logFieldI(calcPreboilVol(cmdIndex));
-      logFieldI(calcStrikeVol(cmdIndex));
-      logFieldI(calcSpargeVol(cmdIndex));
-      break;
-      
-    case CMD_GET_GRAINVOLS:  //z
-      logFieldI(calcGrainVolume(cmdIndex));
-      logFieldI(calcGrainLoss(cmdIndex));      
-      break;
-      
+    
     case CMD_VOL:  //p
       logFieldCmd(CMD_VOL, cmdIndex);
       logFieldI(volAvg[cmdIndex]);
