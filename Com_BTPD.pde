@@ -139,15 +139,40 @@ void updateBTPD() {
 	}
 }
 
-#endif BTPD_ALTERNATE_TEMP_VOLUME
+#endif //BTPD_ALTERNATE_TEMP_VOLUME
 
 
 void sendVsTemp(byte chan, byte sensor, byte vessel) {
-  sendFloatsBTPD(chan, setpoint[vessel] / 100.0, temp[sensor] / 100.0);  
+  if (temp[sensor] == BAD_TEMP )
+    sendStringBTPD(chan, "    ----");
+  else
+    sendFloatsBTPD(chan, setpoint[vessel] / 100.0, temp[sensor] / 100.0);
 }
 
 void sendVsVol(byte chan, byte vessel) {
   sendFloatsBTPD(chan, tgtVol[vessel] / 1000.0, volAvg[vessel] / 1000.0);
+}
+
+void sendStringBTPD(byte chan, char *string) {
+  Wire.beginTransmission(chan);
+  Wire.send((uint8_t *)string, strlen(string));
+  Wire.endTransmission();
+} 
+
+void sendFloat1BTPD(byte chan, float line) {
+  Wire.beginTransmission(chan);
+  Wire.send(0xfd);
+  Wire.send(0x00);
+  Wire.send((uint8_t *) &line, 4);
+  Wire.endTransmission();
+}
+
+void sendFloat2BTPD(byte chan, float line) {
+  Wire.beginTransmission(chan);
+  Wire.send(0xfe);
+  Wire.send(0x00);
+  Wire.send((uint8_t *) &line, 4);
+  Wire.endTransmission();
 }
 
 void sendFloatsBTPD(byte chan, float line1, float line2) {
