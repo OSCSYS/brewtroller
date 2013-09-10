@@ -460,12 +460,12 @@ void BTnic::execCmd(void) {
       
     case CMD_SET_PROGTEMPS:  //']'
       for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
-        setProgMashTemp(cmdIndex, i, getCmdParamNum(i + 1));
+        setProgMashTemp(cmdIndex, i, getCmdParamNum(i + 1) * SETPOINT_DIV);
       }
     case CMD_GET_PROGTEMPS:  //'^'
       logFieldCmd(CMD_GET_PROGTEMPS, cmdIndex);
       for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
-        logFieldI(getProgMashTemp(cmdIndex, i));
+        logFieldI(getProgMashTemp(cmdIndex, i) / SETPOINT_DIV);
       }
       break;
 
@@ -492,18 +492,18 @@ void BTnic::execCmd(void) {
       break;
       
     case CMD_SET_PROG:  //O (Partial program data)
-      setProgSparge(cmdIndex, getCmdParamNum(1));
-      setProgHLT(cmdIndex, getCmdParamNum(2));
+      setProgSparge(cmdIndex, getCmdParamNum(1) * SETPOINT_DIV);
+      setProgHLT(cmdIndex, getCmdParamNum(2) * SETPOINT_DIV);
       setProgBoil(cmdIndex, getCmdParamNum(3));
-      setProgPitch(cmdIndex, getCmdParamNum(4));
+      setProgPitch(cmdIndex, getCmdParamNum(4) * SETPOINT_DIV);
       setProgAdds(cmdIndex, getCmdParamNum(5));
       setProgMLHeatSrc(cmdIndex, getCmdParamNum(6));
     case CMD_GET_PROG:  //E (partial program data)
       logFieldCmd(CMD_GET_PROG, cmdIndex);
-      logFieldI(getProgSparge(cmdIndex));
-      logFieldI(getProgHLT(cmdIndex));
+      logFieldI(getProgSparge(cmdIndex) / SETPOINT_DIV);
+      logFieldI(getProgHLT(cmdIndex) / SETPOINT_DIV);
       logFieldI(getProgBoil(cmdIndex));
-      logFieldI(getProgPitch(cmdIndex));
+      logFieldI(getProgPitch(cmdIndex) / SETPOINT_DIV);
       logFieldI(getProgAdds(cmdIndex));
       logFieldI(getProgMLHeatSrc(cmdIndex));
       break;
@@ -518,13 +518,13 @@ void BTnic::execCmd(void) {
       setProgGrain(cmdIndex, getCmdParamNum(3));
       setProgRatio(cmdIndex, getCmdParamNum(4));
       for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
-        setProgMashTemp(cmdIndex, i, getCmdParamNum(i * 2 + 5));
+        setProgMashTemp(cmdIndex, i, getCmdParamNum(i * 2 + 5) * SETPOINT_DIV);
         setProgMashMins(cmdIndex, i, getCmdParamNum(i * 2 + 6));
       }
-      setProgSparge(cmdIndex, getCmdParamNum(17));
-      setProgHLT(cmdIndex, getCmdParamNum(18));
+      setProgSparge(cmdIndex, getCmdParamNum(17) * SETPOINT_DIV);
+      setProgHLT(cmdIndex, getCmdParamNum(18) * SETPOINT_DIV);
       setProgBoil(cmdIndex, getCmdParamNum(19));
-      setProgPitch(cmdIndex, getCmdParamNum(20));
+      setProgPitch(cmdIndex, getCmdParamNum(20) * SETPOINT_DIV);
       setProgAdds(cmdIndex, getCmdParamNum(21));
       setProgMLHeatSrc(cmdIndex, getCmdParamNum(22));
     case CMD_GET_PROGRAM:
@@ -538,17 +538,17 @@ void BTnic::execCmd(void) {
       logFieldI(getProgGrain(cmdIndex));
       logFieldI(getProgRatio(cmdIndex));
       for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
-        logFieldI(getProgMashTemp(cmdIndex, i));
+        logFieldI(getProgMashTemp(cmdIndex, i) / SETPOINT_DIV);
         logFieldI(getProgMashMins(cmdIndex, i));
       }
-      logFieldI(getProgSparge(cmdIndex));
-      logFieldI(getProgHLT(cmdIndex));
+      logFieldI(getProgSparge(cmdIndex) / SETPOINT_DIV);
+      logFieldI(getProgHLT(cmdIndex) / SETPOINT_DIV);
       logFieldI(getProgBoil(cmdIndex));
-      logFieldI(getProgPitch(cmdIndex));
+      logFieldI(getProgPitch(cmdIndex) / SETPOINT_DIV);
       logFieldI(getProgAdds(cmdIndex));
       logFieldI(getProgMLHeatSrc(cmdIndex));
-      logFieldI(calcStrikeTemp(cmdIndex));
-      logFieldI(getFirstStepTemp(cmdIndex));
+      logFieldI(calcStrikeTemp(cmdIndex) / SETPOINT_DIV);
+      logFieldI(getFirstStepTemp(cmdIndex) / SETPOINT_DIV);
       logFieldI(calcPreboilVol(cmdIndex));
       logFieldI(calcStrikeVol(cmdIndex));
       logFieldI(calcSpargeVol(cmdIndex));
