@@ -359,7 +359,7 @@ void BTnic::execCmd(void) {
       logFieldI(actProfiles);
       logFieldI(computeValveBits());
       for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
-        logFieldI(setpoint[vessel] / SETPOINT_MULT);
+        logFieldI(setpoint[vessel]);
         logFieldI(temp[vessel]);
         logFieldI(getHeatPower(vessel)); 
         logFieldI(tgtVol[cmdIndex]);
@@ -654,10 +654,10 @@ void BTnic::execCmd(void) {
       
       
     case CMD_SET_SETPOINT:  //X
-      setSetpoint(cmdIndex, getCmdParamNum(1));
+      setSetpoint(cmdIndex, getCmdParamNum(1) * SETPOINT_DIV);
     case CMD_SETPOINT:  //t
       logFieldCmd(CMD_SETPOINT, cmdIndex);
-      logFieldI(setpoint[cmdIndex] / SETPOINT_MULT);
+      logFieldI(setpoint[cmdIndex] / (SETPOINT_MULT * SETPOINT_DIV));
       break;
       
 
