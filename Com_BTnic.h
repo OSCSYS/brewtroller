@@ -663,8 +663,10 @@ void BTnic::execCmd(void) {
 
     case CMD_SET_TIMERSTATUS:  //Y
     case CMD_SET_TIMERVALUE:  //Z
-      if (_bufData[0] == CMD_SET_TIMERSTATUS) setTimerStatus(cmdIndex, getCmdParamNum(1)); 
-      else {
+      if (_bufData[0] == CMD_SET_TIMERSTATUS) {
+        if (getCmdParamNum(1) != timerStatus[cmdIndex])
+          pauseTimer(cmdIndex);
+      } else {
         timerValue[cmdIndex] = getCmdParamNum(1);
         lastTime[cmdIndex] = millis();
       }
