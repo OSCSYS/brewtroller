@@ -72,7 +72,7 @@ void updateBTPD() {
 			sendFloatsBTPD(BTPD_FERM_TEMP, pitchTemp, temp[TS_BEEROUT] / 100.0);
 		#endif
 		#ifdef BTPD_TIMERS
-			sendFloatsBTPD(BTPD_TIMERS, timer2Float(timerValue[TIMER_MASH]), timer2Float(timerValue[TIMER_BOIL]));
+			sendVsTime(BTPD_TIMERS, TIMER_MASH, TIMER_BOIL);
 		#endif
 		#ifdef BTPD_HLT_VOL
 			sendVsVol(BTPD_HLT_VOL, VS_HLT);
@@ -129,7 +129,7 @@ void updateBTPD() {
 			sendFloatsBTPD(BTPD_FERM_TEMP, pitchTemp, temp[TS_BEEROUT] / 100.0);
 		#endif
 		#ifdef BTPD_TIMERS
-			sendFloatsBTPD(BTPD_TIMERS, timer2Float(timerValue[TIMER_MASH]), timer2Float(timerValue[TIMER_BOIL]));
+			sendVsTime(BTPD_TIMERS, TIMER_MASH, TIMER_BOIL);
 		#endif
 		#ifdef BTPD_STEAM_PRESS
 			sendFloatsBTPD(BTPD_STEAM_PRESS, steamTgt, steamPressure / 1000.0 );
@@ -185,15 +185,88 @@ void sendFloatsBTPD(byte chan, float line1, float line2) {
 }
 
 #ifdef BTPD_TIMERS
-float timer2Float(unsigned long value) {
-  value /= 1000;
-  if (value > 3600) {
-    byte hours = value / 3600;
-    return hours + (value - hours * 3600) / 100;
-  } else {
-    byte mins = value / 60;
-    return mins + (value - mins * 60) / 100;
+/*
+  Converts brewtroller timers to byte values, and chooses appropriate set to send to BTPD
+  sends HH:MM for times greater than 1 hour, and MM:SS for times under.
+  If timeris paused, send high byte value to post "--:--"
+  Timer1 fills the top row
+  Timer2 fills the bottom row
+*/
+void sendVsTime(byte chan, byte timer1, byte timer2) {
+  byte AA = 0;
+  byte BB = 0;
+  byte CC = 0;
+  byte DD = 0;
+  if (timerValue[timer1] > 0 && !timerStatus[timer1]) {
+    AA = 100;
+    BB = 100;
+  } else if (alarmStatus || timerStatus[timer1]) {
+    byte hours1 = timerValue[timer1] / 3600000;
+    byte mins1 = (timerValue[timer1] - hours1 * 3600000) / 60000;
+    byte secs1 = (timerValue[timer1] - hours1 * 3600000 - mins1 * 60000) / 1000;
+    if(hours1 > 0) {
+      AA = hours1;
+      BB = mins1;
+    } else {
+      AA = mins1;
+      BB = secs1;
+    }
   }
+  if (timerValue[timer2] > 0 && !timerStatus[timer2]) {
+    CC = 100;
+    DD = 100;
+  } else if (alarmStatus || timerStatus[timer2]) {
+    byte hours2 = timerValue[timer2] / 3600000;
+    byte mins2 = (timerValue[timer2] - hours2 * 3600000) / 60000;
+    byte secs2 = (timerValue[timer2] - hours2 * 3600000 - mins2 * 60000) / 1000;
+    if(hours2 > 0) {
+      CC = hours2;
+      DD = mins2;
+    } else {
+      CC = mins2;
+      DD = secs2;
+    }
+  }
+  SendTimeBTPD(chan, AA, BB, CC, DD);
 }
-#endif
-#endif
+
+/*
+  BTPD requires ASCII to enable colons;
+  colon in first four characters enables top colon,
+  colon after enables bottom colon. sent in middle for clarity.
+  Format for BTPD is:
+  AA:BB
+  CC:DD
+  values are checked for range, and if leading zero is required. (to maintian two digits)
+  AA / CC value above 99 posts --:--
+  BB / DD value above 59 posts --:--
+*/
+void SendTimeBTPD(byte chan, byte AA, byte BB, byte CC, byte DD) {
+  Wire.beginTransmission(chan);
+  if (AA > 99 || BB > 59) {
+    Wire.send("--:--");
+  } else {
+    if (AA < 10)
+      Wire.send("0");
+    Wire.send(itoa(AA, buf, 10));
+    Wire.send(":");
+    if(BB < 10)
+      Wire.send("0");
+    Wire.send(itoa(BB, buf, 10));
+  }
+  if(CC > 99 || DD > 59) {
+    Wire.send("--:--");
+  } else {
+    if(CC < 10)
+      Wire.send("0");
+    Wire.send(itoa(CC, buf, 10));
+    Wire.send(":");
+    if(DD < 10)
+      Wire.send("0");
+    Wire.send(itoa(DD, buf, 10));
+  }
+  Wire.endTransmission();
+}
+
+#endif //BTPD_TIMERS
+#endif //BTPD_SUPPORT
