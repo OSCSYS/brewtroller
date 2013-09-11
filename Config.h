@@ -289,27 +289,9 @@ static const byte TS = 1;
 
 
 //**********************************************************************************
-// Serial0 Communication Options
+// Serial0 ASCII Protocol Options:
 //**********************************************************************************
-// COM_SERIAL0: Specifies the communication type being used (Pick One):
-//  ASCII  = Original BrewTroller serial command protocol used with BTRemote and BTLog
-//  BTNIC  = BTnic (Lighterweight implementation of ASCII protocol using single-byte
-//           commands. This protocol is used with BTnic Modules and software for
-//           network connectivity.
-//  BINARY = Binary Messages
-//**********************************************************************************
-
-//#define COM_SERIAL0  ASCII
-#define COM_SERIAL0  BTNIC
-//#define COM_SERIAL0 BINARY
-
-// BAUD_RATE: The baud rate for the Serial0 connection. Previous to BrewTroller 2.0
-// Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
-// was increased to 115200 but can be manually set using this compile option.
-#define SERIAL0_BAUDRATE 115200
-
-
-// ** ASCII Protocol Options:
+// These settings apply only if COM_SERIAL0 is set to 'ASCII' in your HWProfile.h
 //
 // COMSCHEMA: Specifies the schema for a particular type
 //  ASCII Messages
@@ -328,12 +310,6 @@ static const byte TS = 1;
 // toggled using the SET_LOGSTATUS command.
 #define LOG_INITSTATUS 1
 
-//**********************************************************************************
-// BTnic Embedded Module
-//**********************************************************************************
-#define BTNIC_EMBEDDED
-//#define DEBUG_BTNIC
-
 
 //**********************************************************************************
 // BrewTroller PID Display (BTPD)
@@ -345,9 +321,6 @@ static const byte TS = 1;
 // daisy chained to use as many as you like, theoretically up to 127 but in practice
 // probably 10 or so.
 // You need to set the addresses of each display in the Com_BTPD.h file.
-
-// BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
-#define BTPD_SUPPORT
 
 // BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds
 #define BTPD_INTERVAL 1000
