@@ -604,7 +604,7 @@ void smartHERMSHLT() {
   if (!setpoint[VS_MASH]) return;
   setpoint[VS_HLT] = setpoint[VS_MASH] * 2 - temp[TS_MASH];
   //Constrain HLT Setpoint to Mash Setpoint + MASH_HEAT_LOSS (minimum) and HLT_MAX_TEMP (Maximum)
-  setpoint[VS_HLT] = constrain(setpoint[VS_HLT], setpoint[VS_MASH] + MASH_HEAT_LOSS * SETPOINT_DIV * 100, HLT_MAX_TEMP *  SETPOINT_DIV * 100);
+  setpoint[VS_HLT] = constrain(setpoint[VS_HLT], setpoint[VS_MASH] + MASH_HEAT_LOSS * 100, HLT_MAX_TEMP * 100);
 }
 #endif
   
