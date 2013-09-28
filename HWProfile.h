@@ -112,4 +112,17 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
   // was increased to 115200 but can be manually set using this compile option.
   #define SERIAL0_BAUDRATE 115200
 
+  //**********************************************************************************
+  // ADC REFERENCE
+  //**********************************************************************************
+  // ADC_REF Specifies the voltage reference for the ADC. Setting this to the lowest
+  //         value possible will increase the resolution of the volume sensors.
+  //         NOTE: If you change this, you will have to re-calibrate your volumes!
+  //  DEFAULT  = Built in 5V Reference (Vol sensor range ~1000 mm H2O, Resolution ~.04gal)
+  //  INTERNAL1V1 = Built  in 1.1V Reference (Vol sensor range ~203mm H2O, Resolution ~.008gal)
+  //  INTERNAL2V56 = Built in 2.56V Reference (Vol sensor range ~534mm H2O, Resolution ~.02gal)
+  //**********************************************************************************
+
+  //#define ADC_REF INTERNAL2V56
+
 #endif

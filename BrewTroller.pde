@@ -283,6 +283,11 @@ unsigned int PIDOutputCountEquivalent[4][2] = {{0,0},{0,0},{0,0},{0,0}};
 //**********************************************************************************
 
 void setup() {
+
+  #ifdef ADC_REF
+		analogReference(ADC_REF);
+  #endif
+
   #ifdef USE_I2C
     Wire.begin(BT_I2C_ADDR);
   #endif
