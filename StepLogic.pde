@@ -578,6 +578,7 @@ void stepExit(byte brewStep) {
     #ifdef AUTO_BOIL_RECIRC
       bitClear(actProfiles, VLV_BOILRECIRC);
     #endif
+    boilControlState = CONTROLSTATE_OFF;
     resetHeatOutput(VS_KETTLE);
     clearTimer(TIMER_BOIL);
   } else if (brewStep == STEP_CHILL) {
