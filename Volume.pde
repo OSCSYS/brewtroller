@@ -151,7 +151,12 @@ unsigned int GetCalibrationValue(byte vessel){
   
   for(byte i = 0; i < VOLUME_READ_COUNT; i++){
     newSensorValueAverage += analogRead(vSensor[vessel]);
-    delay(VOLUME_READ_INTERVAL); // wait inbetween each read the length of the read interval so the calibration value is the same as what is really being read
+    unsigned long intervalEnd = millis() + VOLUME_READ_INTERVAL;
+    while(millis() < intervalEnd) {
+      #ifdef HEARTBEAT
+        heartbeat();
+      #endif
+    }  
   }
   
   return (newSensorValueAverage / VOLUME_READ_COUNT);
