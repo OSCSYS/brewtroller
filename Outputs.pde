@@ -342,7 +342,6 @@ void processPID_FLOW_CONTROL(byte vessel) {
  * NOTE: If PID is being processed by timer that happens elsewhere.
  */
 void processHeatOutputsPIDEnabled(const byte vessel[]) {
-  unsigned long millistemp;
   #ifdef PWM_BY_TIMER
     uint8_t oldSREG;
   #endif
@@ -391,10 +390,8 @@ void processHeatOutputsPIDEnabled(const byte vessel[]) {
   
   #ifndef PWM_BY_TIMER
     //only 1 call to millis needed here, and if we get hit with an interrupt we still want to calculate based on the first read value of it
-    millistemp = millis();
-    if (cycleStart[vessel[VS]] == 0) cycleStart[vessel[VS]] = millistemp;
-    if (millistemp - cycleStart[vessel[VS]] > PIDCycle[vessel[VS]] * 100) cycleStart[vessel[VS]] += PIDCycle[vessel[VS]] * 100;
-    if ((!estop) && PIDOutput[vessel[VS]] >= millistemp - cycleStart[vessel[VS]] && millistemp != cycleStart[vessel[VS]]) heatPin[vessel[VS]].set(HIGH); else heatPin[vessel[VS]].set(LOW);
+    unsigned long timestamp = millis();
+    if ((!estop) && PIDOutput[vessel[VS]] >= timestamp - cycleStart[vessel[VS]] && timestamp != cycleStart[vessel[VS]]) heatPin[vessel[VS]].set(HIGH); else heatPin[vessel[VS]].set(LOW);
   #else
     //here we do as much math as we can OUT SIDE the ISR, we calculate the PWM cycle time in counter/timer counts
     // and place it in the [vessel][0] value, then calculate the timer counts to get the desired PWM % and place it in [vessel][1]
@@ -591,6 +588,12 @@ void processHeatOutputs() {
   boilController();
   
   for (int vesselIndex = 0; vesselIndex < HEAT_OUTPUTS_COUNT; vesselIndex++) {
+    #ifndef PWM_BY_TIMER
+      unsigned long timestamp = millis();
+      if (cycleStart[vesselIndex] == 0) cycleStart[vesselIndex] = timestamp;
+      if (timestamp - cycleStart[vesselIndex] > PIDCycle[vesselIndex] * 100) cycleStart[vesselIndex] += PIDCycle[vesselIndex] * 100;
+    #endif
+    
     #ifdef HLT_AS_KETTLE
       if (
         (vesselIndex == VS_KETTLE && setpoint[VS_HLT]) //Skip kettle heat if HLT setpoint is active
