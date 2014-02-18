@@ -262,7 +262,7 @@ boolean preheated[4];
 ControlState boilControlState = CONTROLSTATE_OFF;
 
 //Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
-unsigned int hoptimes[10] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5 };
+unsigned int hoptimes[11] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5, 0 };
 byte pitchTemp;
 
 //Log Strings
