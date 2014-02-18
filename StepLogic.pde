@@ -418,7 +418,7 @@ void stepCore() {
       if (!timerStatus[TIMER_BOIL]) pauseTimer(TIMER_BOIL);
     }
     //Turn off hop valve profile after 5s
-    if ((vlvConfigIsActive(VLV_HOPADD)) && lastHop > 0 && millis() - lastHop > HOPADD_DELAY) {
+    if (lastHop > 0 && millis() - lastHop > HOPADD_DELAY) {
       bitClear(actProfiles, VLV_HOPADD);
       lastHop = 0;
     }
@@ -431,8 +431,8 @@ void stepCore() {
         triggered |= 1; 
         setBoilAddsTrig(triggered); 
       }
-      //Timed additions (See hoptimes[] array at top of AutoBrew.pde)
-      for (byte i = 0; i < 10; i++) {
+      //Timed additions (See hoptimes[] array in BrewTroller.pde)
+      for (byte i = 0; i < 11; i++) {
         if (((boilAdds ^ triggered) & (1<<(i + 1))) && timerValue[TIMER_BOIL] <= hoptimes[i] * 60000) { 
           bitSet(actProfiles, VLV_HOPADD);
           lastHop = millis();
@@ -441,12 +441,19 @@ void stepCore() {
           setBoilAddsTrig(triggered);
         }
       }
+      
       #ifdef AUTO_BOIL_RECIRC
       if (timerValue[TIMER_BOIL] <= AUTO_BOIL_RECIRC * 60000) bitSet(actProfiles, VLV_BOILRECIRC);
       #endif
     }
     //Exit Condition  
-    if(preheated[VS_KETTLE] && timerValue[TIMER_BOIL] == 0) stepAdvance(STEP_BOIL);
+    if(preheated[VS_KETTLE] && timerValue[TIMER_BOIL] == 0) {
+      //Kill Kettle power at end of timer...
+      boilControlState = CONTROLSTATE_OFF;
+      resetHeatOutput(VS_KETTLE);      
+      //...but wait for last hop addition to complete before leaving step
+      if(lastHop == 0) stepAdvance(STEP_BOIL);
+    }
   }
   
   if (stepIsActive(STEP_CHILL)) {
@@ -566,14 +573,6 @@ void stepExit(byte brewStep) {
 
   } else if (brewStep == STEP_BOIL) {
   //Step Exit: Boil
-    //0 Min Addition
-    if ((boilAdds ^ triggered) & 2048) { 
-      bitSet(actProfiles, VLV_HOPADD);
-      setAlarm(1);
-      triggered |= 2048;
-      setBoilAddsTrig(triggered);
-      delay(HOPADD_DELAY);
-    }
     bitClear(actProfiles, VLV_HOPADD);
     #ifdef AUTO_BOIL_RECIRC
       bitClear(actProfiles, VLV_BOILRECIRC);
