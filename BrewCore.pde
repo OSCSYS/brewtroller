@@ -23,51 +23,94 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
+
+byte scheduler;
+
+enum schedulerTasks {
+  SCHEDULETASK_TIMERS,
+#ifndef NOUI
+  SCHEDULETASK_LCD,
+#endif
+  SCHEDULETASK_TEMPS,
+  SCHEDULETASK_BUZZER,
+  SCHEDULETASK_VOLS,
+#ifdef FLOWRATE_CALCS
+  SCHEDULETASK_FLOWRATES,
+#endif
+  SCHEDULETASK_PROGRAMS,
+  SCHEDULETASK_COMS,
+#ifdef PVOUT
+  SCHEDULETASK_OUTPUTPROFILES,
+#endif
+  SCHEDULETASK_COUNT
+};
+
 void brewCore() {
+
+  //START HIGH PRIORITY: Time-sensitive updates perfromed on each iteration
   #ifdef HEARTBEAT
     heartbeat();
   #endif
-  
-  #ifndef NOUI
-    LCD.update();
-  #endif
-  
-  //Timers: Timer.pde
-  updateTimers();
-  
-  //temps: Temp.pde
-  updateTemps();
- 
-  //Alarm update allows to have a beeping alarm
-  updateBuzzer();
-
-  //Volumes: Volume.pde
-  updateVols();
-
-  #ifdef FLOWRATE_CALCS
-    updateFlowRates();
-  #endif
- 
-  //Heat Outputs: Outputs.pde
   processHeatOutputs();
+  //END HIGH PRIORITY
   
-  //Communications: Com.pde
-  updateCom();  
+  //START NORMAL PRIORITY: Updated in turn
+  switch (scheduler) {
+#ifndef NOUI
+    case SCHEDULETASK_LCD:
+      LCD.update();
+      break;
+#endif  
 
-  #if defined STEAMPRESS_APIN && !defined PID_FLOW_CONTROL
-    steamPressure = readPressure(STEAMPRESS_APIN, steamPSens, steamZero);
-  #endif
+    case SCHEDULETASK_TIMERS:
+      //Timers: Timer.pde
+      updateTimers();
+      break;
+      
+    case SCHEDULETASK_TEMPS:
+     //temps: Temp.pde
+     updateTemps();
+     break;
+
+    case SCHEDULETASK_BUZZER:
+      //Alarm update allows to have a beeping alarm
+      updateBuzzer();
+      break;
+      
+    case SCHEDULETASK_VOLS:
+      //Volumes: Volume.pde
+      updateVols();
+      break;
+      
+#ifdef FLOWRATE_CALCS
+    case SCHEDULETASK_FLOWRATES:
+      updateFlowRates();
+      break;
+#endif      
+      
+    case SCHEDULETASK_PROGRAMS:
+      //Step Logic: StepLogic.pde
+      stepCore();
+      break;
+      
+    case SCHEDULETASK_COMS:
+      //Communications: Com.pde
+      updateCom();
+      break;
+      
+#ifdef PVOUT
+    case SCHEDULETASK_OUTPUTPROFILES:
+      //Auto Valve Logic: Outputs.pde
+      processAutoValve();
+      
+      //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
+      updateValves();
+      break;
+#endif 
+  }
   
-  //Step Logic: StepLogic.pde
-  stepCore();
-
-  #ifdef PVOUT
-    //Auto Valve Logic: Outputs.pde
-    processAutoValve();
-    
-    //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
-    updateValves();
-  #endif
+  if(++scheduler >= SCHEDULETASK_COUNT)
+    scheduler = 0;
 }
 
 #ifdef HEARTBEAT
