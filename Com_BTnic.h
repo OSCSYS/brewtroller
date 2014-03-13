@@ -295,7 +295,8 @@ BTnic::BTnic(void) {
 void BTnic::rx(byte byteIn) {
   if (_state == BTNIC_STATE_IDLE)
     setState(BTNIC_STATE_RX);
-  if (byteIn == 0x01) reset();
+  if (byteIn == 0x01)
+    _bufLen = _bufCur = 0;
   else if (byteIn == 0x0D) execCmd();
   else {
     _bufData[_bufLen++] = byteIn;
@@ -309,8 +310,7 @@ byte BTnic::tx(void) {
 }
 
 void BTnic::reset(void) {
-  _bufLen = 0;
-  _bufCur = 0;
+  _bufLen = _bufCur = 0;
   setState(BTNIC_STATE_IDLE);
 }
 
