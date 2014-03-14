@@ -44,6 +44,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_REJECT_INDEX  36	//$
   #define CMD_REJECT_CRC     42	//*
 
+  #define CMD_GET_PROGNAMES     62      //%3E
+  #define CMD_SET_PROGRAM       63      //%3F
+  #define CMD_GET_PROGRAM       64      //%40
   #define CMD_GET_BOIL		65 	//A
   #define CMD_GET_CAL		66 	//B
   #define CMD_GET_EVAP		67 	//C
@@ -103,8 +106,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_GET_TGTVOL        124     //|
   #define CMD_SET_BOILCTL       125     //}
   #define CMD_GET_BOILCTL       126     //~
-  #define CMD_SET_PROGRAM       63      //?
-  #define CMD_GET_PROGRAM       64      //@
   
   typedef enum {
     BTNIC_STATE_IDLE,
@@ -115,12 +116,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   
   #define BTNIC_BUF_LEN 1024
 
-  #define CMDCODE_MIN 63
+  #define CMDCODE_MIN 62
   #define CMDCODE_MAX 126
   #define NO_CMDINDEX -1
   
   static byte CMD_PARAM_COUNTS[] PROGMEM = 
   {
+    0,  //CMD_GET_PROGNAMES (All)
     22, //CMD_SET_PROGRAM (Full)
     0,  //CMD_GET_PROGRAM (Full)
     0,	//CMD_GET_BOIL
@@ -189,6 +191,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
   static byte CMD_INDEX_MAXVALUE[] PROGMEM = 
   {
+    0,                  //CMD_GET_PROGNAMES (All)
     NUM_PROGRAMS - 1,   //CMD_SET_PROGRAM (Full)
     NUM_PROGRAMS - 1,  //CMD_GET_PROGRAM (Full)
     0, 			//CMD_GET_BOIL
@@ -454,6 +457,15 @@ void BTnic::execCmd(void) {
       {
         char pName[20];
         getProgName(cmdIndex, pName);
+        logField(pName);
+      }
+      break;
+
+    case CMD_GET_PROGNAMES:  //%3E (All Program Names)
+      logFieldCmd(CMD_GET_PROGNAMES, NO_CMDINDEX);
+      for (byte i = 0; i < NUM_PROGRAMS; i++) {
+        char pName[20];
+        getProgName(i, pName);
         logField(pName);
       }
       break;
