@@ -318,7 +318,7 @@ static const byte TS = 1;
 // You need to set the addresses of each display in the Com_BTPD.h file.
 
 // BTPD_INTERVAL: Specifies how often BTPD devices are updated in milliseconds
-#define BTPD_INTERVAL 1000
+#define BTPD_INTERVAL 500
 
 // Show temperature and volume per kettle on the same display.  Every other update
 // interval the display will switch from temperature to volume.  Make sure that the
