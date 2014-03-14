@@ -370,6 +370,10 @@ void BTnic::execCmd(void) {
           logFieldI(0);
         #endif
       }
+      //Include remaining Temp Sensors.
+      for (byte sensor = TS_H2OIN; sensor<NUM_TS; sensor++)
+          logFieldI(temp[sensor]);
+
       for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
         logFieldI(timerValue[timer]);
         logFieldI(timerStatus[timer]);
@@ -815,12 +819,16 @@ void BTnic::logStepPrg(byte zone, byte startStep, byte endStep) {
   if (zoneIsActive(zone)) {
     for (byte i = startStep; i <= endStep; i++) {
       if (stepProgram[i] != PROGRAM_IDLE){
+        char pName[20];
+        getProgName(i, pName);
         logFieldI(i);
+        logField(pName);
         logFieldI(stepProgram[i]);
       }
     }
   } else {
     logFieldI(PROGRAM_IDLE);
+    logField("");
     logFieldI(PROGRAM_IDLE);
   }
 }
