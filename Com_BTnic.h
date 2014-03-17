@@ -879,13 +879,18 @@ int BTnic::getCmdIndex() {
   if (!maxValue) return 0;
   
   _bufCur = 1;
+  
   char tmpbuf[11];
-  while (_bufCur < _bufLen && _bufData[_bufCur] != 0x09) tmpbuf[_bufCur - 1] = _bufData[_bufCur++];
-
+  while (_bufCur < _bufLen && _bufCur < 11 && _bufData[_bufCur] != 0x09) {
+    if(!isdigit(_bufData[_bufCur]))
+      return NO_CMDINDEX;
+    tmpbuf[_bufCur - 1] = _bufData[_bufCur++];
+  }
+  
   if (_bufCur == 1) return NO_CMDINDEX;   //Missing Index
   tmpbuf[_bufCur - 1] = '\0';
   int cmdIndex = atoi(tmpbuf);
-  if (cmdIndex > maxValue) return NO_CMDINDEX;
+  if (cmdIndex < 0 || cmdIndex > maxValue) return NO_CMDINDEX;
   else return cmdIndex;
 }
   
