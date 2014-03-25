@@ -278,7 +278,7 @@ private:
   void logField_P(const char*);
   void logFieldI(unsigned long);
   void logEnd(void);
-  void logStepPrg(byte zone, byte startStep, byte endStep);
+  void logStepPrg(void);
   int getCmdIndex(void);
   byte getCmdParamCount(void);
   char* getCmdParam(byte, char*, byte);
@@ -379,8 +379,7 @@ void BTnic::execCmd(void) {
         logFieldI(timerStatus[timer]);
       }
       logFieldI(boilControlState);      
-      logStepPrg(ZONE_MASH, STEP_FILL, STEP_SPARGE);
-      logStepPrg(ZONE_BOIL, STEP_BOIL, STEP_CHILL);
+      logStepPrg();
       break;
     
     case CMD_SET_BOIL:  //K
@@ -645,8 +644,7 @@ void BTnic::execCmd(void) {
       else if (_bufData[0] == CMD_EXIT_STEP) stepExit(cmdIndex);
     case CMD_STEPPRG:  //n
         logFieldCmd(CMD_STEPPRG, NO_CMDINDEX);
-        logStepPrg(ZONE_MASH, STEP_FILL, STEP_SPARGE);
-        logStepPrg(ZONE_BOIL, STEP_BOIL, STEP_CHILL);
+        logStepPrg();
       break;
 
 
@@ -815,21 +813,23 @@ void BTnic::execCmd(void) {
   logEnd();
 }
 
-void BTnic::logStepPrg(byte zone, byte startStep, byte endStep) {
-  if (zoneIsActive(zone)) {
-    for (byte i = startStep; i <= endStep; i++) {
-      if (stepProgram[i] != PROGRAM_IDLE){
-        char pName[20];
-        getProgName(i, pName);
-        logFieldI(i);
-        logField(pName);
-        logFieldI(stepProgram[i]);
-      }
+void BTnic::logStepPrg() {
+  byte logged = 0;
+  for (byte i = STEP_FILL; i <= STEP_CHILL; i++) {
+    if (stepProgram[i] != PROGRAM_IDLE){
+      char pName[20];
+      getProgName(stepProgram[i], pName);
+      logFieldI(i);
+      logField(pName);
+      logFieldI(stepProgram[i]);
+      logged++;
     }
-  } else {
+  }
+  while (logged < 2) {
     logFieldI(PROGRAM_IDLE);
     logField("");
     logFieldI(PROGRAM_IDLE);
+    logged++;
   }
 }
   
