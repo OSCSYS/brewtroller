@@ -639,9 +639,20 @@ void processHeatOutputs() {
 
 #ifdef PVOUT
   void updateValves() {
-    unsigned long vlvBits = computeValveBits();
+    setValves(computeValveBits());
+  }
+  
+  void setValves(unsigned long vlvBits) {
     if (vlvBits != Valves.get()) {
       Valves.set(vlvBits);
+      //Mirror outputs to Modbus
+      #ifdef PVOUT_TYPE_MODBUS
+        if (ValvesMB[0])
+          ValvesMB[0]->set(vlvBits >> (ValvesMB[0]->offset()));
+        
+        if (ValvesMB[1])
+          ValvesMB[1]->set(vlvBits >> (ValvesMB[1]->offset()));
+      #endif
     }
   }
 

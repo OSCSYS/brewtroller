@@ -30,6 +30,10 @@ OpenTroller DX1 Steam/PWM Pump Hardware Configuration
   #define PWMPUMP_PIN 15	//OUT10
   //Note: OUT 10 has HARDWARE PWM
 
+  #define RS485_SERIAL_PORT 1
+  #define RS485_RXTX_PIN    23
+  #define PVOUT_TYPE_MODBUS
+
   #define DIGITAL_INPUTS
   #define DIGIN_COUNT 6
   #define DIGIN1_PIN 21

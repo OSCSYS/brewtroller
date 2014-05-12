@@ -1,76 +1,84 @@
 /*
-OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
+OpenTroller BX1 Hardware Configuration
+  RIMS / Direct Fired: Three Heat Outputs + 2 Pump/Valve Outputs + Alarm
 */
 
 #ifndef BT_HWPROFILE
 #define BT_HWPROFILE
-
-  #define ENCODER_I2C
-  #define ENCODER_I2CADDR 0x01
-
-  #define ALARM_PIN 2	//OUT14
+  
+  //**********************************************************************************
+  // ENCODER TYPE
+  //**********************************************************************************
+  // You must uncomment one and only one of the following ENCODER_ definitions
+  // Use ENCODER_ALPS for ALPS and Panasonic Encoders
+  // Use ENCODER_CUI for older CUI encoders
+  //
+  //#define ENCODER_TYPE ALPS
+  #define ENCODER_TYPE CUI
+  //**********************************************************************************
+  
+  #define ENCA_PIN 3
+  #define ENCB_PIN 2
+  #define ENTER_PIN 1
+  
+  #define ALARM_PIN 15 //OUT6
   
   #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 10 //10 Outputs
-
-  #define VALVE1_PIN 28	//OUT1
-  #define VALVE2_PIN 29	//OUT2
-  #define VALVE3_PIN 30	//OUT3
-  #define VALVE4_PIN 31	//OUT4
-  #define VALVE5_PIN 7	//OUT5
-  #define VALVE6_PIN 6	//OUT6
-  #define VALVE7_PIN 3	//OUT7
-  #define VALVE8_PIN 4	//OUT8
-  #define VALVE9_PIN 12	//OUT9
-  #define VALVEA_PIN 15	//OUT10
+  #define PVOUT_COUNT 2 //2 Outputs
   
-  #define HLTHEAT_PIN 1	 //OUT13
-  #define MASHHEAT_PIN 13	//OUT12
-  #define KETTLEHEAT_PIN 14	//OUT11
+  #define VALVE1_PIN 19 //OUT4
+  #define VALVE2_PIN 18 //OUT5
 
-  #define DIGITAL_INPUTS
-  #define DIGIN_COUNT 6
-  #define DIGIN1_PIN 21
-  #define DIGIN2_PIN 20
-  #define DIGIN3_PIN 19
-  #define DIGIN4_PIN 18
-  #define DIGIN5_PIN 5
-  #define DIGIN6_PIN 22
-  
+  #define HLTHEAT_PIN 22 //OUT1
+  #define MASHHEAT_PIN 21//OUT2
+  #define KETTLEHEAT_PIN 20 //OUT3
+
+  #define RS485_SERIAL_PORT 1
+  #define RS485_RTS_PIN    12
+  #define PVOUT_TYPE_MODBUS
+
   #define HLTVOL_APIN 7
   #define MASHVOL_APIN 6
   #define KETTLEVOL_APIN 5
   #define STEAMPRESS_APIN 4
-  
-  #define UI_LCD_I2C
-  #define UI_LCD_I2CADDR 0x01
-  #define UI_DISPLAY_SETUP
-  #define LCD_DEFAULT_CONTRAST 100
-  #define LCD_DEFAULT_BRIGHTNESS 255
-  
+
   // BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
   #define BTPD_SUPPORT
   
   // BTNIC_EMBEDDED: Enables use of on-board I2C Ethernet module
   #define BTNIC_EMBEDDED
-  
+    
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
-
+  
+  #define UI_LCD_4BIT
+  #define LCD_RS_PIN 4
+  #define LCD_ENABLE_PIN 23
+  #define LCD_DATA4_PIN 28
+  #define LCD_DATA5_PIN 29
+  #define LCD_DATA6_PIN 30
+  #define LCD_DATA7_PIN 31
+  
+  #define UI_DISPLAY_SETUP
+  #define LCD_BRIGHT_PIN 13
+  #define LCD_CONTRAST_PIN 14
+  #define LCD_DEFAULT_CONTRAST 100
+  #define LCD_DEFAULT_BRIGHTNESS 255
+  
   //**********************************************************************************
   // OneWire Temperature Sensor Options
   //**********************************************************************************
-  // TS_ONEWIRE: Enables use of OneWire Temperature Sensors
-  // TS_ONEWIRE_I2C: Enables use of DS2482 I2C 1-Wire Bus Master
+  // TS_ONEWIRE: Enables use of OneWire Temperature Sensors (Future logic may
+  // support alternatives temperature sensor options.)
   #define TS_ONEWIRE
   #define TS_ONEWIRE_I2C
-  
+
   // TS_ONEWIRE_PPWR: Specifies whether parasite power is used for OneWire temperature
   // sensors. Parasite power allows sensors to obtain their power from the data line
   // but significantly increases the time required to read the temperature (94-750ms
   // based on resolution versus 10ms with dedicated power).
   #define TS_ONEWIRE_PPWR 1
-  
+
   // TS_ONEWIRE_RES: OneWire Temperature Sensor Resolution (9-bit - 12-bit). Valid
   // options are: 9, 10, 11, 12). Unless parasite power is being used the recommended
   // setting is 12-bit (for DS18B20 sensors). DS18S20 sensors can only operate at a max
@@ -81,11 +89,11 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
   //   10-bit (0.25C   / 0.45F  ) = 188ms 
   //    9-bit (0.5C    / 0.9F   ) =  94ms   
   #define TS_ONEWIRE_RES 11
-  
+
   // TS_ONEWIRE_FASTREAD: Enables faster reads of temperatures by reading only the first
   // 2 bytes of temperature data and ignoring CRC check.
   #define TS_ONEWIRE_FASTREAD
-  
+
   // DS2482_ADDR: I2C Address of DS2482 OneWire Master (used for TS_OneWire_I2C)
   // Should be 0x18, 0x19, 0x1A, 0x1B
   #define DS2482_ADDR 0x1B
@@ -111,18 +119,4 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
   // Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
   // was increased to 115200 but can be manually set using this compile option.
   #define SERIAL0_BAUDRATE 115200
-
-  //**********************************************************************************
-  // ADC REFERENCE
-  //**********************************************************************************
-  // ADC_REF Specifies the voltage reference for the ADC. Setting this to the lowest
-  //         value possible will increase the resolution of the volume sensors.
-  //         NOTE: If you change this, you will have to re-calibrate your volumes!
-  //  DEFAULT  = Built in 5V Reference (Vol sensor range ~1000 mm H2O, Resolution ~.04gal)
-  //  INTERNAL1V1 = Built  in 1.1V Reference (Vol sensor range ~203mm H2O, Resolution ~.008gal)
-  //  INTERNAL2V56 = Built in 2.56V Reference (Vol sensor range ~534mm H2O, Resolution ~.02gal)
-  //**********************************************************************************
-
-  //#define ADC_REF INTERNAL2V56
-
 #endif

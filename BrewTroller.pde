@@ -46,6 +46,7 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 #include <PID_Beta6.h>
 #include <pin.h>
 #include <menu.h>
+#include <ModbusMaster.h>
 
 #include "HWProfile.h"
 #include "Config.h"
@@ -188,11 +189,10 @@ boolean autoValve[NUM_AV];
     MUX_ENABLE_PIN,
     MUX_ENABLE_LOGIC
   );
-  
-#elif defined PVOUT_TYPE_MODBUS
-  #define PVOUT
-  PVOutMODBUS Valves();
+#endif
 
+#ifdef PVOUT_TYPE_MODBUS
+  PVOutMODBUS *ValvesMB[PVOUT_MODBUS_MAXBOARDS];
 #endif
 
 //Shared buffers
@@ -285,7 +285,7 @@ unsigned int PIDOutputCountEquivalent[4][2] = {{0,0},{0,0},{0,0},{0,0}};
 void setup() {
 
   #ifdef ADC_REF
-		analogReference(ADC_REF);
+	analogReference(ADC_REF);
   #endif
 
   #ifdef USE_I2C
