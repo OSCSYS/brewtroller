@@ -1,6 +1,10 @@
 #ifndef PVOUT_H
   #define PVOUT_H
   #include <pin.h>
+  #include "Config.h"
+  #include "HWProfile.h"
+  #include <ModbusMaster.h>
+  #include <HardwareSerial.h>
   
   class PVOutGPIO
   {
@@ -100,11 +104,64 @@
   class PVOutMODBUS
   {
     private:
-    unsigned long vlvBits;
+    unsigned long outputsState;
+    ModbusMaster slave;
+    byte slaveAddr, outputCount, bitOffset;
+    unsigned int coilReg;
 
     public:
-    void init(void);
-    void set(unsigned long) { this->vlvBits = vlvBits; }
-    unsigned long get() { return vlvBits; }
+    PVOutMODBUS(uint8_t addr, unsigned int coilStart, uint8_t coilCount, uint8_t offset) {
+      slaveAddr = addr;
+      slave = ModbusMaster(RS485_SERIAL_PORT, slaveAddr);
+      #ifdef RS485_RTS_PIN
+        slave.setupRTS(RS485_RTS_PIN);
+      #endif
+      slave.begin(RS485_BAUDRATE, RS485_PARITY);
+      //Modbus Coil Register index starts at 1 but is transmitted with a 0 index
+
+      coilReg = coilStart - 1;
+      outputCount = coilCount;
+      bitOffset = offset;
+    }
+    
+    void init(void) {
+      set(0);
+    }
+    
+    void set(unsigned long vlvBits) { 
+      outputsState = vlvBits;
+      byte outputPos = 0;
+      byte bytePos = 0;
+      while (outputPos < outputCount) {
+        byte byteData = 0;
+        byte bitPos = 0;
+        while (outputPos < outputCount && bitPos < 8)
+          bitWrite(byteData, bitPos++, (outputsState >> outputPos++) & 1);
+        slave.setTransmitBuffer(bytePos++, byteData);
+      }
+      slave.writeMultipleCoils(coilReg, outputCount);
+    }
+    
+    unsigned long get() { return outputsState; }
+    byte count() { return outputCount; }
+    unsigned long offset() { return bitOffset; }
+    byte detect() {
+      return slave.readCoils(coilReg, outputCount);
+    }
+    byte setAddr(byte newAddr) {
+      byte result = 0;
+      result |= slave.writeSingleRegister(PVOUT_MODBUS_REGSLAVEADDR, newAddr);
+      if (!result) {
+        slave.writeSingleRegister(PVOUT_MODBUS_REGRESTART, 1);
+        slaveAddr = newAddr;
+      }
+      return result;
+    }
+    byte setIDMode(byte value) { return slave.writeSingleRegister(PVOUT_MODBUS_REGIDMODE, value); }
+    byte getIDMode() { 
+      if (slave.readHoldingRegisters(PVOUT_MODBUS_REGIDMODE, 1) == 0)
+        return slave.getResponseBuffer(0);
+      return 0;
+    }
   };
 #endif //ifndef PVOUT_H

@@ -28,6 +28,10 @@ OpenTroller DX1 HERMS Hardware Configuration
   #define HLTHEAT_PIN 1	//OUT13
   #define KETTLEHEAT_PIN 13	//OUT12
 
+  #define RS485_SERIAL_PORT 1
+  #define RS485_RTS_PIN    23
+  #define PVOUT_TYPE_MODBUS
+
   #define DIGITAL_INPUTS
   #define DIGIN_COUNT 6
   #define DIGIN1_PIN 21

@@ -37,6 +37,10 @@ OpenTroller EX1 Hardware Configuration
   //#define MASHHEAT_PIN //Not used in BT Lite HERMS Config
   #define KETTLEHEAT_PIN 15 //OUT2
 
+  #define RS485_SERIAL_PORT 1
+  #define RS485_RTS_PIN    12
+  #define PVOUT_TYPE_MODBUS
+
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
   #define KETTLEVOL_APIN 1

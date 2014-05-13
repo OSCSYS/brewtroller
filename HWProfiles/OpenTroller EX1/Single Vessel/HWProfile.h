@@ -37,7 +37,11 @@ OpenTroller EX1 Hardware Configuration
   #define HLTHEAT_PIN 22 //OUT1
   //#define MASHHEAT_PIN //Not used in Single Vessel
   //#define KETTLEHEAT_PIN //Not used in Single Vessel
- 
+
+  #define RS485_SERIAL_PORT 1
+  #define RS485_RTS_PIN    12
+  #define PVOUT_TYPE_MODBUS
+
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
   #define KETTLEVOL_APIN 1

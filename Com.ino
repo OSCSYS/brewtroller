@@ -105,7 +105,7 @@ void updateCom() {
             Wire.requestFrom(BTNIC_I2C_ADDR, 1);
             if (! Wire.available())
               break; //No data
-            byte data = Wire.receive();
+            byte data = Wire.read();
             if (!data)
               break; //Null return: No data
             #ifdef DEBUG_BTNIC
@@ -137,7 +137,7 @@ void updateCom() {
                 Serial.print(data, DEC);
                 Serial.println(")");
               #endif
-              Wire.send(data);
+              Wire.write(data);
             }
             Wire.endTransmission();
           }

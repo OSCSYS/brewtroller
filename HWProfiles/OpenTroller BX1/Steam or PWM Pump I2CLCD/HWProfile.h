@@ -24,7 +24,11 @@ OpenTroller BX1 Hardware Configuration
   #define KETTLEHEAT_PIN 20 //OUT3
   #define STEAMHEAT_PIN 19 //OUT4
   #define PWMPUMP_PIN 19 //OUT4
-  
+
+  #define RS485_SERIAL_PORT 1
+  #define RS485_RTS_PIN    12
+  #define PVOUT_TYPE_MODBUS
+
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
   #define KETTLEVOL_APIN 1

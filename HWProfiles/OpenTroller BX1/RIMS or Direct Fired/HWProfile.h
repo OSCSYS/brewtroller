@@ -5,7 +5,6 @@ OpenTroller BX1 Hardware Configuration
 
 #ifndef BT_HWPROFILE
 #define BT_HWPROFILE
-  #include "Config.h"
   
   //**********************************************************************************
   // ENCODER TYPE
@@ -33,7 +32,11 @@ OpenTroller BX1 Hardware Configuration
   #define HLTHEAT_PIN 22 //OUT1
   #define MASHHEAT_PIN 21//OUT2
   #define KETTLEHEAT_PIN 20 //OUT3
-  
+
+  #define RS485_SERIAL_PORT 1
+  #define RS485_RTS_PIN    12
+  #define PVOUT_TYPE_MODBUS
+
   #define HLTVOL_APIN 7
   #define MASHVOL_APIN 6
   #define KETTLEVOL_APIN 5
@@ -116,9 +119,4 @@ OpenTroller BX1 Hardware Configuration
   // Build 419 this was hard coded to 9600. Starting with Build 419 the default rate
   // was increased to 115200 but can be manually set using this compile option.
   #define SERIAL0_BAUDRATE 115200
-  
-  
-  #define RS485_MASTER
-  #define RS485_RXTX_PIN 12
-
 #endif

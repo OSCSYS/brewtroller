@@ -135,6 +135,11 @@ void loadSetup() {
   //**********************************************************************************
   #ifdef PVOUT
     loadVlvConfigs();
+  
+    #ifdef PVOUT_TYPE_MODBUS
+      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++) 
+        loadVlvModbus(i);
+    #endif
   #endif
 }
 
@@ -142,6 +147,18 @@ void loadSetup() {
   void loadVlvConfigs() {
     eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
   }
+  
+  #ifdef PVOUT_TYPE_MODBUS
+    void loadVlvModbus(byte board) {
+      if (ValvesMB[board]) {
+        delete ValvesMB[board];
+        ValvesMB[board] = NULL;
+      }
+      byte addr = getVlvModbusAddr(board);
+      if (addr != PVOUT_MODBUS_ADDRNONE)
+        ValvesMB[board] = new PVOutMODBUS(addr, getVlvModbusReg(board), getVlvModbusCoilCount(board), getVlvModbusOffset(board));
+    }
+  #endif 
 #endif
 
 //*****************************************************************************************************************************
@@ -553,7 +570,7 @@ unsigned long getProgGrain(byte preset) { return EEPROMreadLong(PROGRAM_START_AD
 //**********************************************************************************
 
 //**********************************************************************************
-//Trigger Pins (2050-2054) ATMEGA1284P Only
+//Trigger Pins (2050-2054) ATMEGA1284P Only  +Reserved: 2055-2064
 //**********************************************************************************
 #ifdef DIGITAL_INPUTS
   byte getTriggerPin(byte triggerIndex) {
@@ -571,6 +588,53 @@ unsigned long getProgGrain(byte preset) { return EEPROMreadLong(PROGRAM_START_AD
     #endif
   }
 #endif
+
+
+//**********************************************************************************
+//Modbus Relay Boards (2065-2074) ATMEGA1284P Only + Reserved: 2075-2084 
+//**********************************************************************************
+byte getVlvModbusAddr(byte board) {
+  return EEPROM.read(board * 5);
+}
+
+unsigned int getVlvModbusReg(byte board) {
+  return EEPROMreadInt(board * 5 + 1);
+}
+
+byte getVlvModbusCoilCount(byte board) {
+  return EEPROM.read(board * 5 + 3);
+}
+
+byte getVlvModbusOffset(byte board) {
+  return EEPROM.read(board * 5 + 4);
+}
+
+void setVlvModbusAddr(byte board, byte addr) {
+  EEPROM.write(board * 5, addr);
+}
+
+void setVlvModbusReg(byte board, unsigned int reg) {
+  EEPROMwriteInt(board * 5 + 1, reg);
+}
+
+void setVlvModbusCoilCount(byte board, byte count) {
+  EEPROM.write(board * 5 + 3, count);
+}
+
+void setVlvModbusOffset(byte board, byte offset) {
+  EEPROM.write(board * 5 + 4, offset);
+}
+
+void setVlvModbusDefaults(byte board) {
+  setVlvModbusAddr(board, PVOUT_MODBUS_ADDRNONE);
+  setVlvModbusReg(board, PVOUT_MODBUS_DEFCOILREG);
+  setVlvModbusCoilCount(board, PVOUT_MODBUS_DEFCOILCOUNT);
+  byte defaultOffset = PVOUT_COUNT;
+  if (board)
+    for (byte i = 0; i < board; i++)
+      defaultOffset += getVlvModbusOffset(board);
+  setVlvModbusOffset(board, defaultOffset);
+}
 
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
@@ -602,6 +666,10 @@ boolean checkConfig() {
       //Set triggers to disabled by default
       for (byte trig = 0; trig < NUM_TRIGGERS; trig++) EEPROM.write(2050 + trig, 0);
       EEPROM.write(2047, 2);
+    case 2:
+      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++)
+        setVlvModbusDefaults(i);
+      EEPROM.write(2047, 3);
   }
   return 0;
 }

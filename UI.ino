@@ -25,7 +25,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 #ifndef NOUI
-
 //*****************************************************************************************************************************
 // Begin UI Code
 //*****************************************************************************************************************************
@@ -2025,24 +2024,27 @@ byte enc2ASCII(byte charin) {
 //*****************************************************************************************************************************
 #ifndef UI_NO_SETUP
 void menuSetup() {
-  menu setupMenu(3, 9);
+  menu setupMenu(3, 10);
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 0);
   setupMenu.setItem_P(PSTR("Outputs"), 1);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 2);
   #ifdef PVOUT
     setupMenu.setItem_P(PSTR("Valve Profiles"), 3);
+    #ifdef PVOUT_TYPE_MODBUS
+      setupMenu.setItem_P(PSTR("RS485 Outputs"), 4);
+    #endif
   #endif
-  setupMenu.setItem_P(INIT_EEPROM, 4);
+  setupMenu.setItem_P(INIT_EEPROM, 5);
   #ifdef UI_DISPLAY_SETUP
-    setupMenu.setItem_P(PSTR("Display"), 5);
+    setupMenu.setItem_P(PSTR("Display"), 6);
   #endif
   #ifdef RGBIO8_ENABLE
   #ifdef RGBIO8_SETUP
-    setupMenu.setItem_P(PSTR("RGB Setup"), 6);
+    setupMenu.setItem_P(PSTR("RGB Setup"), 7);
   #endif
   #endif  
   #ifdef DIGITAL_INPUTS
-    setupMenu.setItem_P(PSTR("Triggers"), 7);
+    setupMenu.setItem_P(PSTR("Triggers"), 8);
   #endif
   setupMenu.setItem_P(EXIT, 255);
   
@@ -2053,24 +2055,27 @@ void menuSetup() {
     else if (lastOption == 2) cfgVolumes();
     #ifdef PVOUT
       else if (lastOption == 3) cfgValves();
+      #ifdef PVOUT_TYPE_MODBUS
+        else if (lastOption == 4) cfgMODBUSOutputs();
+      #endif
     #endif  
-    else if (lastOption == 4) {
+    else if (lastOption == 5) {
       LCD.clear();
       LCD.print_P(0, 0, PSTR("Reset Configuration?"));
       if (confirmChoice(INIT_EEPROM, 3)) UIinitEEPROM();
     }
     #ifdef UI_DISPLAY_SETUP
-      else if (lastOption == 5) adjustLCD();
+      else if (lastOption == 6) adjustLCD();
     #endif
     #ifdef RGBIO8_ENABLE
     #ifdef RGBIO8_SETUP
-      else if (lastOption == 6) {
+      else if (lastOption == 7) {
         cfgRgb();
       }
     #endif
     #endif  
     #ifdef DIGITAL_INPUTS
-      else if (lastOption == 7) cfgTriggers();
+      else if (lastOption == 8) cfgTriggers();
     #endif
     else return;
   }
@@ -2610,7 +2615,13 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     byte firstBit, encMax;
     
     encMax = PVOUT_COUNT + 1;
-  
+    #ifdef PVOUT_TYPE_MODBUS
+      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++) {
+        if (ValvesMB[i])
+          encMax = max(encMax, ValvesMB[i]->offset() + ValvesMB[i]->count() + 1);
+      }
+    #endif
+    
     Encoder.setMin(0);
     Encoder.setCount(0);
     Encoder.setMax(encMax);
@@ -2668,7 +2679,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
         if (encValue == encMax) return retValue;
         else if (encValue == encMax - 1) {
           //Test Profile
-          Valves.set(retValue);
+          setValves(retValue);
           LCD.print_P(3, 2, PSTR("["));
           LCD.print_P(3, 7, PSTR("]"));
           LCD.update();
@@ -2678,7 +2689,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
 #endif
             delay(50);
           }
-          Valves.set(0);
+          setValves(computeValveBits());
           redraw = 1;
         } else {
           retValue = retValue ^ ((unsigned long)1<<encValue);
@@ -2686,6 +2697,127 @@ void volCalibEntryMenu(byte vessel, byte entry) {
         }
       } else if (Encoder.cancel()) return defValue;
       brewCore();
+    }
+  }
+#endif
+
+#if defined PVOUT && defined PVOUT_TYPE_MODBUS
+const uint8_t ku8MBSuccess                    = 0x00;
+const uint8_t ku8MBResponseTimedOut           = 0xE2;
+
+  void cfgMODBUSOutputs() {
+    while(1) {
+      menu boardMenu(3, PVOUT_MODBUS_MAXBOARDS + 1);
+      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++) {
+        boardMenu.setItem_P(PSTR("Board "), i);
+        boardMenu.appendItem(itoa(i, buf, 10), i);
+        if (!ValvesMB[i])
+          boardMenu.appendItem_P(PSTR(": DISABLED"), i);
+        else {
+          byte result = ValvesMB[i]->detect();
+          if (result == ku8MBSuccess) 
+            boardMenu.appendItem_P(PSTR(": CONNECTED"), i);
+          else if (result == ku8MBResponseTimedOut)
+            boardMenu.appendItem_P(PSTR(": TIMEOUT"), i);
+          else {
+            boardMenu.appendItem_P(PSTR(": ERROR "), i);
+            boardMenu.appendItem(itoa(result, buf, 16), i);
+          }
+        }
+      }
+      boardMenu.setItem_P(PSTR("Exit"), 255);
+      
+      byte lastOption = scrollMenu("RS485 Outputs", &boardMenu);
+      if (lastOption < PVOUT_MODBUS_MAXBOARDS) cfgMODBUSOutputBoard(lastOption);
+      else return;
+    }
+  }
+  
+  void cfgMODBUSOutputBoard(byte board) {
+    while(1) {
+      menu boardMenu(3, 8);
+      boardMenu.setItem_P(PSTR("Address: "), 0);
+      byte addr = getVlvModbusAddr(board);
+      if (addr != PVOUT_MODBUS_ADDRNONE)
+        boardMenu.appendItem(itoa(addr, buf, 10), 0);
+      else
+        boardMenu.appendItem_P(PSTR("N/A"), 0);
+      
+      boardMenu.setItem_P(PSTR("Register: "), 1);
+      boardMenu.appendItem(itoa(getVlvModbusReg(board), buf, 10), 1);
+      boardMenu.setItem_P(PSTR("Count: "), 2);
+      boardMenu.appendItem(itoa(getVlvModbusCoilCount(board), buf, 10), 2);
+      boardMenu.setItem_P(PSTR("Offset: "), 3);
+      boardMenu.appendItem(itoa(getVlvModbusOffset(board), buf, 10), 3);
+      
+      if (addr == PVOUT_MODBUS_ADDRNONE)
+        boardMenu.setItem_P(PSTR("Auto Assign"), 4);
+
+      if (ValvesMB[board]) {
+        boardMenu.setItem_P(PSTR("ID Mode: "), 5);
+        boardMenu.appendItem_P((ValvesMB[board]->getIDMode()) ? PSTR("On") : PSTR("Off"), 5);
+      }
+
+      if (addr != PVOUT_MODBUS_ADDRNONE)      
+        boardMenu.setItem_P(PSTR("Delete"), 6);
+
+      boardMenu.setItem_P(PSTR("Exit"), 255);
+      
+      char title[] = "RS485 Output Board  ";
+      title[19] = '0' + board;
+      byte lastOption = scrollMenu(title, &boardMenu);
+      if (lastOption == 0) {
+        byte addr = getVlvModbusAddr(board);
+        setVlvModbusAddr(board, getValue_P(PSTR("RS485 Relay Address"), addr == PVOUT_MODBUS_ADDRNONE ? PVOUT_MODBUS_BASEADDR + board : addr, 1, 255, PSTR("")));
+      } else if (lastOption == 1)
+        setVlvModbusReg(board, getValue_P(PSTR("Coil Register"), getVlvModbusReg(board), 1, 65536, PSTR("")));
+      else if (lastOption == 2)
+        setVlvModbusCoilCount(board, getValue_P(PSTR("Coil Count"), getVlvModbusCoilCount(board), 1, 32, PSTR("")));
+      else if (lastOption == 3)
+        setVlvModbusOffset(board, getValue_P(PSTR("Output Offset"), getVlvModbusOffset(board), 1, 31, PSTR("")));
+      else if (lastOption == 4)
+        cfgMODBUSOutputAssign(board);
+      else if (lastOption == 5)
+        ValvesMB[board]->setIDMode((ValvesMB[board]->getIDMode()) ^ 1);
+      else {
+        if (lastOption == 6)
+          setVlvModbusDefaults(board);
+        //Reload board
+        loadVlvModbus(board);
+        return;
+      }
+    }
+  }
+  
+  void cfgMODBUSOutputAssign(byte board) {
+    PVOutMODBUS tempMB(PVOUT_MODBUS_ADDRINIT, getVlvModbusReg(board), getVlvModbusCoilCount(board), getVlvModbusOffset(board));
+    
+    byte result = 1;
+    while (result = tempMB.detect()) {
+      LCD.clear();
+      LCD.print_P(0, 0, PSTR("Click/hold to reset"));
+      LCD.print_P(1, 0, PSTR("output board then"));
+      LCD.print_P(2, 0, PSTR("click to activate."));
+      menu choiceMenu(1, 2);
+      if (result == ku8MBResponseTimedOut) {
+        choiceMenu.setItem_P(PSTR("Timeout"), 0);
+      } else {
+        choiceMenu.setItem_P(PSTR("Error "), 0);
+        choiceMenu.appendItem(itoa(result, buf, 16), 0);
+      }
+      choiceMenu.appendItem_P(PSTR(": Retry?"), 0);
+      choiceMenu.setItem_P(PSTR("Abort"), 1);
+      if(getChoice(&choiceMenu, 3))
+        return;      
+    }
+    byte newAddr = getValue_P(PSTR("New Address"), PVOUT_MODBUS_BASEADDR + board, 1, 254, PSTR(""));
+    if (tempMB.setAddr(newAddr)) {
+      LCD.clear();
+      LCD.print_P(1, 1, PSTR("Update Failed"));
+      LCD.print_P(2, 4, PSTR("> Continue <"));
+      while (!Encoder.ok()) brewCore();
+    } else {
+      setVlvModbusAddr(board, newAddr);
     }
   }
 #endif
