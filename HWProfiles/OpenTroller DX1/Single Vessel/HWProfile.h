@@ -29,7 +29,7 @@ OpenTroller DX1 Single Vessel Hardware Configuration
   #define HLTHEAT_PIN 1	//OUT13
 
   #define RS485_SERIAL_PORT 1
-  #define RS485_RXTX_PIN    23
+  #define RS485_RTS_PIN    23
   #define PVOUT_TYPE_MODBUS
 
   #define DIGITAL_INPUTS

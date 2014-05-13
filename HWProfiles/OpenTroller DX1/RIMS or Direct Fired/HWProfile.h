@@ -29,7 +29,7 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
   #define KETTLEHEAT_PIN 14	//OUT11
 
   #define RS485_SERIAL_PORT 1
-  #define RS485_RXTX_PIN    23
+  #define RS485_RTS_PIN    23
   #define PVOUT_TYPE_MODBUS
 
   #define DIGITAL_INPUTS
