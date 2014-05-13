@@ -155,32 +155,32 @@ void sendVsVol(byte chan, byte vessel) {
 
 void sendStringBTPD(byte chan, char *string) {
   Wire.beginTransmission(chan);
-  Wire.send((uint8_t *)string, strlen(string));
+  Wire.write((uint8_t *)string, strlen(string));
   Wire.endTransmission();
 } 
 
 void sendFloat1BTPD(byte chan, float line) {
   Wire.beginTransmission(chan);
-  Wire.send(0xfd);
-  Wire.send(0x00);
-  Wire.send((uint8_t *) &line, 4);
+  Wire.write(0xfd);
+  Wire.write(0x00);
+  Wire.write((uint8_t *) &line, 4);
   Wire.endTransmission();
 }
 
 void sendFloat2BTPD(byte chan, float line) {
   Wire.beginTransmission(chan);
-  Wire.send(0xfe);
-  Wire.send(0x00);
-  Wire.send((uint8_t *) &line, 4);
+  Wire.write(0xfe);
+  Wire.write(0x00);
+  Wire.write((uint8_t *) &line, 4);
   Wire.endTransmission();
 }
 
 void sendFloatsBTPD(byte chan, float line1, float line2) {
   Wire.beginTransmission(chan);
-  Wire.send(0xff);
-  Wire.send(0x00);
-  Wire.send((uint8_t *) &line1, 4);
-  Wire.send((uint8_t *) &line2, 4);
+  Wire.write(0xff);
+  Wire.write(0x00);
+  Wire.write((uint8_t *) &line1, 4);
+  Wire.write((uint8_t *) &line2, 4);
   Wire.endTransmission();
 }
 
@@ -244,26 +244,26 @@ void sendVsTime(byte chan, byte timer1, byte timer2) {
 void SendTimeBTPD(byte chan, byte AA, byte BB, byte CC, byte DD) {
   Wire.beginTransmission(chan);
   if (AA > 99 || BB > 59) {
-    Wire.send("--:--");
+    Wire.write("--:--");
   } else {
     if (AA < 10)
-      Wire.send("0");
-    Wire.send(itoa(AA, buf, 10));
-    Wire.send(":");
+      Wire.write("0");
+    Wire.write(itoa(AA, buf, 10));
+    Wire.write(":");
     if(BB < 10)
-      Wire.send("0");
-    Wire.send(itoa(BB, buf, 10));
+      Wire.write("0");
+    Wire.write(itoa(BB, buf, 10));
   }
   if(CC > 99 || DD > 59) {
-    Wire.send("--:--");
+    Wire.write("--:--");
   } else {
     if(CC < 10)
-      Wire.send("0");
-    Wire.send(itoa(CC, buf, 10));
-    Wire.send(":");
+      Wire.write("0");
+    Wire.write(itoa(CC, buf, 10));
+    Wire.write(":");
     if(DD < 10)
-      Wire.send("0");
-    Wire.send(itoa(DD, buf, 10));
+      Wire.write("0");
+    Wire.write(itoa(DD, buf, 10));
   }
   Wire.endTransmission();
 }

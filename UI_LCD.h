@@ -35,10 +35,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #include <stdlib.h> // for malloc and free
   #include <EEPROM.h>
 
-  void* operator new(size_t size) { return malloc(size); }
-  void operator delete(void* ptr) { free(ptr); }
-
-
   //*****************************************************************************************************************************
   // 4-Bit GPIO LCD Class
   //*****************************************************************************************************************************
@@ -89,7 +85,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         #endif
         int i = 0;
         while (sText[i] != 0)  {
-          _lcd->print(sText[i++]);
+          _lcd->write(sText[i++]);
           #ifdef LCD_DELAY_CHAR
             delayMicroseconds(LCD_DELAY_CHAR);
           #endif
@@ -100,7 +96,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       void print_P(byte iRow, byte iCol, const char *sText){
         _lcd->setCursor(iCol, iRow);
         while (pgm_read_byte(sText) != 0) {
-          _lcd->print(pgm_read_byte(sText++)); 
+          _lcd->write(pgm_read_byte(sText++)); 
           #ifdef LCD_DELAY_CHAR
             delayMicroseconds(LCD_DELAY_CHAR);
           #endif
@@ -121,7 +117,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
         int i = 0;
         while (sText[i] != 0)  {
-          _lcd->print(sText[i++]);
+          _lcd->write(sText[i++]);
           #ifdef LCD_DELAY_CHAR
             delayMicroseconds(LCD_DELAY_CHAR);
           #endif
@@ -136,7 +132,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         #endif
         if (strlen(sText) < length) {
           for (byte i=0; i < length-strlen(sText); i++) {
-            _lcd->print(pad);
+            _lcd->write(pad);
             #ifdef LCD_DELAY_CHAR
               delayMicroseconds(LCD_DELAY_CHAR);
             #endif
@@ -145,7 +141,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         
         int i = 0;
         while (sText[i] != 0)  {
-          _lcd->print(sText[i++]);
+          _lcd->write(sText[i++]);
           #ifdef LCD_DELAY_CHAR
             delayMicroseconds(LCD_DELAY_CHAR);
           #endif
@@ -161,7 +157,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
         int i = 0;
         while (sText[i] != 0)  {
-          _lcd->print(sText[i++]);
+          _lcd->write(sText[i++]);
           #ifdef LCD_DELAY_CHAR
             delayMicroseconds(LCD_DELAY_CHAR);
           #endif
@@ -169,7 +165,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         
         if (strlen(sText) < length) {
           for (byte i=0; i < length-strlen(sText) ; i++) {
-            _lcd->print(pad);
+            _lcd->write(pad);
             #ifdef LCD_DELAY_CHAR
               delayMicroseconds(LCD_DELAY_CHAR);
             #endif
@@ -352,9 +348,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
       uint8_t i2cLcdBegin(byte iCols, byte iRows) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x01);
-        Wire.send(iCols);
-        Wire.send(iRows);
+        Wire.write(0x01);
+        Wire.write(iCols);
+        Wire.write(iRows);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(5);
@@ -364,7 +360,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cLcdClear() {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x02);
+        Wire.write(0x02);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(3);
@@ -374,9 +370,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cLcdSetCursor(byte iCol, byte iRow) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x03);
-        Wire.send(iCol);
-        Wire.send(iRow);
+        Wire.write(0x03);
+        Wire.write(iCol);
+        Wire.write(iRow);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(1);
@@ -386,12 +382,12 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cLcdPrint(byte iCol, byte iRow, char s[]) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x04);
-        Wire.send(iCol);
-        Wire.send(iRow);
+        Wire.write(0x04);
+        Wire.write(iCol);
+        Wire.write(iRow);
         char *p = s;
         while (*p) {
-          Wire.send(*p++);
+          Wire.write(*p++);
         }
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
@@ -402,11 +398,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cLcdWrite(byte iCol, byte iRow, byte len, char s[]) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x14);
-        Wire.send(iCol);
-        Wire.send(iRow);
-        Wire.send(len);
-        for (byte i = 0; i < len; i++) Wire.send(s[i]);
+        Wire.write(0x14);
+        Wire.write(iCol);
+        Wire.write(iRow);
+        Wire.write(len);
+        for (byte i = 0; i < len; i++) Wire.write(s[i]);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(3);
@@ -416,8 +412,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cLcdWriteByte(char s) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x15);
-        Wire.send(s);
+        Wire.write(0x15);
+        Wire.write(s);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(1);
@@ -427,10 +423,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cLcdSetCustChar_P(byte slot, const byte *charDef) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x05);
-        Wire.send(slot);
+        Wire.write(0x05);
+        Wire.write(slot);
         for (byte i = 0; i < 8; i++) {
-          Wire.send(pgm_read_byte(charDef++));
+          Wire.write(pgm_read_byte(charDef++));
         }
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
@@ -441,10 +437,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cLcdWriteCustChar(byte iCol, byte iRow, byte c) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x06);
-        Wire.send(iCol);
-        Wire.send(iRow);
-        Wire.send(c);
+        Wire.write(0x06);
+        Wire.write(iCol);
+        Wire.write(iRow);
+        Wire.write(c);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(1);
@@ -454,8 +450,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cSetBright(byte val) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x07);
-        Wire.send(val);
+        Wire.write(0x07);
+        Wire.write(val);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(3);
@@ -465,8 +461,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cSetContrast(byte val) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x08);
-        Wire.send(val);
+        Wire.write(0x08);
+        Wire.write(val);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(3);
@@ -476,7 +472,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cGetBright(void) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x09);
+        Wire.write(0x09);
         Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(10);
@@ -484,13 +480,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.requestFrom(i2cLCDAddr, (uint8_t) 1);
         while(Wire.available())
         {
-          return Wire.receive();
+          return Wire.read();
         }
       }
       
       uint8_t i2cGetContrast(void) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x0A);
+        Wire.write(0x0A);
         Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(10);
@@ -498,13 +494,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
         Wire.requestFrom(i2cLCDAddr, (uint8_t) 1);
         while(Wire.available())
         {
-          return Wire.receive();
+          return Wire.read();
         }
       }
       
       uint8_t i2cSaveConfig(void) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x0B);
+        Wire.write(0x0B);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(10);
@@ -514,7 +510,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       
       uint8_t i2cLoadConfig(void) {
         Wire.beginTransmission(i2cLCDAddr);
-        Wire.send(0x0C);
+        Wire.write(0x0C);
         uint8_t retValue = Wire.endTransmission();
         #ifdef UI_LCD_I2CDELAYS
           delay(10);
@@ -532,14 +528,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
           
           uint8_t * p = (uint8_t *) &retValue[pass];
           Wire.beginTransmission(i2cLCDAddr);
-          Wire.send(0x16);
+          Wire.write(0x16);
           Wire.endTransmission();
           #ifdef UI_LCD_I2CDELAYS
             delay(10);
           #endif
           Wire.requestFrom(i2cLCDAddr, (uint8_t) 2);
           while (Wire.available()) {
-            *(p++) = Wire.receive();
+            *(p++) = Wire.read();
           }
         }
         if (retValue[0] == retValue[1]) return retValue[0];

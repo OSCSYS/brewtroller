@@ -274,29 +274,29 @@ void RGBIO8::update(void) {
 
 void RGBIO8::restart() {
   Wire.beginTransmission(i2c_address);
-  Wire.send(0xfd);
+  Wire.write(0xfd);
   Wire.endTransmission();
 }
 
 void RGBIO8::setIdMode(byte id_mode) {
   Wire.beginTransmission(i2c_address);
-  Wire.send(0xfe);
-  Wire.send(id_mode);
+  Wire.write(0xfe);
+  Wire.write(id_mode);
   Wire.endTransmission();
 }
 
 void RGBIO8::setAddress(byte a) {
   Wire.beginTransmission(i2c_address);
-  Wire.send(0xff);
-  Wire.send(a);
+  Wire.write(0xff);
+  Wire.write(a);
   Wire.endTransmission();
 }
 
 int RGBIO8::getInputs(uint8_t *m, uint8_t *a) {
   Wire.requestFrom(i2c_address, 3);
-  uint8_t inputs_m = Wire.receive();
-  uint8_t inputs_a = Wire.receive();
-  uint8_t crc = Wire.receive();
+  uint8_t inputs_m = Wire.read();
+  uint8_t inputs_a = Wire.read();
+  uint8_t crc = Wire.read();
   
   uint8_t crc_comp = '*';
   crc_comp = crc8(crc_comp, inputs_m);
@@ -314,9 +314,9 @@ int RGBIO8::getInputs(uint8_t *m, uint8_t *a) {
 
 void RGBIO8::setOutput(byte output, uint16_t rgb) {
   Wire.beginTransmission(i2c_address);
-  Wire.send(0x01);
-  Wire.send(output);
-  Wire.send((uint8_t*) &rgb, 2);
+  Wire.write(0x01);
+  Wire.write(output);
+  Wire.write((uint8_t*) &rgb, 2);
   Wire.endTransmission();
 }
 

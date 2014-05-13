@@ -446,7 +446,7 @@ static const byte TS = 1;
 // RS485/Modbus Configuration
 //**********************************************************************************
   #define RS485_BAUDRATE    76800
-  #define RS485_PARITY      'e'
+  #define RS485_PARITY      SERIAL_8E1
   
   #define PVOUT_MODBUS_MAXBOARDS     4
   #define PVOUT_MODBUS_DEFCOILREG    1000
@@ -454,9 +454,9 @@ static const byte TS = 1;
   #define PVOUT_MODBUS_BASEADDR      10
   #define PVOUT_MODBUS_ADDRNONE 255
   #define PVOUT_MODBUS_ADDRINIT 247
-  #define PVOUT_MODBUS_REGIDMODE 9001
-  #define PVOUT_MODBUS_REGSLAVEADDR 9002
-  #define PVOUT_MODBUS_REGRESTART 9003
+  #define PVOUT_MODBUS_REGIDMODE 9000
+  #define PVOUT_MODBUS_REGSLAVEADDR 9001
+  #define PVOUT_MODBUS_REGRESTART 9002
 
 /***********************************************************************************
  * EXPERIMENTAL OPTIONS

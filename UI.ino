@@ -2721,7 +2721,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
             boardMenu.appendItem_P(PSTR(": TIMEOUT"), i);
           else {
             boardMenu.appendItem_P(PSTR(": ERROR "), i);
-            boardMenu.appendItem(itoa(result, buf, 10), i);
+            boardMenu.appendItem(itoa(result, buf, 16), i);
           }
         }
       }
@@ -2750,9 +2750,17 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       boardMenu.setItem_P(PSTR("Offset: "), 3);
       boardMenu.appendItem(itoa(getVlvModbusOffset(board), buf, 10), 3);
       
-      boardMenu.setItem_P(PSTR("Auto Assign"), 4);
-      //boardMenu.setItem_P(PSTR("ID Mode"), 5);
-      boardMenu.setItem_P(PSTR("Delete"), 6);
+      if (addr == PVOUT_MODBUS_ADDRNONE)
+        boardMenu.setItem_P(PSTR("Auto Assign"), 4);
+
+      if (ValvesMB[board]) {
+        boardMenu.setItem_P(PSTR("ID Mode: "), 5);
+        boardMenu.appendItem_P((ValvesMB[board]->getIDMode()) ? PSTR("On") : PSTR("Off"), 5);
+      }
+
+      if (addr != PVOUT_MODBUS_ADDRNONE)      
+        boardMenu.setItem_P(PSTR("Delete"), 6);
+
       boardMenu.setItem_P(PSTR("Exit"), 255);
       
       char title[] = "RS485 Output Board  ";
@@ -2770,7 +2778,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       else if (lastOption == 4)
         cfgMODBUSOutputAssign(board);
       else if (lastOption == 5)
-        cfgMODBUSRelayID(board);
+        ValvesMB[board]->setIDMode((ValvesMB[board]->getIDMode()) ^ 1);
       else {
         if (lastOption == 6)
           setVlvModbusDefaults(board);
@@ -2791,13 +2799,18 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       LCD.print_P(1, 0, PSTR("output board then"));
       LCD.print_P(2, 0, PSTR("click to activate."));
       menu choiceMenu(1, 2);
-      choiceMenu.setItem_P(PSTR("ERROR "), 0);
-      choiceMenu.appendItem(itoa(result, buf, 10), 0);
-      choiceMenu.setItem_P(PSTR("Retry"), 1);
-      if(getChoice(&choiceMenu, 3) != 1)
+      if (result == ku8MBResponseTimedOut) {
+        choiceMenu.setItem_P(PSTR("Timeout"), 0);
+      } else {
+        choiceMenu.setItem_P(PSTR("Error "), 0);
+        choiceMenu.appendItem(itoa(result, buf, 16), 0);
+      }
+      choiceMenu.appendItem_P(PSTR(": Retry?"), 0);
+      choiceMenu.setItem_P(PSTR("Abort"), 1);
+      if(getChoice(&choiceMenu, 3))
         return;      
     }
-    byte newAddr = getValue_P(PSTR("New Address"), PVOUT_MODBUS_BASEADDR + board, 1, 254, "");
+    byte newAddr = getValue_P(PSTR("New Address"), PVOUT_MODBUS_BASEADDR + board, 1, 254, PSTR(""));
     if (tempMB.setAddr(newAddr)) {
       LCD.clear();
       LCD.print_P(1, 1, PSTR("Update Failed"));
@@ -2806,10 +2819,6 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
     } else {
       setVlvModbusAddr(board, newAddr);
     }
-  }
-  
-  void cfgMODBUSRelayID(byte board) {
-    
   }
 #endif
 

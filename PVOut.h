@@ -4,6 +4,7 @@
   #include "Config.h"
   #include "HWProfile.h"
   #include <ModbusMaster.h>
+  #include <HardwareSerial.h>
   
   class PVOutGPIO
   {
@@ -151,12 +152,16 @@
       byte result = 0;
       result |= slave.writeSingleRegister(PVOUT_MODBUS_REGSLAVEADDR, newAddr);
       if (!result) {
-        slave.writeSingleRegister(PVOUT_MODBUS_REGRESTART, newAddr);
+        slave.writeSingleRegister(PVOUT_MODBUS_REGRESTART, 1);
         slaveAddr = newAddr;
       }
       return result;
     }
-    byte setIDMode() { return slave.writeSingleRegister(PVOUT_MODBUS_REGIDMODE, 1); }
-    byte clearIDMode() { return slave.writeSingleRegister(PVOUT_MODBUS_REGIDMODE, 1); }
+    byte setIDMode(byte value) { return slave.writeSingleRegister(PVOUT_MODBUS_REGIDMODE, value); }
+    byte getIDMode() { 
+      if (slave.readHoldingRegisters(PVOUT_MODBUS_REGIDMODE, 1) == 0)
+        return slave.getResponseBuffer(0);
+      return 0;
+    }
   };
 #endif //ifndef PVOUT_H
