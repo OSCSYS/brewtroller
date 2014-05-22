@@ -64,47 +64,47 @@ void brewCore() {
 
     case SCHEDULETASK_TIMERS:
       //Timers: Timer.pde
-      //updateTimers();
+      updateTimers();
       break;
       
     case SCHEDULETASK_TEMPS:
      //temps: Temp.pde
-     //updateTemps();
+     updateTemps();
      break;
 
     case SCHEDULETASK_BUZZER:
       //Alarm update allows to have a beeping alarm
-      //updateBuzzer();
+      updateBuzzer();
       break;
       
     case SCHEDULETASK_VOLS:
       //Volumes: Volume.pde
-      //updateVols();
+      updateVols();
       break;
       
 #ifdef FLOWRATE_CALCS
     case SCHEDULETASK_FLOWRATES:
-      //updateFlowRates();
+      updateFlowRates();
       break;
 #endif      
       
     case SCHEDULETASK_PROGRAMS:
       //Step Logic: StepLogic.pde
-      //stepCore();
+      stepCore();
       break;
       
     case SCHEDULETASK_COMS:
       //Communications: Com.pde
-      //updateCom();
+      updateCom();
       break;
       
 #ifdef PVOUT
     case SCHEDULETASK_OUTPUTPROFILES:
       //Auto Valve Logic: Outputs.pde
-      //processAutoValve();
+      processAutoValve();
       
       //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
-      //updateValves();
+      updateValves();
       break;
 #endif 
   }

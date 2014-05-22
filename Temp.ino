@@ -81,14 +81,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       ds.write(0x44, TS_ONEWIRE_PPWR); //Start conversion
       convStart = millis();   
     } else if (tsReady() || millis() - convStart >= CONV_DELAY) {
-      #ifdef DEBUG_TEMP_CONV_T
-        convStart = millis() - convStart;
-        logStart_P(LOGDEBUG);
-        logField_P(PSTR("TEMP_CONV_T"));
-        logFieldI(convStart);
-        logEnd();
-      #endif
-      for (byte i = 0; i < NUM_TS; i++) if (validAddr(tSensor[i])) temp[i] = read_temp(tSensor[i]); else temp[i] = BAD_TEMP;
+      for (byte i = 0; i < NUM_TS; i++) {
+        if (validAddr(tSensor[i]))
+          temp[i] = read_temp(tSensor[i]); 
+        else 
+          temp[i] = BAD_TEMP;
+      }
+      
       convStart = 0;
       
       #if defined MASH_AVG
