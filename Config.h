@@ -638,33 +638,5 @@ static const byte TS = 1;
 //
 //**********************************************************************************
 
-
-//**********************************************************************************
-// DEBUG
-//**********************************************************************************
-//#define DEBUG
-// DEBUG_TEMP_CONV_T: Enables logging of OneWire temperature sensor ADC time.
-//#define DEBUG_TEMP_CONV_T
-
-// DEBUG_VOL_READ: Enables logging of additional detail used in calculating volume.
-//#define DEBUG_VOL_READ
-
-// DEBUG_PID_GAIN: Enables logging of PID Gain settings as they are set.
-//#define DEBUG_PID_GAIN
-
-// DEBUG_TIMERALARM: Enables logging of Timer and Alarm values
-//#define DEBUG_TIMERALARM
-
-// DEBUG_VOLCALIB: Enables logging of Volume Calibration values
-//#define DEBUG_VOLCALIB
-
-// DEBUG_PROG_CALC_VOLS: Enables logging of PreBoil, Sparge, and Total water calcs 
-// based on the running program
-//#define DEBUG_PROG_CALC_VOLS
-
-//#define DEBUG_BTNIC
-
-//**********************************************************************************
-
 #endif
 
