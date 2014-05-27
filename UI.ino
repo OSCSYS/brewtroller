@@ -1407,7 +1407,7 @@ void editMashSchedule(byte pgm) {
   menu mashMenu(3, 13);
   while (1) {
 
-    for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {  
+    for (byte i = 0; i < MASHSTEP_COUNT; i++) {  
       mashMenu.setItem_P((char*)pgm_read_word(&(TITLE_MASHSTEP[i])), i << 4 | OPT_SETMINS);
       mashMenu.setItem_P((char*)pgm_read_word(&(TITLE_MASHSTEP[i])), i << 4 | OPT_SETTEMP);
       

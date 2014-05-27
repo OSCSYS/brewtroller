@@ -474,23 +474,23 @@ void BTnic::execCmd(void) {
       break;
       
     case CMD_SET_PROGTEMPS:  //']'
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         setProgMashTemp(cmdIndex, i, getCmdParamNum(i + 1) * SETPOINT_DIV);
       }
     case CMD_GET_PROGTEMPS:  //'^'
       logFieldCmd(CMD_GET_PROGTEMPS, cmdIndex);
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         logFieldI(getProgMashTemp(cmdIndex, i) / SETPOINT_DIV);
       }
       break;
 
     case CMD_SET_PROGMINS:  //'_'
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         setProgMashMins(cmdIndex, i, getCmdParamNum(i + 1));
       }
     case CMD_GET_PROGMINS:  //'`'
       logFieldCmd(CMD_GET_PROGMINS, cmdIndex);
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         logFieldI(getProgMashMins(cmdIndex, i));
       }
       break;
@@ -532,7 +532,7 @@ void BTnic::execCmd(void) {
       setProgBatchVol(cmdIndex, getCmdParamNum(2));
       setProgGrain(cmdIndex, getCmdParamNum(3));
       setProgRatio(cmdIndex, getCmdParamNum(4));
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         setProgMashTemp(cmdIndex, i, getCmdParamNum(i * 2 + 5) * SETPOINT_DIV);
         setProgMashMins(cmdIndex, i, getCmdParamNum(i * 2 + 6));
       }
@@ -552,7 +552,7 @@ void BTnic::execCmd(void) {
       logFieldI(getProgBatchVol(cmdIndex));
       logFieldI(getProgGrain(cmdIndex));
       logFieldI(getProgRatio(cmdIndex));
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         logFieldI(getProgMashTemp(cmdIndex, i) / SETPOINT_DIV);
         logFieldI(getProgMashMins(cmdIndex, i));
       }
