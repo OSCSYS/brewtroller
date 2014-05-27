@@ -257,7 +257,7 @@ boolean logData = LOG_INITSTATUS;
 //Brew Step Logic Globals
 //Active program for each brew step
 #define PROGRAM_IDLE 255
-byte stepProgram[NUM_BREW_STEPS];
+byte stepProgram[BREWSTEP_COUNT];
 boolean preheated[4];
 ControlState boilControlState = CONTROLSTATE_OFF;
 
@@ -293,7 +293,7 @@ void setup() {
   #endif
   
   //Initialize Brew Steps to 'Idle'
-  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepProgram[brewStep] = PROGRAM_IDLE;
+  for(byte brewStep = 0; brewStep < BREWSTEP_COUNT; brewStep++) stepProgram[brewStep] = PROGRAM_IDLE;
   
   //Log initialization (Log.pde)
   comInit();

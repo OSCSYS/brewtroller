@@ -126,9 +126,9 @@ void loadSetup() {
   
 
   //**********************************************************************************
-  //Step (313-327) NUM_BREW_STEPS (15)
+  //Step (313-327) BREWSTEP_COUNT (15)
   //**********************************************************************************
-  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepInit(EEPROM.read(313 + brewStep), brewStep);
+  for(byte brewStep = 0; brewStep < BREWSTEP_COUNT; brewStep++) stepInit(EEPROM.read(313 + brewStep), brewStep);
 
   //**********************************************************************************
   //401-480 Valve Profiles
@@ -422,7 +422,7 @@ void setBoilAddsTrig(unsigned int adds) { EEPROMwriteInt(307, adds); }
 
 
 //**********************************************************************************
-//Step (313-327) NUM_BREW_STEPS (15)
+//Step (313-327) BREWSTEP_COUNT (15)
 //**********************************************************************************
 void setProgramStep(byte brewStep, byte actPgm) {
   stepProgram[brewStep] = actPgm;
@@ -717,7 +717,7 @@ void initEEPROM() {
   setBoilPwr(100);
 
   //Set all steps idle
-  for (byte i = 0; i < NUM_BREW_STEPS; i++) setProgramStep(i, PROGRAM_IDLE);
+  for (byte i = 0; i < BREWSTEP_COUNT; i++) setProgramStep(i, PROGRAM_IDLE);
 
   //Set default LCD Bright/Contrast
   #if (defined __AVR_ATmega1284P__ || defined __AVR_ATmega1284__) && defined UI_DISPLAY_SETUP && defined UI_LCD_4BIT

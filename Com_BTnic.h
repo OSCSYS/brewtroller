@@ -212,9 +212,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     NUM_TS - 1, 	//CMD_SET_TS
     NUM_VLVCFGS - 1, 	//CMD_SET_VLVCFG
     VS_KETTLE, 		//CMD_SET_VSET
-    NUM_BREW_STEPS - 1, //CMD_ADV_STEP
-    NUM_BREW_STEPS - 1, //CMD_EXIT_STEP
-    NUM_BREW_STEPS - 1, //CMD_INIT_STEP
+    BREWSTEP_COUNT - 1, //CMD_ADV_STEP
+    BREWSTEP_COUNT - 1, //CMD_EXIT_STEP
+    BREWSTEP_COUNT - 1, //CMD_INIT_STEP
     0, 			//CMD_SET_ALARM
     0, 			//CMD_SET_AUTOVLV
     VS_STEAM, 		//CMD_SET_SETPOINT
@@ -815,7 +815,7 @@ void BTnic::execCmd(void) {
 
 void BTnic::logStepPrg() {
   byte logged = 0;
-  for (byte i = STEP_FILL; i <= STEP_CHILL; i++) {
+  for (byte i = BREWSTEP_FILL; i <= BREWSTEP_CHILL; i++) {
     if (stepProgram[i] != PROGRAM_IDLE){
       char pName[20];
       getProgName(stepProgram[i], pName);
