@@ -895,8 +895,8 @@ void screenEnter() {
           else if (lastOption == 3) continueClick();     
           else if (lastOption == 4) {
             if (confirmAbort()) {
-              if (stepIsActive(BREWSTEP_FILL)) stepExit(BREWSTEP_FILL);
-              else stepExit(BREWSTEP_REFILL); //Abort BREWSTEP_REFILL or manual operation
+              if (stepIsActive(BREWSTEP_FILL)) brewStepExit(BREWSTEP_FILL);
+              else brewStepExit(BREWSTEP_REFILL); //Abort BREWSTEP_REFILL or manual operation
             }
           }
           doInit = 1;
@@ -952,22 +952,22 @@ void screenEnter() {
           else if (stepIsActive(BREWSTEP_MASHOUT)) brewstep = BREWSTEP_MASHOUT;
           else if (stepIsActive(BREWSTEP_MASHHOLD)) brewstep = BREWSTEP_MASHHOLD;
           if(brewstep != PROGRAM_IDLE) {
-            if (stepAdvance(brewstep)) {
+            if (brewStepAdvance(brewstep)) {
               //Failed to advance step
               stepAdvanceFailDialog();
             }
           } else activeScreen = SCREEN_SPARGE;
         } else if (lastOption == 5) {
           if (confirmAbort()) {
-            if (stepIsActive(BREWSTEP_DELAY)) stepExit(BREWSTEP_DELAY);
-            else if (stepIsActive(BREWSTEP_DOUGHIN)) stepExit(BREWSTEP_DOUGHIN);
-            else if (stepIsActive(BREWSTEP_PREHEAT)) stepExit(BREWSTEP_PREHEAT);
-            else if (stepIsActive(BREWSTEP_ACID)) stepExit(BREWSTEP_ACID);
-            else if (stepIsActive(BREWSTEP_PROTEIN)) stepExit(BREWSTEP_PROTEIN);
-            else if (stepIsActive(BREWSTEP_SACCH)) stepExit(BREWSTEP_SACCH);
-            else if (stepIsActive(BREWSTEP_SACCH2)) stepExit(BREWSTEP_SACCH2);
-            else if (stepIsActive(BREWSTEP_MASHOUT)) stepExit(BREWSTEP_MASHOUT);
-            else stepExit(BREWSTEP_MASHHOLD); //Abort BREWSTEP_MASHOUT or manual operation
+            if (stepIsActive(BREWSTEP_DELAY)) brewStepExit(BREWSTEP_DELAY);
+            else if (stepIsActive(BREWSTEP_DOUGHIN)) brewStepExit(BREWSTEP_DOUGHIN);
+            else if (stepIsActive(BREWSTEP_PREHEAT)) brewStepExit(BREWSTEP_PREHEAT);
+            else if (stepIsActive(BREWSTEP_ACID)) brewStepExit(BREWSTEP_ACID);
+            else if (stepIsActive(BREWSTEP_PROTEIN)) brewStepExit(BREWSTEP_PROTEIN);
+            else if (stepIsActive(BREWSTEP_SACCH)) brewStepExit(BREWSTEP_SACCH);
+            else if (stepIsActive(BREWSTEP_SACCH2)) brewStepExit(BREWSTEP_SACCH2);
+            else if (stepIsActive(BREWSTEP_MASHOUT)) brewStepExit(BREWSTEP_MASHOUT);
+            else brewStepExit(BREWSTEP_MASHHOLD); //Abort BREWSTEP_MASHOUT or manual operation
           }
         }
         doInit = 1;
@@ -1001,8 +1001,8 @@ void screenEnter() {
           else if (lastOption == 5) continueClick();
           else if (lastOption == 6) {
             if (confirmAbort()) {
-              if (stepIsActive(BREWSTEP_GRAININ)) stepExit(BREWSTEP_GRAININ);
-              else stepExit(BREWSTEP_SPARGE); //Abort BREWSTEP_SPARGE or manual operation
+              if (stepIsActive(BREWSTEP_GRAININ)) brewStepExit(BREWSTEP_GRAININ);
+              else brewStepExit(BREWSTEP_SPARGE); //Abort BREWSTEP_SPARGE or manual operation
             }
           }
           doInit = 1;
@@ -1072,14 +1072,14 @@ void screenEnter() {
           byte brewstep = PROGRAM_IDLE;
           if (stepIsActive(BREWSTEP_BOIL)) brewstep = BREWSTEP_BOIL;
           if(brewstep != PROGRAM_IDLE) {
-            if (stepAdvance(brewstep)) {
+            if (brewStepAdvance(brewstep)) {
               //Failed to advance step
               stepAdvanceFailDialog();
             }
           } else {
             setActive(SCREEN_CHILL);
           }
-        } else if (lastOption == 7) { if (confirmAbort()) stepExit(BREWSTEP_BOIL); }
+        } else if (lastOption == 7) { if (confirmAbort()) brewStepExit(BREWSTEP_BOIL); }
         doInit = 1;
         
       } else if (activeScreen == SCREEN_CHILL) {
@@ -1087,7 +1087,7 @@ void screenEnter() {
 
         int encValue = Encoder.getCount();
         if (encValue == 0) {
-          stepExit(BREWSTEP_CHILL);
+          brewStepExit(BREWSTEP_CHILL);
           setActive(SCREEN_HOME);
         }
         else if (encValue == 1) { autoValve[AV_CHILL] = 0; bitSet(actProfiles, VLV_CHILLH2O); bitSet(actProfiles, VLV_CHILLBEER); }
@@ -1152,7 +1152,7 @@ void continueClick() {
   else if (stepIsActive(BREWSTEP_SPARGE)) brewstep = BREWSTEP_SPARGE;
   else if (stepIsActive(BREWSTEP_GRAININ)) brewstep = BREWSTEP_GRAININ;
   if(brewstep != PROGRAM_IDLE) {
-    if (stepAdvance(brewstep)) {
+    if (brewStepAdvance(brewstep)) {
       //Failed to advance step
       stepAdvanceFailDialog();
     }
@@ -1234,7 +1234,7 @@ void startProgramMenu() {
             //Delay Start
             setDelayMins(getTimerValue(PSTR("Delay Start"), getDelayMins(), 23));
           }
-          if (stepInit(profile, BREWSTEP_FILL)) {
+          if (brewStepInit(profile, BREWSTEP_FILL)) {
             LCD.clear();
             LCD.print_P(1, 0, PSTR("Program start failed"));
             LCD.print(3, 4, ">");

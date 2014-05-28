@@ -638,10 +638,10 @@ void BTnic::execCmd(void) {
       if (_bufData[0] == CMD_INIT_STEP) {
         byte progNum = getCmdParamNum(1);
         if (progNum >= 20) return rejectCmd(CMD_REJECT_PARAM);
-        stepInit(progNum, cmdIndex);
+        brewStepInit(progNum, cmdIndex);
       }
-      else if (_bufData[0] == CMD_ADV_STEP) stepAdvance(cmdIndex);
-      else if (_bufData[0] == CMD_EXIT_STEP) stepExit(cmdIndex);
+      else if (_bufData[0] == CMD_ADV_STEP) brewStepAdvance(cmdIndex);
+      else if (_bufData[0] == CMD_EXIT_STEP) brewStepExit(cmdIndex);
     case CMD_STEPPRG:  //n
         logFieldCmd(CMD_STEPPRG, NO_CMDINDEX);
         logStepPrg();

@@ -83,8 +83,7 @@ enum BrewStepIndex {
 enum StepSignal {
   STEPSIGNAL_INIT,
   STEPSIGNAL_UPDATE,
-  STEPSIGNAL_ADVANCE,
-  STEPSIGNAL_ABORT
+  STEPSIGNAL_EXIT
 };
 
 enum MashStepIndex {

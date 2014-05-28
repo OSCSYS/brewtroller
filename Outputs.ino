@@ -252,7 +252,7 @@ void pidInit() {
 }
 
 void resetOutputs() {
-  for (byte i = BREWSTEP_FILL; i <= BREWSTEP_CHILL; i++) stepExit(i); //Go through each step's exit functions to quit clean.
+  for (byte i = BREWSTEP_FILL; i <= BREWSTEP_CHILL; i++) brewStepExit(i); //Go through each step's exit functions to quit clean.
 }
 
 void resetHeatOutput(byte vessel) {

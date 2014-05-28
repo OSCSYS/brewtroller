@@ -90,7 +90,7 @@ void brewCore() {
       
     case SCHEDULETASK_PROGRAMS:
       //Step Logic: StepLogic.pde
-      stepCore();
+      brewStepUpdate();
       break;
       
     case SCHEDULETASK_COMS:
