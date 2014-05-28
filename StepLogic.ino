@@ -120,54 +120,27 @@ void brewStepExit(byte brewStep) {
   eventHandler(EVENT_STEPEXIT, brewStep);  
 }
 
+void (*brewStepFunctionMap[BREWSTEP_COUNT])(enum StepSignal) = {
+  &brewStepFill,
+  &brewStepDelay,
+  &brewStepPreheat,
+  &brewStepGrainIn,
+  &brewStepRefill,
+  &brewStepDoughIn,
+  &brewStepAcid,
+  &brewStepProtein,
+  &brewStepSacch,
+  &brewStepSacch2,
+  &brewStepMashOut,
+  &brewStepMashHold,
+  &brewStepSparge,
+  &brewStepBoil,
+  &brewStepChill
+};
+
 void brewStepSignal(byte brewStep, enum StepSignal signal) {
-  switch (brewStep) {
-    case BREWSTEP_FILL:
-      brewStepFill(signal);
-      break;
-    case BREWSTEP_DELAY:
-      brewStepDelay(signal);
-      break;
-    case BREWSTEP_PREHEAT:
-      brewStepPreheat(signal);
-      break;
-    case BREWSTEP_GRAININ:
-      brewStepGrainIn(signal);
-      break;
-    case BREWSTEP_REFILL:
-      brewStepRefill(signal);
-      break;
-    case BREWSTEP_DOUGHIN:
-      brewStepDoughIn(signal);
-      break;
-    case BREWSTEP_ACID:
-      brewStepAcid(signal);
-      break;
-    case BREWSTEP_PROTEIN:
-      brewStepProtein(signal);
-      break;
-    case BREWSTEP_SACCH:
-      brewStepSacch(signal);
-      break;
-    case BREWSTEP_SACCH2:
-      brewStepSacch2(signal);
-      break;
-    case BREWSTEP_MASHOUT:
-      brewStepMashOut(signal);
-      break;
-    case BREWSTEP_MASHHOLD:
-      brewStepMashHold(signal);
-      break;
-    case BREWSTEP_SPARGE:
-      brewStepSparge(signal);
-      break;
-    case BREWSTEP_BOIL:
-      brewStepBoil(signal);
-      break;
-    case BREWSTEP_CHILL:
-      brewStepChill(signal);
-      break;
-  }
+  if (brewStep < BREWSTEP_COUNT)
+    (*brewStepFunctionMap[brewStep])(signal);
 }
 
 void brewStepFill(enum StepSignal signal) {
