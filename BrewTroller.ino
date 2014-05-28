@@ -108,7 +108,6 @@ const char BTVER[] PROGMEM = "2.7";
 //**********************************************************************************
 // Globals
 //**********************************************************************************
-
 //Heat Output Pin Array
 pin heatPin[4], alarmPin;
 
@@ -255,9 +254,6 @@ boolean timerStatus[2], alarmStatus;
 boolean logData = LOG_INITSTATUS;
 
 //Brew Step Logic Globals
-//Active program for each brew step
-#define PROGRAM_IDLE 255
-byte stepProgram[BREWSTEP_COUNT];
 boolean preheated[4];
 ControlState boilControlState = CONTROLSTATE_OFF;
 
@@ -291,9 +287,6 @@ void setup() {
   #ifdef USE_I2C
     Wire.begin(BT_I2C_ADDR);
   #endif
-  
-  //Initialize Brew Steps to 'Idle'
-  for(byte brewStep = 0; brewStep < BREWSTEP_COUNT; brewStep++) stepProgram[brewStep] = PROGRAM_IDLE;
   
   //Log initialization (Log.pde)
   comInit();

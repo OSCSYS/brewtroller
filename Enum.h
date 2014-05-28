@@ -83,8 +83,15 @@ enum BrewStepIndex {
 enum StepSignal {
   STEPSIGNAL_INIT,
   STEPSIGNAL_UPDATE,
-  STEPSIGNAL_EXIT
+  STEPSIGNAL_ADVANCE,
+  STEPSIGNAL_ABORT
 };
+
+#define PROGRAMTHREAD_MAX 2
+#define PROGRAMTHREAD_NONE 255
+
+#define RECIPE_MAX 20
+#define RECIPE_NONE 255
 
 enum MashStepIndex {
   MASHSTEP_DOUGHIN,
@@ -97,8 +104,10 @@ enum MashStepIndex {
 };
 
 //Zones
-#define ZONE_MASH 0
-#define ZONE_BOIL 1
+enum ZoneIndex {
+  ZONE_MASH,
+  ZONE_BOIL
+};
 
 //Events
 #define EVENT_STEPINIT 0
@@ -109,8 +118,6 @@ enum MashStepIndex {
 //Log Constants
 #define CMD_MSG_FIELDS 25
 #define CMD_FIELD_CHARS 21
-
-#define NUM_PROGRAMS 20
 
 #define BT_I2C_ADDR 0x10
 #define BTNIC_I2C_ADDR 0x11

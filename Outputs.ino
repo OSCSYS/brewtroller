@@ -252,7 +252,12 @@ void pidInit() {
 }
 
 void resetOutputs() {
-  for (byte i = BREWSTEP_FILL; i <= BREWSTEP_CHILL; i++) brewStepExit(i); //Go through each step's exit functions to quit clean.
+  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++)
+    programThreadSignal(i, STEPSIGNAL_ABORT); //Abort any active program threads
+  actProfiles = 0;
+  updateValves();
+  for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++)
+    resetHeatOutput(i);
 }
 
 void resetHeatOutput(byte vessel) {

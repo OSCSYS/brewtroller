@@ -126,9 +126,10 @@ void loadSetup() {
   
 
   //**********************************************************************************
-  //Step (313-327) BREWSTEP_COUNT (15)
+  //Program Threads (313-316)
   //**********************************************************************************
-  for(byte brewStep = 0; brewStep < BREWSTEP_COUNT; brewStep++) brewStepInit(EEPROM.read(313 + brewStep), brewStep);
+  for(byte i = 0; i < PROGRAMTHREAD_MAX; i++)
+    programThreadInit(EEPROM.read(314 + i * 2), EEPROM.read(313 + i * 2));
 
   //**********************************************************************************
   //401-480 Valve Profiles
@@ -422,15 +423,16 @@ void setBoilAddsTrig(unsigned int adds) { EEPROMwriteInt(307, adds); }
 
 
 //**********************************************************************************
-//Step (313-327) BREWSTEP_COUNT (15)
+//Program Threads (313-316)
 //**********************************************************************************
-void setProgramStep(byte brewStep, byte actPgm) {
-  stepProgram[brewStep] = actPgm;
-  EEPROM.write(313 + brewStep, actPgm); 
+
+void eepromSaveProgramThread(byte thread, byte activeStep, byte recipe) {
+  EEPROM.write(313 + thread * 2, activeStep);
+  EEPROM.write(314 + thread * 2, recipe);
 }
 
 //**********************************************************************************
-//Reserved (328-397)
+// ***OPEN*** (317-397)
 //**********************************************************************************
 
 //**********************************************************************************
@@ -717,8 +719,9 @@ void initEEPROM() {
   setBoilPwr(100);
 
   //Set all steps idle
-  for (byte i = 0; i < BREWSTEP_COUNT; i++) setProgramStep(i, PROGRAM_IDLE);
-
+  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++)
+    eepromSaveProgramThread(i, BREWSTEP_NONE, RECIPE_NONE);
+  
   //Set default LCD Bright/Contrast
   #if (defined __AVR_ATmega1284P__ || defined __AVR_ATmega1284__) && defined UI_DISPLAY_SETUP && defined UI_LCD_4BIT
     EEPROM.write(2048, LCD_DEFAULT_BRIGHTNESS);
