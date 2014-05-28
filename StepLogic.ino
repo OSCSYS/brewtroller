@@ -120,27 +120,34 @@ void brewStepExit(byte brewStep) {
   eventHandler(EVENT_STEPEXIT, brewStep);  
 }
 
-void (*brewStepFunctionMap[BREWSTEP_COUNT])(enum StepSignal) = {
-  &brewStepFill,
-  &brewStepDelay,
-  &brewStepPreheat,
-  &brewStepGrainIn,
-  &brewStepRefill,
-  &brewStepDoughIn,
-  &brewStepAcid,
-  &brewStepProtein,
-  &brewStepSacch,
-  &brewStepSacch2,
-  &brewStepMashOut,
-  &brewStepMashHold,
-  &brewStepSparge,
-  &brewStepBoil,
-  &brewStepChill
-};
+void (*brewStepFunc(byte brewStep))(enum StepSignal) {
+  static void (*brewStepFunctionMap[BREWSTEP_COUNT])(enum StepSignal) = {
+    &brewStepFill,
+    &brewStepDelay,
+    &brewStepPreheat,
+    &brewStepGrainIn,
+    &brewStepRefill,
+    &brewStepDoughIn,
+    &brewStepAcid,
+    &brewStepProtein,
+    &brewStepSacch,
+    &brewStepSacch2,
+    &brewStepMashOut,
+    &brewStepMashHold,
+    &brewStepSparge,
+    &brewStepBoil,
+    &brewStepChill
+  };
+  
+  if (brewStep < BREWSTEP_COUNT)
+    return brewStepFunctionMap[brewStep];
+  return 0;
+}
 
 void brewStepSignal(byte brewStep, enum StepSignal signal) {
-  if (brewStep < BREWSTEP_COUNT)
-    (*brewStepFunctionMap[brewStep])(signal);
+  void (*stepFunc)(enum StepSignal) = brewStepFunc(brewStep);
+  if (stepFunc)
+    (*stepFunc)(signal);
 }
 
 void brewStepFill(enum StepSignal signal) {
