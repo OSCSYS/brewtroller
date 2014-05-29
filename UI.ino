@@ -385,8 +385,8 @@ void screenInit() {
     
   } else if (activeScreen == SCREEN_FILL) {
     //Screen Init: Fill/Refill
-    if (stepIsActive(BREWSTEP_FILL)) LCD.print_P(0, 1, PSTR("Fill"));
-    else if (stepIsActive(BREWSTEP_REFILL)) LCD.print_P(0, 1, PSTR("Refill"));
+    if (brewStepIsActive(BREWSTEP_FILL)) LCD.print_P(0, 1, PSTR("Fill"));
+    else if (brewStepIsActive(BREWSTEP_REFILL)) LCD.print_P(0, 1, PSTR("Refill"));
     else LCD.print_P(0, 0, PSTR("Fill"));
     LCD.print_P(0, 11, PSTR("HLT"));
     LCD.print_P(0, 16, PSTR("Mash"));
@@ -413,15 +413,15 @@ void screenInit() {
     //Delay Start Indication
     timerLastPrint = 0;
     
-    if (stepIsActive(BREWSTEP_DELAY)) LCD.print_P(0, 1, PSTR("Delay"));
-    else if (stepIsActive(BREWSTEP_PREHEAT)) LCD.print_P(0, 1, PSTR("Preheat"));
-    else if (stepIsActive(BREWSTEP_DOUGHIN)) LCD.print_P(0, 1, PSTR("Dough In"));
-    else if (stepIsActive(BREWSTEP_ACID)) LCD.print_P(0, 1, PSTR("Acid"));
-    else if (stepIsActive(BREWSTEP_PROTEIN)) LCD.print_P(0, 1, PSTR("Protein"));
-    else if (stepIsActive(BREWSTEP_SACCH)) LCD.print_P(0, 1, PSTR("Sacch"));
-    else if (stepIsActive(BREWSTEP_SACCH2)) LCD.print_P(0, 1, PSTR("Sacch2"));
-    else if (stepIsActive(BREWSTEP_MASHOUT)) LCD.print_P(0, 1, PSTR("Mash Out"));
-    else if (stepIsActive(BREWSTEP_MASHHOLD)) LCD.print_P(0, 1, PSTR("End Mash"));
+    if (brewStepIsActive(BREWSTEP_DELAY)) LCD.print_P(0, 1, PSTR("Delay"));
+    else if (brewStepIsActive(BREWSTEP_PREHEAT)) LCD.print_P(0, 1, PSTR("Preheat"));
+    else if (brewStepIsActive(BREWSTEP_DOUGHIN)) LCD.print_P(0, 1, PSTR("Dough In"));
+    else if (brewStepIsActive(BREWSTEP_ACID)) LCD.print_P(0, 1, PSTR("Acid"));
+    else if (brewStepIsActive(BREWSTEP_PROTEIN)) LCD.print_P(0, 1, PSTR("Protein"));
+    else if (brewStepIsActive(BREWSTEP_SACCH)) LCD.print_P(0, 1, PSTR("Sacch"));
+    else if (brewStepIsActive(BREWSTEP_SACCH2)) LCD.print_P(0, 1, PSTR("Sacch2"));
+    else if (brewStepIsActive(BREWSTEP_MASHOUT)) LCD.print_P(0, 1, PSTR("Mash Out"));
+    else if (brewStepIsActive(BREWSTEP_MASHHOLD)) LCD.print_P(0, 1, PSTR("End Mash"));
     else LCD.print_P(0, 0, PSTR("Mash"));
     // For DIRECT_FIRED_RIMS (and possibly just RIMS), we need a different layout here.
 #ifdef DIRECT_FIRED_RIMS
@@ -454,8 +454,8 @@ void screenInit() {
 
   } else if (activeScreen == SCREEN_SPARGE) {
     //Screen Init: Sparge
-    if (stepIsActive(BREWSTEP_SPARGE)) LCD.print_P(0, 1, PSTR("Sparge"));
-    else if (stepIsActive(BREWSTEP_GRAININ)) LCD.print_P(0, 1, PSTR("Grain In"));
+    if (brewStepIsActive(BREWSTEP_SPARGE)) LCD.print_P(0, 1, PSTR("Sparge"));
+    else if (brewStepIsActive(BREWSTEP_GRAININ)) LCD.print_P(0, 1, PSTR("Grain In"));
     else LCD.print_P(0, 0, PSTR("Sparge"));
     LCD.print_P(1, 1, PSTR("HLT"));
     LCD.print_P(2, 1, PSTR("Mash"));
@@ -482,7 +482,7 @@ void screenInit() {
   } else if (activeScreen == SCREEN_BOIL) {
     //Screen Init: Boil
     timerLastPrint = 0;
-    if (stepIsActive(BREWSTEP_BOIL)) LCD.print_P(0, 1, PSTR("Boil"));
+    if (brewStepIsActive(BREWSTEP_BOIL)) LCD.print_P(0, 1, PSTR("Boil"));
     else LCD.print_P(0,0,PSTR("Boil"));
     LCD.print_P(1, 19, TUNIT);
 
@@ -496,7 +496,7 @@ void screenInit() {
 
   } else if (activeScreen == SCREEN_CHILL) {
     //Screen Init: Chill
-    if (stepIsActive(BREWSTEP_CHILL)) LCD.print_P(0, 1, PSTR("Chill"));
+    if (brewStepIsActive(BREWSTEP_CHILL)) LCD.print_P(0, 1, PSTR("Chill"));
     else LCD.print_P(0, 0, PSTR("Chill"));
     LCD.print_P(0, 11, PSTR("Beer"));
     LCD.print_P(0, 17, PSTR("H2O"));
@@ -853,6 +853,7 @@ void screenEnter() {
           else if (lastOption == 7) {
             //Reset All
             if (confirmAbort()) {
+              programThreadResetAll();
               resetOutputs();
               clearTimer(TIMER_MASH);
               clearTimer(TIMER_BOIL);
@@ -895,7 +896,7 @@ void screenEnter() {
           else if (lastOption == 3) continueClick();     
           else if (lastOption == 4) {
             if (confirmAbort()) {
-              if (stepIsActive(BREWSTEP_FILL))
+              if (brewStepIsActive(BREWSTEP_FILL))
                 brewStepSignal(BREWSTEP_FILL, STEPSIGNAL_ABORT);
               else
                 brewStepSignal(BREWSTEP_REFILL, STEPSIGNAL_ABORT);
@@ -944,39 +945,39 @@ void screenEnter() {
         } 
         else if (lastOption == 4) {
           byte brewstep = BREWSTEP_NONE;
-          if (stepIsActive(BREWSTEP_DELAY)) brewstep = BREWSTEP_DELAY;
-          else if (stepIsActive(BREWSTEP_DOUGHIN)) brewstep = BREWSTEP_DOUGHIN;
-          else if (stepIsActive(BREWSTEP_PREHEAT)) brewstep = BREWSTEP_PREHEAT;
-          else if (stepIsActive(BREWSTEP_ACID)) brewstep = BREWSTEP_ACID;
-          else if (stepIsActive(BREWSTEP_PROTEIN)) brewstep = BREWSTEP_PROTEIN;
-          else if (stepIsActive(BREWSTEP_SACCH)) brewstep = BREWSTEP_SACCH;
-          else if (stepIsActive(BREWSTEP_SACCH2)) brewstep = BREWSTEP_SACCH2;
-          else if (stepIsActive(BREWSTEP_MASHOUT)) brewstep = BREWSTEP_MASHOUT;
-          else if (stepIsActive(BREWSTEP_MASHHOLD)) brewstep = BREWSTEP_MASHHOLD;
+          if (brewStepIsActive(BREWSTEP_DELAY)) brewstep = BREWSTEP_DELAY;
+          else if (brewStepIsActive(BREWSTEP_DOUGHIN)) brewstep = BREWSTEP_DOUGHIN;
+          else if (brewStepIsActive(BREWSTEP_PREHEAT)) brewstep = BREWSTEP_PREHEAT;
+          else if (brewStepIsActive(BREWSTEP_ACID)) brewstep = BREWSTEP_ACID;
+          else if (brewStepIsActive(BREWSTEP_PROTEIN)) brewstep = BREWSTEP_PROTEIN;
+          else if (brewStepIsActive(BREWSTEP_SACCH)) brewstep = BREWSTEP_SACCH;
+          else if (brewStepIsActive(BREWSTEP_SACCH2)) brewstep = BREWSTEP_SACCH2;
+          else if (brewStepIsActive(BREWSTEP_MASHOUT)) brewstep = BREWSTEP_MASHOUT;
+          else if (brewStepIsActive(BREWSTEP_MASHHOLD)) brewstep = BREWSTEP_MASHHOLD;
           if(brewstep != BREWSTEP_NONE) {
             brewStepSignal(brewstep, STEPSIGNAL_ADVANCE);
-            if(stepIsActive(brewstep)) {
+            if(brewStepIsActive(brewstep)) {
               //Failed to advance step
               stepAdvanceFailDialog();
             }
           } else activeScreen = SCREEN_SPARGE;
         } else if (lastOption == 5) {
           if (confirmAbort()) {
-            if (stepIsActive(BREWSTEP_DELAY))
+            if (brewStepIsActive(BREWSTEP_DELAY))
               brewStepSignal(BREWSTEP_DELAY, STEPSIGNAL_ABORT);
-            else if (stepIsActive(BREWSTEP_DOUGHIN))
+            else if (brewStepIsActive(BREWSTEP_DOUGHIN))
               brewStepSignal(BREWSTEP_DOUGHIN, STEPSIGNAL_ABORT);
-            else if (stepIsActive(BREWSTEP_PREHEAT))
+            else if (brewStepIsActive(BREWSTEP_PREHEAT))
               brewStepSignal(BREWSTEP_PREHEAT, STEPSIGNAL_ABORT);
-            else if (stepIsActive(BREWSTEP_ACID))
+            else if (brewStepIsActive(BREWSTEP_ACID))
               brewStepSignal(BREWSTEP_ACID, STEPSIGNAL_ABORT);
-            else if (stepIsActive(BREWSTEP_PROTEIN))
+            else if (brewStepIsActive(BREWSTEP_PROTEIN))
               brewStepSignal(BREWSTEP_PROTEIN, STEPSIGNAL_ABORT);
-            else if (stepIsActive(BREWSTEP_SACCH))
+            else if (brewStepIsActive(BREWSTEP_SACCH))
               brewStepSignal(BREWSTEP_SACCH, STEPSIGNAL_ABORT);
-            else if (stepIsActive(BREWSTEP_SACCH2))
+            else if (brewStepIsActive(BREWSTEP_SACCH2))
               brewStepSignal(BREWSTEP_SACCH2, STEPSIGNAL_ABORT);
-            else if (stepIsActive(BREWSTEP_MASHOUT))
+            else if (brewStepIsActive(BREWSTEP_MASHOUT))
               brewStepSignal(BREWSTEP_MASHOUT, STEPSIGNAL_ABORT);
             else
               brewStepSignal(BREWSTEP_MASHHOLD, STEPSIGNAL_ABORT); //Abort BREWSTEP_MASHOUT or manual operation
@@ -1013,7 +1014,7 @@ void screenEnter() {
           else if (lastOption == 5) continueClick();
           else if (lastOption == 6) {
             if (confirmAbort()) {
-              if (stepIsActive(BREWSTEP_GRAININ))
+              if (brewStepIsActive(BREWSTEP_GRAININ))
                 brewStepSignal(BREWSTEP_GRAININ, STEPSIGNAL_ABORT);
               else
                 brewStepSignal(BREWSTEP_SPARGE, STEPSIGNAL_ABORT); //Abort BREWSTEP_SPARGE or manual operation
@@ -1083,9 +1084,9 @@ void screenEnter() {
           if (vlvConfigIsActive(VLV_BOILRECIRC)) bitClear(actProfiles, VLV_BOILRECIRC);
           else bitSet(actProfiles, VLV_BOILRECIRC);
         } else if (lastOption == 6) {
-          if (stepIsActive(BREWSTEP_BOIL)) {
+          if (brewStepIsActive(BREWSTEP_BOIL)) {
             brewStepSignal(BREWSTEP_BOIL, STEPSIGNAL_ADVANCE);
-            if (stepIsActive(BREWSTEP_BOIL)) {
+            if (brewStepIsActive(BREWSTEP_BOIL)) {
               //Failed to advance step
               stepAdvanceFailDialog();
             }
@@ -1163,13 +1164,13 @@ void boilControlMenu() {
 
 void continueClick() {
   byte brewstep = BREWSTEP_NONE;
-  if (stepIsActive(BREWSTEP_FILL)) brewstep = BREWSTEP_FILL;
-  else if (stepIsActive(BREWSTEP_REFILL)) brewstep = BREWSTEP_REFILL;
-  else if (stepIsActive(BREWSTEP_SPARGE)) brewstep = BREWSTEP_SPARGE;
-  else if (stepIsActive(BREWSTEP_GRAININ)) brewstep = BREWSTEP_GRAININ;
+  if (brewStepIsActive(BREWSTEP_FILL)) brewstep = BREWSTEP_FILL;
+  else if (brewStepIsActive(BREWSTEP_REFILL)) brewstep = BREWSTEP_REFILL;
+  else if (brewStepIsActive(BREWSTEP_SPARGE)) brewstep = BREWSTEP_SPARGE;
+  else if (brewStepIsActive(BREWSTEP_GRAININ)) brewstep = BREWSTEP_GRAININ;
   if(brewstep != BREWSTEP_NONE) {
     brewStepSignal(brewstep, STEPSIGNAL_ADVANCE);
-    if (stepIsActive(brewstep)) {
+    if (brewStepIsActive(brewstep)) {
       //Failed to advance step
       stepAdvanceFailDialog();
     }
@@ -1251,7 +1252,7 @@ void startProgramMenu() {
             //Delay Start
             setDelayMins(getTimerValue(PSTR("Delay Start"), getDelayMins(), 23));
           }
-          if (programThreadInit(profile) == PROGRAMTHREAD_NONE) {
+          if (!programThreadInit(profile)) {
             LCD.clear();
             LCD.print_P(1, 0, PSTR("Program start failed"));
             LCD.print(3, 4, ">");

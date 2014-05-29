@@ -105,6 +105,11 @@ const char BTVER[] PROGMEM = "2.7";
   #include <Wire.h>
 #endif
 
+struct ProgramThread {
+  byte activeStep;
+  byte recipe;
+};
+
 //**********************************************************************************
 // Globals
 //**********************************************************************************
@@ -375,6 +380,9 @@ void setup() {
   #ifndef NOUI
     uiInit();
   #endif
+  
+  //Init of program threads will call event handler to set active screen and must be called after uiInit()
+  programThreadsInit();
 }
 
 

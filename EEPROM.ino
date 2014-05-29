@@ -125,11 +125,6 @@ void loadSetup() {
   #endif
   
 
-  //**********************************************************************************
-  //Program Threads (313-316)
-  //**********************************************************************************
-  for(byte i = 0; i < PROGRAMTHREAD_MAX; i++)
-    programThreadInit(EEPROM.read(314 + i * 2), EEPROM.read(313 + i * 2));
 
   //**********************************************************************************
   //401-480 Valve Profiles
@@ -426,9 +421,12 @@ void setBoilAddsTrig(unsigned int adds) { EEPROMwriteInt(307, adds); }
 //Program Threads (313-316)
 //**********************************************************************************
 
-void eepromSaveProgramThread(byte thread, byte activeStep, byte recipe) {
-  EEPROM.write(313 + thread * 2, activeStep);
-  EEPROM.write(314 + thread * 2, recipe);
+void eepromLoadProgramThread(byte index, struct ProgramThread *thread) {
+  eeprom_read_block((void *) thread, (unsigned char *) 313 + index * sizeof(struct ProgramThread), sizeof(struct ProgramThread));
+}
+
+void eepromSaveProgramThread(byte index, struct ProgramThread *thread) {
+  eeprom_write_block((void *) thread, (unsigned char *) 313 + index * sizeof(struct ProgramThread), sizeof(struct ProgramThread));
 }
 
 //**********************************************************************************
@@ -719,8 +717,12 @@ void initEEPROM() {
   setBoilPwr(100);
 
   //Set all steps idle
-  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++)
-    eepromSaveProgramThread(i, BREWSTEP_NONE, RECIPE_NONE);
+  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
+    struct ProgramThread thread;
+    thread.activeStep = BREWSTEP_NONE;
+    thread.recipe = RECIPE_NONE;
+    eepromSaveProgramThread(i, &thread);
+  }
   
   //Set default LCD Bright/Contrast
   #if (defined __AVR_ATmega1284P__ || defined __AVR_ATmega1284__) && defined UI_DISPLAY_SETUP && defined UI_LCD_4BIT
@@ -731,9 +733,8 @@ void initEEPROM() {
   //Set cfgVersion = 0
   EEPROM.write(2047, 0);
 
-  // re-load Setup 
-  loadSetup();
-  LCD.init();
+  //restart
+  softReset();
 }
 
 //*****************************************************************************************************************************

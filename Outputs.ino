@@ -252,8 +252,6 @@ void pidInit() {
 }
 
 void resetOutputs() {
-  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++)
-    programThreadSignal(i, STEPSIGNAL_ABORT); //Abort any active program threads
   actProfiles = 0;
   updateValves();
   for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++)
