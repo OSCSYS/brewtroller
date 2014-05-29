@@ -552,6 +552,13 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, BREWSTEP_NONE);
     case STEPSIGNAL_ADVANCE:
+      bitClear(actProfiles, VLV_MASHHEAT);    
+      bitClear(actProfiles, VLV_MASHIDLE);
+      resetHeatOutput(VS_HLT);
+      resetHeatOutput(VS_MASH);
+      #ifdef USESTEAM
+        resetHeatOutput(VS_STEAM);
+      #endif      
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepSparge(STEPSIGNAL_INIT, thread);
       break;
