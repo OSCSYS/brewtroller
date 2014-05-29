@@ -105,10 +105,14 @@ const char BTVER[] PROGMEM = "2.7";
   #include <Wire.h>
 #endif
 
+struct ProgramThread {
+  byte activeStep;
+  byte recipe;
+};
+
 //**********************************************************************************
 // Globals
 //**********************************************************************************
-
 //Heat Output Pin Array
 pin heatPin[4], alarmPin;
 
@@ -255,9 +259,6 @@ boolean timerStatus[2], alarmStatus;
 boolean logData = LOG_INITSTATUS;
 
 //Brew Step Logic Globals
-//Active program for each brew step
-#define PROGRAM_IDLE 255
-byte stepProgram[NUM_BREW_STEPS];
 boolean preheated[4];
 ControlState boilControlState = CONTROLSTATE_OFF;
 
@@ -291,9 +292,6 @@ void setup() {
   #ifdef USE_I2C
     Wire.begin(BT_I2C_ADDR);
   #endif
-  
-  //Initialize Brew Steps to 'Idle'
-  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepProgram[brewStep] = PROGRAM_IDLE;
   
   //Log initialization (Log.pde)
   comInit();
@@ -382,6 +380,9 @@ void setup() {
   #ifndef NOUI
     uiInit();
   #endif
+  
+  //Init of program threads will call event handler to set active screen and must be called after uiInit()
+  programThreadsInit();
 }
 
 

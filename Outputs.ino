@@ -252,7 +252,10 @@ void pidInit() {
 }
 
 void resetOutputs() {
-  for (byte i = STEP_FILL; i <= STEP_CHILL; i++) stepExit(i); //Go through each step's exit functions to quit clean.
+  actProfiles = 0;
+  updateValves();
+  for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++)
+    resetHeatOutput(i);
 }
 
 void resetHeatOutput(byte vessel) {

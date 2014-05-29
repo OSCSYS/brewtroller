@@ -125,10 +125,6 @@ void loadSetup() {
   #endif
   
 
-  //**********************************************************************************
-  //Step (313-327) NUM_BREW_STEPS (15)
-  //**********************************************************************************
-  for(byte brewStep = 0; brewStep < NUM_BREW_STEPS; brewStep++) stepInit(EEPROM.read(313 + brewStep), brewStep);
 
   //**********************************************************************************
   //401-480 Valve Profiles
@@ -422,15 +418,19 @@ void setBoilAddsTrig(unsigned int adds) { EEPROMwriteInt(307, adds); }
 
 
 //**********************************************************************************
-//Step (313-327) NUM_BREW_STEPS (15)
+//Program Threads (313-316)
 //**********************************************************************************
-void setProgramStep(byte brewStep, byte actPgm) {
-  stepProgram[brewStep] = actPgm;
-  EEPROM.write(313 + brewStep, actPgm); 
+
+void eepromLoadProgramThread(byte index, struct ProgramThread *thread) {
+  eeprom_read_block((void *) thread, (unsigned char *) 313 + index * sizeof(struct ProgramThread), sizeof(struct ProgramThread));
+}
+
+void eepromSaveProgramThread(byte index, struct ProgramThread *thread) {
+  eeprom_write_block((void *) thread, (unsigned char *) 313 + index * sizeof(struct ProgramThread), sizeof(struct ProgramThread));
 }
 
 //**********************************************************************************
-//Reserved (328-397)
+// ***OPEN*** (317-397)
 //**********************************************************************************
 
 //**********************************************************************************
@@ -717,8 +717,13 @@ void initEEPROM() {
   setBoilPwr(100);
 
   //Set all steps idle
-  for (byte i = 0; i < NUM_BREW_STEPS; i++) setProgramStep(i, PROGRAM_IDLE);
-
+  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
+    struct ProgramThread thread;
+    thread.activeStep = BREWSTEP_NONE;
+    thread.recipe = RECIPE_NONE;
+    eepromSaveProgramThread(i, &thread);
+  }
+  
   //Set default LCD Bright/Contrast
   #if (defined __AVR_ATmega1284P__ || defined __AVR_ATmega1284__) && defined UI_DISPLAY_SETUP && defined UI_LCD_4BIT
     EEPROM.write(2048, LCD_DEFAULT_BRIGHTNESS);
@@ -728,9 +733,8 @@ void initEEPROM() {
   //Set cfgVersion = 0
   EEPROM.write(2047, 0);
 
-  // re-load Setup 
-  loadSetup();
-  LCD.init();
+  //restart
+  softReset();
 }
 
 //*****************************************************************************************************************************

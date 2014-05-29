@@ -192,13 +192,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   static byte CMD_INDEX_MAXVALUE[] PROGMEM = 
   {
     0,                  //CMD_GET_PROGNAMES (All)
-    NUM_PROGRAMS - 1,   //CMD_SET_PROGRAM (Full)
-    NUM_PROGRAMS - 1,  //CMD_GET_PROGRAM (Full)
+    RECIPE_MAX - 1,   //CMD_SET_PROGRAM (Full)
+    RECIPE_MAX - 1,  //CMD_GET_PROGRAM (Full)
     0, 			//CMD_GET_BOIL
     29, 		//CMD_GET_CAL (0-9 HLT, 10-19 Mash, 20-29 Kettle)
     0, 			//CMD_GET_EVAP
     VS_STEAM, 		//CMD_GET_OSET
-    NUM_PROGRAMS - 1, 	//CMD_GET_PROG
+    RECIPE_MAX - 1, 	//CMD_GET_PROG
     NUM_TS - 1, 	//CMD_GET_TS
     0, 			//CMD_GET_VER
     VS_KETTLE, 		//CMD_GET_VSET
@@ -208,24 +208,24 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     29,	                //CMD_SET_CAL (0-9 HLT, 10-19 Mash, 20-29 Kettle)
     0, 			//CMD_SET_EVAP
     VS_STEAM, 		//CMD_SET_OSET
-    NUM_PROGRAMS - 1, 	//CMD_SET_PROG
+    RECIPE_MAX - 1, 	//CMD_SET_PROG
     NUM_TS - 1, 	//CMD_SET_TS
     NUM_VLVCFGS - 1, 	//CMD_SET_VLVCFG
     VS_KETTLE, 		//CMD_SET_VSET
-    NUM_BREW_STEPS - 1, //CMD_ADV_STEP
-    NUM_BREW_STEPS - 1, //CMD_EXIT_STEP
-    NUM_BREW_STEPS - 1, //CMD_INIT_STEP
+    BREWSTEP_COUNT - 1, //CMD_ADV_STEP
+    BREWSTEP_COUNT - 1, //CMD_EXIT_STEP
+    BREWSTEP_COUNT - 1, //CMD_INIT_STEP
     0, 			//CMD_SET_ALARM
     0, 			//CMD_SET_AUTOVLV
     VS_STEAM, 		//CMD_SET_SETPOINT
     TIMER_BOIL, 	//CMD_SET_TIMERSTATUS
     TIMER_BOIL, 	//CMD_SET_TIMERVALUE
-    NUM_PROGRAMS - 1, 	//CMD_GET_PROGNAME
-    NUM_PROGRAMS - 1, 	//CMD_SET_PROGNAME
-    NUM_PROGRAMS - 1, 	//CMD_GET_PROGTEMPS
-    NUM_PROGRAMS - 1, 	//CMD_SET_PROGTEMPS
-    NUM_PROGRAMS - 1, 	//CMD_GET_PROGMINS
-    NUM_PROGRAMS - 1, 	//CMD_SET_PROGMINS
+    RECIPE_MAX - 1, 	//CMD_GET_PROGNAME
+    RECIPE_MAX - 1, 	//CMD_SET_PROGNAME
+    RECIPE_MAX - 1, 	//CMD_GET_PROGTEMPS
+    RECIPE_MAX - 1, 	//CMD_SET_PROGTEMPS
+    RECIPE_MAX - 1, 	//CMD_GET_PROGMINS
+    RECIPE_MAX - 1, 	//CMD_SET_PROGMINS
     0, 			//CMD_GET_STATUS
     0, 			//CMD_SET_VLVPRF
     1, 			//CMD_RESET
@@ -249,8 +249,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_AUTOVLV
     0, 			//CMD_VLVBITS
     0, 			//CMD_VLVPRF
-    NUM_PROGRAMS - 1,   //CMD_GET_PROGVOLS
-    NUM_PROGRAMS - 1,   //CMD_SET_PROGVOLS
+    RECIPE_MAX - 1,   //CMD_GET_PROGVOLS
+    RECIPE_MAX - 1,   //CMD_SET_PROGVOLS
     0, 	                //Unused
     VS_KETTLE,          //CMD_SET_TGTVOL
     VS_KETTLE,          //CMD_GET_TGTVOL
@@ -466,7 +466,7 @@ void BTnic::execCmd(void) {
 
     case CMD_GET_PROGNAMES:  //%3E (All Program Names)
       logFieldCmd(CMD_GET_PROGNAMES, NO_CMDINDEX);
-      for (byte i = 0; i < NUM_PROGRAMS; i++) {
+      for (byte i = 0; i < RECIPE_MAX; i++) {
         char pName[20];
         getProgName(i, pName);
         logField(pName);
@@ -474,23 +474,23 @@ void BTnic::execCmd(void) {
       break;
       
     case CMD_SET_PROGTEMPS:  //']'
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         setProgMashTemp(cmdIndex, i, getCmdParamNum(i + 1) * SETPOINT_DIV);
       }
     case CMD_GET_PROGTEMPS:  //'^'
       logFieldCmd(CMD_GET_PROGTEMPS, cmdIndex);
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         logFieldI(getProgMashTemp(cmdIndex, i) / SETPOINT_DIV);
       }
       break;
 
     case CMD_SET_PROGMINS:  //'_'
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         setProgMashMins(cmdIndex, i, getCmdParamNum(i + 1));
       }
     case CMD_GET_PROGMINS:  //'`'
       logFieldCmd(CMD_GET_PROGMINS, cmdIndex);
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         logFieldI(getProgMashMins(cmdIndex, i));
       }
       break;
@@ -532,7 +532,7 @@ void BTnic::execCmd(void) {
       setProgBatchVol(cmdIndex, getCmdParamNum(2));
       setProgGrain(cmdIndex, getCmdParamNum(3));
       setProgRatio(cmdIndex, getCmdParamNum(4));
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         setProgMashTemp(cmdIndex, i, getCmdParamNum(i * 2 + 5) * SETPOINT_DIV);
         setProgMashMins(cmdIndex, i, getCmdParamNum(i * 2 + 6));
       }
@@ -552,7 +552,7 @@ void BTnic::execCmd(void) {
       logFieldI(getProgBatchVol(cmdIndex));
       logFieldI(getProgGrain(cmdIndex));
       logFieldI(getProgRatio(cmdIndex));
-      for (byte i = MASH_DOUGHIN; i <= MASH_MASHOUT; i++) {
+      for (byte i = 0; i < MASHSTEP_COUNT; i++) {
         logFieldI(getProgMashTemp(cmdIndex, i) / SETPOINT_DIV);
         logFieldI(getProgMashMins(cmdIndex, i));
       }
@@ -638,10 +638,10 @@ void BTnic::execCmd(void) {
       if (_bufData[0] == CMD_INIT_STEP) {
         byte progNum = getCmdParamNum(1);
         if (progNum >= 20) return rejectCmd(CMD_REJECT_PARAM);
-        stepInit(progNum, cmdIndex);
+        programThreadInit(progNum, cmdIndex);
       }
-      else if (_bufData[0] == CMD_ADV_STEP) stepAdvance(cmdIndex);
-      else if (_bufData[0] == CMD_EXIT_STEP) stepExit(cmdIndex);
+      else if (_bufData[0] == CMD_ADV_STEP) brewStepSignal(cmdIndex, STEPSIGNAL_ADVANCE);
+      else if (_bufData[0] == CMD_EXIT_STEP) brewStepSignal(cmdIndex, STEPSIGNAL_ABORT);
     case CMD_STEPPRG:  //n
         logFieldCmd(CMD_STEPPRG, NO_CMDINDEX);
         logStepPrg();
@@ -814,22 +814,12 @@ void BTnic::execCmd(void) {
 }
 
 void BTnic::logStepPrg() {
-  byte logged = 0;
-  for (byte i = STEP_FILL; i <= STEP_CHILL; i++) {
-    if (stepProgram[i] != PROGRAM_IDLE){
-      char pName[20];
-      getProgName(stepProgram[i], pName);
-      logFieldI(i);
-      logField(pName);
-      logFieldI(stepProgram[i]);
-      logged++;
-    }
-  }
-  while (logged < 2) {
-    logFieldI(PROGRAM_IDLE);
-    logField("");
-    logFieldI(PROGRAM_IDLE);
-    logged++;
+  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
+    logFieldI(programThreadActiveStep(i));
+    char pName[20];
+    programThreadRecipeName(i, pName);
+    logField(pName);
+    logFieldI(programThreadRecipeIndex(i));
   }
 }
   
