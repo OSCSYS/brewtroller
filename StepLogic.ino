@@ -267,14 +267,16 @@ void brewStepDelay(enum StepSignal signal, struct ProgramThread *thread) {
 }
 
 void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
+  static byte preheatVessel;
   switch (signal) {
     case STEPSIGNAL_INIT:
       #ifdef MASH_PREHEAT_NOVALVES
         vlvConfig[VLV_MASHHEAT] = 0;
         vlvConfig[VLV_MASHIDLE] = 0;
       #endif
-  
-      if (getProgMLHeatSrc(thread->recipe) == VS_HLT) {
+      preheatVessel = getProgMLHeatSrc(thread->recipe);
+      
+      if (preheatVessel == VS_HLT) {
         setSetpoint(TS_HLT, calcStrikeTemp(thread->recipe));
         
         #ifdef MASH_PREHEAT_STRIKE
@@ -290,7 +292,7 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
       }
       
       #ifndef PID_FLOW_CONTROL
-      setSetpoint(VS_STEAM, getSteamTgt());
+        setSetpoint(VS_STEAM, getSteamTgt());
       #endif
       preheated[VS_HLT] = 0;
       preheated[VS_MASH] = 0;
@@ -303,11 +305,15 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, BREWSTEP_PREHEAT);
       break;
     case STEPSIGNAL_UPDATE:
-      if (
-            (setpoint[VS_MASH] && temp[VS_MASH] >= setpoint[VS_MASH])
-            || (!setpoint[VS_MASH] && temp[VS_HLT] >= setpoint[VS_HLT])
-         )
-        brewStepPreheat(STEPSIGNAL_ADVANCE, thread);
+      if (!preheated[preheatVessel] && temp[preheatVessel] >= setpoint[preheatVessel]) {
+        preheated[preheatVessel] = 1;
+        setAlarm(1);
+      }
+    
+      #ifdef AUTO_PREHEAT_EXIT 
+        if (preheated[preheatVessel])
+          brewStepPreheat(STEPSIGNAL_ADVANCE, thread);
+      #endif
       #if defined SMART_HERMS_HLT && defined SMART_HERMS_PREHEAT
         smartHERMSHLT();
       #endif
@@ -343,7 +349,7 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
       resetHeatOutput(VS_HLT);
       resetHeatOutput(VS_MASH);
       #ifndef PID_FLOW_CONTROL
-      setSetpoint(VS_STEAM, getSteamTgt());
+        setSetpoint(VS_STEAM, getSteamTgt());
       #endif
       setAlarm(1);
       bitSet(actProfiles, VLV_ADDGRAIN);
