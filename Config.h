@@ -358,6 +358,11 @@ static const byte TS = 1;
 // volumes have been reached.
 //#define AUTO_FILL_EXIT
 
+// AUTO_PREHEAT_EXIT: By default the user must manually exit the Preheat step.
+// This prevents the strike water from cooling if the brewer is not present at the
+// end of preheat. Use this option to automatically exit preheat if desired.
+//#define AUTO_PREHEAT_EXIT
+
 // AUTO_ML_XFER: This option will enable the Sparge In AutoValve logic at the start
 // of the Grain In step if the Mash Liquor Heat Source is set to HLT. This is used
 // to transfer preheated mash liquor from HLT to Mash Tun.
