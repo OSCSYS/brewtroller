@@ -710,6 +710,7 @@ void BTnic::execCmd(void) {
       if (cmdIndex == 1) softReset();
       else {
         logFieldCmd(CMD_RESET, cmdIndex);
+        programThreadResetAll();
         resetOutputs();
         clearTimer(TIMER_MASH);
         clearTimer(TIMER_BOIL);
