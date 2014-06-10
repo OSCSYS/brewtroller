@@ -158,7 +158,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     ds.select(addr);   
     ds.write(0xBE, TS_ONEWIRE_PPWR); //Read Scratchpad
     #ifdef TS_ONEWIRE_FASTREAD
-      for (byte i = 0; i < 2; i++) data[i] = ds.read();
+      for (byte i = 0; i < 2; i++)
+        data[i] = ds.read();
+      if (data[0] & data[1] == 0xFF)
+        return BAD_TEMP;
     #else
       for (byte i = 0; i < 9; i++) data[i] = ds.read();
       if (ds.crc8( data, 8) != data[8]) return BAD_TEMP;
