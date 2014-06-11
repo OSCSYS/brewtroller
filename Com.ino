@@ -160,11 +160,7 @@ void updateCom() {
             if(btnicS0.getState() != BTNIC_STATE_TX) break;
           case BTNIC_STATE_TX:
             //TX Ready
-            Serial.print(millis(),DEC);
-            Serial.write(0x09);
             while(btnicS0.getState() == BTNIC_STATE_TX) Serial.write(btnicS0.tx());
-            //Serial.write(0x0D); //Carriage Return
-            //Serial.write(0x0A); //New Line
         }
       }
     #endif
