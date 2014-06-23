@@ -362,7 +362,7 @@ void BTnic::execCmd(void) {
         logFieldI(setpoint[vessel]);
         logFieldI(temp[vessel]);
         logFieldI(getHeatPower(vessel)); 
-        logFieldI(tgtVol[cmdIndex]);
+        logFieldI(tgtVol[vessel]);
         logFieldI(volAvg[vessel]);
         #ifdef FLOWRATE_CALCS
           logFieldI(flowRate[vessel]);
