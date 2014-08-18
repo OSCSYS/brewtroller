@@ -346,6 +346,7 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
   switch (signal) {
     case STEPSIGNAL_INIT:
       //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
+      grainInStart = 0;
       resetHeatOutput(VS_HLT);
       resetHeatOutput(VS_MASH);
       #ifndef PID_FLOW_CONTROL
