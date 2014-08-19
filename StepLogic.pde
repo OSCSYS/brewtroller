@@ -130,6 +130,7 @@ boolean stepInit(byte pgm, byte brewStep) {
     #endif
   } else if (brewStep == STEP_ADDGRAIN) {
   //Step Init: Add Grain
+    grainInStart = 0;
     //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
     resetHeatOutput(VS_HLT);
     resetHeatOutput(VS_MASH);
