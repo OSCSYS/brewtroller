@@ -7,7 +7,6 @@
 #define SOFTSWITCH_ON 1
 #define SOFTSWITCH_AUTO 2
 
-byte softSwitchPv[PVOUT_COUNT];
 byte softSwitchHeat[HEAT_OUTPUTS_COUNT];
 
 RGBIO8 rgbio8s[RGBIO8_NUM_BOARDS];
@@ -30,15 +29,12 @@ void RGBIO8_Init() {
     rgbio8s[ioIndex / 8].assignHeatOutputRecipe(i, ioIndex % 8, 0);
   }
   
-  for (int i = 0; i < PVOUT_COUNT && (ioIndex / 8) < RGBIO8_NUM_BOARDS; i++, ioIndex++) {
+  for (int i = 0; i < outputs->getCount() && (ioIndex / 8) < RGBIO8_NUM_BOARDS; i++, ioIndex++) {
     rgbio8s[ioIndex / 8].assignPvInput(i, ioIndex % 8);
     rgbio8s[ioIndex / 8].assignPvOutputRecipe(i, ioIndex % 8, 1);
   }
   
   // Set the default values of Softswitches to AUTO so that outputs that are not assigned to softswitches are unaffected by this logic
-  for (byte i = 0; i < PVOUT_COUNT; i++)
-    softSwitchPv[i] = SOFTSWITCH_AUTO;
-
   for (byte i = 0; i < HEAT_OUTPUTS_COUNT; i++)
     softSwitchHeat[i] = SOFTSWITCH_AUTO;
 
@@ -51,7 +47,7 @@ void RGBIO8_Init() {
   // powerful.
   //
   // The system is configured by providing input and output mappings
-  // for heat outputs and pump/valve outputs. Each of these outputs
+  // for heat outputs and pump/valve outputs-> Each of these outputs
   // can be in one of four states:
   // Off:       The output is forced off, no matter what other systems attempt.
   // Auto Off:  The output is under auto control of BrewTroller, and is
@@ -73,10 +69,10 @@ void RGBIO8_Init() {
   // last digit. So, for instance, #ABCDEF would become #ACE.
   // 
   // The system has room for four recipes, so you can create 4 different
-  // color schemes that map to your outputs.
+  // color schemes that map to your outputs->
   // 
   // By default we use two recipes. One for heat outputs and another for
-  // pump/valve outputs. They are listed below. If you like, you can just
+  // pump/valve outputs-> They are listed below. If you like, you can just
   // change the colors in a recipe, or you can create entirely new recipes.
   
   // Recipe 0, used for Heat Outputs
@@ -128,6 +124,7 @@ void RGBIO8_Update() {
     for (int i = 0; i < RGBIO8_NUM_BOARDS; i++) {
       rgbio8s[i].update();
     }
+    outputs->setProfileState(OUTPUTPROFILE_RGBIO, outputs->getProfileMask(OUTPUTPROFILE_RGBIO) ? 1 : 0);
     lastRGBIO8 = millis();
   }
 }
@@ -188,14 +185,17 @@ void RGBIO8::update(void) {
   
   // Update any assigned inputs
   for (int i = 0; i < 8; i++) {
+    unsigned long mask = 1;
+    mask = mask << i;
+    
     RGBIO8_input_assignment *a = &input_assignments[i];
     if (a->type) {
       if (a->type == 1) {
         // this is a heat input
-        if (inputs_manual & (1 << i)) {
+        if (inputs_manual & mask) {
           softSwitchHeat[a->index] = SOFTSWITCH_ON;
         }
-        else if (inputs_auto & (1 << i)) {
+        else if (inputs_auto & mask) {
           softSwitchHeat[a->index] = SOFTSWITCH_AUTO;
         }
         else {
@@ -204,23 +204,21 @@ void RGBIO8::update(void) {
       }
       else if (a->type == 2) {
         // this is a PV input
-        if (inputs_manual & (1 << i)) {
-          softSwitchPv[a->index] = SOFTSWITCH_ON;
-        }
-        else if (inputs_auto & (1 << i)) {
-          softSwitchPv[a->index] = SOFTSWITCH_AUTO;
-        }
-        else {
-          softSwitchPv[a->index] = SOFTSWITCH_OFF;
+        if (inputs_manual & mask) {
+          outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 1);
+          outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 1);
+        } else if (inputs_auto & mask) {
+          outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 0);
+          outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 1);
+        } else {
+          outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 0);
+          outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 0);
         }
       }
     }
   }
   
   // Update any assigned outputs
-  #ifdef PVOUT
-  unsigned long vlvBits = Valves.get();
-  #endif
   for (int i = 0; i < 8; i++) {
     RGBIO8_output_assignment *a = &output_assignments[i];
     if (a->type) {
@@ -249,24 +247,14 @@ void RGBIO8::update(void) {
       }
       else if (a->type == 2) {
         // this is a PV output
-        #ifdef PVOUT
-        if (vlvBits & (1 << a->index)) {
-          if (softSwitchPv[a->index] == SOFTSWITCH_AUTO) {
-            setOutput(i, output_recipes[a->recipe_id][2]);
-          }
-          else {
-            setOutput(i, output_recipes[a->recipe_id][3]);
-          }
-        }
-        else {
-          if (softSwitchPv[a->index] == SOFTSWITCH_AUTO) {
-            setOutput(i, output_recipes[a->recipe_id][1]);
-          }
-          else {
-            setOutput(i, output_recipes[a->recipe_id][0]);
-          }
-        }
-        #endif
+        if (outputs->getProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index))
+          setOutput(i, output_recipes[a->recipe_id][3]);                                                       //On: Enabled via RGB
+        else if (!(outputs->getOutputEnable(a->index)))
+          setOutput(i, output_recipes[a->recipe_id][0]);                                                       //Off: Disabled via enable flag (maybe RGB or other enable)
+        else if (outputs->getOutputState(a->index))
+          setOutput(i, output_recipes[a->recipe_id][2]);                                                       //Auto On
+        else
+          setOutput(i, output_recipes[a->recipe_id][1]);                                                       //Auto Off
       }
     }
   }

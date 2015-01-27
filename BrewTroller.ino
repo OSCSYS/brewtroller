@@ -1,4 +1,4 @@
-#define BUILD 3
+#define BUILD 4
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -51,7 +51,7 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 #include "HWProfile.h"
 #include "Config.h"
 #include "Enum.h"
-#include "PVOut.h"
+#include "Outputs.h"
 #include "UI_LCD.h"
 #include <avr/eeprom.h>
 #include <EEPROM.h>
@@ -175,29 +175,8 @@ long flowRate[3] = {0,0,0};
 
 
  
-//Valve Variables
-unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
-
-//Create the appropriate 'Valves' object for the hardware configuration (GPIO, MUX, MODBUS)
-#if defined PVOUT_TYPE_GPIO
-  #define PVOUT
-  PVOutGPIO Valves(PVOUT_COUNT);
-
-#elif defined PVOUT_TYPE_MUX
-  #define PVOUT
-  PVOutMUX Valves( 
-    MUX_LATCH_PIN,
-    MUX_DATA_PIN,
-    MUX_CLOCK_PIN,
-    MUX_ENABLE_PIN,
-    MUX_ENABLE_LOGIC
-  );
-#endif
-
-#ifdef PVOUT_TYPE_MODBUS
-  PVOutMODBUS *ValvesMB[PVOUT_MODBUS_MAXBOARDS];
-#endif
+OutputSystem* outputs;
 
 //Shared buffers
 char buf[20];
@@ -293,89 +272,39 @@ void setup() {
     Wire.begin(BT_I2C_ADDR);
   #endif
   
-  //Log initialization (Log.pde)
-  comInit();
-
-  //Pin initialization (Outputs.pde)
+  //Pin initialization (Outputs.ino)
   pinInit();
 
-
-#ifdef PVOUT
-  #if defined PVOUT_TYPE_GPIO
-    #if PVOUT_COUNT >= 1
-      Valves.setup(0, VALVE1_PIN);
-    #endif
-    #if PVOUT_COUNT >= 2
-      Valves.setup(1, VALVE2_PIN);
-    #endif
-    #if PVOUT_COUNT >= 3
-      Valves.setup(2, VALVE3_PIN);
-    #endif
-    #if PVOUT_COUNT >= 4
-      Valves.setup(3, VALVE4_PIN);
-    #endif
-    #if PVOUT_COUNT >= 5
-      Valves.setup(4, VALVE5_PIN);
-    #endif
-    #if PVOUT_COUNT >= 6
-      Valves.setup(5, VALVE6_PIN);
-    #endif
-    #if PVOUT_COUNT >= 7
-      Valves.setup(6, VALVE7_PIN);
-    #endif
-    #if PVOUT_COUNT >= 8
-      Valves.setup(7, VALVE8_PIN);
-    #endif
-    #if PVOUT_COUNT >= 9
-      Valves.setup(8, VALVE9_PIN);
-    #endif
-    #if PVOUT_COUNT >= 10
-      Valves.setup(9, VALVEA_PIN);
-    #endif
-    #if PVOUT_COUNT >= 11
-      Valves.setup(10, VALVEB_PIN);
-    #endif
-    #if PVOUT_COUNT >= 12
-      Valves.setup(11, VALVEC_PIN);
-    #endif
-    #if PVOUT_COUNT >= 13
-      Valves.setup(12, VALVED_PIN);
-    #endif
-    #if PVOUT_COUNT >= 14
-      Valves.setup(13, VALVEE_PIN);
-    #endif
-    #if PVOUT_COUNT >= 15
-      Valves.setup(14, VALVEF_PIN);
-    #endif
-    #if PVOUT_COUNT >= 16
-      Valves.setup(15, VALVEG_PIN);
-    #endif
-  #endif
-  Valves.init();
-#endif
+  //Output initialization
+  outputs = new OutputSystem();
+  outputs->init();
 
   tempInit();
   
-  //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
+  //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.ino)
   checkConfig();
 
   
-  //Load global variable values stored in EEPROM (EEPROM.pde)
+  //Load global variable values stored in EEPROM (EEPROM.ino)
   loadSetup();
+
+  //Communications initialization (Com.ino)
+  //Must occur after output initialization and loading setup due to RGBIO logic
+  comInit();
   
   #ifdef DIGITAL_INPUTS
     //Digital Input Interrupt Setup
     triggerSetup();
   #endif
   
-  //PID Initialization (Outputs.pde)
+  //PID Initialization (Outputs.ino)
   pidInit();
   
   #ifdef PWM_BY_TIMER
     pwmInit();
   #endif
 
-  //User Interface Initialization (UI.pde)
+  //User Interface Initialization (UI.ino)
   //Moving this to last of setup() to allow time for I2CLCD to initialize
   #ifndef NOUI
     uiInit();
@@ -391,12 +320,12 @@ void setup() {
 //**********************************************************************************
 
 void loop() {
-  //User Interface Processing (UI.pde)
+  //User Interface Processing (UI.ino)
   #ifndef NOUI
     uiCore();
   #endif
   
-  //Core BrewTroller process code (BrewCore.pde)
+  //Core BrewTroller process code (BrewCore.ino)
   brewCore();
 }
 

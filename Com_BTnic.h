@@ -210,7 +210,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     VS_STEAM, 		//CMD_SET_OSET
     RECIPE_MAX - 1, 	//CMD_SET_PROG
     NUM_TS - 1, 	//CMD_SET_TS
-    NUM_VLVCFGS - 1, 	//CMD_SET_VLVCFG
+    OUTPUTPROFILE_USERCOUNT - 1, 	//CMD_SET_VLVCFG
     VS_KETTLE, 		//CMD_SET_VSET
     BREWSTEP_COUNT - 1, //CMD_ADV_STEP
     BREWSTEP_COUNT - 1, //CMD_EXIT_STEP
@@ -229,7 +229,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_GET_STATUS
     0, 			//CMD_SET_VLVPRF
     1, 			//CMD_RESET
-    NUM_VLVCFGS - 1, 	//CMD_GET_VLVCFG
+    OUTPUTPROFILE_SYSTEMCOUNT - 1, 	//CMD_GET_VLVCFG: Dynamic profiles are read only
     0, 			//CMD_GET_ALARM
     0, 			//CMD_GET_BOILPWR
     0, 			//CMD_GET_DELAYTIME
@@ -356,8 +356,8 @@ void BTnic::execCmd(void) {
       logFieldCmd(CMD_GET_STATUS, NO_CMDINDEX);
       logFieldI(alarmStatus);
       logFieldI(autoValveBitmask());
-      logFieldI(actProfiles);
-      logFieldI(computeValveBits());
+      logFieldI(outputs->getProfileStateMask());
+      logFieldI(outputs->getOutputStateMask());
       for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
         logFieldI(setpoint[vessel]);
         logFieldI(temp[vessel]);
@@ -628,7 +628,7 @@ void BTnic::execCmd(void) {
       setValveCfg(cmdIndex, getCmdParamNum(1));
     case CMD_GET_VLVCFG:  //d
       logFieldCmd(CMD_GET_VLVCFG, cmdIndex);
-      logFieldI(vlvConfig[cmdIndex]);  
+      logFieldI(outputs->getProfileMask(cmdIndex));  
       break; 
 
 
@@ -696,12 +696,14 @@ void BTnic::execCmd(void) {
 
       
     case CMD_SET_VLVPRF:  //b
-      //Check param 2 (value) and set/unset specified active profiles
-      if (getCmdParamNum(2)) actProfiles |= getCmdParamNum(1);
-      else actProfiles &= ~getCmdParamNum(1);
+      {
+        unsigned long profileMask = getCmdParamNum(1);
+        boolean profileState = getCmdParamNum(2) ? 1 : 0;
+        outputs->setProfileStateMask(profileMask, profileState);
+      }
     case CMD_VLVPRF:  //w
       logFieldCmd(CMD_VLVPRF, NO_CMDINDEX);
-      logFieldI(actProfiles);
+      logFieldI(outputs->getProfileStateMask());
       break;
       
       
@@ -777,7 +779,7 @@ void BTnic::execCmd(void) {
 
     case CMD_VLVBITS:  //v
       logFieldCmd(CMD_VLVBITS, NO_CMDINDEX);
-      logFieldI(computeValveBits());
+      logFieldI(outputs->getOutputStateMask());
       break;
       
     case CMD_SET_TGTVOL:  //{

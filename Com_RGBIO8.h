@@ -1,7 +1,7 @@
-#include "Config.h"
-
 #ifndef COM_RGBIO8_H
 #define COM_RGBIO8_H
+#include "Config.h"
+
 
 #ifdef RGBIO8_ENABLE
 

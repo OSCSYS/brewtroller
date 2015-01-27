@@ -204,7 +204,7 @@ void pidInit() {
   // this means that after it is multiplied by the PIDLIMIT it will be the proper value to give you the desired % output
   // it also makes the % calculations work properly in the log, UI, and other area's. 
   #ifdef PID_FLOW_CONTROL
-    PIDCycle[VS_PUMP] = 1; // for PID pump flow the STEAM heat output is set to a fixed 10hz signal with 100 step outputs. 
+    PIDCycle[VS_PUMP] = 1; // for PID pump flow the STEAM heat output is set to a fixed 10hz signal with 100 step outputs-> 
   #endif
   
   for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
@@ -252,10 +252,10 @@ void pidInit() {
 }
 
 void resetOutputs() {
-  actProfiles = 0;
-  updateValves();
   for (byte i = VS_HLT; i <= LAST_HEAT_OUTPUT; i++)
     resetHeatOutput(i);
+  outputs->setProfileStateMask(0xFFFFFFFFul, 0);
+  outputs->update();
 }
 
 void resetHeatOutput(byte vessel) {
@@ -640,36 +640,14 @@ void processHeatOutputs() {
   }
 }
 
-#ifdef PVOUT
-  void updateValves() {
-    setValves(computeValveBits());
-  }
-  
-  void setValves(unsigned long vlvBits) {
-    if (vlvBits != Valves.get()) {
-      Valves.set(vlvBits);
-      //Mirror outputs to Modbus
-      #ifdef PVOUT_TYPE_MODBUS
-        if (ValvesMB[0])
-          ValvesMB[0]->set(vlvBits >> (ValvesMB[0]->offset()));
-        
-        if (ValvesMB[1])
-          ValvesMB[1]->set(vlvBits >> (ValvesMB[1]->offset()));
-      #endif
-    }
-  }
-
   void processAutoValve() {
     #ifdef HLT_MIN_REFILL
       unsigned long HLTStopVol;
     #endif
     //Do Valves
     if (autoValve[AV_FILL]) {
-      if (volAvg[VS_HLT] < tgtVol[VS_HLT]) bitSet(actProfiles, VLV_FILLHLT);
-        else bitClear(actProfiles, VLV_FILLHLT);
-        
-      if (volAvg[VS_MASH] < tgtVol[VS_MASH]) bitSet(actProfiles, VLV_FILLMASH);
-        else bitClear(actProfiles, VLV_FILLMASH);
+      outputs->setProfileState(OUTPUTPROFILE_FILLHLT, (volAvg[VS_HLT] < tgtVol[VS_HLT]) ? 1 : 0);
+      outputs->setProfileState(OUTPUTPROFILE_FILLMASH, (volAvg[VS_MASH] < tgtVol[VS_MASH]) ? 1 : 0);
     }
     
     //HLT/MASH/KETTLE AV Logic
@@ -678,23 +656,21 @@ void processHeatOutputs() {
       byte vlvIdle = vesselVLVIdle(i);
       if (autoValve[vesselAV(i)]) {
         if (heatStatus[i]) {
-          if (vlvConfigIsActive(vlvIdle)) bitClear(actProfiles, vlvIdle);
-          if (!vlvConfigIsActive(vlvHeat)) bitSet(actProfiles, vlvHeat);
+          outputs->setProfileState(vlvIdle, 0);
+          outputs->setProfileState(vlvHeat, 1);
         } else {
-          if (vlvConfigIsActive(vlvHeat)) bitClear(actProfiles, vlvHeat);
-          if (!vlvConfigIsActive(vlvIdle)) bitSet(actProfiles, vlvIdle); 
+          outputs->setProfileState(vlvIdle, 1);
+          outputs->setProfileState(vlvHeat, 0);
         }
       }
     }
     
-    if (autoValve[AV_SPARGEIN]) {
-      if (volAvg[VS_HLT] > tgtVol[VS_HLT]) bitSet(actProfiles, VLV_SPARGEIN);
-        else bitClear(actProfiles, VLV_SPARGEIN);
-    }
-    if (autoValve[AV_SPARGEOUT]) {
-      if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) bitSet(actProfiles, VLV_SPARGEOUT);
-      else bitClear(actProfiles, VLV_SPARGEOUT);
-    }
+    if (autoValve[AV_SPARGEIN])
+      outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, (volAvg[VS_HLT] > tgtVol[VS_HLT]) ? 1 : 0);
+
+    if (autoValve[AV_SPARGEOUT])
+      outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) ? 1 : 0);
+
     if (autoValve[AV_FLYSPARGE]) {
       if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
         #ifdef SPARGE_IN_PUMP_CONTROL
@@ -706,7 +682,7 @@ void processHeatOutputs() {
             #else
                if(volAvg[VS_HLT] > getVolLoss(VS_HLT) + 20)
             #endif
-                 bitSet(actProfiles, VLV_SPARGEIN);
+                 outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1);
              prevSpargeVol[0] = volAvg[VS_KETTLE];
           }
           #ifdef HLT_FLY_SPARGE_STOP
@@ -715,88 +691,44 @@ void processHeatOutputs() {
           else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < getVolLoss(VS_HLT) + 20)
           #endif
           {
-             bitClear(actProfiles, VLV_SPARGEIN);
+             outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
              prevSpargeVol[1] = volAvg[VS_HLT];
           }
         #else
-          bitSet(actProfiles, VLV_SPARGEIN);
+          outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1);
         #endif
-        bitSet(actProfiles, VLV_SPARGEOUT);
+        outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 1);
       } else {
-        bitClear(actProfiles, VLV_SPARGEIN);
-        bitClear(actProfiles, VLV_SPARGEOUT);
+        outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
+        outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 0);
       }
     }
     if (autoValve[AV_CHILL]) {
       //Needs work
       /*
       //If Pumping beer
-      if (vlvConfigIsActive(VLV_CHILLBEER)) {
+      if (vlvConfigIsActive(OUTPUTPROFILE_CHILLBEER)) {
         //Cut beer if exceeds pitch + 1
-        if (temp[TS_BEEROUT] > pitchTemp + 1.0) bitClear(actProfiles, VLV_CHILLBEER);
+        if (temp[TS_BEEROUT] > pitchTemp + 1.0) bitClear(actProfiles, OUTPUTPROFILE_CHILLBEER);
       } else {
         //Enable beer if chiller H2O output is below pitch
         //ADD MIN DELAY!
-        if (temp[TS_H2OOUT] < pitchTemp - 1.0) bitSet(actProfiles, VLV_CHILLBEER);
+        if (temp[TS_H2OOUT] < pitchTemp - 1.0) bitSet(actProfiles, OUTPUTPROFILE_CHILLBEER);
       }
       
       //If chiller water is running
-      if (vlvConfigIsActive(VLV_CHILLH2O)) {
+      if (vlvConfigIsActive(OUTPUTPROFILE_CHILLH2O)) {
         //Cut H2O if beer below pitch - 1
-        if (temp[TS_BEEROUT] < pitchTemp - 1.0) bitClear(actProfiles, VLV_CHILLH2O);
+        if (temp[TS_BEEROUT] < pitchTemp - 1.0) bitClear(actProfiles, OUTPUTPROFILE_CHILLH2O);
       } else {
         //Enable H2O if chiller H2O output is at pitch
         //ADD MIN DELAY!
-        if (temp[TS_H2OOUT] >= pitchTemp) bitSet(actProfiles, VLV_CHILLH2O);
+        if (temp[TS_H2OOUT] >= pitchTemp) bitSet(actProfiles, OUTPUTPROFILE_CHILLH2O);
       }
       */
     }
   }
-#endif //#ifdef PVOUT
   
-unsigned long computeValveBits() {
-  if (estop) return 0;
-  unsigned long vlvBits = 0;
-  
-  //Force certain valve profiles off based on trigger pins if enabled
-  if (TriggerPin[TRIGGER_SPARGEMAX] != NULL) if(TriggerPin[TRIGGER_SPARGEMAX]->get()) bitClear(actProfiles, VLV_SPARGEIN);
-  if (TriggerPin[TRIGGER_HLTMIN] != NULL) if(!TriggerPin[TRIGGER_HLTMIN]->get()) bitClear(actProfiles, VLV_HLTHEAT);
-  if (TriggerPin[TRIGGER_MASHMIN] != NULL) if(!TriggerPin[TRIGGER_MASHMIN]->get()) bitClear(actProfiles, VLV_MASHHEAT);
-  if (TriggerPin[TRIGGER_KETTLEMIN] != NULL) if(!TriggerPin[TRIGGER_KETTLEMIN]->get()) bitClear(actProfiles, VLV_KETTLEHEAT);
-  
-  for (byte i = 0; i < NUM_VLVCFGS; i++) {
-    if (bitRead(actProfiles, i)) {
-      vlvBits |= vlvConfig[i];
-    }
-  }
-  #ifdef RGBIO8_ENABLE
-  // Build the softswitch masks
-  // Any bits set to 1 on offMask will force the corresponding valve off.
-  unsigned long offMask = 0;
-  // Any bits set to 1 on onMask will force the corresponding valve on.
-  unsigned long onMask = 0;
-  for (int i = 0; i < PVOUT_COUNT; i++) {
-    if (softSwitchPv[i] == SOFTSWITCH_OFF) {
-      offMask |= (1 << i);
-    }
-    else if (softSwitchPv[i] == SOFTSWITCH_ON) {
-      onMask |= (1 << i);
-    }
-  }
-  // Apply the masks to the pre-computed valve bits.
-  offMask = ~offMask;
-  vlvBits &= offMask;
-  vlvBits |= onMask;
-  #endif
-  return vlvBits;
-}
-
-boolean vlvConfigIsActive(byte profile) {
-  //An empty valve profile cannot be active
-  if (!vlvConfig[profile]) return 0;
-  return bitRead(actProfiles, profile);
-}
-
 void boilController () {
   if (boilControlState == CONTROLSTATE_AUTO) {
     if(temp[TS_KETTLE] < setpoint[TS_KETTLE]) PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * PIDLIMIT_KETTLE;
@@ -812,15 +744,15 @@ byte vesselAV(byte vessel) {
 }
 
 byte vesselVLVHeat(byte vessel) {
-  if (vessel == VS_HLT) return VLV_HLTHEAT;
-  else if (vessel == VS_MASH) return VLV_MASHHEAT;
-  else if (vessel == VS_KETTLE) return VLV_KETTLEHEAT;
+  if (vessel == VS_HLT) return OUTPUTPROFILE_HLTHEAT;
+  else if (vessel == VS_MASH) return OUTPUTPROFILE_MASHHEAT;
+  else if (vessel == VS_KETTLE) return OUTPUTPROFILE_KETTLEHEAT;
 }
 
 byte vesselVLVIdle(byte vessel) {
-  if (vessel == VS_HLT) return VLV_HLTIDLE;
-  else if (vessel == VS_MASH) return VLV_MASHIDLE;
-  else if (vessel == VS_KETTLE) return VLV_KETTLEIDLE;
+  if (vessel == VS_HLT) return OUTPUTPROFILE_HLTIDLE;
+  else if (vessel == VS_MASH) return OUTPUTPROFILE_MASHIDLE;
+  else if (vessel == VS_KETTLE) return OUTPUTPROFILE_KETTLEIDLE;
 }
 
 pin * vesselMinTrigger(byte vessel) {

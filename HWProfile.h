@@ -10,19 +10,30 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
 
   #define ALARM_PIN 2	//OUT14
   
-  #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 10 //10 Outputs
+  #define OUTPUTBANK_GPIO
+  #define OUTPUTBANK_GPIO_BANKNAME "DX1 Outputs"
+  #define OUTPUTBANK_GPIO_COUNT 10
+  #define OUTPUTBANK_GPIO_PINS {28, 29, 30, 31, 7, 6, 3, 4, 12, 15}
+  #define OUTPUTBANK_GPIO_OUTPUTNAMES "Output 1\0Output 2\0Output 3\0Output 4\0Output 5\0Output 6\0Output 7\0Output 8\0Output 9\0Output 10"
+    
+  #define OUTPUTBANK_MODBUS
+  
+  #define DIGITAL_INPUTS
+  #define DIGITAL_INPUTS_COUNT 5
+  #define DIGITAL_INPUTS_PINS {18, 19, 20, 21, 22}
 
-  #define VALVE1_PIN 28	//OUT1
-  #define VALVE2_PIN 29	//OUT2
-  #define VALVE3_PIN 30	//OUT3
-  #define VALVE4_PIN 31	//OUT4
-  #define VALVE5_PIN 7	//OUT5
-  #define VALVE6_PIN 6	//OUT6
-  #define VALVE7_PIN 3	//OUT7
-  #define VALVE8_PIN 4	//OUT8
-  #define VALVE9_PIN 12	//OUT9
-  #define VALVEA_PIN 15	//OUT10
+  #define ANALOGINPUTS_GPIO
+  #define ANALOGINPUTS_GPIO_COUNT 4
+  #define ANALOGINPUTS_GPIO_PINS {3, 2, 1, 0}
+  #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analaog 2\0Analog 3\0Analog 4""
+
+  #define ANALOGINPUTS_MODBUS
+	
+  #define ANALOGOUTPUTS_HWPWM
+  #define ANALOGOUTPUTS_HWPWM_PINCOUNT 1
+  #define ANALOGOUTPUTS_HWPWM_PINS {15}
+  #define ANALOGOUTPUTS_HWPWM_TIMERS {2}
+  #define ANALOGOUTPUTS_HWPWM_NAMES "Buzzer"
   
   #define HLTHEAT_PIN 1	 //OUT13
   #define MASHHEAT_PIN 13	//OUT12
@@ -30,7 +41,6 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
 
   #define RS485_SERIAL_PORT 1
   #define RS485_RTS_PIN    23
-  #define PVOUT_TYPE_MODBUS
 
   #define DIGITAL_INPUTS
   #define DIGIN_COUNT 6

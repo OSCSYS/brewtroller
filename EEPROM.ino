@@ -129,33 +129,27 @@ void loadSetup() {
   //**********************************************************************************
   //401-480 Valve Profiles
   //**********************************************************************************
-  #ifdef PVOUT
     loadVlvConfigs();
   
-    #ifdef PVOUT_TYPE_MODBUS
-      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++) 
-        loadVlvModbus(i);
+    #ifdef OUTPUTBANK_MODBUS
+      loadVlvModbus();
     #endif
-  #endif
 }
 
-#ifdef PVOUT
   void loadVlvConfigs() {
-    eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
+    for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
+      outputs->setProfileMask(i, getValveCfg(i));
   }
   
-  #ifdef PVOUT_TYPE_MODBUS
-    void loadVlvModbus(byte board) {
-      if (ValvesMB[board]) {
-        delete ValvesMB[board];
-        ValvesMB[board] = NULL;
+  #ifdef OUTPUTBANK_MODBUS
+    void loadVlvModbus() {
+      for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++) {
+        byte addr = getVlvModbusAddr(i);
+        if (addr != OUTPUTBANK_MODBUS_ADDRNONE)
+          outputs->newModbusBank(addr, getVlvModbusReg(i), getVlvModbusCoilCount(i));
       }
-      byte addr = getVlvModbusAddr(board);
-      if (addr != PVOUT_MODBUS_ADDRNONE)
-        ValvesMB[board] = new PVOutMODBUS(addr, getVlvModbusReg(board), getVlvModbusCoilCount(board), getVlvModbusOffset(board));
     }
   #endif 
-#endif
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions
@@ -451,10 +445,11 @@ byte getGrainTemp() { return EEPROM.read(400); }
 // Valve Profile Configuration (401-480; 481-785 Reserved)
 //*****************************************************************************************************************************
 void setValveCfg(byte profile, unsigned long value) {
-  #ifdef PVOUT
-    vlvConfig[profile] = value;
-    EEPROMwriteLong(401 + profile * 4, value);
-  #endif
+  outputs->setProfileMask(profile, value);
+  EEPROMwriteLong(401 + profile * 4, value);
+}
+unsigned long getValveCfg(byte profile) {
+  return EEPROMreadLong(401 + profile * 4);
 }
 
 //*****************************************************************************************************************************
@@ -591,49 +586,36 @@ unsigned long getProgGrain(byte preset) { return EEPROMreadLong(PROGRAM_START_AD
 
 
 //**********************************************************************************
-//Modbus Relay Boards (2065-2074) ATMEGA1284P Only + Reserved: 2075-2084 
+//Modbus Relay Boards (2065-2076) ATMEGA1284P Only + Reserved: 2077-2088 
 //**********************************************************************************
 byte getVlvModbusAddr(byte board) {
-  return EEPROM.read(board * 5);
+  return EEPROM.read(2065 + board * 4);
 }
 
 unsigned int getVlvModbusReg(byte board) {
-  return EEPROMreadInt(board * 5 + 1);
+  return EEPROMreadInt(2065 + board * 4 + 1);
 }
 
 byte getVlvModbusCoilCount(byte board) {
-  return EEPROM.read(board * 5 + 3);
-}
-
-byte getVlvModbusOffset(byte board) {
-  return EEPROM.read(board * 5 + 4);
+  return EEPROM.read(2065 + board * 4 + 3);
 }
 
 void setVlvModbusAddr(byte board, byte addr) {
-  EEPROM.write(board * 5, addr);
+  EEPROM.write(2065 + board * 4, addr);
 }
 
 void setVlvModbusReg(byte board, unsigned int reg) {
-  EEPROMwriteInt(board * 5 + 1, reg);
+  EEPROMwriteInt(2065 + board * 4 + 1, reg);
 }
 
 void setVlvModbusCoilCount(byte board, byte count) {
-  EEPROM.write(board * 5 + 3, count);
-}
-
-void setVlvModbusOffset(byte board, byte offset) {
-  EEPROM.write(board * 5 + 4, offset);
+  EEPROM.write(2065 + board * 4 + 3, count);
 }
 
 void setVlvModbusDefaults(byte board) {
-  setVlvModbusAddr(board, PVOUT_MODBUS_ADDRNONE);
-  setVlvModbusReg(board, PVOUT_MODBUS_DEFCOILREG);
-  setVlvModbusCoilCount(board, PVOUT_MODBUS_DEFCOILCOUNT);
-  byte defaultOffset = PVOUT_COUNT;
-  if (board)
-    for (byte i = 0; i < board; i++)
-      defaultOffset += getVlvModbusOffset(board);
-  setVlvModbusOffset(board, defaultOffset);
+  setVlvModbusAddr(board, OUTPUTBANK_MODBUS_ADDRNONE);
+  setVlvModbusReg(board, OUTPUTBANK_MODBUS_DEFCOILREG);
+  setVlvModbusCoilCount(board, OUTPUTBANK_MODBUS_DEFCOILCOUNT);
 }
 
 //*****************************************************************************************************************************
@@ -667,9 +649,10 @@ boolean checkConfig() {
       for (byte trig = 0; trig < NUM_TRIGGERS; trig++) EEPROM.write(2050 + trig, 0);
       EEPROM.write(2047, 2);
     case 2:
-      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++)
+    case 3:
+      for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++)
         setVlvModbusDefaults(i);
-      EEPROM.write(2047, 3);
+      EEPROM.write(2047, 4);
   }
   return 0;
 }

@@ -453,15 +453,15 @@ static const byte TS = 1;
   #define RS485_BAUDRATE    76800
   #define RS485_PARITY      SERIAL_8E1
   
-  #define PVOUT_MODBUS_MAXBOARDS     4
-  #define PVOUT_MODBUS_DEFCOILREG    1000
-  #define PVOUT_MODBUS_DEFCOILCOUNT  8
-  #define PVOUT_MODBUS_BASEADDR      10
-  #define PVOUT_MODBUS_ADDRNONE 255
-  #define PVOUT_MODBUS_ADDRINIT 247
-  #define PVOUT_MODBUS_REGIDMODE 9000
-  #define PVOUT_MODBUS_REGSLAVEADDR 9001
-  #define PVOUT_MODBUS_REGRESTART 9002
+  #define OUTPUTBANK_MODBUS_MAXBOARDS     4
+  #define OUTPUTBANK_MODBUS_DEFCOILREG    1000
+  #define OUTPUTBANK_MODBUS_DEFCOILCOUNT  8
+  #define OUTPUTBANK_MODBUS_BASEADDR      10
+  #define OUTPUTBANK_MODBUS_ADDRNONE 255
+  #define OUTPUTBANK_MODBUS_ADDRINIT 247
+  #define OUTPUTBANK_MODBUS_REGIDMODE 9000
+  #define OUTPUTBANK_MODBUS_REGSLAVEADDR 9001
+  #define OUTPUTBANK_MODBUS_REGRESTART 9002
 
 /***********************************************************************************
  * EXPERIMENTAL OPTIONS
@@ -623,7 +623,7 @@ static const byte TS = 1;
 //
 // Enables the RGBIO8 system.
 //
-//#define RGBIO8_ENABLE
+#define RGBIO8_ENABLE
 //
 // Enables the setup UI for the RGBIO8 board. This takes up quite a bit of code
 // space so it can be disabled once you have set up all of your boards. It is

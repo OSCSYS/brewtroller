@@ -38,8 +38,8 @@ void eventHandler(byte eventID, int eventParam) {
     if (setpoint[eventParam]) autoValve[avProfile] = 1;
     else { 
       autoValve[avProfile] = 0; 
-      if (vlvConfigIsActive(vlvIdle)) bitClear(actProfiles, vlvIdle);
-      if (vlvConfigIsActive(vlvHeat)) bitClear(actProfiles, vlvHeat);
+      outputs->setProfileState(vlvIdle, 0);
+      outputs->setProfileState(vlvHeat, 0);
     } 
   }
   
@@ -79,27 +79,25 @@ void eventHandler(byte eventID, int eventParam) {
       estop = 1;
       setAlarm(1);
       processHeatOutputs();
-      #ifdef PVOUT
-        updateValves();
-      #endif
+      outputs->update();
       updateTimers();
     }
   }
   
   void spargeMaxISR() {
-    bitClear(actProfiles, VLV_SPARGEIN);
+    outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
   }
   
   void hltMinISR() {
     heatPin[VS_HLT].set(LOW);
     heatStatus[VS_HLT] = 0;
-    bitClear(actProfiles, VLV_HLTHEAT);
+    outputs->setProfileState(OUTPUTPROFILE_HLTHEAT, 0);
   }
   
   void mashMinISR() {
     heatPin[VS_MASH].set(LOW);
     heatStatus[VS_MASH] = 0;
-    bitClear(actProfiles, VLV_MASHHEAT);
+    outputs->setProfileState(OUTPUTPROFILE_MASHHEAT, 0);
     #ifdef DIRECT_FIRED_RIMS
       heatPin[VS_STEAM].set(LOW);
       heatStatus[VS_STEAM] = 0;
@@ -109,6 +107,6 @@ void eventHandler(byte eventID, int eventParam) {
   void kettleMinISR() {
     heatPin[VS_KETTLE].set(LOW);
     heatStatus[VS_KETTLE] = 0;    
-    bitClear(actProfiles, VLV_KETTLEHEAT);
+    outputs->setProfileState(OUTPUTPROFILE_KETTLEHEAT, 0);
   }
 #endif

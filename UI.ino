@@ -551,11 +551,8 @@ void screenRefresh() {
     truncFloat(buf, 5);
     LCD.lPad(2, 15, buf, 5, ' ');
 
-    if (vlvConfigIsActive(VLV_FILLHLT)) LCD.print_P(3, 11, PSTR("On "));
-    else LCD.print_P(3, 11, PSTR("Off"));
-
-    if (vlvConfigIsActive(VLV_FILLMASH)) LCD.print_P(3, 17, PSTR(" On"));
-    else LCD.print_P(3, 17, PSTR("Off"));
+    LCD.print_P(3, 11, outputs->getProfileState(OUTPUTPROFILE_FILLHLT) ? PSTR("On ") : PSTR("Off"));
+    LCD.print_P(3, 17, outputs->getProfileState(OUTPUTPROFILE_FILLMASH) ? PSTR("On ") : PSTR("Off"));
     
     if (screenLock) {
       int encValue = Encoder.change();
@@ -754,8 +751,8 @@ void screenRefresh() {
     if (temp[TS_BEEROUT] == BAD_TEMP) LCD.print_P(2, 11, PSTR("---")); else LCD.lPad(2, 11, itoa(temp[TS_BEEROUT] / 100, buf, 10), 3, ' ');
     if (temp[TS_H2OIN] == BAD_TEMP) LCD.print_P(1, 16, PSTR("---")); else LCD.lPad(1, 16, itoa(temp[TS_H2OIN] / 100, buf, 10), 3, ' ');
     if (temp[TS_H2OOUT] == BAD_TEMP) LCD.print_P(2, 16, PSTR("---")); else LCD.lPad(2, 16, itoa(temp[TS_H2OOUT] / 100, buf, 10), 3, ' ');
-    if (vlvConfigIsActive(VLV_CHILLBEER)) LCD.print_P(3, 12, PSTR(" On")); else LCD.print_P(3, 12, PSTR("Off"));
-    if (vlvConfigIsActive(VLV_CHILLH2O)) LCD.print_P(3, 17, PSTR(" On")); else LCD.print_P(3, 17, PSTR("Off"));
+    LCD.print_P(3, 12, outputs->getProfileState(OUTPUTPROFILE_CHILLBEER) ? PSTR("On ") : PSTR("Off"));
+    LCD.print_P(3, 17, outputs->getProfileState(OUTPUTPROFILE_CHILLH2O) ? PSTR("On ") : PSTR("Off"));
 
   } else if (activeScreen == SCREEN_AUX) {
     //Screen Refresh: AUX
@@ -799,20 +796,16 @@ void screenEnter() {
           homeMenu.setItem_P(PSTR("Start Program"), 2);
 
           homeMenu.setItem_P(DRAIN, 3);
-          if (vlvConfigIsActive(VLV_DRAIN)) homeMenu.appendItem_P(PSTR(": On"), 3);
-          else homeMenu.appendItem_P(PSTR(": Off"), 3);
-          
+          homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_DRAIN) ? PSTR(": On") : PSTR(": Off"), 3);
+
           homeMenu.setItem_P(USER1, 4);
-          if (vlvConfigIsActive(VLV_USER1)) homeMenu.appendItem_P(PSTR(": On"), 4);
-          else homeMenu.appendItem_P(PSTR(": Off"), 4);
+          homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_USER1) ? PSTR(": On") : PSTR(": Off"), 4);
           
           homeMenu.setItem_P(USER2, 5);
-          if (vlvConfigIsActive(VLV_USER2)) homeMenu.appendItem_P(PSTR(": On"), 5);
-          else homeMenu.appendItem_P(PSTR(": Off"), 5);
+          homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_USER2) ? PSTR(": On") : PSTR(": Off"), 5);
           
           homeMenu.setItem_P(USER3, 6);
-          if (vlvConfigIsActive(VLV_USER3)) homeMenu.appendItem_P(PSTR(": On"), 6);
-          else homeMenu.appendItem_P(PSTR(": Off"), 6);
+          homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_USER3) ? PSTR(": On") : PSTR(": Off"), 6);
 
           homeMenu.setItem_P(PSTR("Reset All"), 7);
           #ifndef UI_NO_SETUP
@@ -831,7 +824,8 @@ void screenEnter() {
           }
           else if (lastOption == 3) {
             //Drain
-            if (vlvConfigIsActive(VLV_DRAIN)) bitClear(actProfiles, VLV_DRAIN);
+            if (outputs->getProfileState(OUTPUTPROFILE_DRAIN))
+              outputs->setProfileState(OUTPUTPROFILE_DRAIN, 0);
             else {
               if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL)) {
                 LCD.clear();
@@ -842,13 +836,14 @@ void screenEnter() {
                 LCD.print_P(3, 6, CONTINUE);
                 LCD.print(3, 15, "<");
                 while (!Encoder.ok()) brewCore();
-              } else bitSet(actProfiles, VLV_DRAIN);
+              } else
+                outputs->setProfileState(OUTPUTPROFILE_DRAIN, 1);
             }
           }
           else if (lastOption >= 4 && lastOption <= 6) {
             //User Valve 1-3
-            if (vlvConfigIsActive(lastOption + 13)) bitClear(actProfiles, lastOption + 13);
-            else bitSet(actProfiles, lastOption + 13);
+            byte profileIndex = OUTPUTPROFILE_USER1 + (lastOption - 4);
+            outputs->setProfileState(profileIndex, outputs->getProfileState(profileIndex) ? 0 : 1);
           }          
           else if (lastOption == 7) {
             //Reset All
@@ -876,11 +871,23 @@ void screenEnter() {
         //Sceeen Enter: Fill/Refill
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
-        else if (encValue == 1) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLMASH); bitSet(actProfiles, VLV_FILLHLT);}
-        else if (encValue == 2) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLHLT); bitSet(actProfiles, VLV_FILLMASH);}
-        else if (encValue == 3) { autoValve[AV_FILL] = 0; bitSet(actProfiles, VLV_FILLHLT); bitSet(actProfiles, VLV_FILLMASH);}
-        else if (encValue == 4) { autoValve[AV_FILL] = 0; bitClear(actProfiles, VLV_FILLHLT); bitClear(actProfiles, VLV_FILLMASH);}
-        else if (encValue == 5) {
+        else if (encValue == 1) { 
+          autoValve[AV_FILL] = 0; 
+          outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0); 
+          outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 1);
+        } else if (encValue == 2) { 
+          autoValve[AV_FILL] = 0; 
+          outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0); 
+          outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 1);
+        } else if (encValue == 3) {
+          autoValve[AV_FILL] = 0;
+          outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 1);
+          outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 1);
+        } else if (encValue == 4) {
+          autoValve[AV_FILL] = 0;
+          outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
+          outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0);
+        } else if (encValue == 5) {
           menu fillMenu(3, 6);
           fillMenu.setItem_P(PSTR("Auto Fill"), 0);
           fillMenu.setItem_P(PSTR("HLT Target"), 1);
@@ -989,12 +996,24 @@ void screenEnter() {
         //Screen Enter: Sparge
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
-        else if (encValue == 1) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEIN); }
-        else if (encValue == 2) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEOUT); }
-        else if (encValue == 3) { resetSpargeValves(); bitSet(actProfiles, VLV_SPARGEIN); bitSet(actProfiles, VLV_SPARGEOUT); }
-        else if (encValue == 4) { resetSpargeValves(); bitSet(actProfiles, VLV_MASHHEAT); }
-        else if (encValue == 5) { resetSpargeValves(); bitSet(actProfiles, VLV_MASHIDLE); }
-        else if (encValue == 6) { resetSpargeValves(); }
+        else if (encValue == 1) { 
+          resetSpargeValves(); 
+          outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1); 
+        } else if (encValue == 2) { 
+          resetSpargeValves(); 
+          outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 1); 
+        } else if (encValue == 3) {
+          resetSpargeValves(); 
+          outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1); 
+          outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 1); 
+        } else if (encValue == 4) {
+          resetSpargeValves(); 
+          outputs->setProfileState(OUTPUTPROFILE_MASHHEAT, 1); 
+        } else if (encValue == 5) {
+          resetSpargeValves(); 
+          outputs->setProfileState(OUTPUTPROFILE_MASHIDLE, 1); 
+        } else if (encValue == 6)
+          resetSpargeValves();
         else if (encValue == 7) {
           menu spargeMenu(3, 8);
           spargeMenu.setItem_P(PSTR("Auto In"), 0);
@@ -1057,8 +1076,7 @@ void screenEnter() {
         boilMenu.appendItem("%", 4);
         
         boilMenu.setItem_P(BOILRECIRC, 5);
-        if (vlvConfigIsActive(VLV_BOILRECIRC)) boilMenu.appendItem_P(PSTR(": On"), 5);
-        else boilMenu.appendItem_P(PSTR(": Off"), 5);
+        boilMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_BOILRECIRC) ? PSTR(": On") : PSTR(": Off"), 5);
         
         boilMenu.setItem_P(CONTINUE, 6);
         boilMenu.setItem_P(ABORT, 7);
@@ -1080,10 +1098,9 @@ void screenEnter() {
           setSetpoint(VS_KETTLE, getBoilTemp() * SETPOINT_MULT);
         }
         else if (lastOption == 4) setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
-        else if (lastOption == 5) {
-          if (vlvConfigIsActive(VLV_BOILRECIRC)) bitClear(actProfiles, VLV_BOILRECIRC);
-          else bitSet(actProfiles, VLV_BOILRECIRC);
-        } else if (lastOption == 6) {
+        else if (lastOption == 5)
+          outputs->setProfileState(OUTPUTPROFILE_BOILRECIRC, outputs->getProfileState(OUTPUTPROFILE_BOILRECIRC) ? 0 : 1);
+        else if (lastOption == 6) {
           if (brewStepIsActive(BREWSTEP_BOIL)) {
             brewStepSignal(BREWSTEP_BOIL, STEPSIGNAL_ADVANCE);
             if (brewStepIsActive(BREWSTEP_BOIL)) {
@@ -1107,11 +1124,24 @@ void screenEnter() {
           brewStepSignal(BREWSTEP_CHILL, STEPSIGNAL_ADVANCE);
           setActive(SCREEN_HOME);
         }
-        else if (encValue == 1) { autoValve[AV_CHILL] = 0; bitSet(actProfiles, VLV_CHILLH2O); bitSet(actProfiles, VLV_CHILLBEER); }
-        else if (encValue == 2) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLBEER); bitSet(actProfiles, VLV_CHILLH2O); }
-        else if (encValue == 3) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLH2O); bitSet(actProfiles, VLV_CHILLBEER); }
-        else if (encValue == 4) { autoValve[AV_CHILL] = 0; bitClear(actProfiles, VLV_CHILLH2O); bitClear(actProfiles, VLV_CHILLBEER); }
-        else if (encValue == 5) autoValve[AV_CHILL] = 1;        
+        else if (encValue == 1) {
+          autoValve[AV_CHILL] = 0; 
+          outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 1);
+          outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 1);
+        } else if (encValue == 2) {
+          autoValve[AV_CHILL] = 0; 
+          outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 0);
+          outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 1);
+        } else if (encValue == 3) {
+          autoValve[AV_CHILL] = 0; 
+          outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 0);
+          outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 1);
+        } else if (encValue == 4) {
+          autoValve[AV_CHILL] = 0;
+          outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 0);
+          outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 0); 
+        } else if (encValue == 5)
+          autoValve[AV_CHILL] = 1;        
       }
     }
   }
@@ -2046,11 +2076,9 @@ void menuSetup() {
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 0);
   setupMenu.setItem_P(PSTR("Outputs"), 1);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 2);
-  #ifdef PVOUT
-    setupMenu.setItem_P(PSTR("Valve Profiles"), 3);
-    #ifdef PVOUT_TYPE_MODBUS
-      setupMenu.setItem_P(PSTR("RS485 Outputs"), 4);
-    #endif
+  setupMenu.setItem_P(PSTR("Valve Profiles"), 3);
+  #ifdef OUTPUTBANK_MODBUS
+    setupMenu.setItem_P(PSTR("RS485 Outputs"), 4);
   #endif
   setupMenu.setItem_P(INIT_EEPROM, 5);
   #ifdef UI_DISPLAY_SETUP
@@ -2071,12 +2099,10 @@ void menuSetup() {
     if (lastOption == 0) assignSensor();
     else if (lastOption == 1) cfgOutputs();
     else if (lastOption == 2) cfgVolumes();
-    #ifdef PVOUT
-      else if (lastOption == 3) cfgValves();
-      #ifdef PVOUT_TYPE_MODBUS
-        else if (lastOption == 4) cfgMODBUSOutputs();
-      #endif
-    #endif  
+    else if (lastOption == 3) cfgValves();
+    #ifdef OUTPUTBANK_MODBUS
+      else if (lastOption == 4) cfgMODBUSOutputs();
+    #endif
     else if (lastOption == 5) {
       LCD.clear();
       LCD.print_P(0, 0, PSTR("Reset Configuration?"));
@@ -2593,146 +2619,149 @@ void volCalibEntryMenu(byte vessel, byte entry) {
   }
 }
 
-#ifdef PVOUT
-  void cfgValves() {
-    byte dispOrder[] = {
-      VLV_FILLHLT,
-      VLV_FILLMASH,
-      VLV_HLTHEAT,
-      VLV_HLTIDLE,
-      VLV_MASHHEAT,
-      VLV_MASHIDLE,
-      VLV_ADDGRAIN,
-      VLV_SPARGEIN,
-      VLV_SPARGEOUT,
-      VLV_KETTLEHEAT,
-      VLV_KETTLEIDLE,
-      VLV_HOPADD,
-      VLV_KETTLELID,
-      VLV_CHILLH2O,
-      VLV_CHILLBEER,
-      VLV_BOILRECIRC,
-      VLV_DRAIN,
-      VLV_USER1,
-      VLV_USER2,
-      VLV_USER3
-    };
-    menu vlvMenu(3, 21);
-    for (byte profile = 0; profile < NUM_VLVCFGS; profile++) vlvMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
-    vlvMenu.setItem_P(EXIT, 255);
-    while (1) {
-      byte profile = scrollMenu("Valve Configuration", &vlvMenu);
-      if (profile >= NUM_VLVCFGS) return;
-      else setValveCfg(profile, cfgValveProfile(vlvMenu.getSelectedRow(buf), vlvConfig[profile]));
-    }
+void cfgValves() {
+  byte dispOrder[] = {
+    OUTPUTPROFILE_FILLHLT,
+    OUTPUTPROFILE_FILLMASH,
+    OUTPUTPROFILE_HLTHEAT,
+    OUTPUTPROFILE_HLTIDLE,
+    OUTPUTPROFILE_MASHHEAT,
+    OUTPUTPROFILE_MASHIDLE,
+    OUTPUTPROFILE_ADDGRAIN,
+    OUTPUTPROFILE_SPARGEIN,
+    OUTPUTPROFILE_SPARGEOUT,
+    OUTPUTPROFILE_KETTLEHEAT,
+    OUTPUTPROFILE_KETTLEIDLE,
+    OUTPUTPROFILE_HOPADD,
+    OUTPUTPROFILE_KETTLELID,
+    OUTPUTPROFILE_CHILLH2O,
+    OUTPUTPROFILE_CHILLBEER,
+    OUTPUTPROFILE_BOILRECIRC,
+    OUTPUTPROFILE_DRAIN,
+    OUTPUTPROFILE_USER1,
+    OUTPUTPROFILE_USER2,
+    OUTPUTPROFILE_USER3
+  };
+  menu vlvMenu(3, 21);
+  for (byte profile = 0; profile < OUTPUTPROFILE_USERCOUNT; profile++) vlvMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
+  vlvMenu.setItem_P(EXIT, 255);
+  while (1) {
+    byte profile = scrollMenu("Valve Configuration", &vlvMenu);
+    if (profile >= OUTPUTPROFILE_USERCOUNT) return;
+    else setValveCfg(profile, cfgValveProfile(vlvMenu.getSelectedRow(buf), outputs->getProfileMask(profile)));
   }
-  
-  unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
-    unsigned long retValue = defValue;
-    //firstBit: The left most bit being displayed
-    byte firstBit, encMax;
-    
-    encMax = PVOUT_COUNT + 1;
-    #ifdef PVOUT_TYPE_MODBUS
-      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++) {
-        if (ValvesMB[i])
-          encMax = max(encMax, ValvesMB[i]->offset() + ValvesMB[i]->count() + 1);
-      }
-    #endif
-    
-    Encoder.setMin(0);
-    Encoder.setCount(0);
-    Encoder.setMax(encMax);
-    //(Set to MAX + 1 to force redraw)
-    firstBit = encMax + 1;
-    
-    LCD.clear();
-    LCD.print(0,0,sTitle);
-    LCD.print_P(3, 3, PSTR("Test"));
-    LCD.print_P(3, 13, PSTR("Save"));
-    
-    boolean redraw = 1;
-    while(1) {
-      int encValue;
-      if (redraw) {
-        redraw = 0;
-        encValue = Encoder.getCount();
-      }
-      else encValue = Encoder.change();
-      if (encValue >= 0) {
-        if (encValue < firstBit || encValue > firstBit + 17) {
-          if (encValue < firstBit) firstBit = encValue; else if (encValue < encMax - 1) firstBit = encValue - 17;
-          for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) LCD.print_P(1, i - firstBit + 1, PSTR("1")); else LCD.print_P(1, i - firstBit + 1, PSTR("0"));
-        }
-  
-        for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) {
-          if (i < 9) itoa(i + 1, buf, 10); else buf[0] = i + 56;
-          buf[1] = '\0';
-          LCD.print(2, i - firstBit + 1, buf);
-        }
-  
-        if (firstBit > 0) LCD.print_P(2, 0, PSTR("<")); else LCD.print_P(2, 0, PSTR(" "));
-        if (firstBit + 18 < encMax - 1) LCD.print_P(2, 19, PSTR(">")); else LCD.print_P(2, 19, PSTR(" "));
-        if (encValue == encMax - 1) {
-          LCD.print_P(3, 2, PSTR(">"));
-          LCD.print_P(3, 7, PSTR("<"));
-          LCD.print_P(3, 12, PSTR(" "));
-          LCD.print_P(3, 17, PSTR(" "));
-        } else if (encValue == encMax) {
-          LCD.print_P(3, 2, PSTR(" "));
-          LCD.print_P(3, 7, PSTR(" "));
-          LCD.print_P(3, 12, PSTR(">"));
-          LCD.print_P(3, 17, PSTR("<"));
-        } else {
-          LCD.print_P(3, 2, PSTR(" "));
-          LCD.print_P(3, 7, PSTR(" "));
-          LCD.print_P(3, 12, PSTR(" "));
-          LCD.print_P(3, 17, PSTR(" "));
-          LCD.print_P(2, encValue - firstBit + 1, PSTR("^"));
-        }
-      }
-      
-      if (Encoder.ok()) {
-        encValue = Encoder.getCount();
-        if (encValue == encMax) return retValue;
-        else if (encValue == encMax - 1) {
-          //Test Profile
-          setValves(retValue);
-          LCD.print_P(3, 2, PSTR("["));
-          LCD.print_P(3, 7, PSTR("]"));
-          LCD.update();
-          while (!Encoder.ok()) {
-#ifdef HEARTBEAT
-            heartbeat();
-#endif
-            delay(50);
-          }
-          setValves(computeValveBits());
-          redraw = 1;
-        } else {
-          retValue = retValue ^ ((unsigned long)1<<encValue);
-          for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) LCD.print_P(1, i - firstBit + 1, PSTR("1")); else LCD.print_P(1, i - firstBit + 1, PSTR("0"));
-        }
-      } else if (Encoder.cancel()) return defValue;
-      brewCore();
-    }
-  }
-#endif
+}
 
-#if defined PVOUT && defined PVOUT_TYPE_MODBUS
+unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
+  unsigned long retValue = defValue;
+  //firstBit: The left most bit being displayed
+  byte firstBit, encMax;
+  
+  encMax = outputs->getCount() + 1;
+  Encoder.setMin(0);
+  Encoder.setCount(0);
+  Encoder.setMax(encMax);
+  //(Set to MAX + 1 to force redraw)
+  firstBit = encMax + 1;
+  
+  LCD.clear();
+  LCD.print(0,0,sTitle);
+  LCD.print_P(3, 3, PSTR("Test"));
+  LCD.print_P(3, 13, PSTR("Save"));
+  
+  boolean redraw = 1;
+  while(1) {
+    int encValue;
+    if (redraw) {
+      redraw = 0;
+      encValue = Encoder.getCount();
+    }
+    else encValue = Encoder.change();
+    if (encValue >= 0) {
+      if (encValue < firstBit || encValue > firstBit + 17) {
+        if (encValue < firstBit) firstBit = encValue; else if (encValue < encMax - 1) firstBit = encValue - 17;
+        for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) LCD.print_P(1, i - firstBit + 1, PSTR("1")); else LCD.print_P(1, i - firstBit + 1, PSTR("0"));
+      }
+
+      for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) {
+        if (i < 9) itoa(i + 1, buf, 10); else buf[0] = i + 56;
+        buf[1] = '\0';
+        LCD.print(2, i - firstBit + 1, buf);
+      }
+
+      if (firstBit > 0) LCD.print_P(2, 0, PSTR("<")); else LCD.print_P(2, 0, PSTR(" "));
+      if (firstBit + 18 < encMax - 1) LCD.print_P(2, 19, PSTR(">")); else LCD.print_P(2, 19, PSTR(" "));
+      if (encValue == encMax - 1) {
+        LCD.print_P(3, 2, PSTR(">"));
+        LCD.print_P(3, 7, PSTR("<"));
+        LCD.print_P(3, 12, PSTR(" "));
+        LCD.print_P(3, 17, PSTR(" "));
+      } else if (encValue == encMax) {
+        LCD.print_P(3, 2, PSTR(" "));
+        LCD.print_P(3, 7, PSTR(" "));
+        LCD.print_P(3, 12, PSTR(">"));
+        LCD.print_P(3, 17, PSTR("<"));
+      } else {
+        LCD.print_P(3, 2, PSTR(" "));
+        LCD.print_P(3, 7, PSTR(" "));
+        LCD.print_P(3, 12, PSTR(" "));
+        LCD.print_P(3, 17, PSTR(" "));
+        LCD.print_P(2, encValue - firstBit + 1, PSTR("^"));
+      }
+    }
+    
+    if (Encoder.ok()) {
+      encValue = Encoder.getCount();
+      if (encValue == encMax) return retValue;
+      else if (encValue == encMax - 1) {
+        //Test Profile: Use OUTPUTENABLE_SYSTEMTEST to disable unused outputs
+        outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, retValue);
+        outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, retValue);
+        outputs->setProfileState(OUTPUTPROFILE_SYSTEMTEST, 1);
+        outputs->update();
+
+        LCD.print_P(3, 2, PSTR("["));
+        LCD.print_P(3, 7, PSTR("]"));
+        LCD.update();
+        while (!Encoder.ok()) {
+#ifdef HEARTBEAT
+          heartbeat();
+#endif
+          delay(50);
+        }
+        // Update outputs to clear overrides (overrides are not persistent across updates)
+        outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, 0xFFFFFFFFul);
+        outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, 0);
+        outputs->setProfileState(OUTPUTPROFILE_SYSTEMTEST, 0);
+        outputs->update();
+        redraw = 1;
+      } else {
+        retValue = retValue ^ ((unsigned long)1<<encValue);
+        for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) LCD.print_P(1, i - firstBit + 1, PSTR("1")); else LCD.print_P(1, i - firstBit + 1, PSTR("0"));
+      }
+    } else if (Encoder.cancel()) return defValue;
+    brewCore();
+  }
+}
+
+
+#ifdef OUTPUTBANK_MODBUS
 const uint8_t ku8MBSuccess                    = 0x00;
 const uint8_t ku8MBResponseTimedOut           = 0xE2;
 
   void cfgMODBUSOutputs() {
     while(1) {
-      menu boardMenu(3, PVOUT_MODBUS_MAXBOARDS + 1);
-      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++) {
+      menu boardMenu(3, OUTPUTBANK_MODBUS_MAXBOARDS + 1);
+      for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++) {
+        byte addr = getVlvModbusAddr(i);
+        OutputBankMODBUS tempMB(addr, getVlvModbusReg(i), getVlvModbusCoilCount(i));
+        
         boardMenu.setItem_P(PSTR("Board "), i);
         boardMenu.appendItem(itoa(i, buf, 10), i);
-        if (!ValvesMB[i])
+        if (addr == OUTPUTBANK_MODBUS_ADDRNONE)
           boardMenu.appendItem_P(PSTR(": DISABLED"), i);
         else {
-          byte result = ValvesMB[i]->detect();
+          byte result = tempMB.detect();
           if (result == ku8MBSuccess) 
             boardMenu.appendItem_P(PSTR(": CONNECTED"), i);
           else if (result == ku8MBResponseTimedOut)
@@ -2746,17 +2775,18 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       boardMenu.setItem_P(PSTR("Exit"), 255);
       
       byte lastOption = scrollMenu("RS485 Outputs", &boardMenu);
-      if (lastOption < PVOUT_MODBUS_MAXBOARDS) cfgMODBUSOutputBoard(lastOption);
+      if (lastOption < OUTPUTBANK_MODBUS_MAXBOARDS) cfgMODBUSOutputBoard(lastOption);
       else return;
     }
   }
   
   void cfgMODBUSOutputBoard(byte board) {
     while(1) {
-      menu boardMenu(3, 8);
+      OutputBankMODBUS tempMB(getVlvModbusAddr(board), getVlvModbusReg(board), getVlvModbusCoilCount(board));
+      menu boardMenu(3, 7);
       boardMenu.setItem_P(PSTR("Address: "), 0);
       byte addr = getVlvModbusAddr(board);
-      if (addr != PVOUT_MODBUS_ADDRNONE)
+      if (addr != OUTPUTBANK_MODBUS_ADDRNONE)
         boardMenu.appendItem(itoa(addr, buf, 10), 0);
       else
         boardMenu.appendItem_P(PSTR("N/A"), 0);
@@ -2765,20 +2795,15 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       boardMenu.appendItem(itoa(getVlvModbusReg(board), buf, 10), 1);
       boardMenu.setItem_P(PSTR("Count: "), 2);
       boardMenu.appendItem(itoa(getVlvModbusCoilCount(board), buf, 10), 2);
-      boardMenu.setItem_P(PSTR("Offset: "), 3);
-      boardMenu.appendItem(itoa(getVlvModbusOffset(board), buf, 10), 3);
       
-      if (addr == PVOUT_MODBUS_ADDRNONE)
-        boardMenu.setItem_P(PSTR("Auto Assign"), 4);
+      if (addr == OUTPUTBANK_MODBUS_ADDRNONE)
+        boardMenu.setItem_P(PSTR("Auto Assign"), 3);
+      else {
+        boardMenu.setItem_P(PSTR("ID Mode: "), 4);
+        boardMenu.appendItem_P((tempMB.getIDMode()) ? PSTR("On") : PSTR("Off"), 4);
 
-      if (ValvesMB[board]) {
-        boardMenu.setItem_P(PSTR("ID Mode: "), 5);
-        boardMenu.appendItem_P((ValvesMB[board]->getIDMode()) ? PSTR("On") : PSTR("Off"), 5);
+        boardMenu.setItem_P(PSTR("Delete"), 5);
       }
-
-      if (addr != PVOUT_MODBUS_ADDRNONE)      
-        boardMenu.setItem_P(PSTR("Delete"), 6);
-
       boardMenu.setItem_P(PSTR("Exit"), 255);
       
       char title[] = "RS485 Output Board  ";
@@ -2786,29 +2811,31 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       byte lastOption = scrollMenu(title, &boardMenu);
       if (lastOption == 0) {
         byte addr = getVlvModbusAddr(board);
-        setVlvModbusAddr(board, getValue_P(PSTR("RS485 Relay Address"), addr == PVOUT_MODBUS_ADDRNONE ? PVOUT_MODBUS_BASEADDR + board : addr, 1, 255, PSTR("")));
+        setVlvModbusAddr(board, getValue_P(PSTR("RS485 Relay Address"), addr == OUTPUTBANK_MODBUS_ADDRNONE ? OUTPUTBANK_MODBUS_BASEADDR + board : addr, 1, 255, PSTR("")));
       } else if (lastOption == 1)
         setVlvModbusReg(board, getValue_P(PSTR("Coil Register"), getVlvModbusReg(board), 1, 65536, PSTR("")));
       else if (lastOption == 2)
         setVlvModbusCoilCount(board, getValue_P(PSTR("Coil Count"), getVlvModbusCoilCount(board), 1, 32, PSTR("")));
       else if (lastOption == 3)
-        setVlvModbusOffset(board, getValue_P(PSTR("Output Offset"), getVlvModbusOffset(board), 1, 31, PSTR("")));
-      else if (lastOption == 4)
         cfgMODBUSOutputAssign(board);
-      else if (lastOption == 5)
-        ValvesMB[board]->setIDMode((ValvesMB[board]->getIDMode()) ^ 1);
+      else if (lastOption == 4)
+        tempMB.setIDMode((tempMB.getIDMode()) ^ 1);
       else {
-        if (lastOption == 6)
+        if (lastOption == 5)
           setVlvModbusDefaults(board);
-        //Reload board
-        loadVlvModbus(board);
+        //Refresh output object
+        delete outputs;
+        outputs = new OutputSystem();
+        outputs->init();
+        loadVlvConfigs();
+        loadVlvModbus();
         return;
       }
     }
   }
   
   void cfgMODBUSOutputAssign(byte board) {
-    PVOutMODBUS tempMB(PVOUT_MODBUS_ADDRINIT, getVlvModbusReg(board), getVlvModbusCoilCount(board), getVlvModbusOffset(board));
+    OutputBankMODBUS tempMB(OUTPUTBANK_MODBUS_ADDRINIT, getVlvModbusReg(board), getVlvModbusCoilCount(board));
     
     byte result = 1;
     while (result = tempMB.detect()) {
@@ -2828,7 +2855,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       if(getChoice(&choiceMenu, 3))
         return;      
     }
-    byte newAddr = getValue_P(PSTR("New Address"), PVOUT_MODBUS_BASEADDR + board, 1, 254, PSTR(""));
+    byte newAddr = getValue_P(PSTR("New Address"), OUTPUTBANK_MODBUS_BASEADDR + board, 1, 254, PSTR(""));
     if (tempMB.setAddr(newAddr)) {
       LCD.clear();
       LCD.print_P(1, 1, PSTR("Update Failed"));
