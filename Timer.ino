@@ -107,7 +107,6 @@ void setAlarm(boolean alarmON) {
 //The modulation varies according the custom parameters.
 //The modulation occurs when the buzzerCycleTime value is larger than the buzzerOnDuration
 void setBuzzer(boolean alarmON) {
-#ifdef ALARM_PIN
   if (alarmON) {
     #ifdef BUZZER_CYCLE_TIME
       //Alarm status is ON, Buzzer will go ON or OFF based on modulation.
@@ -120,19 +119,18 @@ void setBuzzer(boolean alarmON) {
         if (now > buzzerCycleStart + BUZZER_ON_TIME) {
           //At this moment ("now"), the buzzer is NOT within the ON window (duty cycle) allowed inside the buzzer cycle window.
           //Set or keep the buzzer off
-          alarmPin.set(0); 
+          outputs->setProfileState(OUTPUTPROFILE_ALARM, 0); 
         }
       } else {
         //The buzzer go ON for every moment where buzzerCycleStart < "now" < buzzerCycleStart + buzzerOnDuration
-        alarmPin.set(1); //Set the buzzer On 
+        outputs->setProfileState(OUTPUTPROFILE_ALARM, 1); //Set the buzzer On 
         buzzerCycleStart = now; //Set a new reference time for the begining of the buzzer cycle.
       }
     #else
-      alarmPin.set(1); //Set the buzzer On 
+      outputs->setProfileState(OUTPUTPROFILE_ALARM, 1); //Set the buzzer On 
     #endif
   } else {
     //Alarm status is OFF, Buzzer goes Off
-    alarmPin.set(0);
+    outputs->setProfileState(OUTPUTPROFILE_ALARM, 0);
   }
-#endif
 }

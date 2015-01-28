@@ -1,5 +1,5 @@
 /*
-OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
+OpenTroller DX1 Hardware Configuration
 */
 
 #ifndef BT_HWPROFILE
@@ -8,13 +8,11 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
   #define ENCODER_I2C
   #define ENCODER_I2CADDR 0x01
 
-  #define ALARM_PIN 2	//OUT14
-  
   #define OUTPUTBANK_GPIO
   #define OUTPUTBANK_GPIO_BANKNAME "DX1 Outputs"
-  #define OUTPUTBANK_GPIO_COUNT 10
-  #define OUTPUTBANK_GPIO_PINS {28, 29, 30, 31, 7, 6, 3, 4, 12, 15}
-  #define OUTPUTBANK_GPIO_OUTPUTNAMES "Output 1\0Output 2\0Output 3\0Output 4\0Output 5\0Output 6\0Output 7\0Output 8\0Output 9\0Output 10"
+  #define OUTPUTBANK_GPIO_COUNT 14
+  #define OUTPUTBANK_GPIO_PINS {28, 29, 30, 31, 7, 6, 3, 4, 12, 15, 14, 13, 1, 2}
+  #define OUTPUTBANK_GPIO_OUTPUTNAMES "Output 1\0Output 2\0Output 3\0Output 4\0Output 5\0Output 6\0Output 7\0Output 8\0Output 9\0Output 10\0Output 11\0Output 12\0Output 13\0Output 14"
     
   #define OUTPUTBANK_MODBUS
   
@@ -24,7 +22,7 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
 
   #define ANALOGINPUTS_GPIO
   #define ANALOGINPUTS_GPIO_COUNT 4
-  #define ANALOGINPUTS_GPIO_PINS {3, 2, 1, 0}
+  #define ANALOGINPUTS_GPIO_PINS {7, 6, 5, 4}
   #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analaog 2\0Analog 3\0Analog 4""
 
   #define ANALOGINPUTS_MODBUS
@@ -35,10 +33,6 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
   #define ANALOGOUTPUTS_HWPWM_TIMERS {2}
   #define ANALOGOUTPUTS_HWPWM_NAMES "Buzzer"
   
-  #define HLTHEAT_PIN 1	 //OUT13
-  #define MASHHEAT_PIN 13	//OUT12
-  #define KETTLEHEAT_PIN 14	//OUT11
-
   #define RS485_SERIAL_PORT 1
   #define RS485_RTS_PIN    23
 

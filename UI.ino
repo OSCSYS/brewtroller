@@ -73,6 +73,7 @@ prog_char KETTLEIDLE[] PROGMEM = "Kettle Idle";
 prog_char USER1[] PROGMEM = "User Valve 1";
 prog_char USER2[] PROGMEM = "User Valve 2";
 prog_char USER3[] PROGMEM = "User Valve 3";
+prog_char ALARM[] PROGMEM = "Alarm";
 
 prog_char DOUGHIN[] PROGMEM = "Dough In:";
 prog_char ACID[] PROGMEM = "Acid Rest:";
@@ -110,7 +111,8 @@ PROGMEM const char *TITLE_VLV[] = {
   KETTLEIDLE,
   USER1,
   USER2,
-  USER3
+  USER3,
+  ALARM
 };
 
 const char ALLOFF[] PROGMEM = "All Off";
@@ -2621,6 +2623,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
 
 void cfgValves() {
   byte dispOrder[] = {
+    OUTPUTPROFILE_ALARM,
     OUTPUTPROFILE_FILLHLT,
     OUTPUTPROFILE_FILLMASH,
     OUTPUTPROFILE_HLTHEAT,
@@ -2642,8 +2645,9 @@ void cfgValves() {
     OUTPUTPROFILE_USER2,
     OUTPUTPROFILE_USER3
   };
-  menu vlvMenu(3, 21);
-  for (byte profile = 0; profile < OUTPUTPROFILE_USERCOUNT; profile++) vlvMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
+  menu vlvMenu(3, OUTPUTPROFILE_USERCOUNT + 1);
+  for (byte profile = 0; profile < OUTPUTPROFILE_USERCOUNT; profile++)
+    vlvMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
   vlvMenu.setItem_P(EXIT, 255);
   while (1) {
     byte profile = scrollMenu("Valve Configuration", &vlvMenu);

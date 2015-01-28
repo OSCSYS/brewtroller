@@ -54,8 +54,9 @@
     OUTPUTPROFILE_USER1,
     OUTPUTPROFILE_USER2,
     OUTPUTPROFILE_USER3,
+    OUTPUTPROFILE_ALARM,
     OUTPUTPROFILE_USERCOUNT,                          //The number of user configurable output profiles
-    OUTPUTPROFILE_BTNIC = OUTPUTPROFILE_USERCOUNT,    //Dymanic profile used by BTNIC logic to turn on outputs
+    OUTPUTPROFILE_BTNIC,                              //Dymanic profile used by BTNIC logic to turn on outputs (not implemented)
     OUTPUTPROFILE_RGBIO,                              //Dymanic profile used by RGBIO logic to turn on outputs
     OUTPUTPROFILE_SYSTEMTEST,                         //Used to test output profiles
     OUTPUTPROFILE_SYSTEMCOUNT
@@ -63,7 +64,7 @@
   
   enum OutputEnableIndex {
     OUTPUTENABLE_ESTOP,          //Used by EStop logic to disable all outputs
-    OUTPUTENABLE_BTNIC,          //Used by BTNIC logic to force off specific outputs
+    OUTPUTENABLE_BTNIC,          //Used by BTNIC logic to force off specific outputs (not implemented)
     OUTPUTENABLE_RGBIO,          //Used by RGBIO logic to force off specific outputs
     OUTPUTENABLE_VESSELMIN,      //Used by vessel minimum volume and triggers to disable specific outputs
     OUTPUTENABLE_SYSTEMTEST,     //Used to test output profiles by forcing off outputs not in the mask being tested

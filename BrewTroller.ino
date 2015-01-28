@@ -114,7 +114,7 @@ struct ProgramThread {
 // Globals
 //**********************************************************************************
 //Heat Output Pin Array
-pin heatPin[4], alarmPin;
+pin heatPin[4];
 
 #ifdef DIGITAL_INPUTS
   pin digInPin[DIGIN_COUNT];

@@ -117,9 +117,6 @@ ISR(TIMER1_OVF_vect, ISR_NOBLOCK )
 
 
 void pinInit() {
-  #ifdef ALARM_PIN
-    alarmPin.setup(ALARM_PIN, OUTPUT);
-  #endif
   //Setup HLT Pin
   #ifdef HLTHEAT_PIN
     heatPin[VS_HLT].setup(HLTHEAT_PIN, OUTPUT);
