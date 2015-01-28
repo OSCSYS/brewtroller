@@ -793,7 +793,6 @@ void screenEnter() {
 
         while(1) {
           //Item updated on each cycle
-          homeMenu.setItem_P(EXIT, 255);
           homeMenu.setItem_P(PSTR("Edit Program"), 1);
           homeMenu.setItem_P(PSTR("Start Program"), 2);
 
@@ -813,6 +812,7 @@ void screenEnter() {
           #ifndef UI_NO_SETUP
             homeMenu.setItem_P(PSTR("System Setup"), 8);
           #endif
+          homeMenu.setItem_P(EXIT, 255);
 
           byte lastOption = scrollMenu("Main Menu", &homeMenu);
           
