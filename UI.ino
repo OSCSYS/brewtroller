@@ -70,9 +70,9 @@ prog_char HLTHEAT[] PROGMEM = "HLT Heat";
 prog_char HLTIDLE[] PROGMEM = "HLT Idle";
 prog_char KETTLEHEAT[] PROGMEM = "Kettle Heat";
 prog_char KETTLEIDLE[] PROGMEM = "Kettle Idle";
-prog_char USER1[] PROGMEM = "User Valve 1";
-prog_char USER2[] PROGMEM = "User Valve 2";
-prog_char USER3[] PROGMEM = "User Valve 3";
+prog_char USER1[] PROGMEM = "User Profile 1";
+prog_char USER2[] PROGMEM = "User Profile 2";
+prog_char USER3[] PROGMEM = "User Profile 3";
 prog_char ALARM[] PROGMEM = "Alarm";
 
 prog_char DOUGHIN[] PROGMEM = "Dough In:";
@@ -843,7 +843,7 @@ void screenEnter() {
             }
           }
           else if (lastOption >= 4 && lastOption <= 6) {
-            //User Valve 1-3
+            //User Profiles 1-3
             byte profileIndex = OUTPUTPROFILE_USER1 + (lastOption - 4);
             outputs->setProfileState(profileIndex, outputs->getProfileState(profileIndex) ? 0 : 1);
           }          
@@ -999,23 +999,23 @@ void screenEnter() {
         int encValue = Encoder.getCount();
         if (encValue == 0) continueClick();
         else if (encValue == 1) { 
-          resetSpargeValves(); 
+          resetSpargeOutputs(); 
           outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1); 
         } else if (encValue == 2) { 
-          resetSpargeValves(); 
+          resetSpargeOutputs(); 
           outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 1); 
         } else if (encValue == 3) {
-          resetSpargeValves(); 
+          resetSpargeOutputs(); 
           outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1); 
           outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 1); 
         } else if (encValue == 4) {
-          resetSpargeValves(); 
+          resetSpargeOutputs(); 
           outputs->setProfileState(OUTPUTPROFILE_MASHHEAT, 1); 
         } else if (encValue == 5) {
-          resetSpargeValves(); 
+          resetSpargeOutputs(); 
           outputs->setProfileState(OUTPUTPROFILE_MASHIDLE, 1); 
         } else if (encValue == 6)
-          resetSpargeValves();
+          resetSpargeOutputs();
         else if (encValue == 7) {
           menu spargeMenu(3, 8);
           spargeMenu.setItem_P(PSTR("Auto In"), 0);
@@ -1027,9 +1027,9 @@ void screenEnter() {
           spargeMenu.setItem_P(ABORT, 6);
           spargeMenu.setItem_P(EXIT, 255);
           byte lastOption = scrollMenu("Sparge Menu", &spargeMenu);
-          if (lastOption == 0) { resetSpargeValves(); if(tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 1; }
-          else if (lastOption == 1) { resetSpargeValves(); if(tgtVol[VS_KETTLE]) autoValve[AV_SPARGEOUT] = 1; }
-          else if (lastOption == 2) { resetSpargeValves(); if(tgtVol[VS_KETTLE]) autoValve[AV_FLYSPARGE] = 1; }
+          if (lastOption == 0) { resetSpargeOutputs(); if(tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 1; }
+          else if (lastOption == 1) { resetSpargeOutputs(); if(tgtVol[VS_KETTLE]) autoValve[AV_SPARGEOUT] = 1; }
+          else if (lastOption == 2) { resetSpargeOutputs(); if(tgtVol[VS_KETTLE]) autoValve[AV_FLYSPARGE] = 1; }
           else if (lastOption == 3) tgtVol[VS_HLT] = getValue_P(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 1000, 9999999, VOLUNIT);
           else if (lastOption == 4) tgtVol[VS_KETTLE] = getValue_P(PSTR("Kettle Target Vol"), tgtVol[VS_KETTLE], 1000, 9999999, VOLUNIT);
           else if (lastOption == 5) continueClick();
@@ -2078,7 +2078,7 @@ void menuSetup() {
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 0);
   setupMenu.setItem_P(PSTR("Outputs"), 1);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 2);
-  setupMenu.setItem_P(PSTR("Valve Profiles"), 3);
+  setupMenu.setItem_P(PSTR("Output Profiles"), 3);
   #ifdef OUTPUTBANK_MODBUS
     setupMenu.setItem_P(PSTR("RS485 Outputs"), 4);
   #endif
@@ -2101,7 +2101,7 @@ void menuSetup() {
     if (lastOption == 0) assignSensor();
     else if (lastOption == 1) cfgOutputs();
     else if (lastOption == 2) cfgVolumes();
-    else if (lastOption == 3) cfgValves();
+    else if (lastOption == 3) menuOutputProfiles();
     #ifdef OUTPUTBANK_MODBUS
       else if (lastOption == 4) cfgMODBUSOutputs();
     #endif
@@ -2621,7 +2621,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
   }
 }
 
-void cfgValves() {
+void menuOutputProfiles() {
   byte dispOrder[] = {
     OUTPUTPROFILE_ALARM,
     OUTPUTPROFILE_FILLHLT,
@@ -2645,18 +2645,18 @@ void cfgValves() {
     OUTPUTPROFILE_USER2,
     OUTPUTPROFILE_USER3
   };
-  menu vlvMenu(3, OUTPUTPROFILE_USERCOUNT + 1);
+  menu outputProfileMenu(3, OUTPUTPROFILE_USERCOUNT + 1);
   for (byte profile = 0; profile < OUTPUTPROFILE_USERCOUNT; profile++)
-    vlvMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
-  vlvMenu.setItem_P(EXIT, 255);
+    outputProfileMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
+  outputProfileMenu.setItem_P(EXIT, 255);
   while (1) {
-    byte profile = scrollMenu("Valve Configuration", &vlvMenu);
+    byte profile = scrollMenu("Output Profiles", &outputProfileMenu);
     if (profile >= OUTPUTPROFILE_USERCOUNT) return;
-    else setValveCfg(profile, cfgValveProfile(vlvMenu.getSelectedRow(buf), outputs->getProfileMask(profile)));
+    else setOutputProfile(profile, cfgOutputProfile(outputProfileMenu.getSelectedRow(buf), outputs->getProfileMask(profile)));
   }
 }
 
-unsigned long cfgValveProfile (char sTitle[], unsigned long defValue) {
+unsigned long cfgOutputProfile (char sTitle[], unsigned long defValue) {
   unsigned long retValue = defValue;
   //firstBit: The left most bit being displayed
   byte firstBit, encMax;
@@ -2757,8 +2757,8 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
     while(1) {
       menu boardMenu(3, OUTPUTBANK_MODBUS_MAXBOARDS + 1);
       for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++) {
-        byte addr = getVlvModbusAddr(i);
-        OutputBankMODBUS tempMB(addr, getVlvModbusReg(i), getVlvModbusCoilCount(i));
+        byte addr = getOutModbusAddr(i);
+        OutputBankMODBUS tempMB(addr, getOutModbusReg(i), getOutModbusCoilCount(i));
         
         boardMenu.setItem_P(PSTR("Board "), i);
         boardMenu.appendItem(itoa(i, buf, 10), i);
@@ -2786,19 +2786,19 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
   
   void cfgMODBUSOutputBoard(byte board) {
     while(1) {
-      OutputBankMODBUS tempMB(getVlvModbusAddr(board), getVlvModbusReg(board), getVlvModbusCoilCount(board));
+      OutputBankMODBUS tempMB(getOutModbusAddr(board), getOutModbusReg(board), getOutModbusCoilCount(board));
       menu boardMenu(3, 7);
       boardMenu.setItem_P(PSTR("Address: "), 0);
-      byte addr = getVlvModbusAddr(board);
+      byte addr = getOutModbusAddr(board);
       if (addr != OUTPUTBANK_MODBUS_ADDRNONE)
         boardMenu.appendItem(itoa(addr, buf, 10), 0);
       else
         boardMenu.appendItem_P(PSTR("N/A"), 0);
       
       boardMenu.setItem_P(PSTR("Register: "), 1);
-      boardMenu.appendItem(itoa(getVlvModbusReg(board), buf, 10), 1);
+      boardMenu.appendItem(itoa(getOutModbusReg(board), buf, 10), 1);
       boardMenu.setItem_P(PSTR("Count: "), 2);
-      boardMenu.appendItem(itoa(getVlvModbusCoilCount(board), buf, 10), 2);
+      boardMenu.appendItem(itoa(getOutModbusCoilCount(board), buf, 10), 2);
       
       if (addr == OUTPUTBANK_MODBUS_ADDRNONE)
         boardMenu.setItem_P(PSTR("Auto Assign"), 3);
@@ -2814,32 +2814,32 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       title[19] = '0' + board;
       byte lastOption = scrollMenu(title, &boardMenu);
       if (lastOption == 0) {
-        byte addr = getVlvModbusAddr(board);
-        setVlvModbusAddr(board, getValue_P(PSTR("RS485 Relay Address"), addr == OUTPUTBANK_MODBUS_ADDRNONE ? OUTPUTBANK_MODBUS_BASEADDR + board : addr, 1, 255, PSTR("")));
+        byte addr = getOutModbusAddr(board);
+        setOutModbusAddr(board, getValue_P(PSTR("RS485 Relay Address"), addr == OUTPUTBANK_MODBUS_ADDRNONE ? OUTPUTBANK_MODBUS_BASEADDR + board : addr, 1, 255, PSTR("")));
       } else if (lastOption == 1)
-        setVlvModbusReg(board, getValue_P(PSTR("Coil Register"), getVlvModbusReg(board), 1, 65536, PSTR("")));
+        setOutModbusReg(board, getValue_P(PSTR("Coil Register"), getOutModbusReg(board), 1, 65536, PSTR("")));
       else if (lastOption == 2)
-        setVlvModbusCoilCount(board, getValue_P(PSTR("Coil Count"), getVlvModbusCoilCount(board), 1, 32, PSTR("")));
+        setOutModbusCoilCount(board, getValue_P(PSTR("Coil Count"), getOutModbusCoilCount(board), 1, 32, PSTR("")));
       else if (lastOption == 3)
         cfgMODBUSOutputAssign(board);
       else if (lastOption == 4)
         tempMB.setIDMode((tempMB.getIDMode()) ^ 1);
       else {
         if (lastOption == 5)
-          setVlvModbusDefaults(board);
+          setOutModbusDefaults(board);
         //Refresh output object
         delete outputs;
         outputs = new OutputSystem();
         outputs->init();
-        loadVlvConfigs();
-        loadVlvModbus();
+        loadOutputProfiles();
+        loadOutModbus();
         return;
       }
     }
   }
   
   void cfgMODBUSOutputAssign(byte board) {
-    OutputBankMODBUS tempMB(OUTPUTBANK_MODBUS_ADDRINIT, getVlvModbusReg(board), getVlvModbusCoilCount(board));
+    OutputBankMODBUS tempMB(OUTPUTBANK_MODBUS_ADDRINIT, getOutModbusReg(board), getOutModbusCoilCount(board));
     
     byte result = 1;
     while (result = tempMB.detect()) {
@@ -2866,7 +2866,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       LCD.print_P(2, 4, PSTR("> Continue <"));
       while (!Encoder.ok()) brewCore();
     } else {
-      setVlvModbusAddr(board, newAddr);
+      setOutModbusAddr(board, newAddr);
     }
   }
 #endif

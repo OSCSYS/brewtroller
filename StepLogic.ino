@@ -630,7 +630,7 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
       #endif
       tgtVol[VS_HLT] = 0;
       tgtVol[VS_KETTLE] = 0;
-      resetSpargeValves();
+      resetSpargeOutputs();
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepBoil(STEPSIGNAL_INIT, thread);
       break;
@@ -755,7 +755,7 @@ void brewStepChill(enum StepSignal signal, struct ProgramThread *thread) {
   }
 }
 
-void resetSpargeValves() {
+void resetSpargeOutputs() {
   autoValve[AV_SPARGEIN] = 0;
   autoValve[AV_SPARGEOUT] = 0;
   autoValve[AV_FLYSPARGE] = 0;
