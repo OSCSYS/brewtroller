@@ -84,86 +84,6 @@
 //**********************************************************************************
 
 //**********************************************************************************
-// Vessel to temperature sensor mapping
-//**********************************************************************************
-// The purpose of this array is to provide a safe way to map a vessel to the 
-// temperaure sensor to read for that vessels setpoint.
-// The secondary purpose is to provide a safe way to enumerate the heat outputs, 
-// safely decoupling the #defines values from loop-control.
-#if defined PID_FLOW_CONTROL
-  static const int HEAT_OUTPUTS_COUNT = 4;
-  static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}, {VS_PUMP, TS_MASH}};
-#else
-  static const int HEAT_OUTPUTS_COUNT = 3;
-  static const byte HEAT_OUTPUTS[HEAT_OUTPUTS_COUNT][2] = {{VS_HLT, TS_HLT}, {VS_MASH, TS_MASH}, {VS_KETTLE, TS_KETTLE}};
-#endif
-// These two should be used as the array index when operating on a HEAT_OUTPUT array.
-// They need to be variables instead of #defines because of use as index subscripts.
-static const byte VS = 0;
-static const byte TS = 1;
-
-//**********************************************************************************
-// PID Output Power Limit
-//**********************************************************************************
-// These settings can be used to limit the PID output of the the specified heat
-// output. Enter a percentage (0-100)
-//
-#define PIDLIMIT_HLT 100
-#define PIDLIMIT_MASH 100
-#define PIDLIMIT_KETTLE 100
-#define PIDLIMIT_STEAM 100 // note this is also the PID limit for the pump PWM output if PID_FLOW_CONTROL is enabled
-
-//**********************************************************************************
-// PID Feed Forward control
-//**********************************************************************************
-// This #define enables feed forward on the mash PID loop. The feed forward can be set to any 
-// number of different temp sensors by using the #define for it below, to see sensor #defines see Enum.h 
-// under TSensor and output (0-2) Array Element Constants 
-// NOTE: not a good idea to use any sensor you average into the MASH sensor as your feed forward
-//
-//#define PID_FEED_FORWARD
-//#define FEED_FORWARD_SENSOR TS_AUX1
-
-//**********************************************************************************
-// PWM ouputs controled by timer rather than brew core loop
-//**********************************************************************************
-// This #define enables the PWM outputs to be controled by timer rather than the brew core loop.
-// This means that we can have a higher frequency output, and that the timings of the PWM signal are more 
-// accurate. This is required if you are goign to attempt to control a pump with a PWM output. 
-// NOTE: The counter/timer is set to work with a 16mhz input frequency and is set to run at 8khz PWM output 
-// frequency as the fastest possible frequency, (also note that the period cannot exceed 8.19 seconds). Also
-// only two PWM outputs can run at 8khz, all the rest must run at a lower frequency as defiend above. The 
-// two PWM outputs which will be 8khz can be defined below, comment them both out if none are that high. 
-// Also, the reported period for the 8khz outputs is going to look like 1 seconds in both the UI and the log. 
-// You will not however be able to set the the PWM frequency from the UI because it is set at 8khz, the value
-// given in the UI will be ignored. The % output however will be reported properly through the UI and log. 
-//#define PWM_BY_TIMER
-//**********************************************************************************
-
-//**********************************************************************************
-// Flow rate calcs fed into PID controller for auto fly sparge
-//**********************************************************************************
-// This #define enables the feeding of the flow rate calcs based on the pressure sensors to be fed into the 
-// PID code to control a pump for fly sparge to get a desired flow rate. Note that the PWM output used to 
-// control the pump takes over the steam output, and thus the steam output cannot be used for steam. 
-// Note: This code is designed to work with PWM_BY_TIMER 
-// Note2: Given our current 10 bit adc and the average pressure sensor resolution for volume you only get about 
-// 7 ADC clicks per quart, thus if you have your flow rate calcs set to happen to fast you'll always show a 0 flow 
-// rate. You'll need at least 20 seconds between flow rate calcs to be able to measure this slow of a flow rate. 
-// Note3: the Pump output must be set to PID for this to work as well.
-// Note4: In the UI when you enter the Pump flow rate it's entered in 10ths of a quart per minute, so 1 quart per
-// minute would be 10. 
-//#define PID_FLOW_CONTROL
-//#define PID_CONTROL_MANUAL  // modified manual control (still has to be set to PID in settings menu) in case you 
-                            //just cant get PID to work
-#define PID_FLOW_MIN 30     // this is the minimum PID output duty cycle % to be used when the setpoint is non zero
-                            // this is used because under a certain duty cycle a pump wont even spin or just
-                            // make foam, etc so we need the pump to at least move liquid before we try to 
-                            // control it or your process + intregral variables can just run away while you're trying
-                            // to spin up. 
-//**********************************************************************************
-
-//**********************************************************************************
 // Fly sparge pump control to turn the sparge in pump on/off based on a hysteresis from volume of sparge out
 //**********************************************************************************
 // This #define will turn the fly sparge in valve config on when the hysteresis amount of fluid has been pumped
@@ -292,7 +212,7 @@ static const byte TS = 1;
 //  ASCII Messages
 //      0 - Original BT 2.0 Messages
 //      1 - BT 2.1 Enhanced ASCII
-//       Steam, Calc. Vol & Temp, BoilPower, Grain Temp, Delay Start, MLT Heat Source
+//       Calc. Vol & Temp, BoilPower, Grain Temp, Delay Start, MLT Heat Source
 #define COMSCHEMA 0
 //
 // LOG_INTERVAL: Specifies how often data is logged via serial in milliseconds. If
@@ -515,43 +435,6 @@ static const byte TS = 1;
 //#define HLT_HEAT_SPARGE
 //#define HLT_MIN_SPARGE 2000
 //**********************************************************************************
-
-//**********************************************************************************
-// Direct-fired RIMS support
-//**********************************************************************************
-// DIRECT_FIRED_RIMS/RIMS_TEMP_OFFSET/RIMS_DURING_SPARGE: specifies that the mash 
-// kettle is direct-fired, either with gas, or a heating element, and that the RIMS
-// has it's own element. With this option, the VS_MASH is used for the mash, and the
-// VS_STEAM is used for the RIMS. Only the VS_MASH is used to change the temp; when 
-// the temp is within RIMS_TEMP_OFFSET of the set temp, the VS_MASH is turned off, 
-// and VS_STEAM is turned on, to reach and maintain the set temp. When the strike temp
-// is beaing reached, or any other step change grater than RIMS_TEMP_OFFSET, this 
-// allows VS_MASH to be used for the quicker temeperature change, then for VS_STEAM to
-// take over for finer temperaature control.
-//#define DIRECT_FIRED_RIMS
-#ifdef DIRECT_FIRED_RIMS
-  // If you are not recirculating your mash, the offset should probably be greater.
-  #define RIMS_TEMP_OFFSET 5
-  // Specify the temperature sensor used in the RIMS tube. TS_AUX1, TS_AUX2 or TS_AUX3 is recommended.
-  #define RIMS_TEMP_SENSOR TS_AUX1
-  // You really should have a sensor in your RIMS tube: this #defines allow you to set 
-  // the maximum temp that the RIMS tuube is allowed to reach.  It is important to note 
-  // that both the sensor and the heating element should be submersed in liqued, with 
-  // the input and output ports facing up, so that the tube can not run dry.
-  #define RIMS_MAX_TEMP 180
-  // As the SSD can get stuck in the ON state, if the RIMS_ALARM_TEMP temperature is
-  // reached, turn on the alarm.
-  #define RIMS_ALARM_TEMP 190
-  // If your HLT output passes through your RIMS tube to your mash kettle, you may want
-  // to define RIMS_DURING_SPARGE so that it can also control the temp of your sparge
-  // water.  The logic here is somehwat different than for mashing, in that it will only
-  // control the VS_STEAM output.  You can use this in conjuction with HLT_HEAT_SPARGE
-  // to fire the HLT too.
-  #define RIMS_DURING_SPARGE
-#endif
-//**********************************************************************************
-
-
 
 //**********************************************************************************
 // Sparge Options

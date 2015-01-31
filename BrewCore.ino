@@ -39,7 +39,7 @@ enum schedulerTasks {
 #endif
   SCHEDULETASK_PROGRAMS,
   SCHEDULETASK_COMS,
-  SCHEDULETASK_OUTPUTPROFILES,
+  SCHEDULETASK_AUTOVALVE,
   SCHEDULETASK_COUNT
 };
 
@@ -49,7 +49,9 @@ void brewCore() {
   #ifdef HEARTBEAT
     heartbeat();
   #endif
-  processHeatOutputs();
+  
+  updateHeatOutputs();
+  outputs->update();
   //END HIGH PRIORITY
   
   //START NORMAL PRIORITY: Updated in turn
@@ -96,11 +98,9 @@ void brewCore() {
       updateCom();
       break;
       
-    case SCHEDULETASK_OUTPUTPROFILES:
+    case SCHEDULETASK_AUTOVALVE:
       //Auto Valve Logic: Outputs.ino
-      processAutoValve();
-      
-      outputs->update();
+      updateAutoValve();
       break;
   }
   

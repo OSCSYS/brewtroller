@@ -25,10 +25,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
   void OutputBank::init(void) { }
   char* OutputBank::getOutputName(byte index, char* retString) {
-    char outputName[10] = "Output ";
     char strIndex[3];
-    strlcpy(retString, "Output ", OUTPUTBANK_NAME_MAXLEN);
-    strlcat(retString, itoa(index + 1, strIndex, 10), OUTPUTBANK_NAME_MAXLEN);
+    strlcpy(retString, "Out ", OUTPUT_NAME_MAXLEN);
+    strlcat(retString, itoa(index + 1, strIndex, 10), OUTPUT_NAME_MAXLEN);
     return retString;
   }
 
@@ -60,7 +59,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       char outputNames[] = OUTPUTBANK_GPIO_OUTPUTNAMES;
       char* pos = outputNames;
       for (byte i = 0; i <= index; i++) {
-        strlcpy(retString, pos, OUTPUTBANK_NAME_MAXLEN);
+        strlcpy(retString, pos, OUTPUT_NAME_MAXLEN);
         pos += strlen(retString) + 1;
       }
     }
@@ -140,10 +139,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
  
   char* OutputBankMODBUS::getBankName (char* retString) {
-    char bankName[14] = "MODBUS-8 #";
+    char bankName[14] = "MODBUS#";
     char strAddr[6];
     strlcpy(retString, bankName, OUTPUTBANK_NAME_MAXLEN);
-    strlcat(retString, itoa(slaveAddr, strAddr, 10), OUTPUTBANK_NAME_MAXLEN);
+    strlcat(retString, itoa(slaveAddr, strAddr, 16), OUTPUTBANK_NAME_MAXLEN);
     strlcat(retString, "-", OUTPUTBANK_NAME_MAXLEN);
     strlcat(retString, itoa(coilReg + 1, strAddr, 10), OUTPUTBANK_NAME_MAXLEN);
     return retString;
@@ -246,6 +245,26 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   OutputBank* OutputSystem::getBank(uint8_t bankIndex){
     return banks[bankIndex];
   }
+
+  OutputBank* OutputSystem::getBankByOutput(byte outputIndex) {
+    byte outputCount = 0;
+    for (byte i = 0; i < bankCount; i++) {
+      outputCount += banks[i]->getCount();
+      if (outputCount >= outputIndex + 1)
+        return banks[i];
+    }
+    return NULL;
+  }
+
+  byte OutputSystem::getBankOutputIndex(byte outputIndex) {
+    byte outputCount = 0;
+    for (byte i = 0; i < bankCount; i++) {
+      outputCount += banks[i]->getCount();
+      if (outputCount >= outputIndex + 1)
+        return outputIndex - outputCount - banks[i]->getCount();
+    }
+    return NULL;
+  }
   
   void OutputSystem::update(void) {
     //Start with discreet outputs
@@ -288,16 +307,16 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     return outputState;
   }
   
-  boolean OutputSystem::getOutputEnable(byte outputIndex) {
-    unsigned long enabled = 0xFFFFFFFFul;
-    for (byte i = 0; i < OUTPUTENABLE_COUNT; i++)
-      enabled &= outputEnableMask[i];
+  boolean OutputSystem::getOutputEnable(byte enableIndex, byte outputIndex) {
     unsigned long mask = 1;
     mask = mask << outputIndex;
-    
-    if (enabled & mask)
+    if (outputEnableMask[enableIndex] & mask)
       return 1;
     return 0;
+  }
+  
+  unsigned long OutputSystem::getOutputEnableMask(byte enableIndex){
+    return outputEnableMask[enableIndex];
   }
   
   void OutputSystem::setOutputEnable(byte enableIndex, byte outputIndex, boolean enableFlag) {
@@ -389,19 +408,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       discreetState &= ~mask;
   }
   
-  analogOutput* analogOutput::create(analogOutCfg_t cfg) {
-    if (cfg.type == analogOutType_SWPWM) 
-      return new analogOutput_SWPWM(cfg.implementation.analogOutCfg_SWPWM.index, cfg.implementation.analogOutCfg_SWPWM.period);
-
-    else if (cfg.type == analogOutType_HWPWM) {
-      return new analogOutput_HWPWM(cfg.implementation.analogOutCfg_HWPWM.index);
-    }
-  
-    else { return NULL; }
-  }
-  
   void analogOutput::setValue(byte v) { value = v; }
   byte analogOutput::getLimit() { return limit; }
+  byte analogOutput::getValue() { return value; }
   void analogOutput::init() {}
 
 
@@ -410,9 +419,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     limit = period;
   }
   
-  void analogOutput_SWPWM::setup(OutputSystem* otOutputs)
+  OutputSystem* analogOutput_SWPWM::outputs = NULL;
+  void analogOutput_SWPWM::setup(OutputSystem* o)
   {
-    analogOutput_SWPWM::outputs = otOutputs;
+    analogOutput_SWPWM::outputs = o;
   }
   
   void analogOutput_SWPWM::setValue(byte v) {
@@ -429,7 +439,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       sPeriod = sUpdated;
     }
   }
-  OutputSystem* analogOutput_SWPWM::outputs = NULL;
 
 
   analogOutput_HWPWM::analogOutput_HWPWM(byte p) {
@@ -465,7 +474,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       char names[] = ANALOGOUTPUTS_HWPWM_NAMES;
       char* pos = names;
       for (byte i = 0; i <= index; i++) {
-        strlcpy(retString, pos, OUTPUTBANK_NAME_MAXLEN);
+        strlcpy(retString, pos, OUTPUT_NAME_MAXLEN);
         pos += strlen(retString) + 1;
       }
     }

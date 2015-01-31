@@ -31,7 +31,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include <ModbusMaster.h>
   
 //Includes trailing slash
-#define OUTPUTBANK_NAME_MAXLEN 17
+#define OUTPUTBANK_NAME_MAXLEN 10
+#define OUTPUT_NAME_MAXLEN 7
 #define OUTPUTBANKS_MAXBANKS 4
 
 class OutputBank
@@ -122,9 +123,12 @@ class OutputSystem
   byte getBankCount(void);  
   OutputBank* getBank(uint8_t bankIndex);
   void update(void);
+  OutputBank* getBankByOutput(byte outputIndex);
+  byte getBankOutputIndex(byte outputIndex);
   boolean getOutputState(byte index);
   unsigned long getOutputStateMask(void);
-  boolean getOutputEnable(byte index);
+  boolean getOutputEnable(byte enableIndex, byte index);
+  unsigned long getOutputEnableMask(byte enableIndex);
   void setOutputEnable(byte enableIndex, byte outputIndex, boolean enableFlag);
   void setOutputEnableMask(byte enableIndex, unsigned long enableMask);
   boolean getProfileState(byte profileIndex);
@@ -139,39 +143,14 @@ class OutputSystem
   void setDiscreetState(byte outputIndex, boolean stateValue);
 };
 
-typedef enum {
-  analogOutType_None,
-  analogOutType_SWPWM,
-  analogOutType_HWPWM,
-  analogOutType_Modbus
-} analogOutType;
-
-typedef struct analogOutCfg_t {
-  analogOutType type;
-  union {
-    struct analogOutCfg_SWPWM_t {
-      byte index;
-      byte period; //Time period in tenths of a second (0.0- 25.5s)
-    } analogOutCfg_SWPWM;
-    struct analogOutCfg_HWPWM_t {
-      byte index; //HWProfile to provide array of Pins
-    } analogOutCfg_HWPWM;
-    struct analogOutCfg_Modbus_t {
-      byte slaveAddr;
-      unsigned int reg;
-      unsigned long limit; //Max value
-    } analogOutCfg_Modbus;
-  } implementation;
-};
-
 class analogOutput {
   protected:
   byte value, limit;
   
   public:
-  static analogOutput* create(analogOutCfg_t cfg);
   virtual void setValue(byte v);
   byte getLimit();
+  byte getValue();
   virtual void init();
   virtual void update() = 0;
 };
@@ -181,13 +160,12 @@ class analogOutput_SWPWM : public analogOutput {
   static OutputSystem* outputs;
   byte pinIndex;
   unsigned long sPeriod; //Start of PWM period: millis()
-  //limit: (0-255 x 100ms)
   
   public:
   analogOutput_SWPWM(byte index, byte period);
   void setValue(byte v);
   void update();
-  static void setup(OutputSystem* otOutputs);
+  static void setup(OutputSystem* o);
 };
 
 

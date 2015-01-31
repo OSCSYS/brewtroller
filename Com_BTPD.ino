@@ -42,7 +42,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //#define BTPD_HLT_VOL 0x26 // BTPD_HLT_VOL: Displays current and target HLT volume
 //#define BTPD_MASH_VOL 0x27 // BTPD_MASH_VOL: Displays current and target Mash volume
 //#define BTPD_KETTLE_VOL 0x28 // BTPD_KETTLE_VOL: Displays current and target Kettle volume
-//#define BTPD_STEAM_PRESS 0x29 // BTPD_STEAM_PRESS: Displays current and target Steam pressure
 #define BTPD_AUX1_TEMP 0x2a
 
 #ifdef RIMS_TEMP_SENSOR
@@ -130,9 +129,6 @@ void updateBTPD() {
 		#endif
 		#ifdef BTPD_TIMERS
 			sendVsTime(BTPD_TIMERS, TIMER_MASH, TIMER_BOIL);
-		#endif
-		#ifdef BTPD_STEAM_PRESS
-			sendFloatsBTPD(BTPD_STEAM_PRESS, steamTgt, steamPressure / 1000.0 );
 		#endif
 		lastBTPD = millis();
 		odd = !odd;

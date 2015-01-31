@@ -40,34 +40,25 @@ void loadSetup() {
   #endif
  
   //**********************************************************************************
-  //PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam
-  //PIDp HLT (73), Mash (78), Kettle (83), Steam (88)
-  //PIDi HLT (74), Mash (79), Kettle (84), Steam (89)
-  //PIDd HLT (75), Mash (80), Kettle (85), Steam (90)
-  //PIDCycle HLT (76), Mash (81), Kettle (86), Steam (91)
-  //Hysteresis HLT (77), Mash (82), Kettle (87), Steam (92)
+  //PIDp HLT (73), Mash (78), Kettle (83), Reserved (88)
+  //PIDi HLT (74), Mash (79), Kettle (84), Reserved (89)
+  //PIDd HLT (75), Mash (80), Kettle (85), Reserved (90)
+  //PIDCycle HLT (76), Mash (81), Kettle (86), Reserved (91)
+  //Hysteresis HLT (77), Mash (82), Kettle (87), Reserved (92)
+  //PWM Pin (309-312)
   //**********************************************************************************
-  {
-    byte options = EEPROM.read(72);
-    for (byte i = VS_HLT; i <= VS_STEAM; i++) {
-      PIDEnabled[i] = bitRead(options, i);
-      PIDCycle[i] = EEPROM.read(76 + i * 5);
-      hysteresis[i] = EEPROM.read(77 + i * 5);
-    }
-  }
+  for (byte i = VS_HLT; i <= VS_KETTLE; i++)
+    hysteresis[i] = EEPROM.read(77 + i * 5);
+
+  loadPWMOutputs();
   
   //**********************************************************************************
   //boilPwr (112)
   //**********************************************************************************
   boilPwr = EEPROM.read(112);
   //**********************************************************************************
-  //steamZero (114)
+  //OPEN (114-118)
   //**********************************************************************************
-  steamZero = EEPROMreadInt(114);
-  //**********************************************************************************
-  //steamPSens (117-118)
-  //**********************************************************************************
-  steamPSens = EEPROMreadInt(117);
 
   //**********************************************************************************
   //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
@@ -113,27 +104,37 @@ void loadSetup() {
   }
   alarmStatus = bitRead(options, 2);
   outputs->setProfileState(OUTPUTPROFILE_ALARM, alarmStatus);
-
-  #ifdef DEBUG_TIMERALARM
-    logStart_P(LOGDEBUG);
-    logField("TimerAlarmStatus");
-    logFieldI(bitRead(options, 0));
-    logFieldI(bitRead(options, 1));
-    logFieldI(bitRead(options, 2));
-    logEnd();
-  #endif
   
-
 
   //**********************************************************************************
   //401-480 Output Profiles
   //**********************************************************************************
-    loadOutputProfiles();
+    loadOutputSystem();
+}
+
+  void loadPWMOutputs() {
+    for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+      byte pwmPin = getPWMPin(i);
+      byte pwmCycle = getPWMPeriod(i);
+      if (pwmOutput[i])
+        delete pwmOutput[i];
+      if (pwmPin != PWMPIN_NONE)
+        pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle);
+    }
+  }
   
+  void loadOutputSystem() {
+    //Refresh output object
+    if (outputs)
+      delete outputs;
+    outputs = new OutputSystem();
+    outputs->init();
+    loadOutputProfiles();
     #ifdef OUTPUTBANK_MODBUS
       loadOutModbus();
     #endif
-}
+    analogOutput_SWPWM::setup(outputs);
+  }
 
   void loadOutputProfiles() {
     for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
@@ -184,18 +185,12 @@ void setTSAddr(byte sensor, byte addr[8]) {
 }
 
 //**********************************************************************************
-//PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam
+//OPEN (72)
 //**********************************************************************************
-void setPIDEnabled(byte vessel, boolean setting) {
-  PIDEnabled[vessel] = setting;
-  byte options = EEPROM.read(72);
-  bitWrite(options, vessel, setting);
-  EEPROM.write(72, options);
-}
 
 
 //**********************************************************************************
-//PIDp HLT (73), Mash (78), Kettle (83), Steam (88)
+//PIDp HLT (73), Mash (78), Kettle (83), RESERVED (88)
 //**********************************************************************************
 void setPIDp(byte vessel, byte value) {
   pid[vessel].SetTunings(value, pid[vessel].GetI_Param(), pid[vessel].GetD_Param());
@@ -204,7 +199,7 @@ void setPIDp(byte vessel, byte value) {
 byte getPIDp(byte vessel) { return EEPROM.read(73 + vessel * 5); }
 
 //**********************************************************************************
-//PIDi HLT (74), Mash (79), Kettle (84), Steam (89)
+//PIDi HLT (74), Mash (79), Kettle (84), RESERVED (89)
 //**********************************************************************************
 void setPIDi(byte vessel, byte value) {
   pid[vessel].SetTunings(pid[vessel].GetP_Param(), value, pid[vessel].GetD_Param());
@@ -213,7 +208,7 @@ void setPIDi(byte vessel, byte value) {
 byte getPIDi(byte vessel) { return EEPROM.read(74 + vessel * 5); }
 
 //**********************************************************************************
-//PIDd HLT (75), Mash (80), Kettle (85), Steam (90)
+//PIDd HLT (75), Mash (80), Kettle (85), RESERVED (90)
 //**********************************************************************************
 void setPIDd(byte vessel, byte value) {
   pid[vessel].SetTunings(pid[vessel].GetP_Param(), pid[vessel].GetI_Param(), value);
@@ -222,15 +217,15 @@ void setPIDd(byte vessel, byte value) {
 byte getPIDd(byte vessel) { return EEPROM.read(75 + vessel * 5); }
 
 //**********************************************************************************
-//PIDCycle HLT (76), Mash (81), Kettle (86), Steam (91)
+//PWM Period HLT (76), Mash (81), Kettle (86), RESERVED (91)
 //**********************************************************************************
-void setPIDCycle(byte vessel, byte value) {
-  PIDCycle[vessel] = value;
+byte getPWMPeriod(byte vessel) { return EEPROM.read(76 + vessel * 5); }
+void setPWMPeriod(byte vessel, byte value) {
   EEPROM.write(76 + vessel * 5, value);
 }
 
 //**********************************************************************************
-//Hysteresis HLT (77), Mash (82), Kettle (87), Steam (92)
+//Hysteresis HLT (77), Mash (82), Kettle (87), RESERVED (92)
 //**********************************************************************************
 void setHysteresis(byte vessel, byte value) {
   hysteresis[vessel] = value;
@@ -276,33 +271,8 @@ void setEvapRate(byte value) {
 byte getEvapRate() { return EEPROM.read(113); }
 
 //**********************************************************************************
-//steamZero (114-115)
+//Open (114-118)
 //**********************************************************************************
-void setSteamZero(unsigned int value) {
-  steamZero = value;
-  EEPROMwriteInt(114, value);
-}
-
-//**********************************************************************************
-//steamTgt (116)
-//**********************************************************************************
-void setSteamTgt(byte value) { EEPROM.write(116, value); }
-byte getSteamTgt() { return EEPROM.read(116); }
-
-//**********************************************************************************
-//steamPSens (117-118)
-//**********************************************************************************
-void setSteamPSens(unsigned int value) {
-  steamPSens = value;
-  #ifndef PID_FLOW_CONTROL
-  #ifdef USEMETRIC
-    pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
-  #else
-    pid[VS_STEAM].SetInputLimits(0, 7250 / steamPSens);
-  #endif
-  #endif
-  EEPROMwriteInt(117, value);
-}
 
 //**********************************************************************************
 //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
@@ -345,12 +315,7 @@ void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) 
 //setpoints (299-301)
 //**********************************************************************************
 void setSetpoint(byte vessel, int value) {
-  #if defined PID_FLOW_CONTROL || defined USESTEAM
-    if (vessel == VS_STEAM) setpoint[vessel] = value;
-    else setpoint[vessel] = value * SETPOINT_MULT;
-  #else
-    setpoint[vessel] = value * SETPOINT_MULT;
-  #endif
+  setpoint[vessel] = value * SETPOINT_MULT;
   EEPROM.write(299 + vessel, value);
   eventHandler(EVENT_SETPOINT, vessel);
 }
@@ -406,9 +371,10 @@ unsigned int getBoilAddsTrig() { return EEPROMreadInt(307); }
 void setBoilAddsTrig(unsigned int adds) { EEPROMwriteInt(307, adds); }
 
 //**********************************************************************************
-// ***OPEN*** (309-312)
+// PWM Outputs (309-312)
 //**********************************************************************************
-
+unsigned int getPWMPin(byte vessel) { return EEPROM.read(309 + vessel); }
+void setPWMPin(byte vessel, byte pin) { EEPROM.write(309 + vessel, pin); }
 
 //**********************************************************************************
 //Program Threads (313-316)
@@ -578,7 +544,7 @@ unsigned long getProgGrain(byte preset) { return EEPROMreadLong(PROGRAM_START_AD
   void setTriggerPin(byte triggerIndex, byte inputIndex) {
     #if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
       EEPROM.write(2050 + triggerIndex, inputIndex);
-      triggerSetup(); //Call triggerSetup() to reattach
+      triggerInit(); //Call triggerInit() to reattach
     #endif
   }
 #endif
@@ -640,7 +606,8 @@ boolean checkConfig() {
     case 0:
       //Supported PID cycle is changing from 1-255 to .1-25.5
       //All current PID cycle settings will be multiplied by 10 to represent tenths (s)
-      for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
+      for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++)
+        EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
       //Set cfgVersion = 1
       EEPROM.write(2047, 1);
     case 1:
@@ -668,12 +635,11 @@ void initEEPROM() {
   EEPROM.write(2046, 252);
 
   //Default Output Settings: p: 3, i: 4, d: 2, cycle: 4s, Hysteresis 0.3C(0.5F)
-  for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) {
+  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
     setPIDp(vessel, 3);
     setPIDi(vessel, 4);
     setPIDd(vessel, 2);
-    setPIDCycle(vessel, 4);
-    if (vessel != VS_STEAM)
+    setPWMPeriod(vessel, 4);
     #ifdef USEMETRIC
       setHysteresis(vessel, 3);
     #else

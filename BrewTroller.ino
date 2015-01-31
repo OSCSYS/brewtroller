@@ -113,15 +113,14 @@ struct ProgramThread {
 //**********************************************************************************
 // Globals
 //**********************************************************************************
-//Heat Output Pin Array
-pin heatPin[4];
+//Vessel PWM Output Pin Array
+analogOutput_SWPWM* pwmOutput[3];
 
 #ifdef DIGITAL_INPUTS
   pin digInPin[DIGIN_COUNT];
 #endif
 
 pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
-boolean estop = 0;
 
 #ifdef HEARTBEAT
   pin hbPin;
@@ -182,46 +181,16 @@ OutputSystem* outputs;
 char buf[20];
 
 //Output Globals
-double PIDInput[4], PIDOutput[4], setpoint[4];
-#ifdef PID_FEED_FORWARD
-double FFBias;
-#endif
-byte PIDCycle[4], hysteresis[4];
-#ifdef PWM_BY_TIMER
-unsigned int cycleStart[4] = {0,0,0,0};
-#else
-unsigned long cycleStart[4] = {0,0,0,0};
-#endif
-boolean heatStatus[4], PIDEnabled[4];
-unsigned int steamPSens, steamZero;
-
-byte pidLimits[4] = { PIDLIMIT_HLT, PIDLIMIT_MASH, PIDLIMIT_KETTLE, PIDLIMIT_STEAM };
-  
-//Steam Pressure in thousandths
-unsigned long steamPressure;
+double PIDInput[3], PIDOutput[3], setpoint[3];
+byte hysteresis[3];
+boolean heatStatus[3];
 byte boilPwr;
 
-PID pid[4] = {
+PID pid[3] = {
   PID(&PIDInput[VS_HLT], &PIDOutput[VS_HLT], &setpoint[VS_HLT], 3, 4, 1),
-
-  #ifdef PID_FEED_FORWARD
-    PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], &FFBias, 3, 4, 1),
-  #else
-    PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
-  #endif
-
+  PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
   PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
-
-  #ifdef PID_FLOW_CONTROL
-    PID(&PIDInput[VS_PUMP], &PIDOutput[VS_PUMP], &setpoint[VS_PUMP], 3, 4, 1)
-  #else
-    PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
-  #endif
 };
-#if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
-  unsigned long nextcompute;
-  byte additioncount[2];
-#endif
 
 #ifdef RIMS_MLT_SETPOINT_DELAY
   byte steptoset = 0;
@@ -252,12 +221,6 @@ const char LOGSYS[] PROGMEM = "SYS";
 const char LOGCFG[] PROGMEM = "CFG";
 const char LOGDATA[] PROGMEM = "DATA";
 
-//PWM by timer globals
-#ifdef PWM_BY_TIMER
-unsigned int timer1_overflow_count = 0;
-unsigned int PIDOutputCountEquivalent[4][2] = {{0,0},{0,0},{0,0},{0,0}};
-#endif
-
 //**********************************************************************************
 // Setup
 //**********************************************************************************
@@ -272,12 +235,9 @@ void setup() {
     Wire.begin(BT_I2C_ADDR);
   #endif
   
-  //Pin initialization (Outputs.ino)
-  pinInit();
-
-  //Output initialization
-  outputs = new OutputSystem();
-  outputs->init();
+  #ifdef HEARTBEAT
+    hbPin.setup(HEARTBEAT_PIN, OUTPUT);
+  #endif
 
   tempInit();
   
@@ -294,16 +254,12 @@ void setup() {
   
   #ifdef DIGITAL_INPUTS
     //Digital Input Interrupt Setup
-    triggerSetup();
+    triggerInit();
   #endif
   
   //PID Initialization (Outputs.ino)
   pidInit();
   
-  #ifdef PWM_BY_TIMER
-    pwmInit();
-  #endif
-
   //User Interface Initialization (UI.ino)
   //Moving this to last of setup() to allow time for I2CLCD to initialize
   #ifndef NOUI

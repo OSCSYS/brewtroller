@@ -74,6 +74,9 @@ prog_char USER1[] PROGMEM = "User Profile 1";
 prog_char USER2[] PROGMEM = "User Profile 2";
 prog_char USER3[] PROGMEM = "User Profile 3";
 prog_char ALARM[] PROGMEM = "Alarm";
+prog_char HLTPWMACTIVE[] PROGMEM = "HLT PWM Active";
+prog_char MASHPWMACTIVE[] PROGMEM = "Mash PWM Active";
+prog_char KETTLEPWMACTIVE[] PROGMEM = "Kettle PWM Active";
 
 prog_char DOUGHIN[] PROGMEM = "Dough In:";
 prog_char ACID[] PROGMEM = "Acid Rest:";
@@ -112,7 +115,10 @@ PROGMEM const char *TITLE_VLV[] = {
   USER1,
   USER2,
   USER3,
-  ALARM
+  ALARM,
+  HLTPWMACTIVE,
+  MASHPWMACTIVE,
+  KETTLEPWMACTIVE
 };
 
 const char ALLOFF[] PROGMEM = "All Off";
@@ -120,47 +126,41 @@ const char FILLBOTH[] PROGMEM = "Fill Both";
 const char FLYSPARGE[] PROGMEM = "Fly Sparge";
 const char CHILLNORM[] PROGMEM = "Chill Both";
 
-#ifndef UI_NO_SETUP
-  prog_char TITLE_VS_HLT[] PROGMEM = "HLT";
-  prog_char TITLE_VS_MASH[] PROGMEM = "Mash";
-  prog_char TITLE_VS_KETTLE[] PROGMEM = "Kettle";
-  
-  #ifdef PID_FLOW_CONTROL
-    prog_char TITLE_VS_PUMP[] PROGMEM = "Pump";
-  #elif defined USESTEAM
-    prog_char TITLE_VS_STEAM[] PROGMEM = "Steam";
-  #endif
-  
-  PROGMEM const char *TITLE_VS[] = {
-    TITLE_VS_HLT,
-    TITLE_VS_MASH,
-    TITLE_VS_KETTLE
-    
-    #ifdef PID_FLOW_CONTROL
-      , TITLE_VS_PUMP
-    #elif defined USESTEAM
-      , TITLE_VS_STEAM
-    #endif
-  };
-  
-  const char PIDCYCLE[] PROGMEM = " PID Cycle";
-  const char PIDGAIN[] PROGMEM = " PID Gain";
-  const char HYSTERESIS[] PROGMEM = " Hysteresis";
-  
-  #ifdef PID_FLOW_CONTROL
-    const char PUMPFLOW[] PROGMEM = "Pump Flow Rate";
-  #elif defined USESTEAM
-    const char STEAMPRESS[] PROGMEM = "Steam Target";
-    const char STEAMSENSOR[] PROGMEM = "Steam Sensor Sens";
-    const char STEAMZERO[] PROGMEM = "Steam Zero Calib";
-  #endif
+prog_char TITLE_VS_HLT[] PROGMEM = "HLT";
+prog_char TITLE_VS_MASH[] PROGMEM = "Mash";
+prog_char TITLE_VS_KETTLE[] PROGMEM = "Kettle";
 
+PROGMEM const char *TITLE_VS[] = {
+  TITLE_VS_HLT,
+  TITLE_VS_MASH,
+  TITLE_VS_KETTLE
+};
 
+const char TITLE_TS_H2OIN[] PROGMEM = "H2O In";
+const char TITLE_TS_H2OOUT[] PROGMEM = "H2O Out";
+const char TITLE_TS_WORTOUT[] PROGMEM = "Wort Out";
+const char TITLE_TS_AUX1[] PROGMEM = "AUX 1";
+const char TITLE_TS_AUX2[] PROGMEM = "AUX 2";
+const char TITLE_TS_AUX3[] PROGMEM = "AUX 3";
 
-  const char CAPACITY[] PROGMEM = " Capacity";
-  const char DEADSPACE[] PROGMEM = " Dead Space";
-  const char CALIBRATION[] PROGMEM = " Calibration";
-#endif
+PROGMEM const char *TITLE_TS[] = {
+  TITLE_VS_HLT,
+  TITLE_VS_MASH,
+  TITLE_VS_KETTLE,
+  TITLE_TS_H2OIN,
+  TITLE_TS_H2OOUT,
+  TITLE_TS_WORTOUT,
+  TITLE_TS_AUX1,
+  TITLE_TS_AUX2,
+  TITLE_TS_AUX3
+};
+
+const char PIDCYCLE[] PROGMEM = " PID Cycle";
+const char PIDGAIN[] PROGMEM = " PID Gain";
+const char HYSTERESIS[] PROGMEM = " Hysteresis";
+const char CAPACITY[] PROGMEM = " Capacity";
+const char DEADSPACE[] PROGMEM = " Dead Space";
+const char CALIBRATION[] PROGMEM = " Calibration";
 
 const char HLTDESC[] PROGMEM = "Hot Liquor Tank";
 const char MASHDESC[] PROGMEM = "Mash Tun";
@@ -169,20 +169,10 @@ const char SEC[] PROGMEM = "s";
 const char VOLUNIT[] PROGMEM = "l";
 const char WTUNIT[] PROGMEM = "kg";
 const char TUNIT[] PROGMEM = "C";
-#ifdef PID_FLOW_CONTROL
-const char PUNIT[] PROGMEM = "0.1*l/m";
-#else
-const char PUNIT[] PROGMEM = "kPa";
-#endif
 #else
 const char VOLUNIT[] PROGMEM = "gal";
 const char WTUNIT[] PROGMEM = "lb";
 const char TUNIT[] PROGMEM = "F";
-#ifdef PID_FLOW_CONTROL
-const char PUNIT[] PROGMEM = "0.1*q/m";
-#else
-const char PUNIT[] PROGMEM = "psi";
-#endif
 #endif
 
 //**********************************************************************************
@@ -245,9 +235,8 @@ void uiInit() {
 
   //Check to see if EEPROM Initialization is needed
   if (checkConfig()) {
-    LCD.clear();
-    LCD.print_P(0, 0, PSTR("Missing Config"));
-    if (confirmChoice(INIT_EEPROM, 3)) UIinitEEPROM();
+    if (confirmChoice("Missing Config", "", "", INIT_EEPROM))
+      UIinitEEPROM();
     LCD.clear();
   }
 
@@ -311,7 +300,8 @@ void lockUI() {
 // screenCore: Called in main loop to handle all UI functions
 //**********************************************************************************
 void uiCore() {
-  if (estop) uiEstop();
+  if (isEStop())
+    uiEstop();
   if (!screenLock) {
     int encValue = Encoder.change();
     if (encValue >= 0) {
@@ -425,24 +415,6 @@ void screenInit() {
     else if (brewStepIsActive(BREWSTEP_MASHOUT)) LCD.print_P(0, 1, PSTR("Mash Out"));
     else if (brewStepIsActive(BREWSTEP_MASHHOLD)) LCD.print_P(0, 1, PSTR("End Mash"));
     else LCD.print_P(0, 0, PSTR("Mash"));
-    // For DIRECT_FIRED_RIMS (and possibly just RIMS), we need a different layout here.
-#ifdef DIRECT_FIRED_RIMS
-    // This is the RIMS screen
-    LCD.print_P(0, 9, PSTR("At"));
-    LCD.print_P(0, 15, PSTR("Set"));
-    LCD.print_P(1, 1, PSTR("HLT"));
-    LCD.print_P(2, 1, PSTR("Mash"));
-    LCD.print_P(3, 1, PSTR("RIMS"));
-    
-    LCD.print_P(1, 13, TUNIT);
-    LCD.print_P(1, 19, TUNIT);
-    LCD.print_P(2, 13, TUNIT);
-    LCD.print_P(2, 19, TUNIT);
-    LCD.print_P(3, 13, TUNIT);
-    LCD.print_P(3, 19, TUNIT);
-    
-#else
-    // This is the standard screen
     LCD.print_P(0, 11, PSTR("HLT"));
     LCD.print_P(0, 16, PSTR("Mash"));
     LCD.print_P(1, 1, PSTR("Target"));
@@ -452,8 +424,6 @@ void screenInit() {
     LCD.print_P(1, 19, TUNIT);
     LCD.print_P(2, 13, TUNIT);
     LCD.print_P(2, 19, TUNIT);
-#endif
-
   } else if (activeScreen == SCREEN_SPARGE) {
     //Screen Init: Sparge
     if (brewStepIsActive(BREWSTEP_SPARGE)) LCD.print_P(0, 1, PSTR("Sparge"));
@@ -490,8 +460,8 @@ void screenInit() {
 
     if (screenLock) {
         Encoder.setMin(0);
-        Encoder.setMax(PIDLIMIT_KETTLE);
-        Encoder.setCount(PIDOutput[VS_KETTLE]/PIDCycle[VS_KETTLE]);
+        Encoder.setMax(100);
+        Encoder.setCount(pwmOutput[VS_KETTLE] ? (PIDOutput[VS_KETTLE] / pwmOutput[VS_KETTLE]->getLimit() * 100) : 0);
         //If Kettle is off keep it off until unlocked
         if (!setpoint[VS_KETTLE]) boilControlState = CONTROLSTATE_OFF;
     }
@@ -526,11 +496,8 @@ void screenInit() {
     LCD.print_P(2,1,PSTR("AUX2"));
     LCD.print_P(1, 11, TUNIT);
     LCD.print_P(2, 11, TUNIT);
-#ifndef DIRECT_FIRED_RIMS
     LCD.print_P(3, 1, PSTR("AUX3"));
     LCD.print_P(3, 11, TUNIT);
-#endif
-    
   }
   
   //Write Unlock symbol to upper right corner
@@ -572,37 +539,6 @@ void screenRefresh() {
   } else if (activeScreen == SCREEN_MASH) {
     //Refresh Screen: Preheat/Mash
     
-    // The DIRECT_FIRED_RIMS option uses a different screen layout, so the logic just
-    // does not work.  So two blocks are required.
-#ifdef DIRECT_FIRED_RIMS
-    byte vessels[3] = {VS_HLT, VS_MASH, VS_MASH};
-    byte temps[3] = {TS_HLT, TS_MASH, RIMS_TEMP_SENSOR};
-    byte heatSources[3] = {VS_HLT, VS_MASH, VS_STEAM};
-    for (byte i = 0; i <= 2; i++) {
-      vftoa(setpoint[vessels[i]], buf, 100, 1);
-      truncFloat(buf, 4);
-      LCD.lPad(i + 1, 15, buf, 4, ' ');
-      vftoa(temp[temps[i]], buf, 100, 1);
-      truncFloat(buf, 4);
-      if (temp[temps[i]] == BAD_TEMP) {
-        LCD.print_P(i + 1, 1, PSTR("12345678----")); 
-        // LCD.print_P(i + 1, 9, PSTR("----")); 
-      } else {
-        LCD.lPad(i + 1, 9, buf, 4, ' ');      
-      }
-      if (PIDEnabled[vessels[i]]) {
-        // There is no good way to currently show this.
-        // Removing for now.
-        LCD.print_P(i + 1, 6, PSTR("#")); 
-      } else if (heatStatus[heatSources[i]]) {
-        LCD.print_P(i + 1, 6, PSTR("*")); 
-      } else {
-        LCD.print_P(i + 1, 6, PSTR("-"));
-      }
-      // This over-writes the RIMS row, so commented out.
-//    printTimer(TIMER_MASH, 3, 0);
-    }
-#else
     for (byte i = VS_HLT; i <= VS_MASH; i++) {
       vftoa(setpoint[i], buf, 100, 1);
       truncFloat(buf, 4);
@@ -615,8 +551,8 @@ void screenRefresh() {
         LCD.lPad(2, i * 6 + 9, buf, 4, ' ');
       }
       byte pct;
-      if (PIDEnabled[i]) {
-        pct = PIDOutput[i] / PIDCycle[i];
+      if (pwmOutput[i]) {
+        pct = PIDOutput[i] / pwmOutput[i]->getLimit();
         if (pct == 0) strcpy_P(buf, PSTR("Off"));
         else if (pct == 100) strcpy_P(buf, PSTR(" On"));
         else { itoa(pct, buf, 10); strcat(buf, "%"); }
@@ -628,9 +564,8 @@ void screenRefresh() {
         pct = 0;
       }
       LCD.lPad(3, i * 6 + 11, buf, 3, ' ');
-    printTimer(TIMER_MASH, 3, 0);
+      printTimer(TIMER_MASH, 3, 0);
     }
-#endif
 
 
 
@@ -696,7 +631,7 @@ void screenRefresh() {
         case CONTROLSTATE_AUTO:
           LCD.print_P(0, 14, PSTR("  Auto"));
           break;
-        case CONTROLSTATE_ON:
+        case CONTROLSTATE_MANUAL:
           LCD.print_P(0, 14, PSTR("Manual"));
           break;
       }
@@ -708,8 +643,8 @@ void screenRefresh() {
     truncFloat(buf, 5);
     LCD.lPad(2, 15, buf, 5, ' ');
 
-    if (PIDEnabled[TS_KETTLE]) {
-      byte pct = PIDOutput[TS_KETTLE] / PIDCycle[TS_KETTLE];
+    if (pwmOutput[VS_KETTLE]) {
+      byte pct = PIDOutput[TS_KETTLE] / pwmOutput[VS_KETTLE]->getLimit();
       if (pct == 0) strcpy_P(buf, PSTR("Off"));
       else if (pct == 100) strcpy_P(buf, PSTR(" On"));
       else { itoa(pct, buf, 10); strcat(buf, "%"); }
@@ -721,17 +656,21 @@ void screenRefresh() {
     LCD.lPad(3, 17, buf, 3, ' ');
     vftoa(temp[TS_KETTLE], buf, 100, 1);
     truncFloat(buf, 5);
-    if (temp[TS_KETTLE] == BAD_TEMP) LCD.print_P(1, 14, PSTR("-----")); else LCD.lPad(1, 14, buf, 5, ' ');
+    if (temp[TS_KETTLE] == BAD_TEMP)
+      LCD.print_P(1, 14, PSTR("-----"));
+    else
+      LCD.lPad(1, 14, buf, 5, ' ');
     if (screenLock) {
       if (boilControlState != CONTROLSTATE_OFF) {
         int encValue = Encoder.change();
         if (encValue >= 0) {
-          boilControlState = CONTROLSTATE_ON;
+          boilControlState = CONTROLSTATE_MANUAL;
           setpoint[VS_KETTLE] = encValue ? getBoilTemp() * SETPOINT_MULT : 0;
-          PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * encValue;
+          PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? (unsigned int)pwmOutput[VS_KETTLE]->getLimit() * encValue / 100 : 0;
         }
       }
-      if (boilControlState == CONTROLSTATE_AUTO) Encoder.setCount(PIDOutput[VS_KETTLE] / PIDCycle[VS_KETTLE]);
+      if (boilControlState == CONTROLSTATE_AUTO)
+        Encoder.setCount(pwmOutput[VS_KETTLE] ? PIDOutput[VS_KETTLE] / pwmOutput[VS_KETTLE]->getLimit() : 0);
     }
     
   } else if (activeScreen == SCREEN_CHILL) {
@@ -758,12 +697,7 @@ void screenRefresh() {
 
   } else if (activeScreen == SCREEN_AUX) {
     //Screen Refresh: AUX
-  #ifndef DIRECT_FIRED_RIMS
-    for (byte i = TS_AUX1; i <= TS_AUX3; i++)
-  #else
-    for (byte i = TS_AUX1; i <= TS_AUX2; i++)
-  #endif
-    {
+  for (byte i = TS_AUX1; i <= TS_AUX3; i++) {
       if (temp[i] == BAD_TEMP) {
         LCD.print_P(i - 5, 6, PSTR("-----")); 
       } else {
@@ -809,9 +743,7 @@ void screenEnter() {
           homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_USER3) ? PSTR(": On") : PSTR(": Off"), 6);
 
           homeMenu.setItem_P(PSTR("Reset All"), 7);
-          #ifndef UI_NO_SETUP
-            homeMenu.setItem_P(PSTR("System Setup"), 8);
-          #endif
+          homeMenu.setItem_P(PSTR("System Setup"), 8);
           homeMenu.setItem_P(EXIT, 255);
 
           byte lastOption = scrollMenu("Main Menu", &homeMenu);
@@ -857,9 +789,7 @@ void screenEnter() {
             }
           }
           
-#ifndef UI_NO_SETUP        
           else if (lastOption == 8) menuSetup();
-#endif
           else {
             //On exit of the Main menu go back to Splash/Home screen.
             setActive(SCREEN_HOME);
@@ -1061,7 +991,7 @@ void screenEnter() {
           case CONTROLSTATE_AUTO:
             boilMenu.appendItem_P(PSTR("Auto"), 2);
             break;
-          case CONTROLSTATE_ON:
+          case CONTROLSTATE_MANUAL:
             boilMenu.appendItem_P(PSTR("Manual"), 2);
             break;
         }
@@ -1099,7 +1029,7 @@ void screenEnter() {
           setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
           setSetpoint(VS_KETTLE, getBoilTemp() * SETPOINT_MULT);
         }
-        else if (lastOption == 4) setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
+        else if (lastOption == 4) setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
         else if (lastOption == 5)
           outputs->setProfileState(OUTPUTPROFILE_BOILRECIRC, outputs->getProfileState(OUTPUTPROFILE_BOILRECIRC) ? 0 : 1);
         else if (lastOption == 6) {
@@ -1158,15 +1088,17 @@ void uiEstop() {
   LCD.print_P(1, 0, PSTR(">Clear Alarm"));
   LCD.print_P(2, 0, PSTR(" Clear E-Stop"));
 
-  while (estop) {
+  while (isEStop()) {
     if (Encoder.change() >= 0) {
       LCD.print(2 - Encoder.getCount(), 0, " ");
       LCD.print(Encoder.getCount() + 1, 0, ">");
       LCD.update();
     }
     if (Encoder.ok()) {
-      if (Encoder.getCount() == 0) setAlarm(0);
-      else if (Encoder.getCount() == 1) estop = 0;
+      if (Encoder.getCount() == 0)
+        setAlarm(0);
+      else if (Encoder.getCount() == 1)
+        outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, 0xFFFFFFFFul);
     }
     brewCore();
   }
@@ -1177,7 +1109,7 @@ void boilControlMenu() {
   menu boilMenu(3, 3);
   boilMenu.setItem_P(PSTR("Off"), CONTROLSTATE_OFF);
   boilMenu.setItem_P(PSTR("Auto"), CONTROLSTATE_AUTO);
-  boilMenu.setItem_P(PSTR("Manual"), CONTROLSTATE_ON);
+  boilMenu.setItem_P(PSTR("Manual"), CONTROLSTATE_MANUAL);
   byte lastOption = scrollMenu("Boil Control Menu", &boilMenu);
   if (lastOption < NUM_CONTROLSTATES) boilControlState = (ControlState) lastOption;
   switch (boilControlState) {
@@ -1188,7 +1120,7 @@ void boilControlMenu() {
     case CONTROLSTATE_AUTO:
       setpoint[VS_KETTLE] = getBoilTemp() * SETPOINT_MULT;
       break;
-    case CONTROLSTATE_ON:
+    case CONTROLSTATE_MANUAL:
       setpoint[VS_KETTLE] = 1;
       break;
   }
@@ -1514,52 +1446,53 @@ byte MLHeatSrcMenu(byte MLHeatSrc) {
   else return lastOption;
 }
 
-void warnHLT(unsigned long spargeVol) {
+void infoBox(char line1[], char line2[], char line3[], const char* prompt) {
   LCD.clear();
-  LCD.print_P(0, 0, PSTR("HLT Capacity Issue"));
-  LCD.print_P(1, 0, PSTR("Sparge Vol:"));
+  LCD.center(0, 0, line1, 20);
+  LCD.center(1, 0, line2, 20);
+  LCD.center(2, 0, line3, 20);
+  char promptLine[21] = "> ";
+  strcat_P(promptLine, prompt);
+  strcat(promptLine, " <");
+  LCD.center(3, 0, promptLine, 20);
+  while (!Encoder.ok()) brewCore();
+}
+
+void warnHLT(unsigned long spargeVol) {
+  char line2[21] = "Sparge Vol:";
   vftoa(spargeVol, buf, 1000, 1);
   truncFloat(buf, 5);
-  LCD.print(1, 11, buf);
-  LCD.print_P(1, 16, VOLUNIT);
-  LCD.print(3, 4, ">");
-  LCD.print_P(3, 6, CONTINUE);
-  LCD.print(3, 15, "<");
-  while (!Encoder.ok()) brewCore();
+  strcat(line2, buf);
+  strcat_P(line2, VOLUNIT);
+
+  infoBox("HLT Capacity Issue", line2, "", CONTINUE);
 }
 
 
 void warnMash(unsigned long mashVol, unsigned long grainVol) {
-  LCD.clear();
-  LCD.print_P(0, 0, PSTR("Mash Capacity Issue"));
-  LCD.print_P(1, 0, PSTR("Strike Vol:"));
+  char line2[21] = "Strike Vol:";
   vftoa(mashVol, buf, 1000, 1);
   truncFloat(buf, 5);
-  LCD.print(1, 11, buf);
-  LCD.print_P(1, 16, VOLUNIT);
-  LCD.print_P(2, 0, PSTR("Grain Vol:"));
+  strcat(line2, buf);
+  strcat_P(line2, VOLUNIT);
+
+  char line3[21] = "Grain Vol:";
   vftoa(grainVol, buf, 1000, 1);
   truncFloat(buf, 5);
-  LCD.print(2, 11, buf);
-  LCD.print_P(2, 16, VOLUNIT);
-  LCD.print(3, 4, ">");
-  LCD.print_P(3, 6, CONTINUE);
-  LCD.print(3, 15, "<");
-  while (!Encoder.ok()) brewCore();
+  strcat(line3, buf);
+  strcat_P(line3, VOLUNIT);
+
+  infoBox("Mash Capacity Issue", line2, line3, CONTINUE);
 }
 
 void warnBoil(unsigned long preboilVol) {
-  LCD.clear();
-  LCD.print_P(0, 0, PSTR("Boil Capacity Issue"));
-  LCD.print_P(1, 0, PSTR("Preboil Vol:"));
+  char line2[21] = "Preboil Vol:";
   vftoa(preboilVol, buf, 1000, 1);
   truncFloat(buf, 5);
-  LCD.print(1, 12, buf);
-  LCD.print_P(1, 17, VOLUNIT);
-  LCD.print(3, 4, ">");
-  LCD.print_P(3, 6, CONTINUE);
-  LCD.print(3, 15, "<");
-  while (!Encoder.ok()) brewCore();
+  strcat(line2, buf);
+  strcat_P(line2, VOLUNIT);
+
+  infoBox("Boil Capacity Issue", line2, "", CONTINUE);
 }
 
 //*****************************************************************************************************************************
@@ -1641,25 +1574,23 @@ byte getChoice(menu *objMenu, byte iRow) {
   }
 }
 
-boolean confirmChoice(const char *choice, byte row) {
+boolean confirmChoice(char line1[], char line2[], char line3[], const char *choice) {
+  LCD.clear();
+  LCD.print_P(0, 0, line1);
+  LCD.print_P(1, 0, line2);
+  LCD.print_P(2, 0, line3);
   menu choiceMenu(1, 2);
   choiceMenu.setItem_P(CANCEL, 0);
   choiceMenu.setItem_P(choice, 1);
-  if(getChoice(&choiceMenu, row) == 1) return 1; else return 0;
+  if(getChoice(&choiceMenu, 3) == 1) return 1; else return 0;
 }
 
 boolean confirmAbort() {
-  LCD.clear();
-  LCD.print_P(0, 0, PSTR("Abort operation and"));
-  LCD.print_P(1, 0, PSTR("reset setpoints,"));
-  LCD.print_P(2, 0, PSTR("timers and outputs?"));
-  return confirmChoice(PSTR("Reset"), 3);
+  return confirmChoice("Abort operation and", "reset setpoints,", "timers and outputs?", PSTR("Reset"));
 }
 
 boolean confirmDel() {
-  LCD.clear();
-  LCD.print_P(1, 0, PSTR("Delete Item?"));
-  return confirmChoice(PSTR("Delete"), 3);
+  return confirmChoice("Delete Item?", "", "", PSTR("Delete"));
 }
 
 unsigned long getValue_P(const char *sTitle, unsigned long defValue, unsigned int divisor, unsigned long maxValue, const char *dispUnit) {
@@ -2072,16 +2003,12 @@ byte enc2ASCII(byte charin) {
 //*****************************************************************************************************************************
 // System Setup Menus
 //*****************************************************************************************************************************
-#ifndef UI_NO_SETUP
 void menuSetup() {
   menu setupMenu(3, 10);
+  setupMenu.setItem_P(PSTR("System Settings"), 9);
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 0);
   setupMenu.setItem_P(PSTR("Outputs"), 1);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 2);
-  setupMenu.setItem_P(PSTR("Output Profiles"), 3);
-  #ifdef OUTPUTBANK_MODBUS
-    setupMenu.setItem_P(PSTR("RS485 Outputs"), 4);
-  #endif
   setupMenu.setItem_P(INIT_EEPROM, 5);
   #ifdef UI_DISPLAY_SETUP
     setupMenu.setItem_P(PSTR("Display"), 6);
@@ -2099,16 +2026,11 @@ void menuSetup() {
   while(1) {
     byte lastOption = scrollMenu("System Setup", &setupMenu);
     if (lastOption == 0) assignSensor();
-    else if (lastOption == 1) cfgOutputs();
+    else if (lastOption == 1) menuOutputs();
     else if (lastOption == 2) cfgVolumes();
-    else if (lastOption == 3) menuOutputProfiles();
-    #ifdef OUTPUTBANK_MODBUS
-      else if (lastOption == 4) cfgMODBUSOutputs();
-    #endif
     else if (lastOption == 5) {
-      LCD.clear();
-      LCD.print_P(0, 0, PSTR("Reset Configuration?"));
-      if (confirmChoice(INIT_EEPROM, 3)) UIinitEEPROM();
+      if (confirmChoice("Reset Configuration?", "", "", INIT_EEPROM))
+        UIinitEEPROM();
     }
     #ifdef UI_DISPLAY_SETUP
       else if (lastOption == 6) adjustLCD();
@@ -2180,20 +2102,19 @@ void cfgRgb() {
 #endif
 #endif
 
+byte menuSelectTempSensor(char sTitle[]) {
+  menu tsMenu(1, NUM_TS + 1);
+  for (byte i = 0; i < NUM_TS; i++)
+    tsMenu.setItem_P((char*)pgm_read_word(&(TITLE_TS[i])), i);
+  tsMenu.setItem_P(EXIT, 255);
+  return scrollMenu(sTitle, &tsMenu);
+}
+
 void assignSensor() {
-  menu tsMenu(1, 9);
-  tsMenu.setItem_P(HLTDESC, TS_HLT);
-  tsMenu.setItem_P(MASHDESC, TS_MASH);
-  tsMenu.setItem_P(PSTR("Brew Kettle"), TS_KETTLE);
-  tsMenu.setItem_P(PSTR("H2O In"), TS_H2OIN);
-  tsMenu.setItem_P(PSTR("H2O Out"), TS_H2OOUT);
-  tsMenu.setItem_P(PSTR("Beer Out"), TS_BEEROUT);
-  tsMenu.setItem_P(PSTR("AUX 1"), TS_AUX1);
-  tsMenu.setItem_P(PSTR("AUX 2"), TS_AUX2);
-  tsMenu.setItem_P(PSTR("AUX 3"), TS_AUX3);
-  #ifdef RIMS_TEMP_SENSOR
-    tsMenu.setItem_P(PSTR("RIMS"), RIMS_TEMP_SENSOR);
-  #endif
+  menu tsMenu(1, NUM_TS + 1);
+  for (byte i = 0; i < NUM_TS; i++)
+    tsMenu.setItem_P((char*)pgm_read_word(&(TITLE_TS[i])), i);
+  tsMenu.setItem_P(EXIT, 255);
   
   Encoder.setMin(0);
   Encoder.setMax(tsMenu.getItemCount() - 1);
@@ -2223,29 +2144,31 @@ void assignSensor() {
     else if (Encoder.ok()) {
       encValue = Encoder.getCount();
       //Pop-Up Menu
-      menu tsOpMenu(3, 4);
+      menu tsOpMenu(3, 5);
       tsOpMenu.setItem_P(PSTR("Scan Bus"), 0);
       tsOpMenu.setItem_P(PSTR("Delete Address"), 1);
+      tsOpMenu.setItem_P(PSTR("Clone Address"), 3);
       tsOpMenu.setItem_P(CANCEL, 2);
       tsOpMenu.setItem_P(EXIT, 255);
       byte selected = scrollMenu(tsMenu.getSelectedRow(buf), &tsOpMenu);
       if (selected == 0) {
-        LCD.clear();
-        LCD.center(0, 0, tsMenu.getSelectedRow(buf), 20);
-        LCD.print_P(1,0,PSTR("Disconnect all other"));
-        LCD.print_P(2,2,PSTR("temp sensors now"));
-        {
-          if (confirmChoice(CONTINUE, 3)) {
-            byte addr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-            getDSAddr(addr);
-            setTSAddr(encValue, addr);
-          }
+        if (confirmChoice(tsMenu.getSelectedRow(buf), "Disconnect all other", "temp sensors now", CONTINUE)) {
+          byte addr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+          getDSAddr(addr);
+          setTSAddr(encValue, addr);
         }
       } else if (selected == 1) {
         byte addr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
         setTSAddr(encValue, addr);
-      }
-      else if (selected > 2) return;
+      } else if (selected == 3) {
+        byte source = menuSelectTempSensor("Clone Sensor");
+        if (source < NUM_TS) {
+          byte addr[8];
+          memcpy(addr, tSensor[source], 8);
+          setTSAddr(encValue, addr);
+        }
+      } else if (selected == 255)
+        return;
 
       Encoder.setMin(0);
       Encoder.setMax(tsMenu.getItemCount() - 1);
@@ -2266,222 +2189,182 @@ void displayAssignSensorTemp(int sensor) {
 }
 
 
-#define OPT_MODE 0
-#define OPT_CYCLE 1
-#define OPT_GAIN 2
-#define OPT_HYSTERESIS 3
-#define OPT_PRESS 4
-#define OPT_SENSOR 5
-#define OPT_ZERO 6
-#define OPT_BOILTEMP 7
-#define OPT_BOILPWR 8
-    
-void cfgOutputs() {
-  menu outputMenu(3, 21);
+void menuSystemSettings() {
+    menu settingsMenu(3, 4);
+    settingsMenu.setItem_P(PSTR("Boil Temp"), 0);
+    settingsMenu.setItem_P(PSTR("Boil Power"), 1);
+    settingsMenu.setItem_P(PSTR("Evaporation Rate"), 2);
+    settingsMenu.setItem_P(EXIT, 255);
+
+    while (1) {
+      byte lastOption = scrollMenu("System Settings", &settingsMenu);
+      if (lastOption == 0)
+        setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
+      else if (lastOption == 1)
+        setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
+      else if (lastOption == 2)
+        #ifdef BOIL_OFF_GALLONS
+          #ifdef USEMETRIC
+            setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("l/hr")));
+          #else
+            setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("0.1g/hr")));
+          #endif
+        #else
+           setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 100, PSTR("%/hr")));
+        #endif
+      else
+        return;
+    }
+}
+
+void menuOutputs() {
+  menu outputMenu(3, 6);
+  for (byte i = VS_HLT; i <= VS_KETTLE; i++)
+    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
+  outputMenu.setItem_P(PSTR("Output Profiles"), 3);
+  #ifdef OUTPUTBANK_MODBUS
+    outputMenu.setItem_P(PSTR("RS485 Outputs"), 4);
+  #endif
+  outputMenu.setItem_P(EXIT, 255);
   
-  while(1) {
-    //Note: Menu values represent two 4-bit values
-    //High-nibble = vessel: VS_HLT-VS_STEAM/VS_PUMP
-    //Low-nibble = menu item: OPT_XXXXXXXX (see #defines above)
-    
-    if (PIDEnabled[VS_HLT]) outputMenu.setItem_P(PSTR("HLT Mode: PID"), VS_HLT<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("HLT Mode: On/Off"), VS_HLT<<4 | OPT_MODE);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_HLT])), VS_HLT<<4 | OPT_CYCLE);
-    outputMenu.appendItem_P(PIDCYCLE, VS_HLT<<4 | OPT_CYCLE);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_HLT])), VS_HLT<<4 | OPT_GAIN);
-    outputMenu.appendItem_P(PIDGAIN, VS_HLT<<4 | OPT_GAIN);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_HLT])), VS_HLT<<4 | OPT_HYSTERESIS);
-    outputMenu.appendItem_P(HYSTERESIS, VS_HLT<<4 | OPT_HYSTERESIS);
-    
-    if (PIDEnabled[VS_MASH]) outputMenu.setItem_P(PSTR("Mash Mode: PID"), VS_MASH<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("Mash Mode: On/Off"), VS_MASH<<4 | OPT_MODE);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_MASH])), VS_MASH<<4 | OPT_CYCLE);
-    outputMenu.appendItem_P(PIDCYCLE, VS_MASH<<4 | OPT_CYCLE);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_MASH])), VS_MASH<<4 | OPT_GAIN);
-    outputMenu.appendItem_P(PIDGAIN, VS_MASH<<4 | OPT_GAIN);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_MASH])), VS_MASH<<4 | OPT_HYSTERESIS);
-    outputMenu.appendItem_P(HYSTERESIS, VS_MASH<<4 | OPT_HYSTERESIS);
-    
-    if (PIDEnabled[VS_KETTLE]) outputMenu.setItem_P(PSTR("Kettle Mode: PID"), VS_KETTLE<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("Kettle Mode: On/Off"), VS_KETTLE<<4 | OPT_MODE);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_KETTLE])), VS_KETTLE<<4 | OPT_CYCLE);
-    outputMenu.appendItem_P(PIDCYCLE, VS_KETTLE<<4 | OPT_CYCLE);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_KETTLE])), VS_KETTLE<<4 | OPT_GAIN);
-    outputMenu.appendItem_P(PIDGAIN, VS_KETTLE<<4 | OPT_GAIN);
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_KETTLE])), VS_KETTLE<<4 | OPT_HYSTERESIS);
-    outputMenu.appendItem_P(HYSTERESIS, VS_KETTLE<<4 | OPT_HYSTERESIS);
-    
-    outputMenu.setItem_P(PSTR("Boil Temp: "), OPT_BOILTEMP);
-    vftoa(getBoilTemp(), buf, SETPOINT_DIV, 1);
-    truncFloat(buf, 5);
-    outputMenu.appendItem(buf, OPT_BOILTEMP);
-    outputMenu.appendItem_P(TUNIT, OPT_BOILTEMP);
-    
-    outputMenu.setItem_P(PSTR("Boil Power: "), OPT_BOILPWR);
-    outputMenu.appendItem(itoa(boilPwr, buf, 10), OPT_BOILPWR);
-    outputMenu.appendItem("%", OPT_BOILPWR);
-    
-    #ifdef PID_FLOW_CONTROL
-      if (PIDEnabled[VS_PUMP]) outputMenu.setItem_P(PSTR("Sparge Pump: PID"), VS_PUMP<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("Sparge Pump: On/Off"), VS_PUMP<<4 | OPT_MODE);
-      outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_PUMP])), VS_PUMP<<4 | OPT_GAIN);
-      outputMenu.appendItem_P(PIDGAIN, VS_PUMP<<4 | OPT_GAIN);
-      outputMenu.setItem_P(PUMPFLOW, VS_PUMP<<4 | OPT_PRESS);
-    #elif defined USESTEAM
-      if (PIDEnabled[VS_STEAM]) outputMenu.setItem_P(PSTR("Steam Mode: PID"), VS_STEAM<<4 | OPT_MODE); else outputMenu.setItem_P(PSTR("Steam Mode: On/Off"), VS_STEAM<<4 | OPT_MODE);
-      outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_STEAM])), VS_STEAM<<4 | OPT_CYCLE);
-      outputMenu.appendItem_P(PIDCYCLE, VS_STEAM<<4 | OPT_CYCLE);
-      outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[VS_STEAM])), VS_STEAM<<4 | OPT_GAIN);
-      outputMenu.appendItem_P(PIDGAIN, VS_STEAM<<4 | OPT_GAIN);
-      outputMenu.setItem_P(STEAMPRESS, VS_STEAM<<4 | OPT_PRESS);
-      outputMenu.setItem_P(STEAMSENSOR, VS_STEAM<<4 | OPT_SENSOR);
-      outputMenu.setItem_P(STEAMZERO, VS_STEAM<<4 | OPT_ZERO);
+  while (1) {
+    byte lastOption = scrollMenu("Output Settings", &outputMenu);
+    if (lastOption <= VS_KETTLE)
+      menuOutputSettings(lastOption);
+    else if (lastOption == 3)
+      menuOutputProfiles();
+    #ifdef OUTPUTBANK_MODBUS
+      else if (lastOption == 4)
+        menuMODBUSOutputs();
     #endif
+    else
+      return;
+  }
+
+}
+
+void menuOutputSettings(byte vessel) {
+  while(1) {
+    menu outputMenu(3, 7);
+    outputMenu.setItem_P(PSTR("PWM Pin: "), 0);
+    byte pwmPin = getPWMPin(vessel);
+    if (pwmPin == PWMPIN_NONE)
+      outputMenu.appendItem_P(PSTR("NONE"), 0);
+    else {
+      outputMenu.appendItem(itoa(pwmPin, buf, 10), 0);
+
+      outputMenu.setItem_P(PSTR("PWM Period: "), 1);
+      vftoa(getPWMPeriod(vessel), buf, 10, 1);
+      outputMenu.appendItem(buf, 1);
+
+      outputMenu.setItem_P(PSTR("P Gain: "), 2);
+      outputMenu.appendItem(itoa(getPIDp(vessel), buf, 10), 2);
+
+      outputMenu.setItem_P(PSTR("I Gain: "), 3);
+      outputMenu.appendItem(itoa(getPIDi(vessel), buf, 10), 3);
+
+      outputMenu.setItem_P(PSTR("D Gain: "), 4);
+      outputMenu.appendItem(itoa(getPIDd(vessel), buf, 10), 4);
+    }
+    outputMenu.setItem_P(HYSTERESIS, 5);
     outputMenu.setItem_P(EXIT, 255);
     
-    byte lastOption = scrollMenu("Output Settings", &outputMenu);
-    byte vessel = lastOption>>4;
-    char title[20];
-    #ifdef PID_FLOW_CONTROL
-      if (vessel >= VS_HLT && vessel <= VS_PUMP)
-    #elif defined USESTEAM
-      if (vessel >= VS_HLT && vessel <= VS_STEAM)
-    #else
-      if (vessel >= VS_HLT && vessel <= VS_KETTLE)
-    #endif
-        strcpy_P(title, (char*)pgm_read_word(&(TITLE_VS[vessel])));
     
-    if ((lastOption & B00001111) == OPT_MODE) {
-      if (PIDEnabled[vessel]) setPIDEnabled(vessel, 0);
-      else setPIDEnabled(vessel, 1);
-    } else if ((lastOption & B00001111) == OPT_CYCLE) {
-      strcat_P(title, PIDCYCLE);
-      setPIDCycle(vessel, getValue(title, PIDCycle[vessel], 10, 255, SEC));
-      pid[vessel].SetOutputLimits(0, PIDCycle[vessel] * pidLimits[vessel]);
-      
-    } else if ((lastOption & B00001111) == OPT_GAIN) {
-      strcat_P(title, PIDGAIN);
-      setPIDGain(title, vessel);
-    } else if ((lastOption & B00001111) == OPT_HYSTERESIS) {
-      strcat_P(title, HYSTERESIS);
-      setHysteresis(vessel, getValue(title, hysteresis[vessel], 10, 255, TUNIT));
-#if defined USESTEAM || defined PID_FLOW_CONTROL      
-    } else if ((lastOption & B00001111) == OPT_PRESS) {
-      #ifdef PID_FLOW_CONTROL
-        setSteamTgt(getValue_P(PUMPFLOW, getSteamTgt(), 1, 255, PUNIT));
-      #else
-        setSteamTgt(getValue_P(STEAMPRESS, getSteamTgt(), 1, 255, PUNIT));
-      #endif      
-#endif
-#ifdef USESTEAM
-    } else if ((lastOption & B00001111) == OPT_SENSOR) {
-      setSteamPSens(getValue_P(STEAMSENSOR, steamPSens, 10, 9999, PSTR("mV/kPa")));
-    } else if ((lastOption & B00001111) == OPT_ZERO) {
-      LCD.clear();
-      LCD.print_P(0, 0, STEAMZERO);
-      LCD.print_P(1,2,PSTR("Calibrate Zero?"));
-      if (confirmChoice(CONTINUE, 3)) setSteamZero(analogRead(STEAMPRESS_APIN));
-#endif
-    } else if ((lastOption & B00001111) == OPT_BOILTEMP) {
-      setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
-    } else if ((lastOption & B00001111) == OPT_BOILPWR) {
-      setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, min(PIDLIMIT_KETTLE, 100), PSTR("%")));
-    } else return;
-    brewCore();
+    byte lastOption = scrollMenu("Output Settings", &outputMenu);
+
+    if (lastOption == 0) {
+      //PWM Pin selection
+      setPWMPin(vessel, menuSelectOutput("PWM Pin", getPWMPin(vessel)));
+    } else if (lastOption == 1)
+      setPWMPeriod(vessel, getValue_P(PSTR("PWM Period"), getPWMPeriod(vessel), 10, 255, SEC));
+    else if (lastOption == 2)
+      setPIDp(vessel, getValue_P(PSTR("P Gain"), getPIDp(vessel), 0, 255, SEC));
+    else if (lastOption == 3)
+      setPIDi(vessel, getValue_P(PSTR("I Gain"), getPIDi(vessel), 0, 255, SEC));
+    else if (lastOption == 4)
+      setPIDd(vessel, getValue_P(PSTR("D Gain"), getPIDd(vessel), 0, 255, SEC));
+    else if (lastOption == 5)
+      setHysteresis(vessel, getValue_P(HYSTERESIS, hysteresis[vessel], 10, 255, TUNIT));
+    else return;
   } 
 }
 
-void setPIDGain(char sTitle[], byte vessel) {
-  byte retP = pid[vessel].GetP_Param();
-  byte retI = pid[vessel].GetI_Param();
-  byte retD = pid[vessel].GetD_Param();
-  byte cursorPos = 0; //0 = p, 1 = i, 2 = d, 3 = OK
-  boolean cursorState = 0; //0 = Unselected, 1 = Selected
-  Encoder.setMin(0);
-  Encoder.setMax(3);
-  Encoder.setCount(0);
-  
-  LCD.clear();
-  LCD.print(0,0,sTitle);
-  LCD.print_P(1, 0, PSTR("P:     I:     D:    "));
-  LCD.print_P(3, 8, OK);
-  boolean redraw = 1;
-  while(1) {
-    int encValue;
-    if (redraw) {
-      redraw = 0;
-      encValue = Encoder.getCount();
-    }
-    else encValue = Encoder.change();
-    if (encValue >= 0) {
-      if (cursorState) {
-        if (cursorPos == 0) retP = encValue;
-        else if (cursorPos == 1) retI = encValue;
-        else if (cursorPos == 2) retD = encValue;
-      } else {
-        cursorPos = encValue;
-        if (cursorPos == 0) {
-          LCD.print_P(1, 2, PSTR(">"));
-          LCD.print_P(1, 9, PSTR(" "));
-          LCD.print_P(1, 16, PSTR(" "));
-          LCD.print_P(3, 7, PSTR(" "));
-          LCD.print_P(3, 10, PSTR(" "));
-        } else if (cursorPos == 1) {
-          LCD.print_P(1, 2, PSTR(" "));
-          LCD.print_P(1, 9, PSTR(">"));
-          LCD.print_P(1, 16, PSTR(" "));
-          LCD.print_P(3, 7, PSTR(" "));
-          LCD.print_P(3, 10, PSTR(" "));
-        } else if (cursorPos == 2) {
-          LCD.print_P(1, 2, PSTR(" "));
-          LCD.print_P(1, 9, PSTR(" "));
-          LCD.print_P(1, 16, PSTR(">"));
-          LCD.print_P(3, 7, PSTR(" "));
-          LCD.print_P(3, 10, PSTR(" "));
-        } else if (cursorPos == 3) {
-          LCD.print_P(1, 2, PSTR(" "));
-          LCD.print_P(1, 9, PSTR(" "));
-          LCD.print_P(1, 16, PSTR(" "));
-          LCD.print_P(3, 7, PSTR(">"));
-          LCD.print_P(3, 10, PSTR("<"));
-        }
-      }
-      LCD.lPad(1, 3, itoa(retP, buf, 10), 3, ' ');
-      LCD.lPad(1, 10, itoa(retI, buf, 10), 3, ' ');
-      LCD.lPad(1, 17, itoa(retD, buf, 10), 3, ' ');
-    }
-    if (Encoder.ok()) {
-      if (cursorPos == 3) {
-        setPIDp(vessel, retP);
-        setPIDi(vessel, retI);
-        setPIDd(vessel, retD);
-#ifdef DEBUG_PID_GAIN
-        logDebugPIDGain(vessel);
-#endif
-        break;
-      }
-      cursorState = cursorState ^ 1;
-      if (cursorState) {
-        Encoder.setMin(0);
-        Encoder.setMax(255);
-        if (cursorPos == 0) Encoder.setCount(retP);
-        else if (cursorPos == 1) Encoder.setCount(retI);
-        else if (cursorPos == 2) Encoder.setCount(retD);
-      } else {
-        Encoder.setMin(0);
-        Encoder.setMax(3);
-        Encoder.setCount(cursorPos);
-      }
-    } else if (Encoder.cancel()) break;
-    brewCore();
+byte menuSelectOutput(char sTitle[], byte currentSelection) {
+  menu outputMenu(3, outputs->getCount() + 2);
+  for (byte i = 0; i < outputs->getCount(); i++) {
+    OutputBank* bank = outputs->getBankByOutput(i);
+    char outputName[20] = "";
+    if (i == currentSelection)
+      strlcat(outputName, "*", 20);
+    strlcat(outputName, bank->getBankName(buf), 20);
+    strlcat(outputName, "-", 20);
+    strlcat(outputName, bank->getOutputName(outputs->getBankOutputIndex(i), buf), 20);
+    outputMenu.setItem(outputName, i);
   }
-  brewCore();
+  if (currentSelection == PWMPIN_NONE)
+    outputMenu.setItem_P(PSTR("*None"), 254);
+  else
+    outputMenu.setItem_P(PSTR("None"), 254);
+  outputMenu.setItem_P(EXIT, 255);
+
+  byte lastOption = scrollMenu(sTitle, &outputMenu);
+  if (lastOption == 255)
+    return currentSelection;
+  else if (lastOption == 254)
+    return PWMPIN_NONE;
+  return lastOption;
 }
 
-#define OPT_CAPACITY 0
-#define OPT_DEADSPACE 1
-#define OPT_CALIBRATION 2
-#define OPT_EVAP 3
+unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection) {
+  unsigned long newSelection = currentSelection;
+  while (1) {
+    menu outputMenu(3, outputs->getCount() + 2);
+    for (byte i = 0; i < outputs->getCount(); i++) {
+      OutputBank* bank = outputs->getBankByOutput(i);
+      char outputName[20] = "";
+      if (i == currentSelection)
+        strlcat(outputName, "*", 20);
+      strlcat(outputName, bank->getBankName(buf), 20);
+      strlcat(outputName, "-", 20);
+      strlcat(outputName, bank->getOutputName(outputs->getBankOutputIndex(i), buf), 20);
+      outputMenu.setItem(outputName, i);
+    }
+    outputMenu.setItem_P(PSTR("[Add]"), 254);
+    outputMenu.setItem_P(EXIT, 255);
+  
+    byte lastOption = scrollMenu(sTitle, &outputMenu);
+    if (lastOption == 254) {
+      byte addOutput = menuSelectOutput("Add Output", PWMPIN_NONE);
+      if (addOutput < outputs->getCount())
+        newSelection |= addOutput;
+    } else if (lastOption == 253) {
+      //Test Profile: Use OUTPUTENABLE_SYSTEMTEST to disable unused outputs
+      outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, currentSelection);
+      outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, currentSelection);
+      outputs->setProfileState(OUTPUTPROFILE_SYSTEMTEST, 1);
+      outputs->update();
+
+      infoBox("Testing Output Profile", sTitle, "", CONTINUE);
+
+      // Update outputs to clear overrides (overrides are not persistent across updates)
+      outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, 0xFFFFFFFFul);
+      outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, 0);
+      outputs->setProfileState(OUTPUTPROFILE_SYSTEMTEST, 0);
+      outputs->update();
+    }  else if (lastOption == 255)
+      return newSelection;
+    else
+      newSelection &= ~(1<<lastOption);
+  }
+}
+
+#define OPT_CAPACITY 1
+#define OPT_DEADSPACE 2
+#define OPT_CALIBRATION 4
 
 void cfgVolumes() {
   //Note: Menu values represent two 4-bit values
-  //High-nibble = vessel: VS_HLT-VS_STEAM/VS_PUMP
+  //High-nibble = vessel: VS_HLT-VS_KETTLE
   //Low-nibble = menu item: OPT_XXXXXXXX (see #defines above)
   menu volMenu(3, 11);
   for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
@@ -2494,22 +2377,15 @@ void cfgVolumes() {
     volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[vessel])), vessel<<4 | OPT_CALIBRATION);
     volMenu.appendItem_P(CALIBRATION, vessel<<4 | OPT_CALIBRATION);
   }
-  volMenu.setItem_P(PSTR("Evaporation Rate"), OPT_EVAP);
-  volMenu.setItem_P(EXIT, 255);
+
 
   while(1) {
     byte lastOption = scrollMenu("Volume/Capacity", &volMenu);
     byte vessel = lastOption>>4;
 
     char title[20];
-    #ifdef PID_FLOW_CONTROL
-      if (vessel >= VS_HLT && vessel <= VS_PUMP)
-    #elif defined USESTEAM
-      if (vessel >= VS_HLT && vessel <= VS_STEAM)
-    #else
-      if (vessel >= VS_HLT && vessel <= VS_KETTLE)
-    #endif
-        strcpy_P(title, (char*)pgm_read_word(&(TITLE_VS[vessel])));
+    if (vessel >= VS_HLT && vessel <= VS_KETTLE)
+      strcpy_P(title, (char*)pgm_read_word(&(TITLE_VS[vessel])));
 
     if ((lastOption & B00001111) == OPT_CAPACITY) {
       strcat_P(title, CAPACITY);
@@ -2523,15 +2399,6 @@ void cfgVolumes() {
       strcat_P(title, CALIBRATION);
       volCalibMenu(title, vessel);
     }
-    #ifdef BOIL_OFF_GALLONS
-	 #ifdef USEMETRIC
-	else if ((lastOption & B00001111) == OPT_EVAP) setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("l/hr")));
-	 #else
-    else if ((lastOption & B00001111) == OPT_EVAP) setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("0.1g/hr")));
-	 #endif
-    #else
-    else if ((lastOption & B00001111) == OPT_EVAP) setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 100, PSTR("%/hr")));
-    #endif
     else return;
   } 
 }
@@ -2628,13 +2495,16 @@ void menuOutputProfiles() {
     OUTPUTPROFILE_FILLMASH,
     OUTPUTPROFILE_HLTHEAT,
     OUTPUTPROFILE_HLTIDLE,
+    OUTPUTPROFILE_HLTPWMACTIVE,
     OUTPUTPROFILE_MASHHEAT,
     OUTPUTPROFILE_MASHIDLE,
+    OUTPUTPROFILE_MASHPWMACTIVE,
     OUTPUTPROFILE_ADDGRAIN,
     OUTPUTPROFILE_SPARGEIN,
     OUTPUTPROFILE_SPARGEOUT,
     OUTPUTPROFILE_KETTLEHEAT,
     OUTPUTPROFILE_KETTLEIDLE,
+    OUTPUTPROFILE_KETTLEPWMACTIVE,
     OUTPUTPROFILE_HOPADD,
     OUTPUTPROFILE_KETTLELID,
     OUTPUTPROFILE_CHILLH2O,
@@ -2652,108 +2522,15 @@ void menuOutputProfiles() {
   while (1) {
     byte profile = scrollMenu("Output Profiles", &outputProfileMenu);
     if (profile >= OUTPUTPROFILE_USERCOUNT) return;
-    else setOutputProfile(profile, cfgOutputProfile(outputProfileMenu.getSelectedRow(buf), outputs->getProfileMask(profile)));
+    else setOutputProfile(profile, menuSelectOutputs(outputProfileMenu.getSelectedRow(buf), outputs->getProfileMask(profile)));
   }
 }
-
-unsigned long cfgOutputProfile (char sTitle[], unsigned long defValue) {
-  unsigned long retValue = defValue;
-  //firstBit: The left most bit being displayed
-  byte firstBit, encMax;
-  
-  encMax = outputs->getCount() + 1;
-  Encoder.setMin(0);
-  Encoder.setCount(0);
-  Encoder.setMax(encMax);
-  //(Set to MAX + 1 to force redraw)
-  firstBit = encMax + 1;
-  
-  LCD.clear();
-  LCD.print(0,0,sTitle);
-  LCD.print_P(3, 3, PSTR("Test"));
-  LCD.print_P(3, 13, PSTR("Save"));
-  
-  boolean redraw = 1;
-  while(1) {
-    int encValue;
-    if (redraw) {
-      redraw = 0;
-      encValue = Encoder.getCount();
-    }
-    else encValue = Encoder.change();
-    if (encValue >= 0) {
-      if (encValue < firstBit || encValue > firstBit + 17) {
-        if (encValue < firstBit) firstBit = encValue; else if (encValue < encMax - 1) firstBit = encValue - 17;
-        for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) LCD.print_P(1, i - firstBit + 1, PSTR("1")); else LCD.print_P(1, i - firstBit + 1, PSTR("0"));
-      }
-
-      for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) {
-        if (i < 9) itoa(i + 1, buf, 10); else buf[0] = i + 56;
-        buf[1] = '\0';
-        LCD.print(2, i - firstBit + 1, buf);
-      }
-
-      if (firstBit > 0) LCD.print_P(2, 0, PSTR("<")); else LCD.print_P(2, 0, PSTR(" "));
-      if (firstBit + 18 < encMax - 1) LCD.print_P(2, 19, PSTR(">")); else LCD.print_P(2, 19, PSTR(" "));
-      if (encValue == encMax - 1) {
-        LCD.print_P(3, 2, PSTR(">"));
-        LCD.print_P(3, 7, PSTR("<"));
-        LCD.print_P(3, 12, PSTR(" "));
-        LCD.print_P(3, 17, PSTR(" "));
-      } else if (encValue == encMax) {
-        LCD.print_P(3, 2, PSTR(" "));
-        LCD.print_P(3, 7, PSTR(" "));
-        LCD.print_P(3, 12, PSTR(">"));
-        LCD.print_P(3, 17, PSTR("<"));
-      } else {
-        LCD.print_P(3, 2, PSTR(" "));
-        LCD.print_P(3, 7, PSTR(" "));
-        LCD.print_P(3, 12, PSTR(" "));
-        LCD.print_P(3, 17, PSTR(" "));
-        LCD.print_P(2, encValue - firstBit + 1, PSTR("^"));
-      }
-    }
-    
-    if (Encoder.ok()) {
-      encValue = Encoder.getCount();
-      if (encValue == encMax) return retValue;
-      else if (encValue == encMax - 1) {
-        //Test Profile: Use OUTPUTENABLE_SYSTEMTEST to disable unused outputs
-        outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, retValue);
-        outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, retValue);
-        outputs->setProfileState(OUTPUTPROFILE_SYSTEMTEST, 1);
-        outputs->update();
-
-        LCD.print_P(3, 2, PSTR("["));
-        LCD.print_P(3, 7, PSTR("]"));
-        LCD.update();
-        while (!Encoder.ok()) {
-#ifdef HEARTBEAT
-          heartbeat();
-#endif
-          delay(50);
-        }
-        // Update outputs to clear overrides (overrides are not persistent across updates)
-        outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, 0xFFFFFFFFul);
-        outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, 0);
-        outputs->setProfileState(OUTPUTPROFILE_SYSTEMTEST, 0);
-        outputs->update();
-        redraw = 1;
-      } else {
-        retValue = retValue ^ ((unsigned long)1<<encValue);
-        for (byte i = firstBit; i < min(encMax - 1, firstBit + 18); i++) if (retValue & ((unsigned long)1<<i)) LCD.print_P(1, i - firstBit + 1, PSTR("1")); else LCD.print_P(1, i - firstBit + 1, PSTR("0"));
-      }
-    } else if (Encoder.cancel()) return defValue;
-    brewCore();
-  }
-}
-
 
 #ifdef OUTPUTBANK_MODBUS
 const uint8_t ku8MBSuccess                    = 0x00;
 const uint8_t ku8MBResponseTimedOut           = 0xE2;
 
-  void cfgMODBUSOutputs() {
+  void menuMODBUSOutputs() {
     while(1) {
       menu boardMenu(3, OUTPUTBANK_MODBUS_MAXBOARDS + 1);
       for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++) {
@@ -2779,12 +2556,12 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       boardMenu.setItem_P(PSTR("Exit"), 255);
       
       byte lastOption = scrollMenu("RS485 Outputs", &boardMenu);
-      if (lastOption < OUTPUTBANK_MODBUS_MAXBOARDS) cfgMODBUSOutputBoard(lastOption);
+      if (lastOption < OUTPUTBANK_MODBUS_MAXBOARDS) menuMODBUSOutputBoard(lastOption);
       else return;
     }
   }
   
-  void cfgMODBUSOutputBoard(byte board) {
+  void menuMODBUSOutputBoard(byte board) {
     while(1) {
       OutputBankMODBUS tempMB(getOutModbusAddr(board), getOutModbusReg(board), getOutModbusCoilCount(board));
       menu boardMenu(3, 7);
@@ -2827,12 +2604,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       else {
         if (lastOption == 5)
           setOutModbusDefaults(board);
-        //Refresh output object
-        delete outputs;
-        outputs = new OutputSystem();
-        outputs->init();
-        loadOutputProfiles();
-        loadOutModbus();
+        loadOutputSystem();
         return;
       }
     }
@@ -2983,7 +2755,4 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
     }
   }
 #endif
-
-#endif //#ifndef UI_NO_SETUP
-
 #endif //#ifndef NOUI

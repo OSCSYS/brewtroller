@@ -94,7 +94,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMD_TIMER			111 	//o
   #define CMD_VOL			112 	//p
   #define CMD_TEMP			113 	//q
-  #define CMD_STEAM			114 	//r
   #define CMD_HEATPWR			115 	//s
   #define CMD_SETPOINT			116 	//t
   #define CMD_AUTOVLV			117 	//u
@@ -174,7 +173,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0,	//CMD_TIMER
     0,	//CMD_VOL
     0,	//CMD_TEMP
-    0,	//CMD_STEAM
+    0,	//Unused
     0,	//CMD_HEATPWR
     0,	//CMD_SETPOINT
     0,	//CMD_AUTOVLV
@@ -197,7 +196,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_GET_BOIL
     29, 		//CMD_GET_CAL (0-9 HLT, 10-19 Mash, 20-29 Kettle)
     0, 			//CMD_GET_EVAP
-    VS_STEAM, 		//CMD_GET_OSET
+    VS_KETTLE, 		//CMD_GET_OSET
     RECIPE_MAX - 1, 	//CMD_GET_PROG
     NUM_TS - 1, 	//CMD_GET_TS
     0, 			//CMD_GET_VER
@@ -207,7 +206,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0, 			//CMD_SET_BOIL
     29,	                //CMD_SET_CAL (0-9 HLT, 10-19 Mash, 20-29 Kettle)
     0, 			//CMD_SET_EVAP
-    VS_STEAM, 		//CMD_SET_OSET
+    VS_KETTLE, 		//CMD_SET_OSET
     RECIPE_MAX - 1, 	//CMD_SET_PROG
     NUM_TS - 1, 	//CMD_SET_TS
     OUTPUTPROFILE_USERCOUNT - 1, 	//CMD_SET_OUTPROFILE
@@ -217,7 +216,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     BREWSTEP_COUNT - 1, //CMD_INIT_STEP
     0, 			//CMD_SET_ALARM
     0, 			//CMD_SET_AUTOVLV
-    VS_STEAM, 		//CMD_SET_SETPOINT
+    VS_KETTLE, 		//CMD_SET_SETPOINT
     TIMER_BOIL, 	//CMD_SET_TIMERSTATUS
     TIMER_BOIL, 	//CMD_SET_TIMERVALUE
     RECIPE_MAX - 1, 	//CMD_GET_PROGNAME
@@ -243,9 +242,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     TIMER_BOIL, 	//CMD_TIMER
     VS_KETTLE, 		//CMD_VOL
     VS_KETTLE, 		//CMD_TEMP
-    0, 			//CMD_STEAM
-    VS_STEAM, 		//CMD_HEATPWR
-    VS_STEAM, 		//CMD_SETPOINT
+    0, 			//Unused
+    VS_KETTLE, 		//CMD_HEATPWR
+    VS_KETTLE, 		//CMD_SETPOINT
     0, 			//CMD_AUTOVLV
     0, 			//CMD_GET_OUTPUTSTATE
     0, 			//CMD_GET_OUTPROFILESTATE
@@ -340,12 +339,6 @@ void BTnic::setState(BTNICState state) {
 void BTnic::execCmd(void) {
   setState(BTNIC_STATE_EXE);
 
-  // log ASCII version "GET_VER"
-  if (strcasecmp(getCmdParam(0, buf, 20), "GET_VER") == 0) {
-    logASCIIVersion();
-    return reset();
-  }
-
   if(!_bufLen || _bufData[0] < CMDCODE_MIN || _bufData[0] > CMDCODE_MAX) return rejectCmd(CMD_REJECT);
   if(getCmdParamCount() != pgm_read_byte(CMD_PARAM_COUNTS + _bufData[0] - CMDCODE_MIN)) return rejectCmd(CMD_REJECT_PARAM);
   int cmdIndex = getCmdIndex();
@@ -416,36 +409,23 @@ void BTnic::execCmd(void) {
       
       
     case CMD_SET_OSET:  //N
-      setPIDEnabled(cmdIndex, getCmdParamNum(1));
-      setPIDCycle(cmdIndex, getCmdParamNum(2));
+      setPWMPin(cmdIndex, getCmdParamNum(1));
+      setPWMPeriod(cmdIndex, getCmdParamNum(2));
       setPIDp(cmdIndex, getCmdParamNum(3));
       setPIDi(cmdIndex, getCmdParamNum(4));
       setPIDd(cmdIndex, getCmdParamNum(5));
-      if (cmdIndex == VS_STEAM) {
-        setSteamZero(getCmdParamNum(6));
-        setSteamTgt(getCmdParamNum(7));
-        setSteamPSens(getCmdParamNum(8));
-      } 
-      else setHysteresis(cmdIndex, getCmdParamNum(6));
+      setHysteresis(cmdIndex, getCmdParamNum(6));
+      loadPWMOutputs();
     case CMD_GET_OSET:  //D
       logFieldCmd(CMD_GET_OSET, cmdIndex);
-      logFieldI(PIDEnabled[cmdIndex]);
-      logFieldI(PIDCycle[cmdIndex]);
+      logFieldI(getPWMPin(cmdIndex));
+      logFieldI(pwmOutput[cmdIndex] ? pwmOutput[cmdIndex]->getLimit() : 0);
       logFieldI(getPIDp(cmdIndex));
       logFieldI(getPIDi(cmdIndex));
       logFieldI(getPIDd(cmdIndex));
-      if (cmdIndex == VS_STEAM) {
-        logFieldI(getSteamTgt());
-        #ifndef PID_FLOW_CONTROL
-          logFieldI(steamZero);
-          logFieldI(steamPSens);
-        #endif
-      } 
-      else {
-        logFieldI(hysteresis[cmdIndex]);
-        logFieldI(0);
-        logFieldI(0);
-      }
+      logFieldI(hysteresis[cmdIndex]);
+      logFieldI(0);
+      logFieldI(0);
       break;
 
   
@@ -660,7 +640,7 @@ void BTnic::execCmd(void) {
     case CMD_SET_AUTOVLV:  //W
       {
         byte actModes = getCmdParamNum(1);
-        for (byte i = AV_FILL; i <= AV_HLT; i++) 
+        for (byte i = 0; i < NUM_AV; i++) 
           autoValve[i] = (actModes & (1<<i));
       }
     case CMD_AUTOVLV:  //u
@@ -761,16 +741,6 @@ void BTnic::execCmd(void) {
       break;
       
       
-    case CMD_STEAM:  //r
-      logFieldCmd(CMD_STEAM, NO_CMDINDEX);
-      #ifdef PID_FLOW_CONTROL
-        logFieldI(flowRate[VS_MASH]);
-      #else
-        logFieldI(steamPressure);  
-      #endif
-      break;
-
-
     case CMD_HEATPWR:  //s
       logFieldCmd(CMD_HEATPWR, cmdIndex);
       logFieldI(getHeatPower(cmdIndex));
@@ -799,15 +769,16 @@ void BTnic::execCmd(void) {
         case CONTROLSTATE_AUTO:
           setpoint[VS_KETTLE] = getBoilTemp();
           break;
-        case CONTROLSTATE_ON:
+        case CONTROLSTATE_MANUAL:
           setpoint[VS_KETTLE] = 1;
-          PIDOutput[VS_KETTLE] = PIDCycle[VS_KETTLE] * getCmdParamNum(2);
+          if (pwmOutput[VS_KETTLE])
+            PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE]->getLimit() * getCmdParamNum(2) / 100;
         break;
       }
     case CMD_GET_BOILCTL: //~
       logFieldCmd(CMD_GET_BOILCTL, NO_CMDINDEX);
       logFieldI(boilControlState);
-      logFieldI(PIDOutput[VS_KETTLE] / PIDCycle[VS_KETTLE]);
+      logFieldI(getHeatPower(VS_KETTLE));
       break;
       
     default: 

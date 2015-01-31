@@ -60,20 +60,18 @@ void clearTimer(byte timer) {
 void updateTimers() {
   for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
     if (timerStatus[timer]) {
-      if (estop) pauseTimer(timer);
+      if (isEStop()) {
+        pauseTimer(timer);
+      }
+      
       unsigned long now = millis();
       if (timerValue[timer] > now - lastTime[timer]) {
         timerValue[timer] -= now - lastTime[timer];
       } else {
-        #ifdef DEBUG_TIMERALARM
-          logStart_P(LOGDEBUG);
-          if(timer == TIMER_MASH) logField("MASH_TIMER has expired"); else logField("BOIL_TIMER has expired");
-          logEnd();
-        #endif
         timerValue[timer] = 0;
         timerStatus[timer] = 0;
         setTimerStatus(timer, 0);
-        setTimerRecovery(timer, 0);  // KM - Moved this from below to be event driven
+        setTimerRecovery(timer, 0);
         setAlarm(1);
       }
       lastTime[timer] = now;

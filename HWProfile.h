@@ -9,10 +9,10 @@ OpenTroller DX1 Hardware Configuration
   #define ENCODER_I2CADDR 0x01
 
   #define OUTPUTBANK_GPIO
-  #define OUTPUTBANK_GPIO_BANKNAME "DX1 Outputs"
+  #define OUTPUTBANK_GPIO_BANKNAME "DX1"
   #define OUTPUTBANK_GPIO_COUNT 14
   #define OUTPUTBANK_GPIO_PINS {28, 29, 30, 31, 7, 6, 3, 4, 12, 15, 14, 13, 1, 2}
-  #define OUTPUTBANK_GPIO_OUTPUTNAMES "Output 1\0Output 2\0Output 3\0Output 4\0Output 5\0Output 6\0Output 7\0Output 8\0Output 9\0Output 10\0Output 11\0Output 12\0Output 13\0Output 14"
+  #define OUTPUTBANK_GPIO_OUTPUTNAMES "Out 1\0Out 2\0Out 3\0Out 4\0Out 5\0Out 6\0Out 7\0Out 8\0Out 9\0Out 10\0Out 11\0Out 12\0Out 13\0Out 14"
     
   #define OUTPUTBANK_MODBUS
   

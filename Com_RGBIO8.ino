@@ -3,12 +3,6 @@
 #include "Config.h"
 #include "Com_RGBIO8.h"
 
-#define SOFTSWITCH_OFF 0
-#define SOFTSWITCH_ON 1
-#define SOFTSWITCH_AUTO 2
-
-byte softSwitchHeat[HEAT_OUTPUTS_COUNT];
-
 RGBIO8 rgbio8s[RGBIO8_NUM_BOARDS];
 unsigned long lastRGBIO8 = 0;
 
@@ -24,20 +18,10 @@ void RGBIO8_Init() {
   // Set the default coniguration. The user can override this with the
   // custom configuration information below.
   int ioIndex = 0;
-  for (int i = 0; i < HEAT_OUTPUTS_COUNT && (ioIndex / 8) < RGBIO8_NUM_BOARDS; i++, ioIndex++) {
-    rgbio8s[ioIndex / 8].assignHeatInput(i, ioIndex % 8);
-    rgbio8s[ioIndex / 8].assignHeatOutputRecipe(i, ioIndex % 8, 0);
-  }
-  
   for (int i = 0; i < outputs->getCount() && (ioIndex / 8) < RGBIO8_NUM_BOARDS; i++, ioIndex++) {
     rgbio8s[ioIndex / 8].assignPvInput(i, ioIndex % 8);
     rgbio8s[ioIndex / 8].assignPvOutputRecipe(i, ioIndex % 8, 1);
   }
-  
-  // Set the default values of Softswitches to AUTO so that outputs that are not assigned to softswitches are unaffected by this logic
-  for (byte i = 0; i < HEAT_OUTPUTS_COUNT; i++)
-    softSwitchHeat[i] = SOFTSWITCH_AUTO;
-
   
   ////////////////////////////////////////////////////////////////////////
   // CUSTOM CONFIGURATION
@@ -191,19 +175,12 @@ void RGBIO8::update(void) {
     RGBIO8_input_assignment *a = &input_assignments[i];
     if (a->type) {
       if (a->type == 1) {
-        // this is a heat input
-        if (inputs_manual & mask) {
-          softSwitchHeat[a->index] = SOFTSWITCH_ON;
-        }
-        else if (inputs_auto & mask) {
-          softSwitchHeat[a->index] = SOFTSWITCH_AUTO;
-        }
-        else {
-          softSwitchHeat[a->index] = SOFTSWITCH_OFF;
-        }
+        // old "heat output" switch logic
+        // modify to support control of profiles?
+
       }
       else if (a->type == 2) {
-        // this is a PV input
+        // this is output switch
         if (inputs_manual & mask) {
           outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 1);
           outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 1);
@@ -223,33 +200,15 @@ void RGBIO8::update(void) {
     RGBIO8_output_assignment *a = &output_assignments[i];
     if (a->type) {
       if (a->type == 1) {
-        // this is a heat output
-        // If PIDEnabled[a->index] is set and the PID is heating, heatStatus
-        // will always be set. It does not reflect the state of the pin.
-        // If we want to reflect the actual state of the pin we'd also
-        // need to check against heatPin[a->index].get().
-        if (heatStatus[a->index]) {
-          if (softSwitchHeat[a->index] == SOFTSWITCH_AUTO) {
-            setOutput(i, output_recipes[a->recipe_id][2]);
-          }
-          else {
-            setOutput(i, output_recipes[a->recipe_id][3]);
-          }
-        }
-        else {
-          if (softSwitchHeat[a->index] == SOFTSWITCH_AUTO) {
-            setOutput(i, output_recipes[a->recipe_id][1]);
-          }
-          else {
-            setOutput(i, output_recipes[a->recipe_id][0]);
-          }
-        }
+        // old "heat output" LED logic
+        // modify to support control of profiles?
+        
       }
       else if (a->type == 2) {
-        // this is a PV output
+        // this is an output LED
         if (outputs->getProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index))
           setOutput(i, output_recipes[a->recipe_id][3]);                                                       //On: Enabled via RGB
-        else if (!(outputs->getOutputEnable(a->index)))
+        else if (!(outputs->getOutputEnable(OUTPUTPROFILE_RGBIO, a->index)))
           setOutput(i, output_recipes[a->recipe_id][0]);                                                       //Off: Disabled via enable flag (maybe RGB or other enable)
         else if (outputs->getOutputState(a->index))
           setOutput(i, output_recipes[a->recipe_id][2]);                                                       //Auto On

@@ -29,19 +29,8 @@ void eventHandler(byte eventID, int eventParam) {
   //Global Event handler
   //EVENT_STEPINIT: Nothing to do here (Pass to UI handler below)
   //EVENT_STEPEXIT: Nothing to do here (Pass to UI handler below)
-  if (eventID == EVENT_SETPOINT) {
-    //Setpoint Change (Update AutoValve Logic)
-    byte avProfile = vesselAV(eventParam);
-    byte vlvHeat = vesselVLVHeat(eventParam);
-    byte vlvIdle = vesselVLVIdle(eventParam);
-    
-    if (setpoint[eventParam]) autoValve[avProfile] = 1;
-    else { 
-      autoValve[avProfile] = 0; 
-      outputs->setProfileState(vlvIdle, 0);
-      outputs->setProfileState(vlvHeat, 0);
-    } 
-  }
+  if (eventID == EVENT_SETPOINT && !setpoint[eventParam])
+    resetVesselHeat(eventParam);
   
   #ifndef NOUI
     //Pass Event Info to UI Event Handler
@@ -54,7 +43,26 @@ void eventHandler(byte eventID, int eventParam) {
 }
 
 #ifdef DIGITAL_INPUTS
-  void triggerSetup() {
+  void triggerInit() {
+    #if DIGIN_COUNT > 0
+      digInPin[0].setup(DIGIN1_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 1
+      digInPin[1].setup(DIGIN2_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 2
+      digInPin[2].setup(DIGIN3_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 3
+      digInPin[3].setup(DIGIN4_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 4
+      digInPin[4].setup(DIGIN5_PIN, INPUT);
+    #endif
+    #if DIGIN_COUNT > 5
+      digInPin[5].setup(DIGIN6_PIN, INPUT);
+    #endif
+  
     //If EEPROM is not initialized skip trigger init
     if (checkConfig()) return;
     //For each logical trigger type see what the assigned trigger pin is (if any)
@@ -74,11 +82,12 @@ void eventHandler(byte eventID, int eventParam) {
   void eStopISR() {
     //Either clear E-Stop condition if e-Stop trigger goes high
     //or perform E-Stop actions on trigger low
-    if (TriggerPin[TRIGGER_ESTOP]->get()) estop = 0;
+    if (TriggerPin[TRIGGER_ESTOP]->get())
+      outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, 0xFFFFFFFFul); //Enable all pins in estop enable mask
     else {
-      estop = 1;
       setAlarm(1);
-      processHeatOutputs();
+      //Disable all pins except alarm pin(s)
+      outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, outputs->getProfileMask(OUTPUTPROFILE_ALARM));
       outputs->update();
       updateTimers();
     }
@@ -89,24 +98,14 @@ void eventHandler(byte eventID, int eventParam) {
   }
   
   void hltMinISR() {
-    heatPin[VS_HLT].set(LOW);
-    heatStatus[VS_HLT] = 0;
-    outputs->setProfileState(OUTPUTPROFILE_HLTHEAT, 0);
+    resetVesselHeat(VS_HLT);
   }
   
   void mashMinISR() {
-    heatPin[VS_MASH].set(LOW);
-    heatStatus[VS_MASH] = 0;
-    outputs->setProfileState(OUTPUTPROFILE_MASHHEAT, 0);
-    #ifdef DIRECT_FIRED_RIMS
-      heatPin[VS_STEAM].set(LOW);
-      heatStatus[VS_STEAM] = 0;
-    #endif
+    resetVesselHeat(VS_MASH);
   }
   
   void kettleMinISR() {
-    heatPin[VS_KETTLE].set(LOW);
-    heatStatus[VS_KETTLE] = 0;    
-    outputs->setProfileState(OUTPUTPROFILE_KETTLEHEAT, 0);
+    resetVesselHeat(VS_KETTLE);
   }
 #endif

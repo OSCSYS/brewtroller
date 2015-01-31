@@ -14,22 +14,21 @@
   #define NUM_TS 9
   #define BAD_TEMP -32768
 
-  #define VS_HLT 0
-  #define VS_MASH 1
-  #define VS_KETTLE 2
-  #define VS_STEAM 3
-  #define VS_PUMP 3
+  enum VesselIndex {
+    VS_HLT,
+    VS_MASH,
+    VS_KETTLE
+  };
 
 //Auto-Valve Modes
   #define AV_FILL 0
-  #define AV_MASH 1
-  #define AV_SPARGEIN 2
-  #define AV_SPARGEOUT 3
-  #define AV_FLYSPARGE 4
-  #define AV_CHILL 5
-  #define AV_HLT 6
-  #define AV_KETTLE 7
-  #define NUM_AV 8
+  #define AV_SPARGEIN 1
+  #define AV_SPARGEOUT 2
+  #define AV_FLYSPARGE 3
+  #define AV_CHILL 4
+  #define NUM_AV 5
+
+  #define PWMPIN_NONE  255
 
   //Valve Array Element Constants and Variables
   #define VLV_ALL 0xFFFFFFFF
@@ -55,6 +54,9 @@
     OUTPUTPROFILE_USER2,
     OUTPUTPROFILE_USER3,
     OUTPUTPROFILE_ALARM,
+    OUTPUTPROFILE_HLTPWMACTIVE,
+    OUTPUTPROFILE_MASHPWMACTIVE,
+    OUTPUTPROFILE_KETTLEPWMACTIVE,
     OUTPUTPROFILE_USERCOUNT,                          //The number of user configurable output profiles
     OUTPUTPROFILE_BTNIC,                              //Dymanic profile used by BTNIC logic to turn on outputs (not implemented)
     OUTPUTPROFILE_RGBIO,                              //Dymanic profile used by RGBIO logic to turn on outputs
@@ -154,7 +156,7 @@ typedef enum {
 typedef enum {
   CONTROLSTATE_OFF,
   CONTROLSTATE_AUTO,
-  CONTROLSTATE_ON,
+  CONTROLSTATE_MANUAL,
   NUM_CONTROLSTATES
 } ControlState;
 
