@@ -30,14 +30,6 @@ void loadSetup() {
   //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
   //**********************************************************************************
   EEPROMreadBytes(0, *tSensor, 72);
-  #ifdef HLT_AS_KETTLE
-    EEPROMreadBytes(0, tSensor[TS_KETTLE], 8);
-  #elif defined KETTLE_AS_MASH
-    EEPROMreadBytes(16, tSensor[TS_MASH], 8);
-  #elif defined SINGLE_VESSEL_SUPPORT
-    EEPROMreadBytes(0, tSensor[TS_MASH], 8);
-    EEPROMreadBytes(0, tSensor[TS_KETTLE], 8);
-  #endif
  
   //**********************************************************************************
   //PIDp HLT (73), Mash (78), Kettle (83), Reserved (88)
@@ -66,20 +58,6 @@ void loadSetup() {
   //**********************************************************************************
   eeprom_read_block(&calibVols, (unsigned char *) 119, 120);
   eeprom_read_block(&calibVals, (unsigned char *) 239, 60);
-
-  //Load HLT calibrations to kettle
-  #ifdef HLT_AS_KETTLE
-    eeprom_read_block(&calibVols[VS_KETTLE], (unsigned char *) 119, 40);
-    eeprom_read_block(&calibVals[VS_KETTLE], (unsigned char *) 239, 20);
-  #elif defined KETTLE_AS_MASH
-    eeprom_read_block(&calibVols[VS_MASH], (unsigned char *) 199, 40);
-    eeprom_read_block(&calibVals[VS_MASH], (unsigned char *) 279, 20);
-  #elif defined SINGLE_VESSEL_SUPPORT
-    eeprom_read_block(&calibVols[VS_MASH], (unsigned char *) 119, 40);
-    eeprom_read_block(&calibVals[VS_MASH], (unsigned char *) 239, 20);
-    eeprom_read_block(&calibVols[VS_KETTLE], (unsigned char *) 119, 40);
-    eeprom_read_block(&calibVals[VS_KETTLE], (unsigned char *) 239, 20);
-  #endif
 
   //**********************************************************************************
   //setpoints (299-301)
@@ -160,26 +138,6 @@ void loadSetup() {
 //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
 //**********************************************************************************
 void setTSAddr(byte sensor, byte addr[8]) {
-    #ifdef HLT_AS_KETTLE
-    if (sensor == TS_HLT || sensor == TS_KETTLE) {
-      //Also copy HLT setting to Kettle
-      memcpy(tSensor[TS_KETTLE], addr, 8);
-      sensor = VS_HLT; //Set sensor for EEPROM write
-    }
-  #elif defined KETTLE_AS_MASH
-    if (sensor == TS_MASH || sensor == TS_KETTLE) {
-      //Also copy Kettle setting to Mash
-      memcpy(tSensor[TS_MASH], addr, 8);
-      sensor = VS_KETTLE; //Set sensor for EEPROM write
-    }
-  #elif defined SINGLE_VESSEL_SUPPORT
-    if (sensor == TS_HLT || sensor == TS_MASH || sensor == TS_KETTLE) {
-      //Also copy HLT setting to Mash/Kettle
-      memcpy(tSensor[TS_MASH], addr, 8);
-      memcpy(tSensor[TS_KETTLE], addr, 8);
-      sensor = VS_HLT; //Set sensor for EEPROM write
-    }
-  #endif
   memcpy(tSensor[sensor], addr, 8);
   EEPROMwriteBytes(sensor * 8, addr, 8);
 }
@@ -279,28 +237,6 @@ byte getEvapRate() { return EEPROM.read(113); }
 //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
 //**********************************************************************************
 void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) {
-  #ifdef HLT_AS_KETTLE
-    if (vessel == VS_HLT || vessel == VS_KETTLE) {
-      //Also copy HLT setting to Kettle
-      calibVols[VS_KETTLE][slot] = vol;
-      calibVals[VS_KETTLE][slot] = value;
-      vessel = VS_HLT; //Set vessel for EEPROM write
-    }
-  #elif defined KETTLE_AS_MASH
-    if (vessel == VS_MASH || vessel == VS_KETTLE) {
-      //Also copy Kettle setting to Mash
-      calibVols[VS_MASH][slot] = vol;
-      calibVals[VS_MASH][slot] = value;
-      vessel = VS_KETTLE; //Set vessel for EEPROM write
-    }
-  #elif defined SINGLE_VESSEL_SUPPORT
-    calibVols[VS_MASH][slot] = vol;
-    calibVals[VS_MASH][slot] = value;  
-    calibVols[VS_KETTLE][slot] = vol;
-    calibVals[VS_KETTLE][slot] = value;
-    vessel = VS_HLT; //Set vessel for EEPROM write
-  #endif
-  
   calibVols[vessel][slot] = vol;
   calibVals[vessel][slot] = value;
   EEPROMwriteLong(119 + vessel * 40 + slot * 4, vol);
@@ -335,15 +271,6 @@ void setTimerStatus(byte timer, boolean value) {
   byte options = EEPROM.read(306);
   bitWrite(options, timer, value);
   EEPROM.write(306, options);
-  
-  #ifdef DEBUG_TIMERALARM
-    logStart_P(LOGDEBUG);
-    logField("setTimerStatus");
-    logFieldI(value);
-    options = EEPROM.read(306);
-    logFieldI(bitRead(options, timer));    
-    logEnd();
-  #endif
 }
 
 void setAlarmStatus(boolean value) {
@@ -351,15 +278,6 @@ void setAlarmStatus(boolean value) {
   byte options = EEPROM.read(306);
   bitWrite(options, 2, value);
   EEPROM.write(306, options);
-  
-  #ifdef DEBUG_TIMERALARM
-    logStart_P(LOGDEBUG);
-    logField("setAlarmStatus");
-    logFieldI(value);
-    options = EEPROM.read(306);
-    logFieldI(bitRead(options, 2));
-    logEnd();
-  #endif
 }
 
 
