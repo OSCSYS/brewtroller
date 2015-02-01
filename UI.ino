@@ -2242,12 +2242,14 @@ void menuOutputs() {
 void menuOutputSettings(byte vessel) {
   while(1) {
     menu outputMenu(3, 7);
-    outputMenu.setItem_P(PSTR("PWM Pin: "), 0);
+    outputMenu.setItem_P(PSTR("PWM: "), 0);
     byte pwmPin = getPWMPin(vessel);
     if (pwmPin == PWMPIN_NONE)
       outputMenu.appendItem_P(PSTR("NONE"), 0);
     else {
-      outputMenu.appendItem(itoa(pwmPin, buf, 10), 0);
+      outputMenu.appendItem(outputs->getOutputBankName(pwmPin, buf), 0);
+      outputMenu.appendItem("-", 0);
+      outputMenu.appendItem(outputs->getOutputName(pwmPin, buf), 0);
 
       outputMenu.setItem_P(PSTR("PWM Period: "), 1);
       vftoa(getPWMPeriod(vessel), buf, 10, 1);
@@ -2288,14 +2290,12 @@ void menuOutputSettings(byte vessel) {
 byte menuSelectOutput(char sTitle[], byte currentSelection) {
   menu outputMenu(3, outputs->getCount() + 2);
   for (byte i = 0; i < outputs->getCount(); i++) {
-    OutputBank* bank = outputs->getBankByOutput(i);
-    char outputName[20] = "";
+    outputMenu.setItem("", i);
     if (i == currentSelection)
-      strlcat(outputName, "*", 20);
-    strlcat(outputName, bank->getBankName(buf), 20);
-    strlcat(outputName, "-", 20);
-    strlcat(outputName, bank->getOutputName(outputs->getBankOutputIndex(i), buf), 20);
-    outputMenu.setItem(outputName, i);
+      outputMenu.setItem("*", i);
+    outputMenu.appendItem(outputs->getOutputBankName(i, buf), i);
+    outputMenu.appendItem("-", i);
+    outputMenu.appendItem(outputs->getOutputName(i, buf), i);
   }
   if (currentSelection == PWMPIN_NONE)
     outputMenu.setItem_P(PSTR("*None"), 254);
@@ -2316,14 +2316,11 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection) {
   while (1) {
     menu outputMenu(3, outputs->getCount() + 2);
     for (byte i = 0; i < outputs->getCount(); i++) {
-      OutputBank* bank = outputs->getBankByOutput(i);
-      char outputName[20] = "";
-      if (i == currentSelection)
-        strlcat(outputName, "*", 20);
-      strlcat(outputName, bank->getBankName(buf), 20);
-      strlcat(outputName, "-", 20);
-      strlcat(outputName, bank->getOutputName(outputs->getBankOutputIndex(i), buf), 20);
-      outputMenu.setItem(outputName, i);
+      if (currentSelection & (1 << i)) {
+        outputMenu.setItem(outputs->getOutputBankName(i, buf), i);
+        outputMenu.appendItem("-", i);
+        outputMenu.appendItem(outputs->getOutputName(i, buf), i);
+      }
     }
     outputMenu.setItem_P(PSTR("[Add]"), 254);
     outputMenu.setItem_P(EXIT, 255);

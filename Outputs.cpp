@@ -139,7 +139,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
  
   char* OutputBankMODBUS::getBankName (char* retString) {
-    char bankName[14] = "MODBUS#";
+    char bankName[14] = "MB#";
     char strAddr[6];
     strlcpy(retString, bankName, OUTPUTBANK_NAME_MAXLEN);
     strlcat(retString, itoa(slaveAddr, strAddr, 16), OUTPUTBANK_NAME_MAXLEN);
@@ -246,25 +246,26 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     return banks[bankIndex];
   }
 
-  OutputBank* OutputSystem::getBankByOutput(byte outputIndex) {
+  char* OutputSystem::getOutputBankName(byte outputIndex, char* retString) {
     byte outputCount = 0;
     for (byte i = 0; i < bankCount; i++) {
       outputCount += banks[i]->getCount();
       if (outputCount >= outputIndex + 1)
-        return banks[i];
+        return banks[i]->getBankName(retString);
     }
-    return NULL;
+    return retString;
+  }
+  
+  char* OutputSystem::getOutputName(byte outputIndex, char* retString) {
+    byte outputCount = 0;
+    for (byte i = 0; i < bankCount; i++) {
+      outputCount += banks[i]->getCount();
+      if (outputCount >= outputIndex + 1)
+        return banks[i]->getOutputName(outputIndex - outputCount - banks[i]->getCount(), retString);
+    }
+    return retString;
   }
 
-  byte OutputSystem::getBankOutputIndex(byte outputIndex) {
-    byte outputCount = 0;
-    for (byte i = 0; i < bankCount; i++) {
-      outputCount += banks[i]->getCount();
-      if (outputCount >= outputIndex + 1)
-        return outputIndex - outputCount - banks[i]->getCount();
-    }
-    return NULL;
-  }
   
   void OutputSystem::update(void) {
     //Start with discreet outputs
