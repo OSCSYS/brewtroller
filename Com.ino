@@ -135,6 +135,109 @@ void updateCom() {
 #endif
 
 
+#ifdef RGBIO8_ENABLE
+  RGBIO8 rgbio8s[RGBIO8_NUM_BOARDS];
+  unsigned long lastRGBIO8 = 0;
+  
+  // Initializes the RGBIO8 system. If you want to provide custom IO mappings
+  // this is the place to do it. See the CUSTOM CONFIGURATION section below for
+  // further instructions.
+  void RGBIO8_Init() {
+    RGBIO8::setup(outputs);
+    
+    // Initialize and address each RGB board that is attached
+    for (int i = 0; i < RGBIO8_NUM_BOARDS; i++) {
+      rgbio8s[i].begin(0, RGBIO8_START_ADDR + i);
+    }
+    
+    // Set the default coniguration. The user can override this with the
+    // custom configuration information below.
+    int ioIndex = 0;
+    for (int i = 0; i < outputs->getCount() && (ioIndex / 8) < RGBIO8_NUM_BOARDS; i++, ioIndex++)
+      rgbio8s[ioIndex / 8].assign(i, ioIndex % 8, 0);
+    
+    ////////////////////////////////////////////////////////////////////////
+    // CUSTOM CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////
+    // To provide your own custom IO mappings you will have to add code to
+    // this section. The code is very simple and the mappings are very
+    // powerful.
+    //
+    // The system is configured by providing input and output mappings
+    // for heat outputs and pump/valve outputs-> Each of these outputs
+    // can be in one of four states:
+    // Off:       The output is forced off, no matter what other systems attempt.
+    // Auto Off:  The output is under auto control of BrewTroller, and is
+    //            currently set to off. It may turn on at any time.
+    // Auto On:   The output is under auto control of BrewTroller, and is
+    //            currently set to on. It may turn off at any time.
+    // On:        The output is forced on and is not under control of 
+    //            BrewTroller.
+    // 
+    // The first thing that is configured are output "recipes". These recipes
+    // define the color that will be shown for each of the states above.
+    // 
+    // Often times you will see colors on a web page expressed in RGB
+    // hexidecimal, such as #FF0000 meaning bright red or #FFFF00 meaning
+    // bright yellow. The RGBIO8 board uses a similar system for color,
+    // except it uses 3 digits instead of 6. In most cases, if you find
+    // a color you like that is in the #ABCDEF format, you can convert it
+    // to the right code for RGBIO8 by removing the second, fourth and
+    // last digit. So, for instance, #ABCDEF would become #ACE.
+    // 
+    // The system has room for four recipes, so you can create 4 different
+    // color schemes that map to your outputs->
+    // 
+    // By default we use two recipes. One for heat outputs and another for
+    // pump/valve outputs-> They are listed below. If you like, you can just
+    // change the colors in a recipe, or you can create entirely new recipes.
+    
+    // Recipe 0, used for Heat Outputs
+    // Off:       0xF00 (Red)
+    // Auto Off:  0xFFF (White)
+    // Auto On:   0xF40 (Orange)
+    // On:        0x0F0 (Green)
+    RGBIO8::setOutputRecipe(0, 0xF00, 0xFFF, 0xF40, 0x0F0);
+    
+    // Recipe 1, used for Pump/Valve Outputs
+    // Off:       0xF00 (Red)
+    // Auto Off:  0xFFF (White)
+    // Auto On:   0x00F (Blue)
+    // On:        0x0F0 (Green)
+    RGBIO8::setOutputRecipe(1, 0xF00, 0xFFF, 0x00F, 0x0F0);
+  
+    //
+    // Now we move on to mappings. A mapping ties a given RGBIO8 channel to
+    // an output. 
+    // 
+    // To create a mapping to an output:
+    // assign(rgbioChannelNumber, outputNumber, recipeNumber);
+    //
+    // When creating a mapping, you have to specify which RGB board the mapping
+    // belongs to. That is done by using rgbio8s[boardNumber]. before the
+    // function calls above. Some example mappings are shown below:
+    // 
+    // Map board 0, channel 0 to output 0 using recipe 0:
+    // rgbio8s[0].assign(0, 0, 0);
+    // 
+    // Map board 1, channel 3 to output 5 using recipe 1:
+    // rgbio8s[1].assign(3, 5, 1);
+    //
+    // Add your custom mappings below this line
+  }
+  
+  void RGBIO8_Update() {
+    if (millis() > (lastRGBIO8 + RGBIO8_INTERVAL)) {
+      for (int i = 0; i < RGBIO8_NUM_BOARDS; i++) {
+        rgbio8s[i].update();
+      }
+      outputs->setProfileState(OUTPUTPROFILE_RGBIO, outputs->getProfileMask(OUTPUTPROFILE_RGBIO) ? 1 : 0);
+      lastRGBIO8 = millis();
+    }
+  }
+#endif
+
+
 void comEvent(byte eventID, int eventParam) {
   #ifdef BTNIC_PROTOCOL
     #ifdef BTNIC_EMBEDDED

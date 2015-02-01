@@ -26,14 +26,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 /*
-Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
-  With Sanguino Software "Sanguino-0018r2_1_4.zip" (http://code.google.com/p/sanguino/downloads/list)
-
+Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATMEGA1284P
   Using the following libraries:
     PID  v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
     OneWire 2.0 (http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip)
     Encoder by CodeRage ()
     FastPin and modified LiquidCrystal with FastPin by CodeRage (http://www.brewtroller.com/forum/showthread.php?t=626)
+    Menu
 */
 
 
@@ -47,6 +46,7 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 #include <pin.h>
 #include <menu.h>
 #include <ModbusMaster.h>
+#include <Wire.h>
 
 #include "HWProfile.h"
 #include "Config.h"
@@ -57,7 +57,9 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 #include <EEPROM.h>
 #include "wiring_private.h"
 #include <encoder.h>
-#include "Com_RGBIO8.h"
+#ifdef RGBIO8_ENABLE
+  #include "Com_RGBIO8.h"
+#endif
 
 void(* softReset) (void) = 0;
 
@@ -89,20 +91,12 @@ const char BTVER[] PROGMEM = "2.7";
   #define BTNIC_PROTOCOL
 #endif
 
-#if defined BTPD_SUPPORT || defined UI_LCD_I2C || defined TS_ONEWIRE_I2C || defined BTNIC_EMBEDDED || defined RGBIO8_ENABLE
-  #define USE_I2C
-#endif
-
 #ifdef BOIL_OFF_GALLONS
   #ifdef USEMETRIC
     #define EvapRateConversion 1000
   #else
     #define EvapRateConversion 100
   #endif
-#endif
-
-#ifdef USE_I2C
-  #include <Wire.h>
 #endif
 
 struct ProgramThread {
