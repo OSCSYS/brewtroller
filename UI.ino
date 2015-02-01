@@ -2057,8 +2057,7 @@ void cfgRgb() {
   boolean identifyOn = false;
   
   menu m(3, 5);
-  RGBIO8 rgb;
-  rgb.begin(0, targetAddr);
+  RGBIO8 rgb(targetAddr);
 
   while (1) {
     m.setItem_P(PSTR("Target Addr: "), 0);
@@ -2075,22 +2074,19 @@ void cfgRgb() {
     }
     else if (lastOption == 1) {
       byte address = (byte) getHexValue("Set Address", targetAddr);
-      RGBIO8 rgb;
-      rgb.begin(0, targetAddr);
+      RGBIO8 rgb(targetAddr);
       rgb.setAddress(address);
       delay(250);
       rgb.restart();
       targetAddr = address;
     }
     else if (lastOption == 2) {
-      RGBIO8 rgb;
-      rgb.begin(0, targetAddr);
+      RGBIO8 rgb(targetAddr);
       identifyOn = !identifyOn;
       rgb.setIdMode(identifyOn);
     }
     else if (lastOption == 3) {
-      RGBIO8 rgb;
-      rgb.begin(0, targetAddr);
+      RGBIO8 rgb(targetAddr);
       rgb.restart();
     }
     else if (lastOption == 255) {

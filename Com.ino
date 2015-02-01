@@ -136,7 +136,7 @@ void updateCom() {
 
 
 #ifdef RGBIO8_ENABLE
-  RGBIO8 rgbio8s[RGBIO8_NUM_BOARDS];
+  RGBIO8* rgbio8[RGBIO8_NUM_BOARDS];
   unsigned long lastRGBIO8 = 0;
   
   // Initializes the RGBIO8 system. If you want to provide custom IO mappings
@@ -146,15 +146,14 @@ void updateCom() {
     RGBIO8::setup(outputs);
     
     // Initialize and address each RGB board that is attached
-    for (int i = 0; i < RGBIO8_NUM_BOARDS; i++) {
-      rgbio8s[i].begin(0, RGBIO8_START_ADDR + i);
-    }
+    for (int i = 0; i < RGBIO8_NUM_BOARDS; i++)
+      rgbio8[i] = new RGBIO8(RGBIO8_START_ADDR + i);
     
     // Set the default coniguration. The user can override this with the
     // custom configuration information below.
     int ioIndex = 0;
     for (int i = 0; i < outputs->getCount() && (ioIndex / 8) < RGBIO8_NUM_BOARDS; i++, ioIndex++)
-      rgbio8s[ioIndex / 8].assign(i, ioIndex % 8, 0);
+      rgbio8[ioIndex / 8]->assign(i, ioIndex % 8, 0);
     
     ////////////////////////////////////////////////////////////////////////
     // CUSTOM CONFIGURATION
@@ -228,9 +227,8 @@ void updateCom() {
   
   void RGBIO8_Update() {
     if (millis() > (lastRGBIO8 + RGBIO8_INTERVAL)) {
-      for (int i = 0; i < RGBIO8_NUM_BOARDS; i++) {
-        rgbio8s[i].update();
-      }
+      for (int i = 0; i < RGBIO8_NUM_BOARDS; i++)
+        rgbio8[i]->update();
       outputs->setProfileState(OUTPUTPROFILE_RGBIO, outputs->getProfileMask(OUTPUTPROFILE_RGBIO) ? 1 : 0);
       lastRGBIO8 = millis();
     }

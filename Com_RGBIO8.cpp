@@ -3,16 +3,10 @@
 OutputSystem* RGBIO8::outputs;
 uint16_t RGBIO8::output_recipes[RGBIO8_MAX_OUTPUT_RECIPES][4];
 
-RGBIO8::RGBIO8() {
-  this->rs485_address = 0;
-  this->i2c_address = 0;
+RGBIO8::RGBIO8(byte i2c_address) {
+  this->i2c_address = i2c_address;
   for (int i = 0; i < 8; i++)
     assignments[i].index = RGBIO8_UNASSIGNED;
-}
-
-void RGBIO8::begin(int rs485_address, int i2c_address) {
-  this->rs485_address = rs485_address;
-  this->i2c_address = i2c_address;
 }
 
 void RGBIO8::setup(OutputSystem* o) {
@@ -93,7 +87,7 @@ void RGBIO8::setAddress(byte a) {
 }
 
 int RGBIO8::getInputs(uint8_t *m, uint8_t *a) {
-  Wire.requestFrom(i2c_address, 3);
+  Wire.requestFrom(i2c_address, (uint8_t) 3);
   uint8_t inputs_m = Wire.read();
   uint8_t inputs_a = Wire.read();
   uint8_t crc = Wire.read();

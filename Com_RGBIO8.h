@@ -17,14 +17,11 @@ struct RGBIO8_assignment {
 
 class RGBIO8 {
   public:
-    RGBIO8();
-    
     /**
-     * Initializes the RGBIO8 board at the given endpoint. Specify either the rs485_address or the
-     * i2c_address and specify 0 for the unused address. Once initialized the board is reset and
+     * Initializes the RGBIO8 board at the given i2c_address. Once initialized the board is reset and
      * ready for use but it will not actually do anything until assign* functions are called.
      */
-    void begin(int rs485_address, int i2c_address); 
+    RGBIO8(byte i2c_address);
     
     /**
      * Sets up the RGBIO8 class with pointer to output system object.
@@ -70,7 +67,7 @@ class RGBIO8 {
   private:
     static OutputSystem* outputs;
     static uint16_t output_recipes[RGBIO8_MAX_OUTPUT_RECIPES][4];
-    int rs485_address, i2c_address;
+    byte i2c_address;
     struct RGBIO8_assignment assignments[8];
     byte inputs_auto, inputs_manual;
     
