@@ -88,6 +88,10 @@ void loadSetup() {
   //401-480 Output Profiles
   //**********************************************************************************
     loadOutputSystem();
+    
+    #ifdef RGBIO8_ENABLE
+      loadRGBIO8();
+    #endif
 }
 
   void loadPWMOutputs() {
@@ -128,6 +132,31 @@ void loadSetup() {
       }
     }
   #endif 
+  
+  #ifdef RGBIO8_ENABLE
+    void loadRGBIO8() {
+      for(byte i = 0; i < RGBIO8_MAX_OUTPUT_RECIPES; i++) {
+        unsigned int recipe[4];
+        getRGBIORecipe(i, recipe);
+        RGBIO8::setOutputRecipe(i, recipe[0], recipe[1], recipe[2], recipe[3]);
+      }
+      for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
+        if (rgbio[i])
+          delete rgbio[i];
+        byte addr = getRGBIOAddr(i);
+        if (addr != RGBIO8_UNASSIGNED) {
+          rgbio[i] = new RGBIO8(addr);
+          for (int j = 0; j < 8; j++) {
+              byte assignment = getRGBIOAssignment(i, j);
+              if (assignment != RGBIO8_UNASSIGNED) {
+                byte recipe = getRGBIOAssignmentRecipe(i, j);
+                rgbio[i]->assign(i, assignment, recipe);
+              }
+          }
+        }
+      }
+    }
+  #endif
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions
@@ -501,6 +530,47 @@ void setOutModbusDefaults(byte board) {
   setOutModbusCoilCount(board, OUTPUTBANK_MODBUS_DEFCOILCOUNT);
 }
 
+//RGBIO Recipes (2089 - 2120): 8 bytes per recipe x 4 recipes
+void getRGBIORecipe(byte recipeIndex, unsigned int* recipe) {
+  eeprom_read_block((void *)&recipe, (unsigned char *) (2089 + recipeIndex * 8), 8);
+}
+
+void setRGBIORecipe(byte recipeIndex, unsigned int* recipe) {
+  eeprom_write_block((void *) &recipe, (unsigned char *) (2089 + recipeIndex * 8), 8);
+}
+
+//RGBIO Board Addresses (2121 - 2124): 1 bytes per board x 4 boards
+byte getRGBIOAddr(byte boardIndex) {
+  return EEPROM.read(2121 + boardIndex);
+}
+
+void setRGBIOAddr(byte boardIndex, byte addr) {
+  EEPROM.write(2121 + boardIndex, addr);
+}
+
+//RGBIO Assignments (2125 - 2156): 8 bytes per board x 4 boards
+byte getRGBIOAssignment(byte boardIndex, byte channelIndex) {
+  byte assignment = EEPROM.read(2125 + boardIndex * 8 + channelIndex);
+  if (assignment == RGBIO8_UNASSIGNED)
+    return assignment;
+  return assignment & B00011111;
+}
+
+void setRGBIOAssignment(byte boardIndex, byte channelIndex, byte outputIndex, byte recipeIndex) {
+  byte assignment = outputIndex;
+  if (assignment != RGBIO8_UNASSIGNED) {
+      assignment &= B00011111;
+      assignment |= (recipeIndex << 5) & B01100000;
+  }
+  EEPROM.write(2125 + boardIndex * 8 + channelIndex, assignment);
+}
+
+byte getRGBIOAssignmentRecipe(byte boardIndex, byte channelIndex) {
+  byte assignment = EEPROM.read(2125 + boardIndex * 8 + channelIndex);
+  return (assignment & B01100000) >> 5;
+}
+
+
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
 //*****************************************************************************************************************************
@@ -534,8 +604,15 @@ boolean checkConfig() {
       EEPROM.write(2047, 2);
     case 2:
     case 3:
+      //MODBUS Outputs Defaults
       for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++)
         setOutModbusDefaults(i);
+      //RGBIO Defaults
+      for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
+        setRGBIOAddr(i, RGBIO8_UNASSIGNED);
+        for (byte j = 0; j < 8; j++)
+          setRGBIOAssignment(i, j, RGBIO8_UNASSIGNED, 0);
+      }
       EEPROM.write(2047, 4);
   }
   return 0;

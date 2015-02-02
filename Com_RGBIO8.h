@@ -5,6 +5,19 @@
 #include "Outputs.h"
 #include <Wire.h>
 
+
+// The first address of your RGB Boards. Other boards should follow using the next
+// address. So, for instance, if this value is 0x30, board 2 should be 0x31, board
+// 3 should be 0x32, etc.
+//
+#define RGBIO8_START_ADDR 0x30
+#define RGBIO8_INIT_ADDR 0x7F
+
+//
+// The maximum number of RGB boards you can have connnected.
+//
+#define RGBIO8_MAX_BOARDS 4
+
 #define RGBIO8_MAX_OUTPUT_RECIPES 4
 #define RGBIO8_INTERVAL 100
 
@@ -63,6 +76,7 @@ class RGBIO8 {
     void restart();
     void setIdMode(byte id_mode);
     void setAddress(byte a);
+    int getInputs(void);
     
   private:
     static OutputSystem* outputs;
@@ -71,7 +85,6 @@ class RGBIO8 {
     struct RGBIO8_assignment assignments[8];
     byte inputs_auto, inputs_manual;
     
-    int getInputs(uint8_t *m, uint8_t *a);
     void setOutput(byte output, uint16_t rgb);
     uint8_t crc8(uint8_t inCrc, uint8_t inData );
 };

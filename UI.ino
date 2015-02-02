@@ -47,11 +47,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 const char OK[] PROGMEM = "Ok";
 const char CANCEL[] PROGMEM = "Cancel";
 const char EXIT[] PROGMEM = "Exit";
+const char DELETE[] PROGMEM = "Delete";
 const char ABORT[] PROGMEM = "Abort";
 const char MENU[] PROGMEM = "Menu";
 const char SPACE[] PROGMEM = " ";
 const char INIT_EEPROM[] PROGMEM = "Initialize EEPROM";
 const char CONTINUE[] PROGMEM = "Continue";
+
 
 prog_char FILLHLT[] PROGMEM = "Fill HLT";
 prog_char FILLMASH[] PROGMEM = "Fill Mash";
@@ -1590,7 +1592,11 @@ boolean confirmAbort() {
 }
 
 boolean confirmDel() {
-  return confirmChoice("Delete Item?", "", "", PSTR("Delete"));
+  return confirmChoice("Delete Item?", "", "", DELETE);
+}
+
+boolean confirmSave() {
+  return confirmChoice("Save Changes?", "", "", PSTR("Save"));
 }
 
 unsigned long getValue_P(const char *sTitle, unsigned long defValue, unsigned int divisor, unsigned long maxValue, const char *dispUnit) {
@@ -2014,9 +2020,7 @@ void menuSetup() {
     setupMenu.setItem_P(PSTR("Display"), 6);
   #endif
   #ifdef RGBIO8_ENABLE
-  #ifdef RGBIO8_SETUP
     setupMenu.setItem_P(PSTR("RGB Setup"), 7);
-  #endif
   #endif  
   #ifdef DIGITAL_INPUTS
     setupMenu.setItem_P(PSTR("Triggers"), 8);
@@ -2036,11 +2040,9 @@ void menuSetup() {
       else if (lastOption == 6) adjustLCD();
     #endif
     #ifdef RGBIO8_ENABLE
-    #ifdef RGBIO8_SETUP
       else if (lastOption == 7) {
-        cfgRgb();
+        menuRGBIO();
       }
-    #endif
     #endif  
     #ifdef DIGITAL_INPUTS
       else if (lastOption == 8) cfgTriggers();
@@ -2048,55 +2050,6 @@ void menuSetup() {
     else return;
   }
 }
-
-#ifdef RGBIO8_ENABLE
-#ifdef RGBIO8_SETUP
-
-void cfgRgb() {
-  byte targetAddr = 0x7f;
-  boolean identifyOn = false;
-  
-  menu m(3, 5);
-  RGBIO8 rgb(targetAddr);
-
-  while (1) {
-    m.setItem_P(PSTR("Target Addr: "), 0);
-    sprintf(buf, "0x%02x", targetAddr);
-    m.appendItem(buf, 0);
-    m.setItem_P(PSTR("Set Address"), 1);
-    m.setItem_P(PSTR("Identify: "), 2);
-    m.appendItem((char*) (identifyOn ? "On" : "Off"), 2);
-    m.setItem_P(PSTR("Restart"), 3);
-    m.setItem_P(EXIT, 255);
-    byte lastOption = scrollMenu("RGB Setup", &m);
-    if (lastOption == 0) {
-      targetAddr = (byte) getHexValue("Target Address", targetAddr);
-    }
-    else if (lastOption == 1) {
-      byte address = (byte) getHexValue("Set Address", targetAddr);
-      RGBIO8 rgb(targetAddr);
-      rgb.setAddress(address);
-      delay(250);
-      rgb.restart();
-      targetAddr = address;
-    }
-    else if (lastOption == 2) {
-      RGBIO8 rgb(targetAddr);
-      identifyOn = !identifyOn;
-      rgb.setIdMode(identifyOn);
-    }
-    else if (lastOption == 3) {
-      RGBIO8 rgb(targetAddr);
-      rgb.restart();
-    }
-    else if (lastOption == 255) {
-      return;
-    }
-  }
-}
-
-#endif
-#endif
 
 byte menuSelectTempSensor(char sTitle[]) {
   menu tsMenu(1, NUM_TS + 1);
@@ -2458,7 +2411,7 @@ void volCalibEntryMenu(byte vessel, byte entry) {
     calibMenu.appendItem_P(PSTR(" To "), 0);
     calibMenu.appendItem(itoa(newSensorValue, buf, 10), 0); //Show the value to be saved. So users know what to expect.
     calibMenu.setItem_P(PSTR("Manual Entry"), 1);
-    calibMenu.setItem_P(PSTR("Delete"), 2);
+    calibMenu.setItem_P(DELETE, 2);
     calibMenu.setItem_P(EXIT, 255);
     
     byte lastOption = scrollMenu(sTitle, &calibMenu);
@@ -2531,7 +2484,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
         OutputBankMODBUS tempMB(addr, getOutModbusReg(i), getOutModbusCoilCount(i));
         
         boardMenu.setItem_P(PSTR("Board "), i);
-        boardMenu.appendItem(itoa(i, buf, 10), i);
+        boardMenu.appendItem(itoa(i + 1, buf, 10), i);
         if (addr == OUTPUTBANK_MODBUS_ADDRNONE)
           boardMenu.appendItem_P(PSTR(": DISABLED"), i);
         else {
@@ -2576,7 +2529,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
         boardMenu.setItem_P(PSTR("ID Mode: "), 4);
         boardMenu.appendItem_P((tempMB.getIDMode()) ? PSTR("On") : PSTR("Off"), 4);
 
-        boardMenu.setItem_P(PSTR("Delete"), 5);
+        boardMenu.setItem_P(DELETE, 5);
       }
       boardMenu.setItem_P(PSTR("Exit"), 255);
       
@@ -2748,4 +2701,253 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
     }
   }
 #endif
+
+#ifdef RGBIO8_ENABLE
+  void menuRGBIO() {
+    while(1) {
+      menu rgbioMenu(3, RGBIO8_MAX_BOARDS + RGBIO8_MAX_OUTPUT_RECIPES + 1);
+      for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
+        byte addr = getRGBIOAddr(i);
+        rgbioMenu.setItem_P(PSTR("Board "), i);
+        rgbioMenu.appendItem(itoa(i + 1, buf, 10), i);
+        if (addr == RGBIO8_UNASSIGNED)
+          rgbioMenu.appendItem_P(PSTR(": DISABLED"), i);
+        else {
+          RGBIO8 tempRGBIO(addr);
+          byte result = tempRGBIO.getInputs();
+          if (result) 
+            rgbioMenu.appendItem_P(PSTR(": CONNECTED"), i);
+          else
+            rgbioMenu.appendItem_P(PSTR(": ERROR"), i);
+        }
+      }
+      for (byte i = 0; i < RGBIO8_MAX_OUTPUT_RECIPES; i++) {
+        rgbioMenu.setItem_P(PSTR("Color Recipe "), RGBIO8_MAX_BOARDS + i);
+        rgbioMenu.appendItem(itoa(i + 1, buf, 10), RGBIO8_MAX_BOARDS + i);
+      }
+      rgbioMenu.setItem_P(PSTR("Exit"), 255);
+      
+      byte lastOption = scrollMenu("RGBIO", &rgbioMenu);
+      if (lastOption < RGBIO8_MAX_BOARDS)
+        menuRGBIOBoard(lastOption);
+      else if (lastOption - RGBIO8_MAX_BOARDS < RGBIO8_MAX_OUTPUT_RECIPES)
+        menuRGBIORecipe(lastOption - RGBIO8_MAX_BOARDS);
+      else
+        return;
+    }
+  }
+  
+  void menuRGBIOBoard(byte board) {
+    boolean idMode = 0;
+    while(1) {
+      byte addr = getRGBIOAddr(board);
+      RGBIO8 tempRGBIO(addr);
+      menu boardMenu(3, 6);
+      boardMenu.setItem_P(PSTR("Address: "), 0);
+      
+      if (addr != RGBIO8_UNASSIGNED) {
+        tempRGBIO.setIdMode(idMode);
+        boardMenu.appendItem(itoa(addr, buf, 10), 0);
+        
+        boardMenu.setItem_P(PSTR("ID Mode: "), 2);
+        boardMenu.appendItem_P(idMode ? PSTR("On") : PSTR("Off"), 2);
+        
+        boardMenu.setItem_P(PSTR("Assignments"), 3);
+        boardMenu.setItem_P(DELETE, 4);
+      } else {
+        boardMenu.appendItem_P(PSTR("N/A"), 0);
+        boardMenu.setItem_P(PSTR("Auto Address"), 1);
+      }
+      boardMenu.setItem_P(PSTR("Exit"), 255);
+      
+      char title[] = "RGBIO Board  ";
+      title[19] = '0' + board;
+      byte lastOption = scrollMenu(title, &boardMenu);
+      if (lastOption == 0)
+        setRGBIOAddr(board, getValue_P(PSTR("RGBIO Address"), addr == RGBIO8_UNASSIGNED ? RGBIO8_START_ADDR + board : addr, 1, 127, PSTR("")));
+      else if (lastOption == 1)
+        cfgRGBIOAutoAddress(board);
+      else if (lastOption == 2)
+        idMode = !idMode;
+      else if (lastOption == 3)
+        menuRGBIOAssignments(board);
+      else {
+        if (lastOption == 4)
+          setRGBIOAddr(board, RGBIO8_UNASSIGNED);
+        loadRGBIO8();
+        return;
+      }
+    }
+  }
+  
+  void cfgRGBIOAutoAddress(byte board) {
+    RGBIO8 tempRGBIO(RGBIO8_INIT_ADDR);
+    
+    byte result = 0;
+    while (!(result = tempRGBIO.getInputs())) {
+      if(!confirmChoice("Click/hold to reset", "RGBIO board.", "", PSTR("Error: Retry?")))
+        return;      
+    }
+    byte newAddr = getValue_P(PSTR("New Address"), RGBIO8_START_ADDR + board, 1, 127, PSTR(""));
+    tempRGBIO.setAddress(newAddr);
+    unsigned long waitUntil = millis() + 250;
+    while (millis() < waitUntil)
+      brewCore();
+    tempRGBIO.restart();
+    setRGBIOAddr(board, newAddr);
+  }
+  
+  void menuRGBIOAssignments(byte board) {
+    while(1) {
+      menu assignMenu(3, 9);
+      for (byte i = 0; i < 8; i++) {
+        assignMenu.setItem(itoa(i, buf, 10), i);
+        assignMenu.appendItem(": ", i);
+        byte assignment = getRGBIOAssignment(board, i);
+        if (assignment == RGBIO8_UNASSIGNED)
+          assignMenu.appendItem_P(PSTR("None"), i);
+        else {
+          assignMenu.appendItem(outputs->getOutputBankName(assignment, buf), i);
+          assignMenu.appendItem("-", i);
+          assignMenu.appendItem(outputs->getOutputName(assignment, buf), i);
+        }
+      }
+      assignMenu.setItem_P(EXIT, 255);
+      
+      char title[20] = "RGBIO x Assignments";
+      title[6] = '0' + board;
+      byte lastOption = scrollMenu(title, &assignMenu);
+      if (lastOption < 8)
+        menuRGBIOAssignment(board, lastOption);
+      else
+        return;
+    }
+  }
+  
+  void menuRGBIOAssignment(byte board, byte channel) {
+    byte assignment = getRGBIOAssignment(board, channel);
+    byte recipe = getRGBIOAssignmentRecipe(board, channel);
+    byte origAssignment = assignment;
+    byte origRecipe = recipe;
+    
+    boolean changed = 0;
+    while(1) {
+      menu assignMenu(3, 4);
+      
+      if (assignment == RGBIO8_UNASSIGNED)
+        assignMenu.setItem_P(PSTR("No Assignment"), 0);
+      else {
+        assignMenu.appendItem(outputs->getOutputBankName(assignment, buf), 0);
+        assignMenu.appendItem("-", 0);
+        assignMenu.appendItem(outputs->getOutputName(assignment, buf), 0);
+        
+        assignMenu.setItem_P(PSTR("Recipe: "), 1);
+        assignMenu.appendItem(itoa(recipe, buf, 10), 1);
+        
+        assignMenu.setItem_P(DELETE, 2);
+      }
+      assignMenu.setItem_P(EXIT, 255);
+      
+      char title[] = "RGBIO x Channel y";
+      title[6] = '1' + board;
+      title[16] = '1' + channel;
+      byte lastOption = scrollMenu("", &assignMenu);
+      if (lastOption == 0)
+        assignment = menuSelectOutput(title, assignment == RGBIO8_UNASSIGNED ? PWMPIN_NONE : assignment);
+      else if (lastOption == 1)
+        recipe = menuRGBIOSelectRecipe(title, recipe);
+      else if (lastOption == 2)
+        assignment = RGBIO8_UNASSIGNED;
+      else {
+        if (confirmSave())
+          setRGBIOAssignment(board, channel, assignment, recipe);
+        return;
+      }
+        
+    }
+  }
+  
+  byte menuRGBIOSelectRecipe(char sTitle[], byte currentSelection) {
+    menu recipeMenu(3, RGBIO8_MAX_OUTPUT_RECIPES);
+    for (byte i = 0; i < RGBIO8_MAX_OUTPUT_RECIPES; i++) {
+      recipeMenu.setItem("", i);
+      if (i == currentSelection)
+        recipeMenu.setItem("*", i);
+      recipeMenu.appendItem("Color Recipe ", i);
+      recipeMenu.appendItem(itoa(i + 1, buf, 10), i);
+    }
+  
+    byte lastOption = scrollMenu(sTitle, &recipeMenu);
+    if (lastOption == 255)
+      return currentSelection;
+    return lastOption;
+  }
+
+  void menuRGBIORecipe(byte recipeIndex) {
+    unsigned int recipe[4], origRecipe[4];
+    getRGBIORecipe(recipeIndex, recipe);
+    memcpy(&origRecipe, &recipe, 8);
+    
+    while (1) {
+      menu recipeMenu(3, 5);
+      recipeMenu.setItem_P(PSTR("Off"), 0);
+      recipeMenu.setItem_P(PSTR("Auto Off"), 1);
+      recipeMenu.setItem_P(PSTR("Auto On"), 2);
+      recipeMenu.setItem_P(PSTR("On"), 3);
+      recipeMenu.setItem_P(EXIT, 255);
+      char title[] = "Color Recipe x";
+      title[13] = '1' + recipeIndex;
+      byte recipeMode = scrollMenu(title, &recipeMenu);
+      if (recipeMode < 4)
+        recipe[recipeMode] = menuRGBIORecipeMode(recipeIndex, recipeMode, recipe[recipeMode]);
+      else {
+        if (memcmp(recipe, origRecipe, 8) != 0) {
+          if(confirmSave())
+            setRGBIORecipe(recipeIndex, recipe);
+        }
+        return; 
+      }
+    }
+  }
+  
+  unsigned int menuRGBIORecipeMode(byte recipeIndex, byte recipeMode, unsigned int recipe) {
+    byte red = (recipe >> 8) & 0xF;
+    byte green = (recipe >> 4) & 0xF;
+    byte blue = recipe & 0xF;
+    
+    menu recipeMenu(3, 4);
+    recipeMenu.setItem_P(PSTR("Red:   "), 0);
+    recipeMenu.appendItem(itoa(red, buf, 10), 0);
+    
+    recipeMenu.setItem_P(PSTR("Green: "), 1);
+    recipeMenu.appendItem(itoa(green, buf, 10), 1);
+    
+    recipeMenu.setItem_P(PSTR("Blue:  "), 2);
+    recipeMenu.appendItem(itoa(blue, buf, 10), 2);
+    
+    recipeMenu.setItem_P(EXIT, 255);
+    
+    char title[21] = "Recipe x ";
+    title[7] = '1' + recipeIndex;
+    if (recipeMode == 0)
+      strcat(title, "Off");
+    else if (recipeMode == 1)
+      strcat(title, "Auto Off");
+    else if (recipeMode == 2)
+      strcat(title, "Auto On");
+    else if (recipeMode == 3)
+      strcat(title, "On");
+    
+    byte lastOption = scrollMenu(title, &recipeMenu);
+    if (lastOption == 0)
+      red = getValue_P(PSTR("Red"), red, 1, 15, PSTR(""));
+    else if (lastOption == 1)
+      green = getValue_P(PSTR("Green"), green, 1, 15, PSTR(""));
+    else if (lastOption == 2)
+      blue = getValue_P(PSTR("Blue"), blue, 1, 15, PSTR(""));
+    else
+      return (red << 8) | (green << 4) | blue;
+  }
+#endif
+
 #endif //#ifndef NOUI

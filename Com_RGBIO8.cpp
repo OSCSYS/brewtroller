@@ -32,7 +32,7 @@ void RGBIO8::assign(byte assignment, byte outputIndex, byte recipe_id) {
     
 void RGBIO8::update(void) {
   // Get the state of the 8 inputs first
-  getInputs(&inputs_manual, &inputs_auto);
+  getInputs();
   
   // Update any assigned inputs
   for (int i = 0; i < 8; i++) {
@@ -86,7 +86,7 @@ void RGBIO8::setAddress(byte a) {
   Wire.endTransmission();
 }
 
-int RGBIO8::getInputs(uint8_t *m, uint8_t *a) {
+int RGBIO8::getInputs(void) {
   Wire.requestFrom(i2c_address, (uint8_t) 3);
   uint8_t inputs_m = Wire.read();
   uint8_t inputs_a = Wire.read();
@@ -97,8 +97,8 @@ int RGBIO8::getInputs(uint8_t *m, uint8_t *a) {
   crc_comp = crc8(crc_comp, inputs_a);
   
   if (crc == crc_comp) {
-    *m = inputs_m;
-    *a = inputs_a;
+    inputs_manual = inputs_m;
+    inputs_auto = inputs_a;
     return 1;
   }
   else {
