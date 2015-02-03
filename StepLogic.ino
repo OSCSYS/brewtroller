@@ -270,22 +270,11 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
   static byte preheatVessel;
   switch (signal) {
     case STEPSIGNAL_INIT:
-      #ifdef MASH_PREHEAT_NOVALVES
-        vlvConfig[OUTPUTPROFILE_MASHHEAT] = 0;
-        vlvConfig[OUTPUTPROFILE_MASHIDLE] = 0;
-      #endif
       preheatVessel = getProgMLHeatSrc(thread->recipe);
       
       if (preheatVessel == VS_HLT) {
         setSetpoint(TS_HLT, calcStrikeTemp(thread->recipe));
-        
-        #ifdef MASH_PREHEAT_STRIKE
-          setSetpoint(TS_MASH, calcStrikeTemp(stepProgram[BREWSTEP_PREHEAT]));
-        #elif defined MASH_PREHEAT_STEP1
-          setSetpoint(TS_MASH, getFirstStepTemp(stepProgram[BREWSTEP_PREHEAT]));
-        #else
-          setSetpoint(TS_MASH, 0);
-        #endif        
+        setSetpoint(TS_MASH, 0);
       } else {
         setSetpoint(TS_HLT, getProgHLT(thread->recipe));
         setSetpoint(TS_MASH, calcStrikeTemp(thread->recipe));
@@ -295,10 +284,6 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
       preheated[VS_MASH] = 0;
       //No timer used for preheat
       clearTimer(TIMER_MASH);
-      #ifdef MASH_PREHEAT_SENSOR
-        //Overwrite mash temp sensor address from EEPROM using the memory location of the specified sensor (sensor element number * 8 bytes)
-        EEPROMreadBytes(MASH_PREHEAT_SENSOR * 8, tSensor[TS_MASH], 8);
-      #endif
       programThreadSetStep(thread, BREWSTEP_PREHEAT);
       break;
     case STEPSIGNAL_UPDATE:
@@ -321,13 +306,6 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
       clearTimer(TIMER_MASH);
       setSetpoint(VS_HLT, 0);
       setSetpoint(VS_MASH, 0);
-      #ifdef MASH_PREHEAT_SENSOR
-      //Restore mash temp sensor address from EEPROM (address 8)
-        EEPROMreadBytes(8, tSensor[TS_MASH], 8);
-      #endif
-      #ifdef MASH_PREHEAT_NOVALVES
-        loadOutputProfiles();
-      #endif
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepGrainIn(STEPSIGNAL_INIT, thread);
       break;
