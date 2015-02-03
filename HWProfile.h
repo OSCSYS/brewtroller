@@ -37,15 +37,10 @@ OpenTroller DX1 Hardware Configuration
   #define DIGITAL_INPUTS_COUNT 6
   #define DIGITAL_INPUTS_PINS {21, 20, 19, 18, 5, 22}
 
-  #define HLTVOL_APIN 7
-  #define MASHVOL_APIN 6
-  #define KETTLEVOL_APIN 5
-  #define STEAMPRESS_APIN 4
-
   #define ANALOGINPUTS_GPIO
   #define ANALOGINPUTS_GPIO_COUNT 4
   #define ANALOGINPUTS_GPIO_PINS {7, 6, 5, 4}
-  #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analaog 2\0Analog 3\0Analog 4"
+  #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analog 2\0Analog 3\0Analog 4"
 
   #define ANALOGINPUTS_MODBUS
 

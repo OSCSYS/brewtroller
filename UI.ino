@@ -160,9 +160,9 @@ PROGMEM const char *TITLE_TS[] = {
 const char PIDCYCLE[] PROGMEM = " PID Cycle";
 const char PIDGAIN[] PROGMEM = " PID Gain";
 const char HYSTERESIS[] PROGMEM = "Hysteresis";
-const char CAPACITY[] PROGMEM = " Capacity";
-const char DEADSPACE[] PROGMEM = " Dead Space";
-const char CALIBRATION[] PROGMEM = " Calibration";
+const char CAPACITY[] PROGMEM = "Capacity";
+const char DEADSPACE[] PROGMEM = "Dead Space";
+const char CALIBRATION[] PROGMEM = "Calibration";
 
 const char HLTDESC[] PROGMEM = "Hot Liquor Tank";
 const char MASHDESC[] PROGMEM = "Mash Tun";
@@ -2001,7 +2001,7 @@ void menuSetup() {
     else if (lastOption == 2)
       menuOutputs();
     else if (lastOption == 3)
-      cfgVolumes();
+      menuVolume();
     else if (lastOption == 4) {
       if (confirmChoice("Reset Configuration?", "", "", INIT_EEPROM))
         UIinitEEPROM();
@@ -2282,49 +2282,89 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection) {
   }
 }
 
-#define OPT_CAPACITY 1
-#define OPT_DEADSPACE 2
-#define OPT_CALIBRATION 4
-
-void cfgVolumes() {
-  //Note: Menu values represent two 4-bit values
-  //High-nibble = vessel: VS_HLT-VS_KETTLE
-  //Low-nibble = menu item: OPT_XXXXXXXX (see #defines above)
-  menu volMenu(3, 11);
-  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
-    volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[vessel])), vessel<<4 | OPT_CAPACITY);
-    volMenu.appendItem_P(CAPACITY, vessel<<4 | OPT_CAPACITY);
-    
-    volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[vessel])), vessel<<4 | OPT_DEADSPACE);
-    volMenu.appendItem_P(DEADSPACE, vessel<<4 | OPT_DEADSPACE);
-    
-    volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[vessel])), vessel<<4 | OPT_CALIBRATION);
-    volMenu.appendItem_P(CALIBRATION, vessel<<4 | OPT_CALIBRATION);
+void menuVolume(){
+  menu volMenu(3, 4);
+  for (byte i =0; i <= VS_KETTLE; i++)
+    volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
+  volMenu.setItem_P(EXIT, 255);
+  while (1) {
+    byte lastOption = scrollMenu("Volume", &volMenu);
+    if (lastOption == 255)
+      return;
+    menuVolumeVessel(lastOption);
   }
+}
 
+void menuVolumeVessel(byte vessel) {
+  menu volMenu(3, 6);
+  volMenu.setItem_P(PSTR("Analog Input"), 0);
+  volMenu.setItem_P(CAPACITY, 1);
+  volMenu.setItem_P(DEADSPACE, 2);
+  volMenu.setItem_P(CALIBRATION, 3);
+  volMenu.setItem_P(PSTR("Clone Settings"), 4);
+  volMenu.setItem_P(EXIT, 255);
 
+  char title[20];
+  strcpy_P(title, (char*)pgm_read_word(&(TITLE_VS[vessel])));
+  strcat_P(title, PSTR(" Volume"));
   while(1) {
-    byte lastOption = scrollMenu("Volume/Capacity", &volMenu);
-    byte vessel = lastOption>>4;
-
-    char title[20];
-    if (vessel >= VS_HLT && vessel <= VS_KETTLE)
-      strcpy_P(title, (char*)pgm_read_word(&(TITLE_VS[vessel])));
-
-    if ((lastOption & B00001111) == OPT_CAPACITY) {
+    byte lastOption = scrollMenu(title, &volMenu);
+    strcpy_P(title, (char*)pgm_read_word(&(TITLE_VS[vessel])));
+    strcat_P(title, PSTR(" "));
+    if (lastOption  == 0) {
+      strcat_P(title, PSTR("Sensor"));
+      setVolumeSensor(vessel, menuSelectAnalogInput(title, vSensor[vessel]));
+    } else if (lastOption  == 1) {
       strcat_P(title, CAPACITY);
       setCapacity(vessel, getValue(title, getCapacity(vessel), 1000, 9999999, VOLUNIT));
-    }
-    else if ((lastOption & B00001111) == OPT_DEADSPACE) {
+    } else if (lastOption == 2) {
       strcat_P(title, DEADSPACE);
       setVolLoss(vessel, getValue(title, getVolLoss(vessel), 1000, 65535, VOLUNIT));
-    }
-    else if ((lastOption & B00001111) == OPT_CALIBRATION) {
+    } else if (lastOption == 3) {
       strcat_P(title, CALIBRATION);
       volCalibMenu(title, vessel);
-    }
-    else return;
+    } else if (lastOption == 4) {
+      byte source = menuSelectVessel("Clone From:");
+      if (source <= VS_KETTLE) {
+         setVolumeSensor(vessel, getVolumeSensor(source));
+         setCapacity(vessel, getCapacity(source));
+         setVolLoss(vessel, getVolLoss(source));
+         for (byte i = 0; i < 10; i++)
+           setVolCalib(vessel, i, calibVals[source][i], calibVols[source][i]);
+      }
+    } else
+      return;
   } 
+}
+
+byte menuSelectAnalogInput(char sTitle[], byte currentValue) {
+  menu volMenu(3, ANALOGINPUTS_GPIO_COUNT + 1);
+  byte analogInputs[ANALOGINPUTS_GPIO_COUNT] = ANALOGINPUTS_GPIO_PINS;
+  char analogTitles[] = ANALOGINPUTS_GPIO_NAMES;
+  char* pos = analogTitles;
+      
+  for (byte i =0; i < ANALOGINPUTS_GPIO_COUNT; i++) {
+    volMenu.setItem("", analogInputs[i]);
+    if (currentValue == analogInputs[i])
+      volMenu.appendItem("*", analogInputs[i]);
+    volMenu.appendItem(pos, analogInputs[i]);
+    pos += strlen(pos) + 1;
+  }
+  
+  volMenu.setItem("", VOLUMESENSOR_NONE);
+  if (currentValue == VOLUMESENSOR_NONE)
+    volMenu.appendItem("*", VOLUMESENSOR_NONE);
+  volMenu.appendItem_P(PSTR("None"), VOLUMESENSOR_NONE);
+  
+  return scrollMenu(sTitle, &volMenu);
+}
+
+byte menuSelectVessel(char sTitle[]) {
+    menu volMenu(3, 4);
+  for (byte i =0; i <= VS_KETTLE; i++)
+    volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
+  volMenu.setItem_P(PSTR("None"), 255);
+  return scrollMenu(sTitle, &volMenu);
 }
 
 void volCalibMenu(char sTitle[], byte vessel) {

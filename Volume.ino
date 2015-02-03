@@ -32,11 +32,13 @@ void updateVols() {
   //Check volume on VOLUME_READ_INTERVAL and update vol with average of VOLUME_READ_COUNT readings
   if (millis() - lastVolChk > VOLUME_READ_INTERVAL) {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-      volReadings[i][volCount] = readVolume(vSensor[i], calibVols[i], calibVals[i]);
-	  unsigned long volAvgTemp = volReadings[i][0];
-	  for (byte j = 1; j < VOLUME_READ_COUNT; j++)
-	  volAvgTemp += volReadings[i][j];
-	  volAvg[i] = volAvgTemp / VOLUME_READ_COUNT; 
+      if (vSensor[i] != VOLUMESENSOR_NONE) {
+        volReadings[i][volCount] = readVolume(vSensor[i], calibVols[i], calibVals[i]);
+        unsigned long volAvgTemp = volReadings[i][0];
+        for (byte j = 1; j < VOLUME_READ_COUNT; j++)
+        volAvgTemp += volReadings[i][j];
+        volAvg[i] = volAvgTemp / VOLUME_READ_COUNT; 
+      }
     }
     volCount++;
     if (volCount >= VOLUME_READ_COUNT) volCount = 0;

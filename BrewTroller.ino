@@ -121,15 +121,8 @@ pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
 #endif
 
 //Volume Sensor Pin Array
-#ifdef HLT_AS_KETTLE
-  byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, HLTVOL_APIN};
-#elif defined KETTLE_AS_MASH
-  byte vSensor[3] = { HLTVOL_APIN, KETTLEVOL_APIN, KETTLEVOL_APIN};
-#elif defined SINGLE_VESSEL_SUPPORT
-  byte vSensor[3] = { HLTVOL_APIN, HLTVOL_APIN, HLTVOL_APIN};
-#else
-  byte vSensor[3] = { HLTVOL_APIN, MASHVOL_APIN, KETTLEVOL_APIN};
-#endif
+byte vSensor[3];
+
 
 //8-byte Temperature Sensor Address x9 Sensors
 byte tSensor[9][8];
