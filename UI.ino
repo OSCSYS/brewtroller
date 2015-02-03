@@ -184,23 +184,11 @@ const byte CHARFIELD[] PROGMEM = {B11111, B00000, B00000, B00000, B00000, B00000
 const byte CHARCURSOR[] PROGMEM = {B11111, B11111, B00000, B00000, B00000, B00000, B00000, B00000};
 const byte CHARSEL[] PROGMEM = {B10001, B11111, B00000, B00000, B00000, B00000, B00000, B00000};
 
-#ifdef LOGO_TROLL
-const byte BMP0[] PROGMEM = {B00000, B00000, B00000, B00000, B00011, B01111, B11111, B11111};
-const byte BMP1[] PROGMEM = {B00000, B00000, B00000, B00000, B11100, B11110, B11111, B11111};
-const byte BMP2[] PROGMEM = {B00001, B00011, B00111, B01111, B00001, B00011, B01111, B11111};
-const byte BMP3[] PROGMEM = {B11111, B11111, B10001, B00011, B01111, B11111, B11111, B11111};
-const byte BMP4[] PROGMEM = {B01111, B01110, B01100, B00001, B01111, B00111, B00011, B11101};
-const byte BMP5[] PROGMEM = {B11111, B00111, B00111, B11111, B11111, B11111, B11110, B11001};
-const byte BMP6[] PROGMEM = {B11111, B11111, B11110, B11101, B11011, B00111, B11111, B11111};
-#endif
-
-#ifdef LOGO_BREWTROLLER
 const byte BMP0[] PROGMEM = {B00000, B00000, B00000, B11111, B10001, B10001, B11111, B00001};
 const byte BMP1[] PROGMEM = {B00000, B00000, B00000, B00000, B00000, B00011, B01100, B01111};
 const byte BMP2[] PROGMEM = {B00000, B00000, B00000, B00000, B00000, B11100, B00011, B11111};
 const byte BMP3[] PROGMEM = {B00100, B01100, B01111, B00111, B00100, B01100, B01111, B00111};
 const byte BMP4[] PROGMEM = {B00010, B00011, B11111, B11110, B00010, B00011, B11111, B11110};
-#endif
 
 const byte UNLOCK_ICON[] PROGMEM = {B00110, B01001, B01001, B01000, B01111, B01111, B01111, B00000};
 const byte PROG_ICON[] PROGMEM = {B00001, B11101, B10101, B11101, B10001, B10001, B00001, B11111};
@@ -339,27 +327,6 @@ void screenInit() {
   
   if (activeScreen == SCREEN_HOME) {
     //Screen Init: Home
-    #ifdef LOGO_TROLL
-      LCD.setCustChar_P(0, BMP0);
-      LCD.setCustChar_P(1, BMP1);
-      LCD.setCustChar_P(2, BMP2);
-      LCD.setCustChar_P(3, BMP3);
-      LCD.setCustChar_P(4, BMP4);
-      LCD.setCustChar_P(5, BMP5);
-      LCD.setCustChar_P(6, BMP6);
-      LCD.writeCustChar(0, 1, 0);
-      LCD.writeCustChar(0, 2, 1);
-      LCD.writeCustChar(1, 0, 2); 
-      LCD.writeCustChar(1, 1, 3); 
-      LCD.writeCustChar(1, 2, 255); 
-      LCD.writeCustChar(2, 0, 4); 
-      LCD.writeCustChar(2, 1, 5); 
-      LCD.writeCustChar(2, 2, 6); 
-      LCD.print_P(3, 0, BT);
-      LCD.print_P(3, 12, BTVER);
-      LCD.lPad(3, 16, itoa(BUILD, buf, 10), 4, '0');
-    #endif
-    #ifdef LOGO_BREWTROLLER
       LCD.setCustChar_P(0, BMP0);
       LCD.setCustChar_P(1, BMP1);
       LCD.setCustChar_P(2, BMP2);
@@ -375,7 +342,6 @@ void screenInit() {
       LCD.print_P(2, 4, PSTR("Build"));
       LCD.lPad(2, 10, itoa(BUILD, buf, 10), 4, '0');
       LCD.print_P(3, 0, PSTR("www.brewtroller.com"));
-    #endif
     
   } else if (activeScreen == SCREEN_FILL) {
     //Screen Init: Fill/Refill
