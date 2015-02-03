@@ -568,7 +568,7 @@ void BTnic::execCmd(void) {
       logField_P(BTVER);
       logFieldI(BUILD);
       logFieldI(BTNIC);
-      logFieldI(COMSCHEMA);
+      logFieldI(0);
       #ifdef USEMETRIC
         logFieldI(0);
       #else
