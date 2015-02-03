@@ -19,22 +19,21 @@ BrewTroller 4.0 Pro Hardware Configuration
   #define ENCA_PIN 2
   #define ENCB_PIN 4
   #define ENTER_PIN 5
-  #define ALARM_PIN 15
-  
-  #define PVOUT_TYPE_MUX
-  #define PVOUT_COUNT 16 //16 Outputs
-    
-  #define MUX_LATCH_PIN 12
-  #define MUX_CLOCK_PIN 13
-  #define MUX_DATA_PIN 14
-  #define MUX_ENABLE_PIN 6
-  #define MUX_ENABLE_LOGIC 1
 
-  #define HLTHEAT_PIN 23
-  #define MASHHEAT_PIN 1
-  #define KETTLEHEAT_PIN 3
-  #define STEAMHEAT_PIN 7
-  #define PWMPUMP_PIN 7
+  #define OUTPUTBANK_GPIO
+  #define OUTPUTBANK_GPIO_BANKNAME "BT4"
+  #define OUTPUTBANK_GPIO_COUNT 5
+  #define OUTPUTBANK_GPIO_PINS {23, 1, 3, 7, 15}
+  #define OUTPUTBANK_GPIO_OUTPUTNAMES "HLT\0Mash\0Kettle\0Steam\0Alarm"
+
+  #define OUTPUTBANK_MUX
+  #define OUTPUTBANK_MUX_COUNT 16 //16 Outputs
+
+  #define OUTPUTBANK_MUX_LATCHPIN  12
+  #define OUTPUTBANK_MUX_DATAPIN   14
+  #define OUTPUTBANK_MUX_CLOCKPIN  13
+  #define OUTPUTBANK_MUX_ENABLEPIN 6
+  #define OUTPUTBANK_MUX_ENABLELOGIC
 
   #define DIGITAL_INPUTS
   #define DIGIN_COUNT 5
@@ -44,11 +43,19 @@ BrewTroller 4.0 Pro Hardware Configuration
   #define DIGIN4_PIN 21
   #define DIGIN5_PIN 22
   
+  #define DIGITAL_INPUTS_COUNT 5
+  #define DIGITAL_INPUTS_PINS {18, 19, 20, 21, 22}
+
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
   #define KETTLEVOL_APIN 1
   #define STEAMPRESS_APIN 0
   
+  #define ANALOGINPUTS_GPIO
+  #define ANALOGINPUTS_GPIO_COUNT 4
+  #define ANALOGINPUTS_GPIO_PINS {3, 2, 1, 0}
+  #define ANALOGINPUTS_GPIO_NAMES "HLT\0Mash\0Kettle\0Steam"
+
   #define UI_LCD_I2C
   #define UI_LCD_I2CADDR 0x01
   #define UI_LCD_I2CDELAYS

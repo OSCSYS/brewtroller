@@ -1,38 +1,48 @@
 /*
 OpenTroller BX1 Hardware Configuration
-  HERMS: Two Heat Outputs (HLT, Kettle) + 3 Pump/Valve Outputs + Alarm
-  I2CLCD
 */
 
 #ifndef BT_HWPROFILE
 #define BT_HWPROFILE
-  #include "Config.h"
+  
+  //**********************************************************************************
+  // ENCODER TYPE
+  //**********************************************************************************
+  // You must uncomment one and only one of the following ENCODER_ definitions
+  // Use ENCODER_ALPS for ALPS and Panasonic Encoders
+  // Use ENCODER_CUI for older CUI encoders
+  //
+  //#define ENCODER_TYPE ALPS
+  #define ENCODER_TYPE CUI
+  //**********************************************************************************
   
   #define ENCA_PIN 3
   #define ENCB_PIN 2
   #define ENTER_PIN 1
   
-  #define ALARM_PIN 15 //OUT6
   
-  #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 3 //3 Outputs
-  
-  #define VALVE1_PIN 20 //OUT3
-  #define VALVE2_PIN 19 //OUT4
-  #define VALVE3_PIN 18 //OUT5
+  #define OUTPUTBANK_GPIO
+  #define OUTPUTBANK_GPIO_BANKNAME "BX1"
+  #define OUTPUTBANK_GPIO_COUNT 6
+  #define OUTPUTBANK_GPIO_PINS {22, 21, 20, 19, 18, 15}
+  #define OUTPUTBANK_GPIO_OUTPUTNAMES "Out 1\0Out 2\0Out 3\0Out 4\0Out 5\0Out 6"
 
-  #define HLTHEAT_PIN 22 //OUT1
-  //#define MASHHEAT_PIN //Not used in BT Lite HERMS Config
-  #define KETTLEHEAT_PIN 21 //OUT2
+  #define OUTPUTBANK_MODBUS
 
   #define RS485_SERIAL_PORT 1
   #define RS485_RTS_PIN    12
-  #define PVOUT_TYPE_MODBUS
 
-  #define HLTVOL_APIN 3
-  #define MASHVOL_APIN 2
-  #define KETTLEVOL_APIN 1
-  #define STEAMPRESS_APIN 0
+  #define HLTVOL_APIN 7
+  #define MASHVOL_APIN 6
+  #define KETTLEVOL_APIN 5
+  #define STEAMPRESS_APIN 4
+
+  #define ANALOGINPUTS_GPIO
+  #define ANALOGINPUTS_GPIO_COUNT 4
+  #define ANALOGINPUTS_GPIO_PINS {7, 6, 5, 4}
+  #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analaog 2\0Analog 3\0Analog 4"
+
+  #define ANALOGINPUTS_MODBUS
 
   // BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
   #define BTPD_SUPPORT
@@ -43,10 +53,19 @@ OpenTroller BX1 Hardware Configuration
   #define HEARTBEAT
   #define HEARTBEAT_PIN 0
   
-  #define UI_LCD_I2C
-  #define UI_LCD_I2CADDR 0x01
+  #define UI_LCD_4BIT
+  #define LCD_RS_PIN 4
+  #define LCD_ENABLE_PIN 23
+  #define LCD_DATA4_PIN 28
+  #define LCD_DATA5_PIN 29
+  #define LCD_DATA6_PIN 30
+  #define LCD_DATA7_PIN 31
+  
   #define UI_DISPLAY_SETUP
-
+  #define LCD_BRIGHT_PIN 13
+  #define LCD_CONTRAST_PIN 14
+  #define LCD_DEFAULT_CONTRAST 100
+  #define LCD_DEFAULT_BRIGHTNESS 255
   
   //**********************************************************************************
   // OneWire Temperature Sensor Options
@@ -82,7 +101,7 @@ OpenTroller BX1 Hardware Configuration
   #define DS2482_ADDR 0x1B
   //**********************************************************************************
 
-
+  
   //**********************************************************************************
   // Serial0 Communication Options
   //**********************************************************************************

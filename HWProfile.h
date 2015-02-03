@@ -1,5 +1,5 @@
 /*
-OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
+OpenTroller DX1 Hardware Configuration
 */
 
 #ifndef BT_HWPROFILE
@@ -8,29 +8,22 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
   #define ENCODER_I2C
   #define ENCODER_I2CADDR 0x01
 
-  #define ALARM_PIN 2	//OUT14
+  #define OUTPUTBANK_GPIO
+  #define OUTPUTBANK_GPIO_BANKNAME "DX1"
+  #define OUTPUTBANK_GPIO_COUNT 14
+  #define OUTPUTBANK_GPIO_PINS {28, 29, 30, 31, 7, 6, 3, 4, 12, 15, 14, 13, 1, 2}
+  #define OUTPUTBANK_GPIO_OUTPUTNAMES "Out 1\0Out 2\0Out 3\0Out 4\0Out 5\0Out 6\0Out 7\0Out 8\0Out 9\0Out 10\0Out 11\0Out 12\0Out 13\0Out 14"
+    
+  #define OUTPUTBANK_MODBUS
   
-  #define PVOUT_TYPE_GPIO
-  #define PVOUT_COUNT 10 //10 Outputs
-
-  #define VALVE1_PIN 28	//OUT1
-  #define VALVE2_PIN 29	//OUT2
-  #define VALVE3_PIN 30	//OUT3
-  #define VALVE4_PIN 31	//OUT4
-  #define VALVE5_PIN 7	//OUT5
-  #define VALVE6_PIN 6	//OUT6
-  #define VALVE7_PIN 3	//OUT7
-  #define VALVE8_PIN 4	//OUT8
-  #define VALVE9_PIN 12	//OUT9
-  #define VALVEA_PIN 15	//OUT10
+  #define ANALOGOUTPUTS_HWPWM
+  #define ANALOGOUTPUTS_HWPWM_PINCOUNT 8
+  #define ANALOGOUTPUTS_HWPWM_PINS {7, 6, 3, 4, 12, 15, 14, 13}
+  #define ANALOGOUTPUTS_HWPWM_TIMERS {3, 3, 1, 2, 2, 1}
+  #define ANALOGOUTPUTS_HWPWM_NAMES "Out 5\0Out 6\0Out 7\0Out 8\0Out 9\0Out 10\0Out 11\0Out 12"
   
-  #define HLTHEAT_PIN 1	 //OUT13
-  #define MASHHEAT_PIN 13	//OUT12
-  #define KETTLEHEAT_PIN 14	//OUT11
-
   #define RS485_SERIAL_PORT 1
   #define RS485_RTS_PIN    23
-  #define PVOUT_TYPE_MODBUS
 
   #define DIGITAL_INPUTS
   #define DIGIN_COUNT 6
@@ -40,12 +33,23 @@ OpenTroller DX1 RIMS/Direct Fired Hardware Configuration
   #define DIGIN4_PIN 18
   #define DIGIN5_PIN 5
   #define DIGIN6_PIN 22
-  
+
+  #define DIGITAL_INPUTS_COUNT 6
+  #define DIGITAL_INPUTS_PINS {21, 20, 19, 18, 5, 22}
+
   #define HLTVOL_APIN 7
   #define MASHVOL_APIN 6
   #define KETTLEVOL_APIN 5
   #define STEAMPRESS_APIN 4
-  
+
+  #define ANALOGINPUTS_GPIO
+  #define ANALOGINPUTS_GPIO_COUNT 4
+  #define ANALOGINPUTS_GPIO_PINS {7, 6, 5, 4}
+  #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analaog 2\0Analog 3\0Analog 4"
+
+  #define ANALOGINPUTS_MODBUS
+
+
   #define UI_LCD_I2C
   #define UI_LCD_I2CADDR 0x01
   #define UI_DISPLAY_SETUP

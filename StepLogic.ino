@@ -221,7 +221,7 @@ void brewStepFill(enum StepSignal signal, struct ProgramThread *thread) {
       #else
         #ifndef VOLUME_MANUAL
           if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH])
-            bitClear(actProfiles, VLV_FILLHLT);
+            outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
         #endif
       #endif
       break;
@@ -231,8 +231,8 @@ void brewStepFill(enum StepSignal signal, struct ProgramThread *thread) {
       tgtVol[VS_HLT] = 0;
       tgtVol[VS_MASH] = 0;
       autoValve[AV_FILL] = 0;
-      bitClear(actProfiles, VLV_FILLHLT);
-      bitClear(actProfiles, VLV_FILLMASH);
+      outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
+      outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0);
       if (signal == STEPSIGNAL_ADVANCE) {
         if (getDelayMins())
           brewStepDelay(STEPSIGNAL_INIT, thread);
@@ -271,8 +271,8 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
   switch (signal) {
     case STEPSIGNAL_INIT:
       #ifdef MASH_PREHEAT_NOVALVES
-        vlvConfig[VLV_MASHHEAT] = 0;
-        vlvConfig[VLV_MASHIDLE] = 0;
+        vlvConfig[OUTPUTPROFILE_MASHHEAT] = 0;
+        vlvConfig[OUTPUTPROFILE_MASHIDLE] = 0;
       #endif
       preheatVessel = getProgMLHeatSrc(thread->recipe);
       
@@ -291,9 +291,6 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
         setSetpoint(TS_MASH, calcStrikeTemp(thread->recipe));
       }
       
-      #ifndef PID_FLOW_CONTROL
-        setSetpoint(VS_STEAM, getSteamTgt());
-      #endif
       preheated[VS_HLT] = 0;
       preheated[VS_MASH] = 0;
       //No timer used for preheat
@@ -322,19 +319,14 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, BREWSTEP_NONE);
     case STEPSIGNAL_ADVANCE:
       clearTimer(TIMER_MASH);
-      bitClear(actProfiles, VLV_MASHHEAT);    
-      bitClear(actProfiles, VLV_MASHIDLE);
-      resetHeatOutput(VS_HLT);
-      resetHeatOutput(VS_MASH);
-      #ifdef USESTEAM
-        resetHeatOutput(VS_STEAM);
-      #endif
+      setSetpoint(VS_HLT, 0);
+      setSetpoint(VS_MASH, 0);
       #ifdef MASH_PREHEAT_SENSOR
       //Restore mash temp sensor address from EEPROM (address 8)
         EEPROMreadBytes(8, tSensor[TS_MASH], 8);
       #endif
       #ifdef MASH_PREHEAT_NOVALVES
-        loadVlvConfigs();
+        loadOutputProfiles();
       #endif
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepGrainIn(STEPSIGNAL_INIT, thread);
@@ -347,13 +339,10 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
     case STEPSIGNAL_INIT:
       //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
       grainInStart = 0;
-      resetHeatOutput(VS_HLT);
-      resetHeatOutput(VS_MASH);
-      #ifndef PID_FLOW_CONTROL
-        setSetpoint(VS_STEAM, getSteamTgt());
-      #endif
+      setSetpoint(VS_HLT, 0);
+      setSetpoint(VS_MASH, 0);
       setAlarm(1);
-      bitSet(actProfiles, VLV_ADDGRAIN);
+      outputs->setProfileState(OUTPUTPROFILE_ADDGRAIN, 1);
       if(getProgMLHeatSrc(thread->recipe) == VS_HLT) {
         unsigned long spargeVol = calcSpargeVol(thread->recipe);
         unsigned long mashVol = calcStrikeVol(thread->recipe);
@@ -382,23 +371,19 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
       // user exits the grain in step, causing it to not shut off when target volume is reached. 
       if (autoValve[AV_SPARGEIN] && volAvg[VS_HLT] <= tgtVol[VS_HLT]) {
         autoValve[AV_SPARGEIN] = 0;
-        bitClear(actProfiles, VLV_SPARGEIN);
+        outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
       } else if (volAvg[VS_HLT] <= tgtVol[VS_HLT])
-        bitClear(actProfiles, VLV_SPARGEIN);
+        outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, BREWSTEP_NONE);
     case STEPSIGNAL_ADVANCE:
       tgtVol[VS_HLT] = 0;
       autoValve[AV_SPARGEIN] = 0;
-      bitClear(actProfiles, VLV_ADDGRAIN);
-      bitClear(actProfiles, VLV_SPARGEIN);
-      bitClear(actProfiles, VLV_MASHHEAT);
-      bitClear(actProfiles, VLV_MASHIDLE);
-      resetHeatOutput(VS_HLT);
-      #ifdef USESTEAM
-        resetHeatOutput(VS_STEAM);
-      #endif
+      outputs->setProfileState(OUTPUTPROFILE_ADDGRAIN, 0);
+      outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
+      setSetpoint(VS_HLT, 0);
+      setSetpoint(VS_MASH, 0);
       if (signal == STEPSIGNAL_ADVANCE) {
         if (calcRefillVolume(thread->recipe))
           brewStepRefill(STEPSIGNAL_INIT, thread);
@@ -426,7 +411,7 @@ void brewStepRefill(enum StepSignal signal, struct ProgramThread *thread) {
       #else
         #ifndef VOLUME_MANUAL
           if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH])
-            bitClear(actProfiles, VLV_FILLHLT);
+            outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
         #endif
       #endif
       break;
@@ -436,8 +421,8 @@ void brewStepRefill(enum StepSignal signal, struct ProgramThread *thread) {
       tgtVol[VS_HLT] = 0;
       tgtVol[VS_MASH] = 0;
       autoValve[AV_FILL] = 0;
-      bitClear(actProfiles, VLV_FILLHLT);
-      bitClear(actProfiles, VLV_FILLMASH);
+      outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
+      outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0);
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepDoughIn(STEPSIGNAL_INIT, thread);
       break;
@@ -458,9 +443,6 @@ void brewStepMashHelper(byte mashStep, enum StepSignal signal, struct ProgramThr
         setSetpoint(TS_MASH, getProgMashTemp(thread->recipe, mashStep));
       #endif
       
-      #ifndef PID_FLOW_CONTROL
-      setSetpoint(VS_STEAM, getSteamTgt());
-      #endif
       preheated[VS_MASH] = 0;
       //Set timer only if empty (for purposes of power loss recovery)
       if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(thread->recipe, mashStep)); 
@@ -493,13 +475,8 @@ void brewStepMashHelper(byte mashStep, enum StepSignal signal, struct ProgramThr
       programThreadSetStep(thread, BREWSTEP_NONE);
     case STEPSIGNAL_ADVANCE:
       clearTimer(TIMER_MASH);
-      bitClear(actProfiles, VLV_MASHHEAT);    
-      bitClear(actProfiles, VLV_MASHIDLE);
-      resetHeatOutput(VS_HLT);
-      resetHeatOutput(VS_MASH);
-      #ifdef USESTEAM
-        resetHeatOutput(VS_STEAM);
-      #endif
+      setSetpoint(VS_HLT, 0);
+      setSetpoint(VS_MASH, 0);
       if (signal == STEPSIGNAL_ADVANCE) {
         void (*stepFunc)(enum StepSignal, struct ProgramThread *) = brewStepFunc(thread->activeStep + 1);
         if (stepFunc)
@@ -545,9 +522,6 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
         while (setpoint[TS_MASH] == 0 && i >= MASHSTEP_DOUGHIN && i <= MASHSTEP_MASHOUT)
           setSetpoint(TS_MASH, getProgMashTemp(thread->recipe, i--));
       }
-      #ifndef PID_FLOW_CONTROL
-        setSetpoint(VS_STEAM, getSteamTgt());
-      #endif
       programThreadSetStep(thread, BREWSTEP_MASHHOLD);
       break;
     case STEPSIGNAL_UPDATE:
@@ -559,13 +533,8 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, BREWSTEP_NONE);
     case STEPSIGNAL_ADVANCE:
-      bitClear(actProfiles, VLV_MASHHEAT);    
-      bitClear(actProfiles, VLV_MASHIDLE);
-      resetHeatOutput(VS_HLT);
-      resetHeatOutput(VS_MASH);
-      #ifdef USESTEAM
-        resetHeatOutput(VS_STEAM);
-      #endif      
+      setSetpoint(VS_HLT, 0);
+      setSetpoint(VS_MASH, 0);
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepSparge(STEPSIGNAL_INIT, thread);
       break;
@@ -592,15 +561,6 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
         tgtVol[VS_KETTLE] = calcPreboilVol(thread->recipe);
         #ifdef AUTO_SPARGE_START
           autoValve[AV_FLYSPARGE] = 1;
-        #endif
-        #ifdef PID_FLOW_CONTROL
-          #ifdef USEMETRIC
-            // value is given in 10ths of a liter per min, so 1 liter/min would be 10, and 10 * 100 = 1000 which is 1 liter/min in flow rate calcs
-            setSetpoint(VS_PUMP, (getSteamTgt() * 100));
-          #else
-            //value is given in 10ths of a quart per min, so 1 quart/min would be 10, and 10 *25 = 250 which is 1 quart/min in flow rate calcs (1000ths of a gallon/min)
-            setSetpoint(VS_PUMP, getSteamTgt()* 25);
-          #endif
         #endif
       #endif
       programThreadSetStep(thread, BREWSTEP_SPARGE);
@@ -630,7 +590,7 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
       #endif
       tgtVol[VS_HLT] = 0;
       tgtVol[VS_KETTLE] = 0;
-      resetSpargeValves();
+      resetSpargeOutputs();
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepBoil(STEPSIGNAL_INIT, thread);
       break;
@@ -640,9 +600,6 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
 void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
   switch (signal) {
     case STEPSIGNAL_INIT:
-      #ifdef PID_FLOW_CONTROL
-        resetHeatOutput(VS_PUMP); // turn off the pump if we are moving to boil. 
-      #endif
       setSetpoint(VS_KETTLE, getBoilTemp());
       preheated[VS_KETTLE] = 0;
       boilAdds = getProgAdds(thread->recipe);
@@ -679,13 +636,13 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       }
       //Turn off hop valve profile after 5s
       if (lastHop > 0 && millis() - lastHop > HOPADD_DELAY) {
-        bitClear(actProfiles, VLV_HOPADD);
+        outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
         lastHop = 0;
       }
       if (preheated[VS_KETTLE]) {
         //Boil Addition
         if ((boilAdds ^ triggered) & 1) {
-          bitSet(actProfiles, VLV_HOPADD);
+          outputs->setProfileState(OUTPUTPROFILE_HOPADD, 1);
           lastHop = millis();
           setAlarm(1); 
           triggered |= 1; 
@@ -694,7 +651,7 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
         //Timed additions (See hoptimes[] array in BrewTroller.pde)
         for (byte i = 0; i < 11; i++) {
           if (((boilAdds ^ triggered) & (1<<(i + 1))) && timerValue[TIMER_BOIL] <= hoptimes[i] * 60000) { 
-            bitSet(actProfiles, VLV_HOPADD);
+            outputs->setProfileState(OUTPUTPROFILE_HOPADD, 1);
             lastHop = millis();
             setAlarm(1); 
             triggered |= (1<<(i + 1)); 
@@ -703,14 +660,14 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
         }
         
         #ifdef AUTO_BOIL_RECIRC
-        if (timerValue[TIMER_BOIL] <= AUTO_BOIL_RECIRC * 60000) bitSet(actProfiles, VLV_BOILRECIRC);
+        if (timerValue[TIMER_BOIL] <= AUTO_BOIL_RECIRC * 60000)
+          outputs->setProfileState(OUTPUTPROFILE_BOILRECIRC, 1);
         #endif
       }
       //Exit Condition  
       if(preheated[VS_KETTLE] && timerValue[TIMER_BOIL] == 0) {
         //Kill Kettle power at end of timer...
-        boilControlState = CONTROLSTATE_OFF;
-        resetHeatOutput(VS_KETTLE);      
+        setSetpoint(VS_KETTLE, 0);
         //...but wait for last hop addition to complete before leaving step
         if(lastHop == 0)
           brewStepBoil(STEPSIGNAL_ADVANCE, thread);
@@ -719,12 +676,11 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, BREWSTEP_NONE);
     case STEPSIGNAL_ADVANCE:
-      bitClear(actProfiles, VLV_HOPADD);
+      outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
       #ifdef AUTO_BOIL_RECIRC
-        bitClear(actProfiles, VLV_BOILRECIRC);
+        outputs->setProfileState(OUTPUTPROFILE_BOILRECIRC, 0);
       #endif
-      boilControlState = CONTROLSTATE_OFF;
-      resetHeatOutput(VS_KETTLE);
+      setSetpoint(VS_KETTLE, 0);
       clearTimer(TIMER_BOIL);
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepChill(STEPSIGNAL_INIT, thread);
@@ -739,32 +695,29 @@ void brewStepChill(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, BREWSTEP_CHILL);
       break;
     case STEPSIGNAL_UPDATE:
-      if (temp[TS_KETTLE] != -1 && temp[TS_KETTLE] <= KETTLELID_THRESH) {
-        if (!vlvConfigIsActive(VLV_KETTLELID))
-          bitSet(actProfiles, VLV_KETTLELID);
-      } else {
-        if (vlvConfigIsActive(VLV_KETTLELID))
-          bitClear(actProfiles, VLV_KETTLELID);
-      }
+      if (temp[TS_KETTLE] != -1 && temp[TS_KETTLE] <= KETTLELID_THRESH)
+        outputs->setProfileState(OUTPUTPROFILE_KETTLELID, 1);
+      else
+        outputs->setProfileState(OUTPUTPROFILE_KETTLELID, 0);
       break;
     case STEPSIGNAL_ABORT:
     case STEPSIGNAL_ADVANCE:
       programThreadSetStep(thread, BREWSTEP_NONE);
       autoValve[AV_CHILL] = 0;
-      bitClear(actProfiles, VLV_CHILLBEER);
-      bitClear(actProfiles, VLV_CHILLH2O);
+      outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 0);
+      outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 0);
       break;
   }
 }
 
-void resetSpargeValves() {
+void resetSpargeOutputs() {
   autoValve[AV_SPARGEIN] = 0;
   autoValve[AV_SPARGEOUT] = 0;
   autoValve[AV_FLYSPARGE] = 0;
-  bitClear(actProfiles, VLV_SPARGEIN);
-  bitClear(actProfiles, VLV_SPARGEOUT);
-  bitClear(actProfiles, VLV_MASHHEAT);
-  bitClear(actProfiles, VLV_MASHIDLE);
+  outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
+  outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 0);
+  outputs->setProfileState(OUTPUTPROFILE_MASHHEAT, 0);
+  outputs->setProfileState(OUTPUTPROFILE_MASHIDLE, 0);
 }
 
 #ifdef SMART_HERMS_HLT

@@ -31,48 +31,15 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 void comInit() {
   #ifdef COM_SERIAL0
     Serial.begin(SERIAL0_BAUDRATE);
-    //Always identify
-    if (logData)
-      logASCIIVersion();
   #endif
   #ifdef RGBIO8_ENABLE
     RGBIO8_Init();
   #endif
 }
 
-void logASCIIVersion() {
-  printFieldUL(millis());   // timestamp
-  printFieldPS(LOGSYS);     // keyword "SYS"
-  Serial.print("VER\t");  // Version record
-  printFieldPS(BTVER);      // BT Version
-  printFieldUL(BUILD);      // Build #
-  #if COM_SERIAL0 == BTNIC || (COM_SERIAL0 == ASCII && COMSCHEMA > 0)
-    printFieldUL(COM_SERIAL0);  // Protocol Type
-    printFieldUL(COMSCHEMA);// Protocol Schema
-    #ifdef USEMETRIC      // Metric or US units
-      Serial.print("0");
-    #else
-      Serial.print("1");
-    #endif
-  #endif
-  Serial.println();
-}
-
-void printFieldUL (unsigned long uLong) {
-  Serial.print(uLong, DEC);
-  Serial.print("\t");
-}
-
-void printFieldPS (const char *sText) {
-  while (pgm_read_byte(sText) != 0) Serial.print(pgm_read_byte(sText++));
-  Serial.print("\t");
-}
-
 void updateCom() {
   #ifdef COM_SERIAL0
-    #if COM_SERIAL0 == ASCII
-      updateS0ASCII(); /* Log_ASCII.pde */
-    #elif COM_SERIAL0 == BTNIC
+    #if COM_SERIAL0 == BTNIC
       updateS0BTnic();
     #endif
   #endif
@@ -165,6 +132,30 @@ void updateCom() {
       }
     #endif
   #endif
+#endif
+
+
+#ifdef RGBIO8_ENABLE
+  RGBIO8* rgbio[RGBIO8_MAX_BOARDS];
+  unsigned long lastRGBIO8 = 0;
+  
+  // Initializes the RGBIO8 system. If you want to provide custom IO mappings
+  // this is the place to do it. See the CUSTOM CONFIGURATION section below for
+  // further instructions.
+  void RGBIO8_Init() {
+    RGBIO8::setup(outputs);
+  }
+  
+  void RGBIO8_Update() {
+    if (millis() > (lastRGBIO8 + RGBIO8_INTERVAL)) {
+      for (int i = 0; i < RGBIO8_MAX_BOARDS; i++) {
+        if (rgbio[i])
+          rgbio[i]->update();
+      }
+      outputs->setProfileState(OUTPUTPROFILE_RGBIO, outputs->getProfileMask(OUTPUTPROFILE_RGBIO) ? 1 : 0);
+      lastRGBIO8 = millis();
+    }
+  }
 #endif
 
 

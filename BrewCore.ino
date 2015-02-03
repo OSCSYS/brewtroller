@@ -39,9 +39,7 @@ enum schedulerTasks {
 #endif
   SCHEDULETASK_PROGRAMS,
   SCHEDULETASK_COMS,
-#ifdef PVOUT
-  SCHEDULETASK_OUTPUTPROFILES,
-#endif
+  SCHEDULETASK_AUTOVALVE,
   SCHEDULETASK_COUNT
 };
 
@@ -51,7 +49,9 @@ void brewCore() {
   #ifdef HEARTBEAT
     heartbeat();
   #endif
-  processHeatOutputs();
+  
+  updateHeatOutputs();
+  outputs->update();
   //END HIGH PRIORITY
   
   //START NORMAL PRIORITY: Updated in turn
@@ -63,12 +63,12 @@ void brewCore() {
 #endif  
 
     case SCHEDULETASK_TIMERS:
-      //Timers: Timer.pde
+      //Timers: Timer.ino
       updateTimers();
       break;
       
     case SCHEDULETASK_TEMPS:
-     //temps: Temp.pde
+     //temps: Temp.ino
      updateTemps();
      break;
 
@@ -78,7 +78,7 @@ void brewCore() {
       break;
       
     case SCHEDULETASK_VOLS:
-      //Volumes: Volume.pde
+      //Volumes: Volume.ino
       updateVols();
       break;
       
@@ -89,24 +89,19 @@ void brewCore() {
 #endif      
       
     case SCHEDULETASK_PROGRAMS:
-      //Step Logic: StepLogic.pde
+      //Step Logic: StepLogic.ino
       programThreadsUpdate();
       break;
       
     case SCHEDULETASK_COMS:
-      //Communications: Com.pde
+      //Communications: Com.ino
       updateCom();
       break;
       
-#ifdef PVOUT
-    case SCHEDULETASK_OUTPUTPROFILES:
-      //Auto Valve Logic: Outputs.pde
-      processAutoValve();
-      
-      //Set Valve Outputs based on active valve profiles (if changed): Outputs.pde
-      updateValves();
+    case SCHEDULETASK_AUTOVALVE:
+      //Auto Valve Logic: Outputs.ino
+      updateAutoValve();
       break;
-#endif 
   }
   
   if(++scheduler >= SCHEDULETASK_COUNT)

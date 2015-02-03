@@ -2,58 +2,76 @@
 #define BT_ENUM
 
 //TSensor and Output (0-2) Array Element Constants
-#define TS_HLT 0
-#define TS_MASH 1
-#define TS_KETTLE 2
-#define TS_H2OIN 3
-#define TS_H2OOUT 4
-#define TS_BEEROUT 5
-#define TS_AUX1 6
-#define TS_AUX2 7
-#define TS_AUX3 8
-#define NUM_TS 9
-#define BAD_TEMP -32768
+  #define TS_HLT 0
+  #define TS_MASH 1
+  #define TS_KETTLE 2
+  #define TS_H2OIN 3
+  #define TS_H2OOUT 4
+  #define TS_BEEROUT 5
+  #define TS_AUX1 6
+  #define TS_AUX2 7
+  #define TS_AUX3 8
+  #define NUM_TS 9
+  #define BAD_TEMP -32768
 
-#define VS_HLT 0
-#define VS_MASH 1
-#define VS_KETTLE 2
-#define VS_STEAM 3
-#define VS_PUMP 3
+  enum VesselIndex {
+    VS_HLT,
+    VS_MASH,
+    VS_KETTLE
+  };
 
 //Auto-Valve Modes
-#define AV_FILL 0
-#define AV_MASH 1
-#define AV_SPARGEIN 2
-#define AV_SPARGEOUT 3
-#define AV_FLYSPARGE 4
-#define AV_CHILL 5
-#define AV_HLT 6
-#define AV_KETTLE 7
-#define NUM_AV 8
+  #define AV_FILL 0
+  #define AV_SPARGEIN 1
+  #define AV_SPARGEOUT 2
+  #define AV_FLYSPARGE 3
+  #define AV_CHILL 4
+  #define NUM_AV 5
 
-//Valve Array Element Constants and Variables
-#define VLV_ALL 4294967295
-#define VLV_FILLHLT 0
-#define VLV_FILLMASH 1
-#define VLV_ADDGRAIN 2
-#define VLV_MASHHEAT 3
-#define VLV_MASHIDLE 4
-#define VLV_SPARGEIN 5
-#define VLV_SPARGEOUT 6
-#define VLV_HOPADD 7
-#define VLV_KETTLELID 8
-#define VLV_CHILLH2O 9
-#define VLV_CHILLBEER 10
-#define VLV_BOILRECIRC 11
-#define VLV_DRAIN 12
-#define VLV_HLTHEAT 13
-#define VLV_HLTIDLE 14
-#define VLV_KETTLEHEAT 15
-#define VLV_KETTLEIDLE 16
-#define VLV_USER1 17
-#define VLV_USER2 18
-#define VLV_USER3 19
-#define NUM_VLVCFGS 20
+  #define PWMPIN_NONE  255
+
+  //Valve Array Element Constants and Variables
+  #define VLV_ALL 0xFFFFFFFF
+  enum OutputProfileIndex {
+    OUTPUTPROFILE_FILLHLT,
+    OUTPUTPROFILE_FILLMASH,
+    OUTPUTPROFILE_ADDGRAIN,
+    OUTPUTPROFILE_MASHHEAT,
+    OUTPUTPROFILE_MASHIDLE,
+    OUTPUTPROFILE_SPARGEIN,
+    OUTPUTPROFILE_SPARGEOUT,
+    OUTPUTPROFILE_HOPADD,
+    OUTPUTPROFILE_KETTLELID,
+    OUTPUTPROFILE_CHILLH2O,
+    OUTPUTPROFILE_CHILLBEER,
+    OUTPUTPROFILE_BOILRECIRC,
+    OUTPUTPROFILE_DRAIN,
+    OUTPUTPROFILE_HLTHEAT,
+    OUTPUTPROFILE_HLTIDLE,
+    OUTPUTPROFILE_KETTLEHEAT,
+    OUTPUTPROFILE_KETTLEIDLE,
+    OUTPUTPROFILE_USER1,
+    OUTPUTPROFILE_USER2,
+    OUTPUTPROFILE_USER3,
+    OUTPUTPROFILE_ALARM,
+    OUTPUTPROFILE_HLTPWMACTIVE,
+    OUTPUTPROFILE_MASHPWMACTIVE,
+    OUTPUTPROFILE_KETTLEPWMACTIVE,
+    OUTPUTPROFILE_USERCOUNT,                          //The number of user configurable output profiles
+    OUTPUTPROFILE_BTNIC = OUTPUTPROFILE_USERCOUNT,    //Dymanic profile used by BTNIC logic to turn on outputs (not implemented)
+    OUTPUTPROFILE_RGBIO,                              //Dymanic profile used by RGBIO logic to turn on outputs
+    OUTPUTPROFILE_SYSTEMTEST,                         //Used to test output profiles
+    OUTPUTPROFILE_SYSTEMCOUNT
+  };
+  
+  enum OutputEnableIndex {
+    OUTPUTENABLE_ESTOP,          //Used by EStop logic to disable all outputs
+    OUTPUTENABLE_BTNIC,          //Used by BTNIC logic to force off specific outputs (not implemented)
+    OUTPUTENABLE_RGBIO,          //Used by RGBIO logic to force off specific outputs
+    OUTPUTENABLE_VESSELMIN,      //Used by vessel minimum volume and triggers to disable specific outputs
+    OUTPUTENABLE_SYSTEMTEST,     //Used to test output profiles by forcing off outputs not in the mask being tested
+    OUTPUTENABLE_COUNT
+  };
 
 //Timers
 #define TIMER_MASH 0
@@ -138,7 +156,7 @@ typedef enum {
 typedef enum {
   CONTROLSTATE_OFF,
   CONTROLSTATE_AUTO,
-  CONTROLSTATE_ON,
+  CONTROLSTATE_MANUAL,
   NUM_CONTROLSTATES
 } ControlState;
 

@@ -1,4 +1,4 @@
-#define BUILD 3
+#define BUILD 4
 /*  
   Copyright (C) 2009, 2010 Matt Reba, Jeremiah Dillingham
 
@@ -26,14 +26,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 /*
-Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
-  With Sanguino Software "Sanguino-0018r2_1_4.zip" (http://code.google.com/p/sanguino/downloads/list)
-
+Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATMEGA1284P
   Using the following libraries:
     PID  v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
     OneWire 2.0 (http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip)
     Encoder by CodeRage ()
     FastPin and modified LiquidCrystal with FastPin by CodeRage (http://www.brewtroller.com/forum/showthread.php?t=626)
+    Menu
 */
 
 
@@ -47,17 +46,20 @@ Compiled on Arduino-0022 (http://arduino.cc/en/Main/Software)
 #include <pin.h>
 #include <menu.h>
 #include <ModbusMaster.h>
+#include <Wire.h>
 
 #include "HWProfile.h"
 #include "Config.h"
 #include "Enum.h"
-#include "PVOut.h"
+#include "Outputs.h"
 #include "UI_LCD.h"
 #include <avr/eeprom.h>
 #include <EEPROM.h>
 #include "wiring_private.h"
 #include <encoder.h>
-#include "Com_RGBIO8.h"
+#ifdef RGBIO8_ENABLE
+  #include "Com_RGBIO8.h"
+#endif
 
 void(* softReset) (void) = 0;
 
@@ -89,20 +91,12 @@ const char BTVER[] PROGMEM = "2.7";
   #define BTNIC_PROTOCOL
 #endif
 
-#if defined BTPD_SUPPORT || defined UI_LCD_I2C || defined TS_ONEWIRE_I2C || defined BTNIC_EMBEDDED || defined RGBIO8_ENABLE
-  #define USE_I2C
-#endif
-
 #ifdef BOIL_OFF_GALLONS
   #ifdef USEMETRIC
     #define EvapRateConversion 1000
   #else
     #define EvapRateConversion 100
   #endif
-#endif
-
-#ifdef USE_I2C
-  #include <Wire.h>
 #endif
 
 struct ProgramThread {
@@ -113,15 +107,14 @@ struct ProgramThread {
 //**********************************************************************************
 // Globals
 //**********************************************************************************
-//Heat Output Pin Array
-pin heatPin[4], alarmPin;
+//Vessel PWM Output Pin Array
+analogOutput_SWPWM* pwmOutput[3];
 
 #ifdef DIGITAL_INPUTS
   pin digInPin[DIGIN_COUNT];
 #endif
 
 pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
-boolean estop = 0;
 
 #ifdef HEARTBEAT
   pin hbPin;
@@ -175,74 +168,23 @@ long flowRate[3] = {0,0,0};
 
 
  
-//Valve Variables
-unsigned long vlvConfig[NUM_VLVCFGS], actProfiles;
 boolean autoValve[NUM_AV];
-
-//Create the appropriate 'Valves' object for the hardware configuration (GPIO, MUX, MODBUS)
-#if defined PVOUT_TYPE_GPIO
-  #define PVOUT
-  PVOutGPIO Valves(PVOUT_COUNT);
-
-#elif defined PVOUT_TYPE_MUX
-  #define PVOUT
-  PVOutMUX Valves( 
-    MUX_LATCH_PIN,
-    MUX_DATA_PIN,
-    MUX_CLOCK_PIN,
-    MUX_ENABLE_PIN,
-    MUX_ENABLE_LOGIC
-  );
-#endif
-
-#ifdef PVOUT_TYPE_MODBUS
-  PVOutMODBUS *ValvesMB[PVOUT_MODBUS_MAXBOARDS];
-#endif
+OutputSystem* outputs;
 
 //Shared buffers
 char buf[20];
 
 //Output Globals
-double PIDInput[4], PIDOutput[4], setpoint[4];
-#ifdef PID_FEED_FORWARD
-double FFBias;
-#endif
-byte PIDCycle[4], hysteresis[4];
-#ifdef PWM_BY_TIMER
-unsigned int cycleStart[4] = {0,0,0,0};
-#else
-unsigned long cycleStart[4] = {0,0,0,0};
-#endif
-boolean heatStatus[4], PIDEnabled[4];
-unsigned int steamPSens, steamZero;
-
-byte pidLimits[4] = { PIDLIMIT_HLT, PIDLIMIT_MASH, PIDLIMIT_KETTLE, PIDLIMIT_STEAM };
-  
-//Steam Pressure in thousandths
-unsigned long steamPressure;
+double PIDInput[3], PIDOutput[3], setpoint[3];
+byte hysteresis[3];
+boolean heatStatus[3];
 byte boilPwr;
 
-PID pid[4] = {
+PID pid[3] = {
   PID(&PIDInput[VS_HLT], &PIDOutput[VS_HLT], &setpoint[VS_HLT], 3, 4, 1),
-
-  #ifdef PID_FEED_FORWARD
-    PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], &FFBias, 3, 4, 1),
-  #else
-    PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
-  #endif
-
+  PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
   PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
-
-  #ifdef PID_FLOW_CONTROL
-    PID(&PIDInput[VS_PUMP], &PIDOutput[VS_PUMP], &setpoint[VS_PUMP], 3, 4, 1)
-  #else
-    PID(&PIDInput[VS_STEAM], &PIDOutput[VS_STEAM], &setpoint[VS_STEAM], 3, 4, 1)
-  #endif
 };
-#if defined PID_FLOW_CONTROL && defined PID_CONTROL_MANUAL
-  unsigned long nextcompute;
-  byte additioncount[2];
-#endif
 
 #ifdef RIMS_MLT_SETPOINT_DELAY
   byte steptoset = 0;
@@ -273,12 +215,6 @@ const char LOGSYS[] PROGMEM = "SYS";
 const char LOGCFG[] PROGMEM = "CFG";
 const char LOGDATA[] PROGMEM = "DATA";
 
-//PWM by timer globals
-#ifdef PWM_BY_TIMER
-unsigned int timer1_overflow_count = 0;
-unsigned int PIDOutputCountEquivalent[4][2] = {{0,0},{0,0},{0,0},{0,0}};
-#endif
-
 //**********************************************************************************
 // Setup
 //**********************************************************************************
@@ -293,89 +229,32 @@ void setup() {
     Wire.begin(BT_I2C_ADDR);
   #endif
   
-  //Log initialization (Log.pde)
-  comInit();
-
-  //Pin initialization (Outputs.pde)
-  pinInit();
-
-
-#ifdef PVOUT
-  #if defined PVOUT_TYPE_GPIO
-    #if PVOUT_COUNT >= 1
-      Valves.setup(0, VALVE1_PIN);
-    #endif
-    #if PVOUT_COUNT >= 2
-      Valves.setup(1, VALVE2_PIN);
-    #endif
-    #if PVOUT_COUNT >= 3
-      Valves.setup(2, VALVE3_PIN);
-    #endif
-    #if PVOUT_COUNT >= 4
-      Valves.setup(3, VALVE4_PIN);
-    #endif
-    #if PVOUT_COUNT >= 5
-      Valves.setup(4, VALVE5_PIN);
-    #endif
-    #if PVOUT_COUNT >= 6
-      Valves.setup(5, VALVE6_PIN);
-    #endif
-    #if PVOUT_COUNT >= 7
-      Valves.setup(6, VALVE7_PIN);
-    #endif
-    #if PVOUT_COUNT >= 8
-      Valves.setup(7, VALVE8_PIN);
-    #endif
-    #if PVOUT_COUNT >= 9
-      Valves.setup(8, VALVE9_PIN);
-    #endif
-    #if PVOUT_COUNT >= 10
-      Valves.setup(9, VALVEA_PIN);
-    #endif
-    #if PVOUT_COUNT >= 11
-      Valves.setup(10, VALVEB_PIN);
-    #endif
-    #if PVOUT_COUNT >= 12
-      Valves.setup(11, VALVEC_PIN);
-    #endif
-    #if PVOUT_COUNT >= 13
-      Valves.setup(12, VALVED_PIN);
-    #endif
-    #if PVOUT_COUNT >= 14
-      Valves.setup(13, VALVEE_PIN);
-    #endif
-    #if PVOUT_COUNT >= 15
-      Valves.setup(14, VALVEF_PIN);
-    #endif
-    #if PVOUT_COUNT >= 16
-      Valves.setup(15, VALVEG_PIN);
-    #endif
+  #ifdef HEARTBEAT
+    hbPin.setup(HEARTBEAT_PIN, OUTPUT);
   #endif
-  Valves.init();
-#endif
 
   tempInit();
   
-  //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.pde)
+  //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.ino)
   checkConfig();
 
   
-  //Load global variable values stored in EEPROM (EEPROM.pde)
+  //Load global variable values stored in EEPROM (EEPROM.ino)
   loadSetup();
+
+  //Communications initialization (Com.ino)
+  //Must occur after output initialization and loading setup due to RGBIO logic
+  comInit();
   
   #ifdef DIGITAL_INPUTS
     //Digital Input Interrupt Setup
-    triggerSetup();
+    triggerInit();
   #endif
   
-  //PID Initialization (Outputs.pde)
+  //PID Initialization (Outputs.ino)
   pidInit();
   
-  #ifdef PWM_BY_TIMER
-    pwmInit();
-  #endif
-
-  //User Interface Initialization (UI.pde)
+  //User Interface Initialization (UI.ino)
   //Moving this to last of setup() to allow time for I2CLCD to initialize
   #ifndef NOUI
     uiInit();
@@ -391,12 +270,12 @@ void setup() {
 //**********************************************************************************
 
 void loop() {
-  //User Interface Processing (UI.pde)
+  //User Interface Processing (UI.ino)
   #ifndef NOUI
     uiCore();
   #endif
   
-  //Core BrewTroller process code (BrewCore.pde)
+  //Core BrewTroller process code (BrewCore.ino)
   brewCore();
 }
 

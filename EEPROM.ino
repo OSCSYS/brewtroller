@@ -30,44 +30,27 @@ void loadSetup() {
   //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
   //**********************************************************************************
   EEPROMreadBytes(0, *tSensor, 72);
-  #ifdef HLT_AS_KETTLE
-    EEPROMreadBytes(0, tSensor[TS_KETTLE], 8);
-  #elif defined KETTLE_AS_MASH
-    EEPROMreadBytes(16, tSensor[TS_MASH], 8);
-  #elif defined SINGLE_VESSEL_SUPPORT
-    EEPROMreadBytes(0, tSensor[TS_MASH], 8);
-    EEPROMreadBytes(0, tSensor[TS_KETTLE], 8);
-  #endif
  
   //**********************************************************************************
-  //PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam
-  //PIDp HLT (73), Mash (78), Kettle (83), Steam (88)
-  //PIDi HLT (74), Mash (79), Kettle (84), Steam (89)
-  //PIDd HLT (75), Mash (80), Kettle (85), Steam (90)
-  //PIDCycle HLT (76), Mash (81), Kettle (86), Steam (91)
-  //Hysteresis HLT (77), Mash (82), Kettle (87), Steam (92)
+  //PIDp HLT (73), Mash (78), Kettle (83), Reserved (88)
+  //PIDi HLT (74), Mash (79), Kettle (84), Reserved (89)
+  //PIDd HLT (75), Mash (80), Kettle (85), Reserved (90)
+  //PIDCycle HLT (76), Mash (81), Kettle (86), Reserved (91)
+  //Hysteresis HLT (77), Mash (82), Kettle (87), Reserved (92)
+  //PWM Pin (309-312)
   //**********************************************************************************
-  {
-    byte options = EEPROM.read(72);
-    for (byte i = VS_HLT; i <= VS_STEAM; i++) {
-      PIDEnabled[i] = bitRead(options, i);
-      PIDCycle[i] = EEPROM.read(76 + i * 5);
-      hysteresis[i] = EEPROM.read(77 + i * 5);
-    }
-  }
+  for (byte i = VS_HLT; i <= VS_KETTLE; i++)
+    hysteresis[i] = EEPROM.read(77 + i * 5);
+
+  loadPWMOutputs();
   
   //**********************************************************************************
   //boilPwr (112)
   //**********************************************************************************
   boilPwr = EEPROM.read(112);
   //**********************************************************************************
-  //steamZero (114)
+  //OPEN (114-118)
   //**********************************************************************************
-  steamZero = EEPROMreadInt(114);
-  //**********************************************************************************
-  //steamPSens (117-118)
-  //**********************************************************************************
-  steamPSens = EEPROMreadInt(117);
 
   //**********************************************************************************
   //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
@@ -75,20 +58,6 @@ void loadSetup() {
   //**********************************************************************************
   eeprom_read_block(&calibVols, (unsigned char *) 119, 120);
   eeprom_read_block(&calibVals, (unsigned char *) 239, 60);
-
-  //Load HLT calibrations to kettle
-  #ifdef HLT_AS_KETTLE
-    eeprom_read_block(&calibVols[VS_KETTLE], (unsigned char *) 119, 40);
-    eeprom_read_block(&calibVals[VS_KETTLE], (unsigned char *) 239, 20);
-  #elif defined KETTLE_AS_MASH
-    eeprom_read_block(&calibVols[VS_MASH], (unsigned char *) 199, 40);
-    eeprom_read_block(&calibVals[VS_MASH], (unsigned char *) 279, 20);
-  #elif defined SINGLE_VESSEL_SUPPORT
-    eeprom_read_block(&calibVols[VS_MASH], (unsigned char *) 119, 40);
-    eeprom_read_block(&calibVals[VS_MASH], (unsigned char *) 239, 20);
-    eeprom_read_block(&calibVols[VS_KETTLE], (unsigned char *) 119, 40);
-    eeprom_read_block(&calibVals[VS_KETTLE], (unsigned char *) 239, 20);
-  #endif
 
   //**********************************************************************************
   //setpoints (299-301)
@@ -112,50 +81,83 @@ void loadSetup() {
     lastTime[i] = millis();
   }
   alarmStatus = bitRead(options, 2);
-#ifdef ALARM_PIN
-  alarmPin.set(alarmStatus);
-#endif
-  #ifdef DEBUG_TIMERALARM
-    logStart_P(LOGDEBUG);
-    logField("TimerAlarmStatus");
-    logFieldI(bitRead(options, 0));
-    logFieldI(bitRead(options, 1));
-    logFieldI(bitRead(options, 2));
-    logEnd();
-  #endif
+  outputs->setProfileState(OUTPUTPROFILE_ALARM, alarmStatus);
   
 
-
   //**********************************************************************************
-  //401-480 Valve Profiles
+  //401-480 Output Profiles
   //**********************************************************************************
-  #ifdef PVOUT
-    loadVlvConfigs();
-  
-    #ifdef PVOUT_TYPE_MODBUS
-      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++) 
-        loadVlvModbus(i);
+    loadOutputSystem();
+    
+    #ifdef RGBIO8_ENABLE
+      loadRGBIO8();
     #endif
-  #endif
 }
 
-#ifdef PVOUT
-  void loadVlvConfigs() {
-    eeprom_read_block(&vlvConfig, (unsigned char *) 401, 80);
+  void loadPWMOutputs() {
+    for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+      byte pwmPin = getPWMPin(i);
+      byte pwmCycle = getPWMPeriod(i);
+      if (pwmOutput[i])
+        delete pwmOutput[i];
+      if (pwmPin != PWMPIN_NONE)
+        pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle);
+    }
   }
   
-  #ifdef PVOUT_TYPE_MODBUS
-    void loadVlvModbus(byte board) {
-      if (ValvesMB[board]) {
-        delete ValvesMB[board];
-        ValvesMB[board] = NULL;
+  void loadOutputSystem() {
+    //Refresh output object
+    if (outputs)
+      delete outputs;
+    outputs = new OutputSystem();
+    outputs->init();
+    loadOutputProfiles();
+    #ifdef OUTPUTBANK_MODBUS
+      loadOutModbus();
+    #endif
+    analogOutput_SWPWM::setup(outputs);
+  }
+
+  void loadOutputProfiles() {
+    for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
+      outputs->setProfileMask(i, getOutputProfile(i));
+  }
+  
+  #ifdef OUTPUTBANK_MODBUS
+    void loadOutModbus() {
+      for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++) {
+        byte addr = getOutModbusAddr(i);
+        if (addr != OUTPUTBANK_MODBUS_ADDRNONE)
+          outputs->newModbusBank(addr, getOutModbusReg(i), getOutModbusCoilCount(i));
       }
-      byte addr = getVlvModbusAddr(board);
-      if (addr != PVOUT_MODBUS_ADDRNONE)
-        ValvesMB[board] = new PVOutMODBUS(addr, getVlvModbusReg(board), getVlvModbusCoilCount(board), getVlvModbusOffset(board));
     }
   #endif 
-#endif
+  
+  #ifdef RGBIO8_ENABLE
+    void loadRGBIO8() {
+      for(byte i = 0; i < RGBIO8_MAX_OUTPUT_RECIPES; i++) {
+        unsigned int recipe[4];
+        getRGBIORecipe(i, recipe);
+        RGBIO8::setOutputRecipe(i, recipe[0], recipe[1], recipe[2], recipe[3]);
+      }
+      
+      for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
+        if (rgbio[i])
+          delete rgbio[i];
+        byte addr = getRGBIOAddr(i);
+        if (addr != RGBIO8_UNASSIGNED) {
+          rgbio[i] = new RGBIO8(addr);
+          for (int j = 0; j < 8; j++) {
+            byte assignment = getRGBIOAssignment(i, j);
+            if (assignment != RGBIO8_UNASSIGNED) {
+              byte recipe = getRGBIOAssignmentRecipe(i, j);
+              rgbio[i]->assign(j, assignment, recipe);
+            }
+          }
+        }
+      }
+    }
+  #endif
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions
@@ -166,43 +168,17 @@ void loadSetup() {
 //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
 //**********************************************************************************
 void setTSAddr(byte sensor, byte addr[8]) {
-    #ifdef HLT_AS_KETTLE
-    if (sensor == TS_HLT || sensor == TS_KETTLE) {
-      //Also copy HLT setting to Kettle
-      memcpy(tSensor[TS_KETTLE], addr, 8);
-      sensor = VS_HLT; //Set sensor for EEPROM write
-    }
-  #elif defined KETTLE_AS_MASH
-    if (sensor == TS_MASH || sensor == TS_KETTLE) {
-      //Also copy Kettle setting to Mash
-      memcpy(tSensor[TS_MASH], addr, 8);
-      sensor = VS_KETTLE; //Set sensor for EEPROM write
-    }
-  #elif defined SINGLE_VESSEL_SUPPORT
-    if (sensor == TS_HLT || sensor == TS_MASH || sensor == TS_KETTLE) {
-      //Also copy HLT setting to Mash/Kettle
-      memcpy(tSensor[TS_MASH], addr, 8);
-      memcpy(tSensor[TS_KETTLE], addr, 8);
-      sensor = VS_HLT; //Set sensor for EEPROM write
-    }
-  #endif
   memcpy(tSensor[sensor], addr, 8);
   EEPROMwriteBytes(sensor * 8, addr, 8);
 }
 
 //**********************************************************************************
-//PID Enabled (72); Bit 1 = HLT, Bit 2 = Mash, Bit 3 = Kettle, Bit 4 = Steam
+//OPEN (72)
 //**********************************************************************************
-void setPIDEnabled(byte vessel, boolean setting) {
-  PIDEnabled[vessel] = setting;
-  byte options = EEPROM.read(72);
-  bitWrite(options, vessel, setting);
-  EEPROM.write(72, options);
-}
 
 
 //**********************************************************************************
-//PIDp HLT (73), Mash (78), Kettle (83), Steam (88)
+//PIDp HLT (73), Mash (78), Kettle (83), RESERVED (88)
 //**********************************************************************************
 void setPIDp(byte vessel, byte value) {
   pid[vessel].SetTunings(value, pid[vessel].GetI_Param(), pid[vessel].GetD_Param());
@@ -211,7 +187,7 @@ void setPIDp(byte vessel, byte value) {
 byte getPIDp(byte vessel) { return EEPROM.read(73 + vessel * 5); }
 
 //**********************************************************************************
-//PIDi HLT (74), Mash (79), Kettle (84), Steam (89)
+//PIDi HLT (74), Mash (79), Kettle (84), RESERVED (89)
 //**********************************************************************************
 void setPIDi(byte vessel, byte value) {
   pid[vessel].SetTunings(pid[vessel].GetP_Param(), value, pid[vessel].GetD_Param());
@@ -220,7 +196,7 @@ void setPIDi(byte vessel, byte value) {
 byte getPIDi(byte vessel) { return EEPROM.read(74 + vessel * 5); }
 
 //**********************************************************************************
-//PIDd HLT (75), Mash (80), Kettle (85), Steam (90)
+//PIDd HLT (75), Mash (80), Kettle (85), RESERVED (90)
 //**********************************************************************************
 void setPIDd(byte vessel, byte value) {
   pid[vessel].SetTunings(pid[vessel].GetP_Param(), pid[vessel].GetI_Param(), value);
@@ -229,15 +205,15 @@ void setPIDd(byte vessel, byte value) {
 byte getPIDd(byte vessel) { return EEPROM.read(75 + vessel * 5); }
 
 //**********************************************************************************
-//PIDCycle HLT (76), Mash (81), Kettle (86), Steam (91)
+//PWM Period HLT (76), Mash (81), Kettle (86), RESERVED (91)
 //**********************************************************************************
-void setPIDCycle(byte vessel, byte value) {
-  PIDCycle[vessel] = value;
+byte getPWMPeriod(byte vessel) { return EEPROM.read(76 + vessel * 5); }
+void setPWMPeriod(byte vessel, byte value) {
   EEPROM.write(76 + vessel * 5, value);
 }
 
 //**********************************************************************************
-//Hysteresis HLT (77), Mash (82), Kettle (87), Steam (92)
+//Hysteresis HLT (77), Mash (82), Kettle (87), RESERVED (92)
 //**********************************************************************************
 void setHysteresis(byte vessel, byte value) {
   hysteresis[vessel] = value;
@@ -283,61 +259,14 @@ void setEvapRate(byte value) {
 byte getEvapRate() { return EEPROM.read(113); }
 
 //**********************************************************************************
-//steamZero (114-115)
+//Open (114-118)
 //**********************************************************************************
-void setSteamZero(unsigned int value) {
-  steamZero = value;
-  EEPROMwriteInt(114, value);
-}
-
-//**********************************************************************************
-//steamTgt (116)
-//**********************************************************************************
-void setSteamTgt(byte value) { EEPROM.write(116, value); }
-byte getSteamTgt() { return EEPROM.read(116); }
-
-//**********************************************************************************
-//steamPSens (117-118)
-//**********************************************************************************
-void setSteamPSens(unsigned int value) {
-  steamPSens = value;
-  #ifndef PID_FLOW_CONTROL
-  #ifdef USEMETRIC
-    pid[VS_STEAM].SetInputLimits(0, 50000 / steamPSens);
-  #else
-    pid[VS_STEAM].SetInputLimits(0, 7250 / steamPSens);
-  #endif
-  #endif
-  EEPROMwriteInt(117, value);
-}
 
 //**********************************************************************************
 //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
 //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
 //**********************************************************************************
 void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) {
-  #ifdef HLT_AS_KETTLE
-    if (vessel == VS_HLT || vessel == VS_KETTLE) {
-      //Also copy HLT setting to Kettle
-      calibVols[VS_KETTLE][slot] = vol;
-      calibVals[VS_KETTLE][slot] = value;
-      vessel = VS_HLT; //Set vessel for EEPROM write
-    }
-  #elif defined KETTLE_AS_MASH
-    if (vessel == VS_MASH || vessel == VS_KETTLE) {
-      //Also copy Kettle setting to Mash
-      calibVols[VS_MASH][slot] = vol;
-      calibVals[VS_MASH][slot] = value;
-      vessel = VS_KETTLE; //Set vessel for EEPROM write
-    }
-  #elif defined SINGLE_VESSEL_SUPPORT
-    calibVols[VS_MASH][slot] = vol;
-    calibVals[VS_MASH][slot] = value;  
-    calibVols[VS_KETTLE][slot] = vol;
-    calibVals[VS_KETTLE][slot] = value;
-    vessel = VS_HLT; //Set vessel for EEPROM write
-  #endif
-  
   calibVols[vessel][slot] = vol;
   calibVals[vessel][slot] = value;
   EEPROMwriteLong(119 + vessel * 40 + slot * 4, vol);
@@ -352,12 +281,7 @@ void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) 
 //setpoints (299-301)
 //**********************************************************************************
 void setSetpoint(byte vessel, int value) {
-  #if defined PID_FLOW_CONTROL || defined USESTEAM
-    if (vessel == VS_STEAM) setpoint[vessel] = value;
-    else setpoint[vessel] = value * SETPOINT_MULT;
-  #else
-    setpoint[vessel] = value * SETPOINT_MULT;
-  #endif
+  setpoint[vessel] = value * SETPOINT_MULT;
   EEPROM.write(299 + vessel, value);
   eventHandler(EVENT_SETPOINT, vessel);
 }
@@ -377,15 +301,6 @@ void setTimerStatus(byte timer, boolean value) {
   byte options = EEPROM.read(306);
   bitWrite(options, timer, value);
   EEPROM.write(306, options);
-  
-  #ifdef DEBUG_TIMERALARM
-    logStart_P(LOGDEBUG);
-    logField("setTimerStatus");
-    logFieldI(value);
-    options = EEPROM.read(306);
-    logFieldI(bitRead(options, timer));    
-    logEnd();
-  #endif
 }
 
 void setAlarmStatus(boolean value) {
@@ -393,15 +308,6 @@ void setAlarmStatus(boolean value) {
   byte options = EEPROM.read(306);
   bitWrite(options, 2, value);
   EEPROM.write(306, options);
-  
-  #ifdef DEBUG_TIMERALARM
-    logStart_P(LOGDEBUG);
-    logField("setAlarmStatus");
-    logFieldI(value);
-    options = EEPROM.read(306);
-    logFieldI(bitRead(options, 2));
-    logEnd();
-  #endif
 }
 
 
@@ -413,9 +319,10 @@ unsigned int getBoilAddsTrig() { return EEPROMreadInt(307); }
 void setBoilAddsTrig(unsigned int adds) { EEPROMwriteInt(307, adds); }
 
 //**********************************************************************************
-// ***OPEN*** (309-312)
+// PWM Outputs (309-312)
 //**********************************************************************************
-
+unsigned int getPWMPin(byte vessel) { return EEPROM.read(309 + vessel); }
+void setPWMPin(byte vessel, byte pin) { EEPROM.write(309 + vessel, pin); }
 
 //**********************************************************************************
 //Program Threads (313-316)
@@ -448,13 +355,14 @@ void setGrainTemp(byte grainTemp) { EEPROM.write(400, grainTemp); }
 byte getGrainTemp() { return EEPROM.read(400); }
 
 //*****************************************************************************************************************************
-// Valve Profile Configuration (401-480; 481-785 Reserved)
+// Output Profile Configuration (401-480; 481-785 Reserved)
 //*****************************************************************************************************************************
-void setValveCfg(byte profile, unsigned long value) {
-  #ifdef PVOUT
-    vlvConfig[profile] = value;
-    EEPROMwriteLong(401 + profile * 4, value);
-  #endif
+void setOutputProfile(byte profile, unsigned long value) {
+  outputs->setProfileMask(profile, value);
+  EEPROMwriteLong(401 + profile * 4, value);
+}
+unsigned long getOutputProfile(byte profile) {
+  return EEPROMreadLong(401 + profile * 4);
 }
 
 //*****************************************************************************************************************************
@@ -584,57 +492,87 @@ unsigned long getProgGrain(byte preset) { return EEPROMreadLong(PROGRAM_START_AD
   void setTriggerPin(byte triggerIndex, byte inputIndex) {
     #if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
       EEPROM.write(2050 + triggerIndex, inputIndex);
-      triggerSetup(); //Call triggerSetup() to reattach
+      triggerInit(); //Call triggerInit() to reattach
     #endif
   }
 #endif
 
 
 //**********************************************************************************
-//Modbus Relay Boards (2065-2074) ATMEGA1284P Only + Reserved: 2075-2084 
+//Modbus Relay Boards (2065-2076) ATMEGA1284P Only + Reserved: 2077-2088 
 //**********************************************************************************
-byte getVlvModbusAddr(byte board) {
-  return EEPROM.read(board * 5);
+byte getOutModbusAddr(byte board) {
+  return EEPROM.read(2065 + board * 4);
 }
 
-unsigned int getVlvModbusReg(byte board) {
-  return EEPROMreadInt(board * 5 + 1);
+unsigned int getOutModbusReg(byte board) {
+  return EEPROMreadInt(2065 + board * 4 + 1);
 }
 
-byte getVlvModbusCoilCount(byte board) {
-  return EEPROM.read(board * 5 + 3);
+byte getOutModbusCoilCount(byte board) {
+  return EEPROM.read(2065 + board * 4 + 3);
 }
 
-byte getVlvModbusOffset(byte board) {
-  return EEPROM.read(board * 5 + 4);
+void setOutModbusAddr(byte board, byte addr) {
+  EEPROM.write(2065 + board * 4, addr);
 }
 
-void setVlvModbusAddr(byte board, byte addr) {
-  EEPROM.write(board * 5, addr);
+void setOutModbusReg(byte board, unsigned int reg) {
+  EEPROMwriteInt(2065 + board * 4 + 1, reg);
 }
 
-void setVlvModbusReg(byte board, unsigned int reg) {
-  EEPROMwriteInt(board * 5 + 1, reg);
+void setOutModbusCoilCount(byte board, byte count) {
+  EEPROM.write(2065 + board * 4 + 3, count);
 }
 
-void setVlvModbusCoilCount(byte board, byte count) {
-  EEPROM.write(board * 5 + 3, count);
+void setOutModbusDefaults(byte board) {
+  setOutModbusAddr(board, OUTPUTBANK_MODBUS_ADDRNONE);
+  setOutModbusReg(board, OUTPUTBANK_MODBUS_DEFCOILREG);
+  setOutModbusCoilCount(board, OUTPUTBANK_MODBUS_DEFCOILCOUNT);
 }
 
-void setVlvModbusOffset(byte board, byte offset) {
-  EEPROM.write(board * 5 + 4, offset);
+//RGBIO Recipes (2089 - 2120): 8 bytes per recipe x 4 recipes
+void getRGBIORecipe(byte recipeIndex, unsigned int* recipe) {
+  eeprom_read_block((void *)recipe, (unsigned char *) (2089 + recipeIndex * 8), 8);
 }
 
-void setVlvModbusDefaults(byte board) {
-  setVlvModbusAddr(board, PVOUT_MODBUS_ADDRNONE);
-  setVlvModbusReg(board, PVOUT_MODBUS_DEFCOILREG);
-  setVlvModbusCoilCount(board, PVOUT_MODBUS_DEFCOILCOUNT);
-  byte defaultOffset = PVOUT_COUNT;
-  if (board)
-    for (byte i = 0; i < board; i++)
-      defaultOffset += getVlvModbusOffset(board);
-  setVlvModbusOffset(board, defaultOffset);
+void setRGBIORecipe(byte recipeIndex, unsigned int* recipe) {
+  eeprom_write_block((void *) recipe, (unsigned char *) (2089 + recipeIndex * 8), 8);
 }
+
+//RGBIO Board Addresses (2121 - 2124): 1 bytes per board x 4 boards
+byte getRGBIOAddr(byte boardIndex) {
+  return EEPROM.read(2121 + boardIndex);
+}
+
+void setRGBIOAddr(byte boardIndex, byte addr) {
+  EEPROM.write(2121 + boardIndex, addr);
+}
+
+//RGBIO Assignments (2125 - 2156): 8 bytes per board x 4 boards
+byte getRGBIOAssignment(byte boardIndex, byte channelIndex) {
+  byte assignment = EEPROM.read(2125 + boardIndex * 8 + channelIndex);
+  if (assignment == RGBIO8_UNASSIGNED)
+    return assignment;
+  return assignment & B00011111;
+}
+
+void setRGBIOAssignment(byte boardIndex, byte channelIndex, byte outputIndex, byte recipeIndex) {
+  byte assignment = outputIndex;
+  if (assignment != RGBIO8_UNASSIGNED) {
+      assignment &= B00011111;
+      assignment |= (recipeIndex << 5) & B01100000;
+  }
+  EEPROM.write(2125 + boardIndex * 8 + channelIndex, assignment);
+}
+
+byte getRGBIOAssignmentRecipe(byte boardIndex, byte channelIndex) {
+  byte assignment = EEPROM.read(2125 + boardIndex * 8 + channelIndex);
+  if (assignment == RGBIO8_UNASSIGNED)
+    return 0;
+  return (assignment & B01100000) >> 5;
+}
+
 
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
@@ -659,7 +597,8 @@ boolean checkConfig() {
     case 0:
       //Supported PID cycle is changing from 1-255 to .1-25.5
       //All current PID cycle settings will be multiplied by 10 to represent tenths (s)
-      for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
+      for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++)
+        EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
       //Set cfgVersion = 1
       EEPROM.write(2047, 1);
     case 1:
@@ -667,9 +606,39 @@ boolean checkConfig() {
       for (byte trig = 0; trig < NUM_TRIGGERS; trig++) EEPROM.write(2050 + trig, 0);
       EEPROM.write(2047, 2);
     case 2:
-      for (byte i = 0; i < PVOUT_MODBUS_MAXBOARDS; i++)
-        setVlvModbusDefaults(i);
-      EEPROM.write(2047, 3);
+    case 3:
+      //MODBUS Outputs Defaults
+      for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++)
+        setOutModbusDefaults(i);
+      //RGBIO Defaults
+      for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
+        setRGBIOAddr(i, RGBIO8_UNASSIGNED);
+        for (byte j = 0; j < 8; j++)
+          setRGBIOAssignment(i, j, RGBIO8_UNASSIGNED, 0);
+      }
+      // Recipe 0, used for Heat Outputs
+      // Off:       0xF00 (Red)
+      // Auto Off:  0xFFF (White)
+      // Auto On:   0xF40 (Orange)
+      // On:        0x0F0 (Green)
+      {
+        unsigned int recipe[4] = {0xF00, 0xFFF, 0xF40, 0x0F0};
+        setRGBIORecipe(0, recipe);
+      }
+
+      // Recipe 1, used for Pump/Valve Outputs
+      // Off:       0xF00 (Red)
+      // Auto Off:  0xFFF (White)
+      // Auto On:   0x00F (Blue)
+      // On:        0x0F0 (Green)
+      {
+        unsigned int recipe[4] = {0xF00, 0xFFF, 0x00F, 0x0F0};
+        setRGBIORecipe(1, recipe);
+      }
+
+      for (byte i = 0; i <= VS_KETTLE; i++)
+        setPWMPin(i, PWMPIN_NONE);
+      EEPROM.write(2047, 4);
   }
   return 0;
 }
@@ -686,12 +655,11 @@ void initEEPROM() {
   EEPROM.write(2046, 252);
 
   //Default Output Settings: p: 3, i: 4, d: 2, cycle: 4s, Hysteresis 0.3C(0.5F)
-  for (byte vessel = VS_HLT; vessel <= VS_STEAM; vessel++) {
+  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
     setPIDp(vessel, 3);
     setPIDi(vessel, 4);
     setPIDd(vessel, 2);
-    setPIDCycle(vessel, 4);
-    if (vessel != VS_STEAM)
+    setPWMPeriod(vessel, 4);
     #ifdef USEMETRIC
       setHysteresis(vessel, 3);
     #else
