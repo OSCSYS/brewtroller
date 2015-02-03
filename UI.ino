@@ -2772,8 +2772,8 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       }
       boardMenu.setItem_P(PSTR("Exit"), 255);
       
-      char title[] = "RGBIO Board  ";
-      title[19] = '0' + board;
+      char title[] = "RGBIO Board x";
+      title[12] = '1' + board;
       byte lastOption = scrollMenu(title, &boardMenu);
       if (lastOption == 0)
         setRGBIOAddr(board, getValue_P(PSTR("RGBIO Address"), addr == RGBIO8_UNASSIGNED ? RGBIO8_START_ADDR + board : addr, 1, 127, PSTR("")));
@@ -2828,7 +2828,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       assignMenu.setItem_P(EXIT, 255);
       
       char title[20] = "RGBIO x Assignments";
-      title[6] = '0' + board;
+      title[6] = '1' + board;
       byte lastOption = scrollMenu(title, &assignMenu);
       if (lastOption < 8)
         menuRGBIOAssignment(board, lastOption);
