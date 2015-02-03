@@ -607,6 +607,10 @@ boolean checkConfig() {
       EEPROM.write(2047, 2);
     case 2:
     case 3:
+      //Reset profiles as bits have shifted
+      for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
+        setOutputProfile(i, 0);
+        
       //MODBUS Outputs Defaults
       for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++)
         setOutModbusDefaults(i);
