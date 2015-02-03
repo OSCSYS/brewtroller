@@ -197,9 +197,6 @@ PID pid[3] = {
 unsigned long timerValue[2], lastTime[2];
 boolean timerStatus[2], alarmStatus;
 
-//Log Globals
-boolean logData = LOG_INITSTATUS;
-
 //Brew Step Logic Globals
 boolean preheated[4];
 ControlState boilControlState = CONTROLSTATE_OFF;
