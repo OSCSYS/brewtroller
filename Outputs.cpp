@@ -217,6 +217,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     outputState = profileState = discreetState = 0;
     for (byte i = 0; i < OUTPUTENABLE_COUNT; i++)
       outputEnableMask[i] = 0xFFFFFFFFul;
+    for (byte i = 0; i < OUTPUTPROFILE_SYSTEMCOUNT; i++)
+      profileMask[i] = 0;
     byte bIndex = 0;
     while (bIndex < bankCount)
       banks[bIndex++]->init();
@@ -261,7 +263,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     for (byte i = 0; i < bankCount; i++) {
       outputCount += banks[i]->getCount();
       if (outputCount >= outputIndex + 1)
-        return banks[i]->getOutputName(outputIndex - outputCount - banks[i]->getCount(), retString);
+        return banks[i]->getOutputName(outputIndex - (outputCount - banks[i]->getCount()), retString);
     }
     return retString;
   }
@@ -296,12 +298,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
  
   boolean OutputSystem::getOutputState(byte outputIndex) {
-    unsigned long mask = 1;
-    mask = mask << outputIndex;
-    
-    if (outputState & mask)
-      return 1;
-    return 0;
+    return (outputState >> outputIndex) & 1;
   }
   
   unsigned long OutputSystem::getOutputStateMask() {
@@ -309,11 +306,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
   
   boolean OutputSystem::getOutputEnable(byte enableIndex, byte outputIndex) {
-    unsigned long mask = 1;
-    mask = mask << outputIndex;
-    if (outputEnableMask[enableIndex] & mask)
-      return 1;
-    return 0;
+    return (outputEnableMask[enableIndex] >> outputIndex) & 1;
   }
   
   unsigned long OutputSystem::getOutputEnableMask(byte enableIndex){
@@ -321,8 +314,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
   
   void OutputSystem::setOutputEnable(byte enableIndex, byte outputIndex, boolean enableFlag) {
-    unsigned long mask = 1;
-    mask = mask << outputIndex;
+    unsigned long mask = (unsigned long)1 << outputIndex;
     
     if (enableFlag)
       outputEnableMask[enableIndex] |= mask;
@@ -335,12 +327,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
   
   boolean OutputSystem::getProfileState(byte profileIndex){
-    unsigned long mask = 1;
-    mask = mask << profileIndex;
-    
-    if (profileState & mask)
-      return 1;
-    return 0;
+    return (profileState >> profileIndex) & 1;
   }
   
   uint32_t OutputSystem::getProfileStateMask(void) {
@@ -348,8 +335,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
 
   void OutputSystem::setProfileState(byte profileIndex, boolean newState){
-    unsigned long mask = 1;
-    mask = mask << profileIndex;
+    unsigned long mask = (unsigned long)1 << profileIndex;
     
     if (newState)
       profileState |= mask;
@@ -369,12 +355,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
   
   boolean OutputSystem::getProfileMaskBit(byte profileIndex, byte bitIndex) {
-    unsigned long mask = 1;
-    mask = mask << bitIndex;
-    
-    if (profileMask[profileIndex] & mask)
-      return 1;
-    return 0;
+    return (profileMask[profileIndex] >> bitIndex) & 1;
   }
   
   void OutputSystem::setProfileMask(byte profileIndex, unsigned long newMask){
@@ -382,8 +363,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
   
   void OutputSystem::setProfileMaskBit(byte profileIndex, byte bitIndex, boolean value) {
-    unsigned long mask = 1;
-    mask = mask << bitIndex;
+    unsigned long mask = (unsigned long)1 << bitIndex;
     
     if (value)
       profileMask[profileIndex] |= mask;
@@ -391,17 +371,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       profileMask[profileIndex] &= ~mask;
   }
   boolean OutputSystem::getDiscreetState(byte outputIndex) {
-    unsigned long mask = 1;
-    mask = mask << outputIndex;
-    
-    if (discreetState & mask)
-      return 1;
-    return 0;
+    return (discreetState >> outputIndex) & 1;
   }
   
   void OutputSystem::setDiscreetState(byte outputIndex, boolean stateValue) {
-    unsigned long mask = 1;
-    mask = mask << outputIndex;
+    unsigned long mask = (unsigned long)1 << outputIndex;
     
     if (stateValue)
       discreetState |= mask;
@@ -415,9 +389,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   void analogOutput::init() {}
 
 
-  analogOutput_SWPWM::analogOutput_SWPWM(byte index, byte period) {
+  analogOutput_SWPWM::analogOutput_SWPWM(byte index, byte p) {
     pinIndex = index;
-    limit = period;
+    limit = 255;
+    period = p;
   }
   
   OutputSystem* analogOutput_SWPWM::outputs = NULL;
@@ -436,8 +411,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   void analogOutput_SWPWM::update() {
     if (value) { 
       unsigned long sUpdated = millis();
-      outputs->setDiscreetState(pinIndex, (sUpdated - sPeriod < value * 100) ? 1 : 0);
-      sPeriod = sUpdated;
+      if (sUpdated - sPeriod > period * 100)
+        sPeriod = sUpdated;
+      outputs->setDiscreetState(pinIndex, (sUpdated - sPeriod < (unsigned long)period * 100 * value / limit) ? 1 : 0);
     }
   }
 

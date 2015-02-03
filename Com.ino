@@ -144,21 +144,6 @@ void updateCom() {
   // further instructions.
   void RGBIO8_Init() {
     RGBIO8::setup(outputs);
-
-    // Recipe 0, used for Heat Outputs
-    // Off:       0xF00 (Red)
-    // Auto Off:  0xFFF (White)
-    // Auto On:   0xF40 (Orange)
-    // On:        0x0F0 (Green)
-    RGBIO8::setOutputRecipe(0, 0xF00, 0xFFF, 0xF40, 0x0F0);
-    
-    // Recipe 1, used for Pump/Valve Outputs
-    // Off:       0xF00 (Red)
-    // Auto Off:  0xFFF (White)
-    // Auto On:   0x00F (Blue)
-    // On:        0x0F0 (Green)
-    RGBIO8::setOutputRecipe(1, 0xF00, 0xFFF, 0x00F, 0x0F0);
-  
   }
   
   void RGBIO8_Update() {

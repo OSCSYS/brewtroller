@@ -140,6 +140,7 @@ void loadSetup() {
         getRGBIORecipe(i, recipe);
         RGBIO8::setOutputRecipe(i, recipe[0], recipe[1], recipe[2], recipe[3]);
       }
+      
       for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
         if (rgbio[i])
           delete rgbio[i];
@@ -147,11 +148,11 @@ void loadSetup() {
         if (addr != RGBIO8_UNASSIGNED) {
           rgbio[i] = new RGBIO8(addr);
           for (int j = 0; j < 8; j++) {
-              byte assignment = getRGBIOAssignment(i, j);
-              if (assignment != RGBIO8_UNASSIGNED) {
-                byte recipe = getRGBIOAssignmentRecipe(i, j);
-                rgbio[i]->assign(i, assignment, recipe);
-              }
+            byte assignment = getRGBIOAssignment(i, j);
+            if (assignment != RGBIO8_UNASSIGNED) {
+              byte recipe = getRGBIOAssignmentRecipe(i, j);
+              rgbio[i]->assign(j, assignment, recipe);
+            }
           }
         }
       }
@@ -532,11 +533,11 @@ void setOutModbusDefaults(byte board) {
 
 //RGBIO Recipes (2089 - 2120): 8 bytes per recipe x 4 recipes
 void getRGBIORecipe(byte recipeIndex, unsigned int* recipe) {
-  eeprom_read_block((void *)&recipe, (unsigned char *) (2089 + recipeIndex * 8), 8);
+  eeprom_read_block((void *)recipe, (unsigned char *) (2089 + recipeIndex * 8), 8);
 }
 
 void setRGBIORecipe(byte recipeIndex, unsigned int* recipe) {
-  eeprom_write_block((void *) &recipe, (unsigned char *) (2089 + recipeIndex * 8), 8);
+  eeprom_write_block((void *) recipe, (unsigned char *) (2089 + recipeIndex * 8), 8);
 }
 
 //RGBIO Board Addresses (2121 - 2124): 1 bytes per board x 4 boards
@@ -567,6 +568,8 @@ void setRGBIOAssignment(byte boardIndex, byte channelIndex, byte outputIndex, by
 
 byte getRGBIOAssignmentRecipe(byte boardIndex, byte channelIndex) {
   byte assignment = EEPROM.read(2125 + boardIndex * 8 + channelIndex);
+  if (assignment == RGBIO8_UNASSIGNED)
+    return 0;
   return (assignment & B01100000) >> 5;
 }
 
@@ -613,6 +616,28 @@ boolean checkConfig() {
         for (byte j = 0; j < 8; j++)
           setRGBIOAssignment(i, j, RGBIO8_UNASSIGNED, 0);
       }
+      // Recipe 0, used for Heat Outputs
+      // Off:       0xF00 (Red)
+      // Auto Off:  0xFFF (White)
+      // Auto On:   0xF40 (Orange)
+      // On:        0x0F0 (Green)
+      {
+        unsigned int recipe[4] = {0xF00, 0xFFF, 0xF40, 0x0F0};
+        setRGBIORecipe(0, recipe);
+      }
+
+      // Recipe 1, used for Pump/Valve Outputs
+      // Off:       0xF00 (Red)
+      // Auto Off:  0xFFF (White)
+      // Auto On:   0x00F (Blue)
+      // On:        0x0F0 (Green)
+      {
+        unsigned int recipe[4] = {0xF00, 0xFFF, 0x00F, 0x0F0};
+        setRGBIORecipe(1, recipe);
+      }
+
+      for (byte i = 0; i <= VS_KETTLE; i++)
+        setPWMPin(i, PWMPIN_NONE);
       EEPROM.write(2047, 4);
   }
   return 0;

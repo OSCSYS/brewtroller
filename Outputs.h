@@ -158,7 +158,7 @@ class analogOutput {
 class analogOutput_SWPWM : public analogOutput {
   private:
   static OutputSystem* outputs;
-  byte pinIndex;
+  byte pinIndex, period;
   unsigned long sPeriod; //Start of PWM period: millis()
   
   public:

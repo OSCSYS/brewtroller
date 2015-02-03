@@ -1,7 +1,7 @@
 #include "Com_RGBIO8.h"
 
 OutputSystem* RGBIO8::outputs;
-uint16_t RGBIO8::output_recipes[RGBIO8_MAX_OUTPUT_RECIPES][4];
+uint16_t RGBIO8::output_recipes[RGBIO8_MAX_OUTPUT_RECIPES][RGBIORECIPE_MODECOUNT];
 
 RGBIO8::RGBIO8(byte i2c_address) {
   this->i2c_address = i2c_address;
@@ -19,25 +19,24 @@ void RGBIO8::setOutputRecipe(
   uint16_t auto_off_rgb,
   uint16_t auto_on_rgb,
   uint16_t on_rgb) {
-    output_recipes[recipe_id][0] = off_rgb;
-    output_recipes[recipe_id][1] = auto_off_rgb;
-    output_recipes[recipe_id][2] = auto_on_rgb;
-    output_recipes[recipe_id][3] = on_rgb;
+    output_recipes[recipe_id][RGBIORECIPE_OFF] = off_rgb;
+    output_recipes[recipe_id][RGBIORECIPE_AUTOOFF] = auto_off_rgb;
+    output_recipes[recipe_id][RGBIORECIPE_AUTOON] = auto_on_rgb;
+    output_recipes[recipe_id][RGBIORECIPE_ON] = on_rgb;
 }
-    
+
 void RGBIO8::assign(byte assignment, byte outputIndex, byte recipe_id) {
   assignments[assignment].index = outputIndex;
   assignments[assignment].recipe_id = recipe_id;
 }
-    
+
 void RGBIO8::update(void) {
   // Get the state of the 8 inputs first
   getInputs();
   
   // Update any assigned inputs
   for (int i = 0; i < 8; i++) {
-    unsigned long mask = 1;
-    mask = mask << i;
+    unsigned long mask = (unsigned long) 1 << i;
     
     RGBIO8_assignment *a = &assignments[i];
     if (a->index != RGBIO8_UNASSIGNED) {
@@ -45,23 +44,19 @@ void RGBIO8::update(void) {
       if (inputs_manual & mask) {
         outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 1);
         outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 1);
+        setOutput(i, output_recipes[a->recipe_id][RGBIORECIPE_ON]);
       } else if (inputs_auto & mask) {
         outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 0);
         outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 1);
+        if (outputs->getOutputState(a->index))
+          setOutput(i, output_recipes[a->recipe_id][RGBIORECIPE_AUTOON]);
+        else
+          setOutput(i, output_recipes[a->recipe_id][RGBIORECIPE_AUTOOFF]);
       } else {
         outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 0);
         outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 0);
+        setOutput(i, output_recipes[a->recipe_id][RGBIORECIPE_OFF]);
       }
-      
-      //Update output
-      if (outputs->getProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index))
-        setOutput(i, output_recipes[a->recipe_id][3]);                                                       //On: Enabled via RGB
-      else if (!(outputs->getOutputEnable(OUTPUTPROFILE_RGBIO, a->index)))
-        setOutput(i, output_recipes[a->recipe_id][0]);                                                       //Off: Disabled via enable flag (maybe RGB or other enable)
-      else if (outputs->getOutputState(a->index))
-        setOutput(i, output_recipes[a->recipe_id][2]);                                                       //Auto On
-      else
-        setOutput(i, output_recipes[a->recipe_id][1]);                                                       //Auto Off
     }
   }
 }

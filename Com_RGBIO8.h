@@ -28,6 +28,14 @@ struct RGBIO8_assignment {
   byte recipe_id;
 };
 
+enum RGBIORecipeIndex {
+  RGBIORECIPE_OFF,
+  RGBIORECIPE_AUTOOFF,
+  RGBIORECIPE_AUTOON,
+  RGBIORECIPE_ON,
+  RGBIORECIPE_MODECOUNT
+};
+
 class RGBIO8 {
   public:
     /**
@@ -80,7 +88,7 @@ class RGBIO8 {
     
   private:
     static OutputSystem* outputs;
-    static uint16_t output_recipes[RGBIO8_MAX_OUTPUT_RECIPES][4];
+    static uint16_t output_recipes[RGBIO8_MAX_OUTPUT_RECIPES][RGBIORECIPE_MODECOUNT];
     byte i2c_address;
     struct RGBIO8_assignment assignments[8];
     byte inputs_auto, inputs_manual;

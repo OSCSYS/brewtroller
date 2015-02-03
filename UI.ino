@@ -159,7 +159,7 @@ PROGMEM const char *TITLE_TS[] = {
 
 const char PIDCYCLE[] PROGMEM = " PID Cycle";
 const char PIDGAIN[] PROGMEM = " PID Gain";
-const char HYSTERESIS[] PROGMEM = " Hysteresis";
+const char HYSTERESIS[] PROGMEM = "Hysteresis";
 const char CAPACITY[] PROGMEM = " Capacity";
 const char DEADSPACE[] PROGMEM = " Dead Space";
 const char CALIBRATION[] PROGMEM = " Calibration";
@@ -463,7 +463,7 @@ void screenInit() {
     if (screenLock) {
         Encoder.setMin(0);
         Encoder.setMax(100);
-        Encoder.setCount(pwmOutput[VS_KETTLE] ? (PIDOutput[VS_KETTLE] / pwmOutput[VS_KETTLE]->getLimit() * 100) : 0);
+        Encoder.setCount(pwmOutput[VS_KETTLE] ? getHeatPower(VS_KETTLE) : 0);
         //If Kettle is off keep it off until unlocked
         if (!setpoint[VS_KETTLE]) boilControlState = CONTROLSTATE_OFF;
     }
@@ -554,7 +554,7 @@ void screenRefresh() {
       }
       byte pct;
       if (pwmOutput[i]) {
-        pct = PIDOutput[i] / pwmOutput[i]->getLimit();
+        pct = getHeatPower(i);
         if (pct == 0) strcpy_P(buf, PSTR("Off"));
         else if (pct == 100) strcpy_P(buf, PSTR(" On"));
         else { itoa(pct, buf, 10); strcat(buf, "%"); }
@@ -646,7 +646,7 @@ void screenRefresh() {
     LCD.lPad(2, 15, buf, 5, ' ');
 
     if (pwmOutput[VS_KETTLE]) {
-      byte pct = PIDOutput[TS_KETTLE] / pwmOutput[VS_KETTLE]->getLimit();
+      byte pct = getHeatPower(VS_KETTLE);
       if (pct == 0) strcpy_P(buf, PSTR("Off"));
       else if (pct == 100) strcpy_P(buf, PSTR(" On"));
       else { itoa(pct, buf, 10); strcat(buf, "%"); }
@@ -666,13 +666,13 @@ void screenRefresh() {
       if (boilControlState != CONTROLSTATE_OFF) {
         int encValue = Encoder.change();
         if (encValue >= 0) {
-          boilControlState = CONTROLSTATE_MANUAL;
-          setpoint[VS_KETTLE] = encValue ? getBoilTemp() * SETPOINT_MULT : 0;
+          if ( boilControlState == CONTROLSTATE_AUTO)
+            boilControlState = CONTROLSTATE_MANUAL;
           PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? (unsigned int)pwmOutput[VS_KETTLE]->getLimit() * encValue / 100 : 0;
         }
       }
       if (boilControlState == CONTROLSTATE_AUTO)
-        Encoder.setCount(pwmOutput[VS_KETTLE] ? PIDOutput[VS_KETTLE] / pwmOutput[VS_KETTLE]->getLimit() : 0);
+        Encoder.setCount(pwmOutput[VS_KETTLE] ? getHeatPower(VS_KETTLE) : 0);
     }
     
   } else if (activeScreen == SCREEN_CHILL) {
@@ -1116,14 +1116,11 @@ void boilControlMenu() {
   if (lastOption < NUM_CONTROLSTATES) boilControlState = (ControlState) lastOption;
   switch (boilControlState) {
     case CONTROLSTATE_OFF:
-      PIDOutput[VS_KETTLE] = 0;
-      setpoint[VS_KETTLE] = 0;
+      setSetpoint(VS_KETTLE, 0);
       break;
     case CONTROLSTATE_AUTO:
-      setpoint[VS_KETTLE] = getBoilTemp() * SETPOINT_MULT;
-      break;
     case CONTROLSTATE_MANUAL:
-      setpoint[VS_KETTLE] = 1;
+      setSetpoint(VS_KETTLE, getBoilTemp() * SETPOINT_MULT);
       break;
   }
 }
@@ -1578,9 +1575,9 @@ byte getChoice(menu *objMenu, byte iRow) {
 
 boolean confirmChoice(char line1[], char line2[], char line3[], const char *choice) {
   LCD.clear();
-  LCD.print_P(0, 0, line1);
-  LCD.print_P(1, 0, line2);
-  LCD.print_P(2, 0, line3);
+  LCD.print(0, 0, line1);
+  LCD.print(1, 0, line2);
+  LCD.print(2, 0, line3);
   menu choiceMenu(1, 2);
   choiceMenu.setItem_P(CANCEL, 0);
   choiceMenu.setItem_P(choice, 1);
@@ -1710,12 +1707,10 @@ unsigned long ulpow(unsigned long base, unsigned long exponent) {
  * Prompt the user for a value in hex. The value is shown with 0x prepended
  * and the user may only select 0-f for each digit.
  */
-unsigned long getHexValue(char sTitle[], unsigned long defValue) {
+unsigned long getHexValue(char sTitle[], unsigned long defValue, byte digits) {
   unsigned long retValue = defValue;
   byte cursorPos = 0; 
   boolean cursorState = 0; //0 = Unselected, 1 = Selected
-  
-  byte digits = 2;
 
   Encoder.setMin(0);
   Encoder.setMax(digits);
@@ -1768,7 +1763,11 @@ unsigned long getHexValue(char sTitle[], unsigned long defValue) {
           }
         }
       }
-      sprintf(buf, "%02x", retValue);
+      char format[6] = "%0";
+      strcat(format, itoa(digits, buf, 10));
+      strcat(format, "X");
+      
+      sprintf(buf, format, retValue);
       LCD.print(1, valuePos - 1, buf);
       LCD.print(1, valuePos - 3, "0x");
     }
@@ -2010,42 +2009,49 @@ byte enc2ASCII(byte charin) {
 // System Setup Menus
 //*****************************************************************************************************************************
 void menuSetup() {
-  menu setupMenu(3, 10);
-  setupMenu.setItem_P(PSTR("System Settings"), 9);
-  setupMenu.setItem_P(PSTR("Temperature Sensors"), 0);
-  setupMenu.setItem_P(PSTR("Outputs"), 1);
-  setupMenu.setItem_P(PSTR("Volume/Capacity"), 2);
-  setupMenu.setItem_P(INIT_EEPROM, 5);
+  menu setupMenu(3, 9);
+  setupMenu.setItem_P(PSTR("System Settings"), 0);
+  setupMenu.setItem_P(PSTR("Temperature Sensors"), 1);
+  setupMenu.setItem_P(PSTR("Outputs"), 2);
+  setupMenu.setItem_P(PSTR("Volume/Capacity"), 3);
+  setupMenu.setItem_P(INIT_EEPROM, 4);
   #ifdef UI_DISPLAY_SETUP
-    setupMenu.setItem_P(PSTR("Display"), 6);
+    setupMenu.setItem_P(PSTR("Display"), 5);
   #endif
   #ifdef RGBIO8_ENABLE
-    setupMenu.setItem_P(PSTR("RGB Setup"), 7);
+    setupMenu.setItem_P(PSTR("RGB Setup"), 6);
   #endif  
   #ifdef DIGITAL_INPUTS
-    setupMenu.setItem_P(PSTR("Triggers"), 8);
+    setupMenu.setItem_P(PSTR("Triggers"), 7);
   #endif
   setupMenu.setItem_P(EXIT, 255);
   
   while(1) {
     byte lastOption = scrollMenu("System Setup", &setupMenu);
-    if (lastOption == 0) assignSensor();
-    else if (lastOption == 1) menuOutputs();
-    else if (lastOption == 2) cfgVolumes();
-    else if (lastOption == 5) {
+    if (lastOption == 0)
+      menuSystemSettings();
+    else if (lastOption == 1)
+      assignSensor();
+    else if (lastOption == 2)
+      menuOutputs();
+    else if (lastOption == 3)
+      cfgVolumes();
+    else if (lastOption == 4) {
       if (confirmChoice("Reset Configuration?", "", "", INIT_EEPROM))
         UIinitEEPROM();
     }
     #ifdef UI_DISPLAY_SETUP
-      else if (lastOption == 6) adjustLCD();
+      else if (lastOption == 5)
+        adjustLCD();
     #endif
     #ifdef RGBIO8_ENABLE
-      else if (lastOption == 7) {
+      else if (lastOption == 6) {
         menuRGBIO();
       }
     #endif  
     #ifdef DIGITAL_INPUTS
-      else if (lastOption == 8) cfgTriggers();
+      else if (lastOption == 7)
+        cfgTriggers();
     #endif
     else return;
   }
@@ -2236,7 +2242,10 @@ void menuOutputSettings(byte vessel) {
       setPIDd(vessel, getValue_P(PSTR("D Gain"), getPIDd(vessel), 0, 255, SEC));
     else if (lastOption == 5)
       setHysteresis(vessel, getValue_P(HYSTERESIS, hysteresis[vessel], 10, 255, TUNIT));
-    else return;
+    else {
+      loadPWMOutputs();
+      return;
+    }
   } 
 }
 
@@ -2269,37 +2278,40 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection) {
   while (1) {
     menu outputMenu(3, outputs->getCount() + 2);
     for (byte i = 0; i < outputs->getCount(); i++) {
-      if (currentSelection & (1 << i)) {
+      if (newSelection & (1 << i)) {
         outputMenu.setItem(outputs->getOutputBankName(i, buf), i);
         outputMenu.appendItem("-", i);
         outputMenu.appendItem(outputs->getOutputName(i, buf), i);
       }
     }
-    outputMenu.setItem_P(PSTR("[Add]"), 254);
+    outputMenu.setItem_P(PSTR("[Add Output]"), 254);
+    outputMenu.setItem_P(PSTR("[Test Profile]"), 253);
     outputMenu.setItem_P(EXIT, 255);
   
     byte lastOption = scrollMenu(sTitle, &outputMenu);
     if (lastOption == 254) {
       byte addOutput = menuSelectOutput("Add Output", PWMPIN_NONE);
       if (addOutput < outputs->getCount())
-        newSelection |= addOutput;
+        newSelection |= (1 << addOutput);
     } else if (lastOption == 253) {
       //Test Profile: Use OUTPUTENABLE_SYSTEMTEST to disable unused outputs
-      outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, currentSelection);
-      outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, currentSelection);
+      outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, newSelection);
+      outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, newSelection);
       outputs->setProfileState(OUTPUTPROFILE_SYSTEMTEST, 1);
       outputs->update();
 
-      infoBox("Testing Output Profile", sTitle, "", CONTINUE);
+      infoBox("Testing Profile", sTitle, "", CONTINUE);
 
       // Update outputs to clear overrides (overrides are not persistent across updates)
       outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, 0xFFFFFFFFul);
       outputs->setProfileMask(OUTPUTPROFILE_SYSTEMTEST, 0);
       outputs->setProfileState(OUTPUTPROFILE_SYSTEMTEST, 0);
       outputs->update();
-    }  else if (lastOption == 255)
-      return newSelection;
-    else
+    }  else if (lastOption == 255) {
+      if (newSelection != currentSelection && confirmSave())
+        return newSelection;
+      return currentSelection;
+    } else
       newSelection &= ~(1<<lastOption);
   }
 }
@@ -2785,7 +2797,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
     
     byte result = 0;
     while (!(result = tempRGBIO.getInputs())) {
-      if(!confirmChoice("Click/hold to reset", "RGBIO board.", "", PSTR("Error: Retry?")))
+      if(!confirmChoice("Click/hold to reset", "RGBIO board then ", "click to activate.", PSTR("Error: Retry?")))
         return;      
     }
     byte newAddr = getValue_P(PSTR("New Address"), RGBIO8_START_ADDR + board, 1, 127, PSTR(""));
@@ -2795,13 +2807,14 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       brewCore();
     tempRGBIO.restart();
     setRGBIOAddr(board, newAddr);
+    loadRGBIO8();
   }
   
   void menuRGBIOAssignments(byte board) {
     while(1) {
       menu assignMenu(3, 9);
       for (byte i = 0; i < 8; i++) {
-        assignMenu.setItem(itoa(i, buf, 10), i);
+        assignMenu.setItem(itoa(i + 1, buf, 10), i);
         assignMenu.appendItem(": ", i);
         byte assignment = getRGBIOAssignment(board, i);
         if (assignment == RGBIO8_UNASSIGNED)
@@ -2837,12 +2850,12 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       if (assignment == RGBIO8_UNASSIGNED)
         assignMenu.setItem_P(PSTR("No Assignment"), 0);
       else {
-        assignMenu.appendItem(outputs->getOutputBankName(assignment, buf), 0);
+        assignMenu.setItem(outputs->getOutputBankName(assignment, buf), 0);
         assignMenu.appendItem("-", 0);
         assignMenu.appendItem(outputs->getOutputName(assignment, buf), 0);
         
         assignMenu.setItem_P(PSTR("Recipe: "), 1);
-        assignMenu.appendItem(itoa(recipe, buf, 10), 1);
+        assignMenu.appendItem(itoa(recipe + 1, buf, 10), 1);
         
         assignMenu.setItem_P(DELETE, 2);
       }
@@ -2851,7 +2864,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       char title[] = "RGBIO x Channel y";
       title[6] = '1' + board;
       title[16] = '1' + channel;
-      byte lastOption = scrollMenu("", &assignMenu);
+      byte lastOption = scrollMenu(title, &assignMenu);
       if (lastOption == 0)
         assignment = menuSelectOutput(title, assignment == RGBIO8_UNASSIGNED ? PWMPIN_NONE : assignment);
       else if (lastOption == 1)
@@ -2859,8 +2872,10 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       else if (lastOption == 2)
         assignment = RGBIO8_UNASSIGNED;
       else {
-        if (confirmSave())
+        if ((assignment != origAssignment || recipe != origRecipe) && confirmSave()) {
           setRGBIOAssignment(board, channel, assignment, recipe);
+          loadRGBIO8();
+        }
         return;
       }
         
@@ -2883,6 +2898,19 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
     return lastOption;
   }
 
+
+  prog_char RGBTITLE_OFF[] PROGMEM =     "Off:      0x";
+  prog_char RGBTITLE_AUTOOFF[] PROGMEM = "Auto Off: 0x";
+  prog_char RGBTITLE_AUTOON[] PROGMEM =  "Auto On:  0x";
+  prog_char RGBTITLE_ON[] PROGMEM =      "On:       0x";
+  
+  PROGMEM const char *TITLE_RGBMODES[] = {
+    RGBTITLE_OFF,
+    RGBTITLE_AUTOOFF,
+    RGBTITLE_AUTOON,
+    RGBTITLE_ON
+  };
+
   void menuRGBIORecipe(byte recipeIndex) {
     unsigned int recipe[4], origRecipe[4];
     getRGBIORecipe(recipeIndex, recipe);
@@ -2890,63 +2918,27 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
     
     while (1) {
       menu recipeMenu(3, 5);
-      recipeMenu.setItem_P(PSTR("Off"), 0);
-      recipeMenu.setItem_P(PSTR("Auto Off"), 1);
-      recipeMenu.setItem_P(PSTR("Auto On"), 2);
-      recipeMenu.setItem_P(PSTR("On"), 3);
+      for(byte i = 0; i < 4; i++) {
+        recipeMenu.setItem_P((char*)pgm_read_word(&(TITLE_RGBMODES[i])), i);
+        sprintf(buf, "%03X", recipe[i]);
+        recipeMenu.appendItem(buf, i);
+      }
       recipeMenu.setItem_P(EXIT, 255);
       char title[] = "Color Recipe x";
       title[13] = '1' + recipeIndex;
       byte recipeMode = scrollMenu(title, &recipeMenu);
       if (recipeMode < 4)
-        recipe[recipeMode] = menuRGBIORecipeMode(recipeIndex, recipeMode, recipe[recipeMode]);
+        recipe[recipeMode] = getHexValue("RGB Value", recipe[recipeMode], 3);
       else {
         if (memcmp(recipe, origRecipe, 8) != 0) {
-          if(confirmSave())
+          if(confirmSave()) {
             setRGBIORecipe(recipeIndex, recipe);
+            loadRGBIO8();
+          }
         }
         return; 
       }
     }
-  }
-  
-  unsigned int menuRGBIORecipeMode(byte recipeIndex, byte recipeMode, unsigned int recipe) {
-    byte red = (recipe >> 8) & 0xF;
-    byte green = (recipe >> 4) & 0xF;
-    byte blue = recipe & 0xF;
-    
-    menu recipeMenu(3, 4);
-    recipeMenu.setItem_P(PSTR("Red:   "), 0);
-    recipeMenu.appendItem(itoa(red, buf, 10), 0);
-    
-    recipeMenu.setItem_P(PSTR("Green: "), 1);
-    recipeMenu.appendItem(itoa(green, buf, 10), 1);
-    
-    recipeMenu.setItem_P(PSTR("Blue:  "), 2);
-    recipeMenu.appendItem(itoa(blue, buf, 10), 2);
-    
-    recipeMenu.setItem_P(EXIT, 255);
-    
-    char title[21] = "Recipe x ";
-    title[7] = '1' + recipeIndex;
-    if (recipeMode == 0)
-      strcat(title, "Off");
-    else if (recipeMode == 1)
-      strcat(title, "Auto Off");
-    else if (recipeMode == 2)
-      strcat(title, "Auto On");
-    else if (recipeMode == 3)
-      strcat(title, "On");
-    
-    byte lastOption = scrollMenu(title, &recipeMenu);
-    if (lastOption == 0)
-      red = getValue_P(PSTR("Red"), red, 1, 15, PSTR(""));
-    else if (lastOption == 1)
-      green = getValue_P(PSTR("Green"), green, 1, 15, PSTR(""));
-    else if (lastOption == 2)
-      blue = getValue_P(PSTR("Blue"), blue, 1, 15, PSTR(""));
-    else
-      return (red << 8) | (green << 4) | blue;
   }
 #endif
 

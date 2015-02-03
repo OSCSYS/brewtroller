@@ -58,7 +58,7 @@
     OUTPUTPROFILE_MASHPWMACTIVE,
     OUTPUTPROFILE_KETTLEPWMACTIVE,
     OUTPUTPROFILE_USERCOUNT,                          //The number of user configurable output profiles
-    OUTPUTPROFILE_BTNIC,                              //Dymanic profile used by BTNIC logic to turn on outputs (not implemented)
+    OUTPUTPROFILE_BTNIC = OUTPUTPROFILE_USERCOUNT,    //Dymanic profile used by BTNIC logic to turn on outputs (not implemented)
     OUTPUTPROFILE_RGBIO,                              //Dymanic profile used by RGBIO logic to turn on outputs
     OUTPUTPROFILE_SYSTEMTEST,                         //Used to test output profiles
     OUTPUTPROFILE_SYSTEMCOUNT
