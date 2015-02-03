@@ -204,29 +204,6 @@
 
 
 //**********************************************************************************
-// Serial0 ASCII Protocol Options:
-//**********************************************************************************
-// These settings apply only if COM_SERIAL0 is set to 'ASCII' in your HWProfile.h
-//
-// COMSCHEMA: Specifies the schema for a particular type
-//  ASCII Messages
-//      0 - Original BT 2.0 Messages
-//      1 - BT 2.1 Enhanced ASCII
-//       Calc. Vol & Temp, BoilPower, Grain Temp, Delay Start, MLT Heat Source
-#define COMSCHEMA 0
-//
-// LOG_INTERVAL: Specifies how often data is logged via serial in milliseconds. If
-// real time display of data is being used a smaller interval is best (1000 ms). A
-// larger interval can be used for logging applications to reduce log file size 
-// (5000 ms).
-#define LOG_INTERVAL 2000
-//
-// LOG_INITSTATUS: Sets whether logging is enabled on bootup. Log status can be
-// toggled using the SET_LOGSTATUS command.
-#define LOG_INITSTATUS 1
-
-
-//**********************************************************************************
 // BrewTroller PID Display (BTPD)
 //**********************************************************************************
 // BTPD is an external LED display developed by BrewTroller forum member vonnieda. 
@@ -249,14 +226,6 @@
 
 //**********************************************************************************
 
-
-//**********************************************************************************
-// UI: Home Screen Options
-//**********************************************************************************
-// LOGO_TROLL: Old Home screen with Troll icon
-// LOGO_BREWTROLLER: New Home Screen based on new BrewTroller logo
-//#define LOGO_TROLL
-#define LOGO_BREWTROLLER
 
 
 //**********************************************************************************
@@ -434,21 +403,6 @@
 
 //#define HLT_HEAT_SPARGE
 //#define HLT_MIN_SPARGE 2000
-//**********************************************************************************
-
-//**********************************************************************************
-// Sparge Options
-//**********************************************************************************
-// BATCH_SPARGE: Uses batch sparge logic instead of fly sparge logic for programs.
-//#define BATCH_SPARGE
-
-// BATCH_VOLUME_OFFSET: Adjusts batch volume calculations to increase or reduce the
-// volume of batch sparges.
-//#define BATCH_VOLUME_OFFSET 0
-
-// BATCH_SPARGE_RECIRC: Specifies the number of seconds to run the Mash Heat valve
-// profile between batch sparges.
-//#define BATCH_SPARGE_RECIRC 60
 //**********************************************************************************
 
 //**********************************************************************************
