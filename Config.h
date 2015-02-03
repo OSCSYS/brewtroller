@@ -45,43 +45,6 @@
 #define VOL_SHRINKAGE 1
 //#define VOL_SHRINKAGE .96
 
-//**********************************************************************************
-// Vessel Options
-//**********************************************************************************
-// BrewTroller was designed to support three vessles (HLT, Mash and Kettle). This
-// sections provides support for specific systems that differ from this model.
-
-// HLT_AS_KETTLE: This option remaps the Kettle temp sensor, volume sensor and heat
-// output to the HLT's devices to  allow the HLT to be reused as a kettle.
-//#define HLT_AS_KETTLE
-
-// KETTLE_AS_MASH: This option remaps the Mash temp sensor, volume sensor and heat
-// output to the Kettle's devices to allow the Kettle to also serve as Mash Tun.
-// Use with HERMS HWProfile for BX1/DX1/EX1 which defines only HLT and Kettle Heat
-// Outputs leaving an additional output to use for pumps/valves.
-//#define KETTLE_AS_MASH
-
-// MASH_PREHEAT_SENSOR: This option allows for an alternate temperature sensor to
-// control the mash heat output during the Preheat step. This is used to control the
-// water temperature on dedicated HEX vessel during preheat. After preheat the
-// actual mash temperature sensor would be used to control the mash heat output.
-// aka 'Yorg Option 1'
-//#define MASH_PREHEAT_SENSOR TS_AUX1
-
-// MASH_PREHEAT_STRIKE/MASH_PREHEAT_STEP1: Use one of the following two options to
-// override the zero setpoint for the mash tun when the 'Heat Strike In' program 
-// option is set to HLT. STRIKE will use the calculated strike temp. STEP1 will use
-// the first mash step temp. aka 'Yorg Option 2'
-//#define MASH_PREHEAT_STRIKE
-//#define MASH_PREHEAT_STEP1
-
-//MASH_PREHEAT_NOVALVES: Disables MASH HEAT/MASH IDLE Valve Profiles during preheat
-//#define MASH_PREHEAT_NOVALVES
-
-//SINGLE_VESSEL_SUPPORT: This is a crude hack that uses the HLT sensor and output
-//for the HLT, Mash and Kettle functions.
-//#define SINGLE_VESSEL_SUPPORT
-//**********************************************************************************
 
 //**********************************************************************************
 // Fly sparge pump control to turn the sparge in pump on/off based on a hysteresis from volume of sparge out

@@ -29,7 +29,8 @@
   #define NUM_AV 5
 
   #define PWMPIN_NONE  255
-
+  #define VOLUMESENSOR_NONE  255
+  
   //Valve Array Element Constants and Variables
   #define VLV_ALL 0xFFFFFFFF
   enum OutputProfileIndex {

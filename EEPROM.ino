@@ -48,8 +48,12 @@ void loadSetup() {
   //boilPwr (112)
   //**********************************************************************************
   boilPwr = EEPROM.read(112);
+  
+  for (byte i = 0; i <= VS_KETTLE; i++)
+    vSensor[i] = EEPROM.read(114 + i);
+  
   //**********************************************************************************
-  //OPEN (114-118)
+  //OPEN (118)
   //**********************************************************************************
 
   //**********************************************************************************
@@ -259,7 +263,17 @@ void setEvapRate(byte value) {
 byte getEvapRate() { return EEPROM.read(113); }
 
 //**********************************************************************************
-//Open (114-118)
+//Volume Sensors (114-117) HLT/Mash/Kettle/Reserved
+//**********************************************************************************
+void setVolumeSensor(byte vessel, byte index) {
+  vSensor[vessel] = index;
+  EEPROM.write(114 + vessel, index);
+}
+byte getVolumeSensor(byte vessel) {
+  return EEPROM.read(114 + vessel);
+}
+//**********************************************************************************
+//Open (118)
 //**********************************************************************************
 
 //**********************************************************************************
@@ -643,6 +657,10 @@ boolean checkConfig() {
       for (byte i = 0; i <= VS_KETTLE; i++)
         setPWMPin(i, PWMPIN_NONE);
       EEPROM.write(2047, 4);
+    case 4:
+      for (byte i = 0; i <= VS_KETTLE; i++)
+        setVolumeSensor(i, VOLUMESENSOR_NONE);
+      EEPROM.write(2047, 5);
   }
   return 0;
 }
