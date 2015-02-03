@@ -16,22 +16,11 @@ OpenTroller DX1 Hardware Configuration
     
   #define OUTPUTBANK_MODBUS
   
-  #define DIGITAL_INPUTS
-  #define DIGITAL_INPUTS_COUNT 5
-  #define DIGITAL_INPUTS_PINS {18, 19, 20, 21, 22}
-
-  #define ANALOGINPUTS_GPIO
-  #define ANALOGINPUTS_GPIO_COUNT 4
-  #define ANALOGINPUTS_GPIO_PINS {7, 6, 5, 4}
-  #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analaog 2\0Analog 3\0Analog 4""
-
-  #define ANALOGINPUTS_MODBUS
-	
   #define ANALOGOUTPUTS_HWPWM
-  #define ANALOGOUTPUTS_HWPWM_PINCOUNT 1
-  #define ANALOGOUTPUTS_HWPWM_PINS {15}
-  #define ANALOGOUTPUTS_HWPWM_TIMERS {2}
-  #define ANALOGOUTPUTS_HWPWM_NAMES "Buzzer"
+  #define ANALOGOUTPUTS_HWPWM_PINCOUNT 8
+  #define ANALOGOUTPUTS_HWPWM_PINS {7, 6, 3, 4, 12, 15, 14, 13}
+  #define ANALOGOUTPUTS_HWPWM_TIMERS {3, 3, 1, 2, 2, 1}
+  #define ANALOGOUTPUTS_HWPWM_NAMES "Out 5\0Out 6\0Out 7\0Out 8\0Out 9\0Out 10\0Out 11\0Out 12"
   
   #define RS485_SERIAL_PORT 1
   #define RS485_RTS_PIN    23
@@ -44,12 +33,23 @@ OpenTroller DX1 Hardware Configuration
   #define DIGIN4_PIN 18
   #define DIGIN5_PIN 5
   #define DIGIN6_PIN 22
-  
+
+  #define DIGITAL_INPUTS_COUNT 6
+  #define DIGITAL_INPUTS_PINS {21, 20, 19, 18, 5, 22}
+
   #define HLTVOL_APIN 7
   #define MASHVOL_APIN 6
   #define KETTLEVOL_APIN 5
   #define STEAMPRESS_APIN 4
-  
+
+  #define ANALOGINPUTS_GPIO
+  #define ANALOGINPUTS_GPIO_COUNT 4
+  #define ANALOGINPUTS_GPIO_PINS {7, 6, 5, 4}
+  #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analaog 2\0Analog 3\0Analog 4"
+
+  #define ANALOGINPUTS_MODBUS
+
+
   #define UI_LCD_I2C
   #define UI_LCD_I2CADDR 0x01
   #define UI_DISPLAY_SETUP
