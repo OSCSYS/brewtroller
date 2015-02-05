@@ -53,6 +53,7 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
 #include "Enum.h"
 #include "Outputs.h"
 #include "UI_LCD.h"
+#include "UI_Lang.h"
 #include <avr/eeprom.h>
 #include <EEPROM.h>
 #include "wiring_private.h"
@@ -99,6 +100,19 @@ const char BTVER[] PROGMEM = "2.7";
   #endif
 #endif
 
+#if TS_ONEWIRE_RES == 12
+  #define PID_UPDATE_INTERVAL 750
+#elif TS_ONEWIRE_RES == 11
+  #define PID_UPDATE_INTERVAL 375
+#elif TS_ONEWIRE_RES == 10
+  #define PID_UPDATE_INTERVAL 188
+#elif TS_ONEWIRE_RES == 9
+  #define PID_UPDATE_INTERVAL 94
+#else
+  // should not be this value, fail the compile
+  #ERROR
+#endif
+
 struct ProgramThread {
   byte activeStep;
   byte recipe;
@@ -108,7 +122,7 @@ struct ProgramThread {
 // Globals
 //**********************************************************************************
 //Vessel PWM Output Pin Array
-analogOutput_SWPWM* pwmOutput[3];
+analogOutput_SWPWM* pwmOutput[3] = {0, 0, 0};
 
 #ifdef DIGITAL_INPUTS
   pin digInPin[DIGIN_COUNT];
@@ -121,7 +135,7 @@ pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
 #endif
 
 //Volume Sensor Pin Array
-byte vSensor[3];
+byte vSensor[3] = {VOLUMESENSOR_NONE, VOLUMESENSOR_NONE, VOLUMESENSOR_NONE};
 
 
 //8-byte Temperature Sensor Address x9 Sensors
@@ -210,11 +224,10 @@ const char LOGDATA[] PROGMEM = "DATA";
 //**********************************************************************************
 
 void setup() {
-
   #ifdef ADC_REF
 	analogReference(ADC_REF);
   #endif
-
+  
   #ifdef USE_I2C
     Wire.begin(BT_I2C_ADDR);
   #endif
@@ -225,12 +238,13 @@ void setup() {
 
   tempInit();
   
-  //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.ino)
-  checkConfig();
-
+  //We need some object, this will get thrown away after setup is loaded
+  outputs = new OutputSystem();
+  outputs->init();
   
-  //Load global variable values stored in EEPROM (EEPROM.ino)
-  loadSetup();
+  //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.ino)
+  if (!checkConfig())
+    loadSetup();
 
   //Communications initialization (Com.ino)
   //Must occur after output initialization and loading setup due to RGBIO logic
@@ -240,9 +254,6 @@ void setup() {
     //Digital Input Interrupt Setup
     triggerInit();
   #endif
-  
-  //PID Initialization (Outputs.ino)
-  pidInit();
   
   //User Interface Initialization (UI.ino)
   //Moving this to last of setup() to allow time for I2CLCD to initialize

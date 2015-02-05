@@ -102,10 +102,18 @@ void loadSetup() {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
       byte pwmPin = getPWMPin(i);
       byte pwmCycle = getPWMPeriod(i);
+      byte pwmResolution = getPWMResolution(i);
+      byte pidLimit = getPIDLimit(i);
       if (pwmOutput[i])
         delete pwmOutput[i];
       if (pwmPin != PWMPIN_NONE)
-        pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle);
+        pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
+        
+      pid[i].SetInputLimits(0, 25500);
+      pid[i].SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
+      pid[i].SetTunings(getPIDp(i), getPIDi(i), getPIDd(i));
+      pid[i].SetMode(AUTO);
+      pid[i].SetSampleTime(PID_UPDATE_INTERVAL);
     }
   }
   
@@ -351,8 +359,33 @@ void eepromSaveProgramThread(byte index, struct ProgramThread *thread) {
 }
 
 //**********************************************************************************
-// ***OPEN*** (317-397)
+// ***OPEN*** (317-393)
 //**********************************************************************************
+
+//**********************************************************************************
+// PWM Resolution (390-393) 0-255 for HLT/Mash/Kettle + 1 Reserved
+//**********************************************************************************
+
+void setPWMResolution(byte vessel, byte limit) {
+  EEPROM.write(390 + vessel, limit);
+}
+
+byte getPWMResolution(byte vessel) {
+  return EEPROM.read(390 + vessel);
+}
+
+//**********************************************************************************
+// PID Limit (394-397) 0-100% for HLT/Mash/Kettle + 1 Reserved
+//**********************************************************************************
+
+void setPIDLimit(byte vessel, byte limit) {
+  EEPROM.write(394 + vessel, limit);
+}
+
+byte getPIDLimit(byte vessel) {
+  return EEPROM.read(394 + vessel);
+}
+
 
 //**********************************************************************************
 //Delay Start (Mins) (398-399)
@@ -488,7 +521,7 @@ unsigned long getProgGrain(byte preset) { return EEPROMreadLong(PROGRAM_START_AD
 //**********************************************************************************
 
 //**********************************************************************************
-//LCD Bright/Contrast (2048-2049) ATMEGA1284P Only
+//LCD Bright/Contrast (2048-2049) LCD4Bit
 //**********************************************************************************
 
 //**********************************************************************************
@@ -614,17 +647,15 @@ boolean checkConfig() {
       for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++)
         EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
       //Set cfgVersion = 1
-      EEPROM.write(2047, 1);
     case 1:
       //Set triggers to disabled by default
-      for (byte trig = 0; trig < NUM_TRIGGERS; trig++) EEPROM.write(2050 + trig, 0);
-      EEPROM.write(2047, 2);
+      for (byte trig = 0; trig < NUM_TRIGGERS; trig++)
+        EEPROM.write(2050 + trig, 0);
     case 2:
     case 3:
       //Reset profiles as bits have shifted
       for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
         setOutputProfile(i, 0);
-        
       //MODBUS Outputs Defaults
       for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++)
         setOutModbusDefaults(i);
@@ -634,6 +665,7 @@ boolean checkConfig() {
         for (byte j = 0; j < 8; j++)
           setRGBIOAssignment(i, j, RGBIO8_UNASSIGNED, 0);
       }
+      
       // Recipe 0, used for Heat Outputs
       // Off:       0xF00 (Red)
       // Auto Off:  0xFFF (White)
@@ -654,24 +686,29 @@ boolean checkConfig() {
         setRGBIORecipe(1, recipe);
       }
 
-      for (byte i = 0; i <= VS_KETTLE; i++)
+      for (byte i = 0; i <= VS_KETTLE; i++) {
         setPWMPin(i, PWMPIN_NONE);
-      EEPROM.write(2047, 4);
-    case 4:
-      for (byte i = 0; i <= VS_KETTLE; i++)
         setVolumeSensor(i, VOLUMESENSOR_NONE);
-      EEPROM.write(2047, 5);
+        setPIDLimit(i, 100);
+        setPWMResolution(i, 120);
+      }
+      EEPROM.write(2047, 4);
   }
   return 0;
 }
 
 void initEEPROM() {
   //Format EEPROM to 0's
-#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
-  for (int i = 0; i < 4096; i++) EEPROM.write(i, 0);
-#else
-  for (int i = 0; i < 2048; i++) EEPROM.write(i, 0);
-#endif
+  for (int i = 0; i < 4096; i++) {
+    #ifndef NOUI
+    byte col = i / 205;
+    if (i == col * 205) {
+      LCD.writeCustChar(0, col, '-');
+      LCD.update();
+    }
+    #endif
+    EEPROM.write(i, 0);
+  }
 
   //Set BT 1.3 Fingerprint (252)
   EEPROM.write(2046, 252);
@@ -696,7 +733,7 @@ void initEEPROM() {
   #else
     setGrainTemp(60);
   #endif
-
+  
   //Set Default Boil temp 212F/100C
   #ifdef USEMETRIC
     setBoilTemp(100);
@@ -714,17 +751,13 @@ void initEEPROM() {
     eepromSaveProgramThread(i, &thread);
   }
   
-  //Set default LCD Bright/Contrast
-  #if (defined __AVR_ATmega1284P__ || defined __AVR_ATmega1284__) && defined UI_DISPLAY_SETUP && defined UI_LCD_4BIT
     EEPROM.write(2048, LCD_DEFAULT_BRIGHTNESS);
     EEPROM.write(2049, LCD_DEFAULT_CONTRAST);
-  #endif
   
   //Set cfgVersion = 0
   EEPROM.write(2047, 0);
-
-  //restart
-  softReset();
+  if (checkConfig())
+    loadSetup();
 }
 
 //*****************************************************************************************************************************

@@ -44,7 +44,6 @@ enum schedulerTasks {
 };
 
 void brewCore() {
-
   //START HIGH PRIORITY: Time-sensitive updates perfromed on each iteration
   #ifdef HEARTBEAT
     heartbeat();

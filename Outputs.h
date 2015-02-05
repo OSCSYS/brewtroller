@@ -162,7 +162,7 @@ class analogOutput_SWPWM : public analogOutput {
   unsigned long sPeriod; //Start of PWM period: millis()
   
   public:
-  analogOutput_SWPWM(byte index, byte period);
+  analogOutput_SWPWM(byte index, byte period, byte resolution);
   void setValue(byte v);
   void update();
   static void setup(OutputSystem* o);
