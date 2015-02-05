@@ -389,9 +389,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   void analogOutput::init() {}
 
 
-  analogOutput_SWPWM::analogOutput_SWPWM(byte index, byte p) {
+  analogOutput_SWPWM::analogOutput_SWPWM(byte index, byte p, byte resolution) {
     pinIndex = index;
-    limit = 255;
+    limit = resolution;
     period = p;
   }
   

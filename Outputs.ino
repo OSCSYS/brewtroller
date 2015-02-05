@@ -25,29 +25,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 // set what the PID cycle time should be based on how fast the temp sensors will respond
-#if TS_ONEWIRE_RES == 12
-  #define PID_UPDATE_INTERVAL 750
-#elif TS_ONEWIRE_RES == 11
-  #define PID_UPDATE_INTERVAL 375
-#elif TS_ONEWIRE_RES == 10
-  #define PID_UPDATE_INTERVAL 188
-#elif TS_ONEWIRE_RES == 9
-  #define PID_UPDATE_INTERVAL 94
-#else
-  // should not be this value, fail the compile
-  #ERROR
-#endif
-
-
-void pidInit() {
-  for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
-    pid[vessel].SetInputLimits(0, 25500);
-    pid[vessel].SetOutputLimits(0, pwmOutput[vessel] ? pwmOutput[vessel]->getLimit() : 0);
-    pid[vessel].SetTunings(getPIDp(vessel), getPIDi(vessel), getPIDd(vessel));
-    pid[vessel].SetMode(AUTO);
-    pid[vessel].SetSampleTime(PID_UPDATE_INTERVAL);
-  }
-}
 
 void resetOutputs() {
   for (byte i = VS_HLT; i <= VS_KETTLE; i++)
