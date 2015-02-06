@@ -718,7 +718,7 @@ void initEEPROM() {
     setPIDp(vessel, 3);
     setPIDi(vessel, 4);
     setPIDd(vessel, 2);
-    setPWMPeriod(vessel, 4);
+    setPWMPeriod(vessel, 1);
     #ifdef USEMETRIC
       setHysteresis(vessel, 3);
     #else
