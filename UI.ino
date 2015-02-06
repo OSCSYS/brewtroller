@@ -186,8 +186,7 @@ void screenInit() {
       LCD.print_P(1, 16, BTVER);
       LCD.print_P(2, 4, PSTR("Build"));
       LCD.lPad(2, 10, itoa(BUILD, buf, 10), 4, '0');
-      LCD.print_P(3, 0, PSTR("www.brewtroller.com"));
-    
+      LCD.print_P(3, 0, PSTR("github.com/OSCSYS"));
   } else if (activeScreen == SCREEN_FILL) {
     //Screen Init: Fill/Refill
     if (brewStepIsActive(BREWSTEP_FILL)) LCD.print_P(0, 1, PSTR("Fill"));
