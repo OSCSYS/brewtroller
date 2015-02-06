@@ -24,7 +24,7 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
-unsigned long volReadings[3][VOLUME_READ_COUNT], prevFlowVol[3];
+unsigned int volReadings[3][VOLUME_READ_COUNT], prevFlowVol[3];
 unsigned long lastVolChk, lastFlowChk;
 byte volCount;
 
@@ -33,11 +33,12 @@ void updateVols() {
   if (millis() - lastVolChk > VOLUME_READ_INTERVAL) {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
       if (vSensor[i] != VOLUMESENSOR_NONE) {
-        volReadings[i][volCount] = readVolume(vSensor[i], calibVols[i], calibVals[i]);
+        volReadings[i][volCount] = analogRead(vSensor[i]);
         unsigned long volAvgTemp = volReadings[i][0];
         for (byte j = 1; j < VOLUME_READ_COUNT; j++)
-        volAvgTemp += volReadings[i][j];
-        volAvg[i] = volAvgTemp / VOLUME_READ_COUNT; 
+          volAvgTemp += volReadings[i][j];
+        volAvgTemp = volAvgTemp / VOLUME_READ_COUNT; 
+        volAvg[i] = calibrateVolume(volAvgTemp, calibVols[i], calibVals[i]);
       }
     }
     volCount++;
@@ -68,23 +69,13 @@ void updateFlowRates() {
 }
 #endif
 
-unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned int calibrationValues[10] ) {
-  unsigned int aValue = analogRead(pin);
+unsigned long calibrateVolume( unsigned int aValue, unsigned long calibrationVols[10], unsigned int calibrationValues[10] ) {
   unsigned long retValue;
-  #ifdef DEBUG_VOL_READ
-    logStart_P(LOGDEBUG);
-    logField_P(PSTR("VOL_READ"));
-    logFieldI(pin);
-    logFieldI(aValue);
-  #endif
   
   byte upperCal = 0;
   byte lowerCal = 0;
   byte lowerCal2 = 0;
   for (byte i = 0; i < 10; i++) {
-    #ifdef DEBUG_VOL_READ
-      logFieldI(calibrationValues[i]);
-    #endif
     if (aValue == calibrationValues[i]) { 
       upperCal = i;
       lowerCal = i;
@@ -101,15 +92,6 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
       else if (calibrationValues[i] < calibrationValues[upperCal]) upperCal = i;
     }
   }
-  
-  #ifdef DEBUG_VOL_READ
-    logFieldI(upperCal);
-    logFieldI(calibrationVols[upperCal]);
-    logFieldI(lowerCal);
-    logFieldI(calibrationVols[lowerCal]);
-    logFieldI(lowerCal2);
-    logFieldI(calibrationVols[lowerCal2]);
-  #endif
   
   //If no calibrations exist return zero
   if (calibrationValues[upperCal] == 0 && calibrationValues[lowerCal] == 0) retValue = 0;
@@ -130,22 +112,7 @@ unsigned long readVolume( byte pin, unsigned long calibrationVols[10], unsigned 
   //Otherwise plot value between lower and greater calibrations
   else retValue = round((float) ((float)aValue - (float)calibrationValues[lowerCal]) / (float) ((float)calibrationValues[upperCal] - (float)calibrationValues[lowerCal]) * ((float)calibrationVols[upperCal] - (float)calibrationVols[lowerCal])) + calibrationVols[lowerCal];
 
-  #ifdef DEBUG_VOL_READ
-    logFieldI(retValue);
-    logEnd();
-  #endif
   return retValue;
-}
-
-//Read Analog value of aPin and calculate kPA or psi based on unit and sensitivity (sens in tenths of mv per kpa)
-unsigned long readPressure( byte aPin, unsigned int sens, unsigned int zero) {
-  if (sens == 0) return 999;
-  unsigned long retValue = (analogRead(aPin) - zero) * 500000 / sens * 25 / 256;
-  #ifdef USEMETRIC
-    return retValue; 
-  #else
-    return retValue * 29 / 200; 
-  #endif
 }
 
 unsigned int GetCalibrationValue(byte vessel){
