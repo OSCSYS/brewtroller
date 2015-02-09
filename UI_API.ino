@@ -95,16 +95,14 @@ void infoBox(char line1[], char line2[], char line3[], const char* prompt) {
   LCD.center(0, 0, line1, 20);
   LCD.center(1, 0, line2, 20);
   LCD.center(2, 0, line3, 20);
-  char promptLine[21] = "> ";
-  strcat_P(promptLine, prompt);
-  strcat(promptLine, " <");
-  LCD.center(3, 0, promptLine, 20);
+  uiCursorFocus(3, 0, 20);
+  strcat_P(buf, prompt);
+  LCD.center(3, 1, buf, 18);
   while (!Encoder.ok()) brewCore();
 }
 
 byte getChoice(menu *objMenu, byte iRow) {
-  LCD.print_P(iRow, 0, PSTR(">"));
-  LCD.print_P(iRow, 19, PSTR("<"));
+  uiCursorFocus(iRow, 0, 20);
   Encoder.setMin(0);
   Encoder.setMax(objMenu->getItemCount() - 1);
   Encoder.setCount(0);
@@ -210,14 +208,15 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
         cursorPos = encValue;
         for (byte i = valuePos - 1; i < valuePos - 1 + digits - precision; i++) LCD.writeCustChar(2, i, 0);
         if (precision) for (byte i = valuePos + digits - precision; i < valuePos + digits; i++) LCD.writeCustChar(2, i, 0);
-        LCD.print(3, 8, " ");
-        LCD.print(3, 11, " ");
-        if (cursorPos == digits) {
-          LCD.print(3, 8, ">");
-          LCD.print(3, 11, "<");
-        } else {
-          if (cursorPos < digits - precision) LCD.writeCustChar(2, valuePos + cursorPos - 1, 1);
-          else LCD.writeCustChar(2, valuePos + cursorPos, 1);
+        
+        if (cursorPos == digits)
+         uiCursorFocus(3, 8, 4);
+        else {
+          uiCursorNone(3, 8, 4);
+          if (cursorPos < digits - precision)
+            LCD.writeCustChar(2, valuePos + cursorPos - 1, 1);
+          else
+            LCD.writeCustChar(2, valuePos + cursorPos, 1);
         }
       }
       vftoa(retValue, strValue, divisor, 1);
@@ -310,13 +309,10 @@ unsigned long getHexValue(char sTitle[], unsigned long defValue, byte digits) {
         for (byte i = valuePos - 1; i < valuePos - 1 + digits; i++) {
           LCD.writeCustChar(2, i, 0);
         }
-        LCD.print(3, 8, " ");
-        LCD.print(3, 11, " ");
-        if (cursorPos == digits) {
-          LCD.print(3, 8, ">");
-          LCD.print(3, 11, "<");
-        } 
+        if (cursorPos == digits)
+          uiCursorFocus(3, 8, 4);
         else {
+          uiCursorNone(3, 8, 4);
           if (cursorPos < digits) {
             LCD.writeCustChar(2, valuePos + cursorPos - 1, 1);
           }
@@ -422,20 +418,16 @@ int getTimerValue(const char *sTitle, int defMins, byte maxHours) {
           case 0: //hours
             LCD.print(2, 7, ">");
             LCD.print(2, 13, " ");
-            LCD.print(3, 8, " ");
-            LCD.print(3, 11, " ");
+            uiCursorNone(3, 8, 4);
             break;
           case 1: //mins
             LCD.print(2, 7, " ");
             LCD.print(2, 13, "<");
-            LCD.print(3, 8, " ");
-            LCD.print(3, 11, " ");
+            uiCursorNone(3, 8, 4);
             break;
           case 2: //OK
-            LCD.print(2, 7, " ");
-            LCD.print(2, 13, " ");
-            LCD.print(3, 8, ">");
-            LCD.print(3, 11, "<");
+            uiCursorNone(2, 7, 7);
+            uiCursorFocus(3, 8, 4);
             break;
         }
       }
@@ -507,13 +499,12 @@ void getString(const char *sTitle, char defValue[], byte chars) {
         retValue[cursorPos] = enc2ASCII(encValue);
       } else {
         cursorPos = encValue;
-        for (byte i = (20 - chars + 1) / 2 - 1; i < (20 - chars + 1) / 2 - 1 + chars; i++) LCD.writeCustChar(2, i, 0);
-        LCD.print(3, 8, " ");
-        LCD.print(3, 11, " ");
-        if (cursorPos == chars) {
-          LCD.print(3, 8, ">");
-          LCD.print(3, 11, "<");
-        } else {
+        for (byte i = (20 - chars + 1) / 2 - 1; i < (20 - chars + 1) / 2 - 1 + chars; i++)
+          LCD.writeCustChar(2, i, 0);
+        if (cursorPos == chars)
+          uiCursorFocus(3, 8, 4);
+        else {
+          uiCursorNone(3, 8, 4);
           LCD.writeCustChar(2, (20 - chars + 1) / 2 + cursorPos - 1, 1);
         }
       }

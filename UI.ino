@@ -71,6 +71,10 @@ void uiInit() {
   uiScreenInit();
 }
 
+//Screen map is dynamically built at init. This would allow for optional screens to
+//be included if desired for certain setups. For example, additional screens could
+//be added to map to brewsteps like Delay, Preheat, Add Grain, Strike Transfer, 
+//Refill, etc. and not all may be used in all system builds.
 void uiScreenInit() {
   screenCount = 0;
   screenMap[screenCount++] = &screenHome;
@@ -327,16 +331,9 @@ void screenHomeMenu() {
       if (outputs->getProfileState(OUTPUTPROFILE_DRAIN))
         outputs->setProfileState(OUTPUTPROFILE_DRAIN, 0);
       else {
-        if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL)) {
-          LCD.clear();
-          LCD.print_P(0, 0, PSTR("Cannot drain while"));
-          LCD.print_P(1, 0, PSTR("mash or boil zone"));
-          LCD.print_P(2, 0, PSTR("is active"));
-          LCD.print(3, 4, ">");
-          LCD.print_P(3, 6, CONTINUE);
-          LCD.print(3, 15, "<");
-          while (!Encoder.ok()) brewCore();
-        } else
+        if (zoneIsActive(ZONE_MASH) || zoneIsActive(ZONE_BOIL))
+          infoBox("Cannot drain while", "mash or boil zone", "is active", CONTINUE);
+        else
           outputs->setProfileState(OUTPUTPROFILE_DRAIN, 1);
       }
     }
@@ -990,19 +987,9 @@ void continueClick() {
     brewStepSignal(brewstep, STEPSIGNAL_ADVANCE);
     if (brewStepIsActive(brewstep)) {
       //Failed to advance step
-      stepAdvanceFailDialog();
+      infoBox("Failed to advance", "program.", "", CONTINUE);
     }
   }
-}
-
-void stepAdvanceFailDialog() {
-  LCD.clear();
-  LCD.print_P(0, 0, PSTR("Failed to advance"));
-  LCD.print_P(1, 0, PSTR("program."));
-  LCD.print(3, 4, ">");
-  LCD.print_P(3, 6, CONTINUE);
-  LCD.print(3, 15, "<");
-  while (!Encoder.ok()) brewCore();
 }
 
 #endif //#ifndef NOUI
