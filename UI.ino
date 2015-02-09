@@ -442,14 +442,14 @@ void screenFill (enum ScreenSignal signal) {
       }
       break;
     case SCREENSIGNAL_LOCK:
-      uiCursor(3, 0, 11, UICURSOR_FOCUS);
+      uiCursorFocus(3, 0, 11);
       LCD.print_P(3, 1, CONTINUE);
       Encoder.setMin(0);
       Encoder.setMax(5);
       Encoder.setCount(0);
       break;
     case SCREENSIGNAL_UNLOCK:
-      uiCursor(3, 0, 11, UICURSOR_NONE);
+      uiCursorNone(3, 0, 11);
       break;
   }
 }
@@ -656,14 +656,14 @@ void screenSparge (enum ScreenSignal signal) {
       }
       break;
     case SCREENSIGNAL_LOCK:
-      uiCursor(0, 8, 12, UICURSOR_FOCUS);
+      uiCursorFocus(0, 8, 12);
       LCD.print_P(0, 10, CONTINUE);
       Encoder.setMin(0);
       Encoder.setMax(7);
       Encoder.setCount(0);
       break;
     case SCREENSIGNAL_UNLOCK:
-      uiCursor(0, 8, 12, UICURSOR_NONE);
+      uiCursorNone(0, 8, 12);
       break;
   }
 }
@@ -888,14 +888,14 @@ void screenChill (enum ScreenSignal signal) {
       }
       break;
     case SCREENSIGNAL_LOCK:
-      uiCursor(3, 0, 12, UICURSOR_FOCUS);
+      uiCursorFocus(3, 0, 12);
       LCD.print_P(3, 2, CONTINUE);
       Encoder.setMin(0);
       Encoder.setMax(6);
       Encoder.setCount(0);
       break;
     case SCREENSIGNAL_UNLOCK:
-      uiCursor(3, 0, 12, UICURSOR_NONE);
+      uiCursorNone(3, 0, 12);
       break;
   }
 }

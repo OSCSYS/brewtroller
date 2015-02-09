@@ -30,17 +30,19 @@ void uiLabelPercentOnOff (byte row, byte col, byte pct) {
   LCD.lPad(row, col, buf, 3, ' ');
 }
 
-void uiCursor(byte row, byte col, byte width, enum UICursorType cursorType) {
-  if (cursorType == UICURSOR_NONE) {
-    LCD.print_P(row, col, PSTR(" "));
-    LCD.print_P(row, col + width - 1, PSTR(" "));
-  } else if (cursorType == UICURSOR_FOCUS) {
-    LCD.print_P(row, col, PSTR(">"));
-    LCD.print_P(row, col + width - 1, PSTR("<"));
-  } else {
-    LCD.print_P(row, col, PSTR("["));
-    LCD.print_P(row, col + width - 1, PSTR("]"));
-  }
+void uiCursorNone(byte row, byte col, byte width) {
+  LCD.print_P(row, col, PSTR(" "));
+  LCD.print_P(row, col + width - 1, PSTR(" "));
+}
+
+void uiCursorFocus(byte row, byte col, byte width) {
+  LCD.print_P(row, col, PSTR(">"));
+  LCD.print_P(row, col + width - 1, PSTR("<"));
+}
+
+void uiCursorUnfocus(byte row, byte col, byte width) {
+  LCD.print_P(row, col, PSTR("["));
+  LCD.print_P(row, col + width - 1, PSTR("]"));
 }
 
 
