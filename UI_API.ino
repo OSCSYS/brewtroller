@@ -3,6 +3,47 @@
 //*****************************************************************************************************************************
 //Generic UI Functions
 //*****************************************************************************************************************************
+void uiLabelFPoint(byte row, byte col, byte width, unsigned long value, unsigned int divisor) {
+  vftoa(value, buf, divisor, 1);
+  truncFloat(buf, width);
+  LCD.lPad(row, col, buf, width, ' ');
+}
+
+void uiLabelTemperature (byte row, byte col, byte width, unsigned long value) {
+  if (value == BAD_TEMP)
+    LCD.lPad(row, col, "", width, '-');
+  else {
+    uiLabelFPoint(row, col, width - 1, value, 100);
+    LCD.print_P(row, col + width - 1, TUNIT);
+  }
+}
+
+void uiLabelPercentOnOff (byte row, byte col, byte pct) {
+  if (pct == 0)
+    strcpy_P(buf, LABEL_BUTTONOFF);
+  else if (pct == 100)
+    strcpy_P(buf, LABEL_BUTTONON);
+  else {
+    itoa(pct, buf, 10);
+    strcat(buf, "%"); 
+  }
+  LCD.lPad(row, col, buf, 3, ' ');
+}
+
+void uiCursor(byte row, byte col, byte width, enum UICursorType cursorType) {
+  if (cursorType == UICURSOR_NONE) {
+    LCD.print_P(row, col, PSTR(" "));
+    LCD.print_P(row, col + width - 1, PSTR(" "));
+  } else if (cursorType == UICURSOR_FOCUS) {
+    LCD.print_P(row, col, PSTR(">"));
+    LCD.print_P(row, col + width - 1, PSTR("<"));
+  } else {
+    LCD.print_P(row, col, PSTR("["));
+    LCD.print_P(row, col + width - 1, PSTR("]"));
+  }
+}
+
+
 /*
   scrollMenu() & drawMenu():
   Glues together menu, Encoder and LCD objects

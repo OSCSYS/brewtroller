@@ -273,7 +273,7 @@ void setup() {
 void loop() {
   //User Interface Processing (UI.ino)
   #ifndef NOUI
-    uiCore();
+    uiUpdate();
   #endif
   
   //Core BrewTroller process code (BrewCore.ino)

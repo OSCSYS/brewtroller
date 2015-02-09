@@ -168,7 +168,7 @@ class analogOutput_SWPWM : public analogOutput {
   static void setup(OutputSystem* o);
 };
 
-
+#ifdef ANALOGOUTPUTS_HWPWM
 class analogOutput_HWPWM : public analogOutput {
   private:
   byte pin;
@@ -187,4 +187,5 @@ class analogOutput_HWPWM : public analogOutput {
   static byte getTimerValue(byte timer, byte index);
   static char * getTimerText(byte timer, byte index, char* retString);
 };
+#endif
 #endif
