@@ -417,7 +417,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     }
   }
 
-
+#ifdef ANALOGOUTPUTS_HWPWM
   analogOutput_HWPWM::analogOutput_HWPWM(byte p) {
     pin = p;
   }
@@ -495,5 +495,5 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     }
     return retString;
   }
-
+#endif
 

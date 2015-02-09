@@ -32,16 +32,6 @@ OpenTroller EX1 Hardware Configuration
   #define RS485_SERIAL_PORT 1
   #define RS485_RTS_PIN    12
 
-  #define HLTVOL_APIN 3
-  #define MASHVOL_APIN 2
-  #define KETTLEVOL_APIN 1
-  #define STEAMPRESS_APIN 0
-
-  #define ANALOGINPUTS_GPIO
-  #define ANALOGINPUTS_GPIO_COUNT 4
-  #define ANALOGINPUTS_GPIO_PINS {3, 2, 1, 0}
-  #define ANALOGINPUTS_GPIO_NAMES "Analog 1\0Analaog 2\0Analog 3\0Analog 4"
-
   // BTPD_SUPPORT: Enables use of BrewTroller PID Display devices on I2C bus
   #define BTPD_SUPPORT
   

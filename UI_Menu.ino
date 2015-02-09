@@ -71,13 +71,11 @@ void startProgramMenu() {
             LCD.print_P(3, 6, CONTINUE);
             LCD.print(3, 15, "<");
             while (!Encoder.ok()) brewCore();
-          } else {
-            setActive(SCREEN_FILL);
-            //screenInit called on next uiCore() call
+          } else
             break;
-          }
         }
-      } else break;
+      } else
+        break;
     }
   }
 }
@@ -667,7 +665,9 @@ void menuVolume(){
 
 void menuVolumeVessel(byte vessel) {
   menu volMenu(3, 6);
-  volMenu.setItem_P(PSTR("Analog Input"), 0);
+  #ifdef ANALOGINPUTS_GPIO
+    volMenu.setItem_P(PSTR("Analog Input"), 0);
+  #endif
   volMenu.setItem_P(CAPACITY, 1);
   volMenu.setItem_P(DEADSPACE, 2);
   volMenu.setItem_P(CALIBRATION, 3);
@@ -681,13 +681,17 @@ void menuVolumeVessel(byte vessel) {
     byte lastOption = scrollMenu(title, &volMenu);
     strcpy_P(title, (char*)pgm_read_word(&(TITLE_VS[vessel])));
     strcat_P(title, PSTR(" "));
-    if (lastOption  == 0) {
-      strcat_P(title, PSTR("Sensor"));
-      setVolumeSensor(vessel, menuSelectAnalogInput(title, vSensor[vessel]));
-    } else if (lastOption  == 1) {
+    if (lastOption  == 1) {
       strcat_P(title, CAPACITY);
       setCapacity(vessel, getValue(title, getCapacity(vessel), 1000, 9999999, VOLUNIT));
-    } else if (lastOption == 2) {
+    }
+    #ifdef ANALOGINPUTS_GPIO
+      else if (lastOption  == 0) {
+        strcat_P(title, PSTR("Sensor"));
+        setVolumeSensor(vessel, menuSelectAnalogInput(title, vSensor[vessel]));
+      } 
+    #endif
+    else if (lastOption == 2) {
       strcat_P(title, DEADSPACE);
       setVolLoss(vessel, getValue(title, getVolLoss(vessel), 1000, 65535, VOLUNIT));
     } else if (lastOption == 3) {
@@ -707,6 +711,7 @@ void menuVolumeVessel(byte vessel) {
   } 
 }
 
+#ifdef ANALOGINPUTS_GPIO
 byte menuSelectAnalogInput(char sTitle[], byte currentValue) {
   menu volMenu(3, ANALOGINPUTS_GPIO_COUNT + 1);
   byte analogInputs[ANALOGINPUTS_GPIO_COUNT] = ANALOGINPUTS_GPIO_PINS;
@@ -728,6 +733,7 @@ byte menuSelectAnalogInput(char sTitle[], byte currentValue) {
   
   return scrollMenu(sTitle, &volMenu);
 }
+#endif
 
 byte menuSelectVessel(char sTitle[]) {
     menu volMenu(3, 4);

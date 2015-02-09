@@ -13,7 +13,8 @@ const char MENU[] PROGMEM = "Menu";
 const char SPACE[] PROGMEM = " ";
 const char INIT_EEPROM[] PROGMEM = "Initialize EEPROM";
 const char CONTINUE[] PROGMEM = "Continue";
-
+const char LABEL_BUTTONON[] PROGMEM = "On ";
+const char LABEL_BUTTONOFF[] PROGMEM = "Off";
 
 prog_char FILLHLT[] PROGMEM = "Fill HLT";
 prog_char FILLMASH[] PROGMEM = "Fill Mash";

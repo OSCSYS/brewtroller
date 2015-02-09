@@ -25,7 +25,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 
-void eventHandler(byte eventID, int eventParam) {
+void eventHandler(enum EventIndex eventID, int eventParam) {
   //Global Event handler
   //EVENT_STEPINIT: Nothing to do here (Pass to UI handler below)
   //EVENT_STEPEXIT: Nothing to do here (Pass to UI handler below)
