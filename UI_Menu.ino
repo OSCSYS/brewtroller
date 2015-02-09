@@ -50,28 +50,16 @@ void startProgramMenu() {
       if (lastOption == 0) editProgram(profile);
       else if (lastOption == 1) setGrainTemp(getValue_P(PSTR("Grain Temp"), getGrainTemp(), SETPOINT_DIV, 255, TUNIT)); 
       else if (lastOption == 2 || lastOption == 3) {
-        if (zoneIsActive(ZONE_MASH)) {
-          LCD.clear();
-          LCD.print_P(0, 0, PSTR("Cannot start program"));
-          LCD.print_P(1, 0, PSTR("while mash zone is"));
-          LCD.print_P(2, 0, PSTR("active."));
-          LCD.print(3, 4, ">");
-          LCD.print_P(3, 6, CONTINUE);
-          LCD.print(3, 15, "<");
-          while (!Encoder.ok()) brewCore();
-        } else {
+        if (zoneIsActive(ZONE_MASH))
+          infoBox("Cannot start program", "while mash zone is", "active.", CONTINUE);
+        else {
           if (lastOption == 3) {
             //Delay Start
             setDelayMins(getTimerValue(PSTR("Delay Start"), getDelayMins(), 23));
           }
-          if (!programThreadInit(profile)) {
-            LCD.clear();
-            LCD.print_P(1, 0, PSTR("Program start failed"));
-            LCD.print(3, 4, ">");
-            LCD.print_P(3, 6, CONTINUE);
-            LCD.print(3, 15, "<");
-            while (!Encoder.ok()) brewCore();
-          } else
+          if (!programThreadInit(profile))
+            infoBox("", "Program start failed", "", CONTINUE);
+          else
             break;
         }
       } else
@@ -1021,26 +1009,26 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
           }
         } else {
           cursorPos = encValue;
-          LCD.print_P(1, 12, PSTR(" "));
-          LCD.print_P(1, 16, PSTR(" "));
-          LCD.print_P(2, 12, PSTR(" "));
-          LCD.print_P(2, 16, PSTR(" "));
-          LCD.print_P(3, 0, PSTR(" "));
-          LCD.print_P(3, 7, PSTR(" "));
-          LCD.print_P(3, 14, PSTR(" "));
-          LCD.print_P(3, 19, PSTR(" "));
           if (cursorPos == 0) {
-            LCD.print_P(1, 12, PSTR(">"));
-            LCD.print_P(1, 16, PSTR("<"));
+            uiCursorFocus(1, 12, 5);
+            uiCursorNone(2, 12, 5);
+            uiCursorNone(3, 0, 8);
+            uiCursorNone(3, 14, 6);
           } else if (cursorPos == 1) {
-            LCD.print_P(2, 12, PSTR(">"));
-            LCD.print_P(2, 16, PSTR("<"));
+            uiCursorNone(1, 12, 5);
+            uiCursorFocus(2, 12, 5);
+            uiCursorNone(3, 0, 8);
+            uiCursorNone(3, 14, 6);
           } else if (cursorPos == 2) {
-            LCD.print_P(3, 0, PSTR(">"));
-            LCD.print_P(3, 7, PSTR("<"));
+            uiCursorNone(1, 12, 5);
+            uiCursorNone(2, 12, 5);
+            uiCursorFocus(3, 0, 8);
+            uiCursorNone(3, 14, 6);
           } else if (cursorPos == 3) {
-            LCD.print_P(3, 14, PSTR(">"));
-            LCD.print_P(3, 19, PSTR("<"));
+            uiCursorNone(1, 12, 5);
+            uiCursorNone(2, 12, 5);
+            uiCursorNone(3, 0, 8);
+            uiCursorFocus(3, 14, 6);
           }
         }
         LCD.lPad(1, 13, itoa(bright, buf, 10), 3, ' ');

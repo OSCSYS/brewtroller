@@ -96,7 +96,8 @@ void infoBox(char line1[], char line2[], char line3[], const char* prompt) {
   LCD.center(1, 0, line2, 20);
   LCD.center(2, 0, line3, 20);
   uiCursorFocus(3, 0, 20);
-  strcat_P(buf, prompt);
+  
+  strcpy_P(buf, prompt);
   LCD.center(3, 1, buf, 18);
   while (!Encoder.ok()) brewCore();
 }
