@@ -92,13 +92,13 @@ const char BTVER[] PROGMEM = "2.7";
   #define BTNIC_PROTOCOL
 #endif
 
-#ifdef BOIL_OFF_GALLONS
-  #ifdef USEMETRIC
-    #define EvapRateConversion 1000
-  #else
-    #define EvapRateConversion 100
-  #endif
+
+#ifdef USEMETRIC
+  #define EvapRateConversion 1000
+#else
+  #define EvapRateConversion 100
 #endif
+
 
 #if TS_ONEWIRE_RES == 12
   #define PID_UPDATE_INTERVAL 750

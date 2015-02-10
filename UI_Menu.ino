@@ -471,14 +471,10 @@ void menuSystemSettings() {
       else if (lastOption == 1)
         setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
       else if (lastOption == 2)
-        #ifdef BOIL_OFF_GALLONS
-          #ifdef USEMETRIC
-            setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("l/hr")));
-          #else
-            setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("0.1g/hr")));
-          #endif
+        #ifdef USEMETRIC
+          setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("l/hr")));
         #else
-           setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 100, PSTR("%/hr")));
+          setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("0.1g/hr")));
         #endif
       else
         return;
