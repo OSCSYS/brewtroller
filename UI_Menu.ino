@@ -474,7 +474,7 @@ void menuSystemSettings() {
         #ifdef USEMETRIC
           setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("l/hr")));
         #else
-          setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("0.1g/hr")));
+          setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 10, 255, PSTR("gal /hr")));
         #endif
       else
         return;
