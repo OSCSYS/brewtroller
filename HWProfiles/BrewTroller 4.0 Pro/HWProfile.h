@@ -28,6 +28,7 @@ BrewTroller 4.0 Pro Hardware Configuration
 
   #define OUTPUTBANK_MUX
   #define OUTPUTBANK_MUX_COUNT 16 //16 Outputs
+  #define OUTPUTBANK_MUX_BANKNAME "PV"
 
   #define OUTPUTBANK_MUX_LATCHPIN  12
   #define OUTPUTBANK_MUX_DATAPIN   14

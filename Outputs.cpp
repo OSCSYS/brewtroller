@@ -122,7 +122,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
   
   byte OutputBankMUX::getCount(void) { return OUTPUTBANK_MUX_COUNT; }
-};
 #endif
 
 #ifdef OUTPUTBANK_MODBUS
