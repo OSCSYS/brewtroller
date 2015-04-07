@@ -379,10 +379,9 @@ byte menuSelectTempSensor(char sTitle[]) {
 }
 
 void assignSensor() {
-  menu tsMenu(1, NUM_TS + 1);
+  menu tsMenu(1, NUM_TS);
   for (byte i = 0; i < NUM_TS; i++)
     tsMenu.setItem_P((char*)pgm_read_word(&(TITLE_TS[i])), i);
-  tsMenu.setItem_P(EXIT, 255);
   
   Encoder.setMin(0);
   Encoder.setMax(tsMenu.getItemCount() - 1);
