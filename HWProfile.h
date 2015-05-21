@@ -26,14 +26,6 @@ OpenTroller DX1 Hardware Configuration
   #define RS485_RTS_PIN    23
 
   #define DIGITAL_INPUTS
-  #define DIGIN_COUNT 6
-  #define DIGIN1_PIN 21
-  #define DIGIN2_PIN 20
-  #define DIGIN3_PIN 19
-  #define DIGIN4_PIN 18
-  #define DIGIN5_PIN 5
-  #define DIGIN6_PIN 22
-
   #define DIGITAL_INPUTS_COUNT 6
   #define DIGITAL_INPUTS_PINS {21, 20, 19, 18, 5, 22}
 

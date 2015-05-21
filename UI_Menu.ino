@@ -1073,7 +1073,7 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       }
       
       byte lastOption = scrollMenu("Trigger Assignment", &triggerMenu);
-      if (lastOption < 5) setTriggerPin(lastOption, getValue_P(PSTR("Input Pin (0=None):"), getTriggerPin(lastOption), 1, DIGIN_COUNT, PSTR("")));
+      if (lastOption < 5) setTriggerPin(lastOption, getValue_P(PSTR("Input Pin (0=None):"), getTriggerPin(lastOption), 1, DIGITAL_INPUTS_COUNT, PSTR("")));
       else return;
     }
   }

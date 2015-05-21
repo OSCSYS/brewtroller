@@ -125,7 +125,7 @@ struct ProgramThread {
 analogOutput_SWPWM* pwmOutput[3] = {0, 0, 0};
 
 #ifdef DIGITAL_INPUTS
-  pin digInPin[DIGIN_COUNT];
+  pin digInPin[DIGITAL_INPUTS_COUNT];
 #endif
 
 pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };

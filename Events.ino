@@ -44,24 +44,9 @@ void eventHandler(enum EventIndex eventID, int eventParam) {
 
 #ifdef DIGITAL_INPUTS
   void triggerInit() {
-    #if DIGIN_COUNT > 0
-      digInPin[0].setup(DIGIN1_PIN, INPUT);
-    #endif
-    #if DIGIN_COUNT > 1
-      digInPin[1].setup(DIGIN2_PIN, INPUT);
-    #endif
-    #if DIGIN_COUNT > 2
-      digInPin[2].setup(DIGIN3_PIN, INPUT);
-    #endif
-    #if DIGIN_COUNT > 3
-      digInPin[3].setup(DIGIN4_PIN, INPUT);
-    #endif
-    #if DIGIN_COUNT > 4
-      digInPin[4].setup(DIGIN5_PIN, INPUT);
-    #endif
-    #if DIGIN_COUNT > 5
-      digInPin[5].setup(DIGIN6_PIN, INPUT);
-    #endif
+    byte inputPins[] = DIGITAL_INPUTS_PINS;
+    for (byte i = 0; i < DIGITAL_INPUTS_COUNT; i++)
+      digInPin[i].setup(inputPins[i], INPUT);
   
     //If EEPROM is not initialized skip trigger init
     if (checkConfig()) return;
