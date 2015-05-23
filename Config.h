@@ -238,11 +238,9 @@
 // target preboil volume is reached.
 //#define AUTO_SPARGE_EXIT
 
-// AUTO_BOIL_RECIRC: Activates the BOIL RECIRC valve profile during the last minutes
-// of the AutoBrew Boil stage as defined below (ie AUTO_BOIL_RECIRC 20 will enable
-// BOIL RECIRC for the last twenty minutes of boil. Warning: if you do not have a
-// valve config that will reroute wort back to the kettle there is a great risk of
-// losing wort or causing personal injury when this profile is enabled
+// AUTO_BOIL_RECIRC: Activates the WHIRLPOOL valve profile during the last minutes
+// of the Boil step during program execution as defined below (ie AUTO_BOIL_RECIRC
+// 20 will enable BOIL RECIRC for the last twenty minutes of boil.
 //#define AUTO_BOIL_RECIRC 20
 //**********************************************************************************
 

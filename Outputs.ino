@@ -217,23 +217,23 @@ void updateHeatOutputs() {
       //Needs work
       /*
       //If Pumping beer
-      if (vlvConfigIsActive(OUTPUTPROFILE_CHILLBEER)) {
+      if (vlvConfigIsActive(OUTPUTPROFILE_WORTOUT)) {
         //Cut beer if exceeds pitch + 1
-        if (temp[TS_BEEROUT] > pitchTemp + 1.0) bitClear(actProfiles, OUTPUTPROFILE_CHILLBEER);
+        if (temp[TS_BEEROUT] > pitchTemp + 1.0) bitClear(actProfiles, OUTPUTPROFILE_WORTOUT);
       } else {
         //Enable beer if chiller H2O output is below pitch
         //ADD MIN DELAY!
-        if (temp[TS_H2OOUT] < pitchTemp - 1.0) bitSet(actProfiles, OUTPUTPROFILE_CHILLBEER);
+        if (temp[TS_H2OOUT] < pitchTemp - 1.0) bitSet(actProfiles, OUTPUTPROFILE_WORTOUT);
       }
       
       //If chiller water is running
-      if (vlvConfigIsActive(OUTPUTPROFILE_CHILLH2O)) {
+      if (vlvConfigIsActive(OUTPUTPROFILE_CHILL)) {
         //Cut H2O if beer below pitch - 1
-        if (temp[TS_BEEROUT] < pitchTemp - 1.0) bitClear(actProfiles, OUTPUTPROFILE_CHILLH2O);
+        if (temp[TS_BEEROUT] < pitchTemp - 1.0) bitClear(actProfiles, OUTPUTPROFILE_CHILL);
       } else {
         //Enable H2O if chiller H2O output is at pitch
         //ADD MIN DELAY!
-        if (temp[TS_H2OOUT] >= pitchTemp) bitSet(actProfiles, OUTPUTPROFILE_CHILLH2O);
+        if (temp[TS_H2OOUT] >= pitchTemp) bitSet(actProfiles, OUTPUTPROFILE_CHILL);
       }
       */
     }
