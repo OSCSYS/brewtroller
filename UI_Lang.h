@@ -25,9 +25,9 @@ prog_char SPARGEIN[] PROGMEM = "Sparge In";
 prog_char SPARGEOUT[] PROGMEM = "Sparge Out";
 prog_char BOILADDS[] PROGMEM = "Boil Additions";
 prog_char KETTLELID[] PROGMEM = "Kettle Lid";
-prog_char CHILLH2O[] PROGMEM = "Chill H2O";
-prog_char CHILLBEER[] PROGMEM = "Chill Beer";
-prog_char BOILRECIRC[] PROGMEM = "Boil Recirc";
+prog_char CHILL[] PROGMEM = "Chill";
+prog_char WORTOUT[] PROGMEM = "Wort Out";
+prog_char WHIRLPOOL[] PROGMEM = "Whirlpool";
 prog_char DRAIN[] PROGMEM = "Drain";
 prog_char HLTHEAT[] PROGMEM = "HLT Heat";
 prog_char HLTIDLE[] PROGMEM = "HLT Idle";
@@ -67,9 +67,9 @@ PROGMEM const char *TITLE_VLV[] = {
   SPARGEOUT,
   BOILADDS,
   KETTLELID,
-  CHILLH2O,
-  CHILLBEER,
-  BOILRECIRC,
+  CHILL,
+  WORTOUT,
+  WHIRLPOOL,
   DRAIN,
   HLTHEAT,
   HLTIDLE,
@@ -87,7 +87,7 @@ PROGMEM const char *TITLE_VLV[] = {
 const char ALLOFF[] PROGMEM = "All Off";
 const char FILLBOTH[] PROGMEM = "Fill Both";
 const char FLYSPARGE[] PROGMEM = "Fly Sparge";
-const char CHILLNORM[] PROGMEM = "Chill Both";
+const char WHIRLCHILL[] PROGMEM = "WhirlChill";
 
 prog_char TITLE_VS_HLT[] PROGMEM = "HLT";
 prog_char TITLE_VS_MASH[] PROGMEM = "Mash";

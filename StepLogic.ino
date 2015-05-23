@@ -639,7 +639,7 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
         
         #ifdef AUTO_BOIL_RECIRC
         if (timerValue[TIMER_BOIL] <= AUTO_BOIL_RECIRC * 60000)
-          outputs->setProfileState(OUTPUTPROFILE_BOILRECIRC, 1);
+          outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 1);
         #endif
       }
       //Exit Condition  
@@ -656,7 +656,7 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
     case STEPSIGNAL_ADVANCE:
       outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
       #ifdef AUTO_BOIL_RECIRC
-        outputs->setProfileState(OUTPUTPROFILE_BOILRECIRC, 0);
+        outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 0);
       #endif
       setSetpoint(VS_KETTLE, 0);
       clearTimer(TIMER_BOIL);
@@ -682,8 +682,8 @@ void brewStepChill(enum StepSignal signal, struct ProgramThread *thread) {
     case STEPSIGNAL_ADVANCE:
       programThreadSetStep(thread, BREWSTEP_NONE);
       autoValve[AV_CHILL] = 0;
-      outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 0);
-      outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 0);
+      outputs->setProfileState(OUTPUTPROFILE_WORTOUT, 0);
+      outputs->setProfileState(OUTPUTPROFILE_CHILL, 0);
       break;
   }
 }

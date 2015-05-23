@@ -439,14 +439,16 @@ void screenFill (enum ScreenSignal signal) {
       }
       break;
     case SCREENSIGNAL_LOCK:
-      uiCursorFocus(3, 0, 11);
       LCD.print_P(3, 1, CONTINUE);
       Encoder.setMin(0);
       Encoder.setMax(5);
       Encoder.setCount(0);
+      screenFill(SCREENSIGNAL_INIT);
+      uiCursorFocus(3, 0, 11);
+      screenFill(SCREENSIGNAL_ENCODERCHANGE);
       break;
     case SCREENSIGNAL_UNLOCK:
-      uiCursorNone(3, 0, 11);
+      LCD.rPad(3, 0, "", 11, ' ');
       break;
   }
 }
@@ -511,6 +513,7 @@ void screenMash (enum ScreenSignal signal) {
     case SCREENSIGNAL_ENCODERCHANGE:
       break;
     case SCREENSIGNAL_LOCK:
+      LCD.print_P(0, 16, PSTR("Mash"));
       break;
     case SCREENSIGNAL_UNLOCK:
       break;
@@ -660,7 +663,7 @@ void screenSparge (enum ScreenSignal signal) {
       Encoder.setCount(0);
       break;
     case SCREENSIGNAL_UNLOCK:
-      uiCursorNone(0, 8, 12);
+      LCD.rPad(0, 8, "", 11, ' ');
       break;
   }
 }
@@ -740,6 +743,7 @@ void screenBoil (enum ScreenSignal signal) {
       if (!setpoint[VS_KETTLE]) boilControlState = CONTROLSTATE_OFF;
       break;
     case SCREENSIGNAL_UNLOCK:
+      LCD.rPad(0, 14, "", 5, ' ');
       break;
   }
 }
@@ -775,8 +779,8 @@ void screenBoilMenu() {
   boilMenu.appendItem(itoa(boilPwr, buf, 10), 4);
   boilMenu.appendItem("%", 4);
   
-  boilMenu.setItem_P(BOILRECIRC, 5);
-  boilMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_BOILRECIRC) ? PSTR(": On") : PSTR(": Off"), 5);
+  boilMenu.setItem_P(WHIRLPOOL, 5);
+  boilMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_WHIRLPOOL) ? PSTR(": On") : PSTR(": Off"), 5);
   
   boilMenu.setItem_P(CONTINUE, 6);
   boilMenu.setItem_P(ABORT, 7);
@@ -799,7 +803,7 @@ void screenBoilMenu() {
   }
   else if (lastOption == 4) setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
   else if (lastOption == 5)
-    outputs->setProfileState(OUTPUTPROFILE_BOILRECIRC, outputs->getProfileState(OUTPUTPROFILE_BOILRECIRC) ? 0 : 1);
+    outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, outputs->getProfileState(OUTPUTPROFILE_WHIRLPOOL) ? 0 : 1);
   else if (lastOption == 6) 
     continueClick();
   else if (lastOption == 7) {
@@ -824,37 +828,47 @@ void screenChill (enum ScreenSignal signal) {
       uiLabelTemperature (2, 11, 4, temp[TS_BEEROUT]);
       uiLabelTemperature (1, 16, 4, temp[TS_H2OIN]);
       uiLabelTemperature (2, 16, 4, temp[TS_H2OOUT]);
-      LCD.print_P(3, 12, outputs->getProfileState(OUTPUTPROFILE_CHILLBEER) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
-      LCD.print_P(3, 17, outputs->getProfileState(OUTPUTPROFILE_CHILLH2O) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
+      LCD.print_P(3, 12, outputs->getProfileState(OUTPUTPROFILE_WORTOUT) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
+      LCD.print_P(3, 17, outputs->getProfileState(OUTPUTPROFILE_CHILL) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
       break;
     case SCREENSIGNAL_ENCODEROK:
       switch (Encoder.getCount()) {
         case 0:
-          brewStepSignal(BREWSTEP_CHILL, STEPSIGNAL_ADVANCE);
-          uiJumpScreen(0);
+          autoValve[AV_CHILL] = 0; 
+          outputs->setProfileState(OUTPUTPROFILE_CHILL, 0);
+          outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 1);
+          outputs->setProfileState(OUTPUTPROFILE_WORTOUT, 0);
           break;
         case 1:
           autoValve[AV_CHILL] = 0; 
-          outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 1);
-          outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 1);
+          outputs->setProfileState(OUTPUTPROFILE_CHILL, 1);
+          outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 1);
+          outputs->setProfileState(OUTPUTPROFILE_WORTOUT, 0);
           break;
         case 2:
           autoValve[AV_CHILL] = 0; 
-          outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 0);
-          outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 1);
+          outputs->setProfileState(OUTPUTPROFILE_CHILL, 1);
+          outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 0);
+          outputs->setProfileState(OUTPUTPROFILE_WORTOUT, 0);
           break;
         case 3:
           autoValve[AV_CHILL] = 0; 
-          outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 0);
-          outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 1);
+          outputs->setProfileState(OUTPUTPROFILE_CHILL, 0);
+          outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 0);
+          outputs->setProfileState(OUTPUTPROFILE_WORTOUT, 1);
           break;
         case 4:
           autoValve[AV_CHILL] = 0;
-          outputs->setProfileState(OUTPUTPROFILE_CHILLH2O, 0);
-          outputs->setProfileState(OUTPUTPROFILE_CHILLBEER, 0);
+          outputs->setProfileState(OUTPUTPROFILE_CHILL, 0);
+          outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 0);
+          outputs->setProfileState(OUTPUTPROFILE_WORTOUT, 0);
           break;
         case 5:
           autoValve[AV_CHILL] = 1;
+          break;
+        case 6:
+          brewStepSignal(BREWSTEP_CHILL, STEPSIGNAL_ADVANCE);
+          uiJumpScreen(0);
           break;
       }
       break;
@@ -862,16 +876,16 @@ void screenChill (enum ScreenSignal signal) {
       LCD.rPad(3, 1, "", 10, ' ');
       switch (Encoder.getCount()) {
         case 0:
-          LCD.print_P(3, 2, CONTINUE);
-          break;
+          LCD.print_P(3, 1, WHIRLPOOL);
+          break;        
         case 1:
-          LCD.print_P(3, 1, CHILLNORM);
+          LCD.print_P(3, 1, WHIRLCHILL);
           break;
         case 2:
-          LCD.print_P(3, 1, CHILLH2O);
+          LCD.print_P(3, 3, CHILL);
           break;
         case 3:
-          LCD.print_P(3, 1, CHILLBEER);
+          LCD.print_P(3, 2, WORTOUT);
           break;
         case 4:
           LCD.print_P(3, 2, ALLOFF);
@@ -880,19 +894,23 @@ void screenChill (enum ScreenSignal signal) {
           LCD.print_P(3, 4, PSTR("Auto"));
           break;
         case 6:
+          LCD.print_P(3, 2, CONTINUE);
+          break;
+        case 7:
           LCD.print_P(3, 3, ABORT);
           break;
       }
       break;
     case SCREENSIGNAL_LOCK:
-      uiCursorFocus(3, 0, 12);
-      LCD.print_P(3, 2, CONTINUE);
       Encoder.setMin(0);
-      Encoder.setMax(6);
+      Encoder.setMax(7);
       Encoder.setCount(0);
+      screenChill(SCREENSIGNAL_INIT);
+      uiCursorFocus(3, 0, 12);
+      screenChill(SCREENSIGNAL_ENCODERCHANGE);
       break;
     case SCREENSIGNAL_UNLOCK:
-      uiCursorNone(3, 0, 12);
+      LCD.rPad(3, 0, "", 12, ' ');
       break;
   }
 }
