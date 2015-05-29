@@ -311,20 +311,6 @@
  **********************************************************************************/
 
 //**********************************************************************************
-// Save HLT and KET heating elements Support
-//**********************************************************************************
-// EXPERIMENTAL: Uncomment one or more of the following lines to enable forcing the
-// HLT, Mash or Kettle outputs to 0 if the volume in said vessel is less than the 
-// defined value.
-// NOTE: Volume is in thousandths of a Gallons/Liters
-// USE CAUTION! TESTING REQUIRED.
-//
-//#define HLT_MIN_HEAT_VOL 4000
-//#define MASH_MIN_HEAT_VOL 4000
-//#define KETTLE_MIN_HEAT_VOL 4000
-//**********************************************************************************
-
-//**********************************************************************************
 // Min HLT refill volume
 //**********************************************************************************
 // EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT

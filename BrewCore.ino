@@ -49,6 +49,7 @@ void brewCore() {
     heartbeat();
   #endif
   
+  triggerUpdate();
   updateHeatOutputs();
   outputs->update();
   //END HIGH PRIORITY

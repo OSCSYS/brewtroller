@@ -52,6 +52,7 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
 #include "Config.h"
 #include "Enum.h"
 #include "Outputs.h"
+#include "Trigger.h"
 #include "UI_LCD.h"
 #include "UI_Lang.h"
 #include <avr/eeprom.h>
@@ -118,17 +119,25 @@ struct ProgramThread {
   byte recipe;
 };
 
+struct TriggerConfiguration {
+  byte type                    :3;
+  byte index                   :4;
+  boolean activeLow            :1;
+  unsigned long threshold      :24;
+  unsigned long profileFilter;
+  unsigned long disableMask;
+  byte releaseHysteresis;
+};
+
 //**********************************************************************************
 // Globals
 //**********************************************************************************
 //Vessel PWM Output Pin Array
 analogOutput_SWPWM* pwmOutput[3] = {0, 0, 0};
 
-#ifdef DIGITAL_INPUTS
-  pin digInPin[DIGIN_COUNT];
+#ifdef ESTOP_PIN
+  pin *estopPin;
 #endif
-
-pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
 
 #ifdef HEARTBEAT
   pin hbPin;
@@ -137,6 +146,7 @@ pin * TriggerPin[5] = { NULL, NULL, NULL, NULL, NULL };
 //Volume Sensor Pin Array
 byte vSensor[3] = {VOLUMESENSOR_NONE, VOLUMESENSOR_NONE, VOLUMESENSOR_NONE};
 
+Trigger *trigger[USERTRIGGER_COUNT];
 
 //8-byte Temperature Sensor Address x9 Sensors
 byte tSensor[9][8];

@@ -1,4 +1,31 @@
 #ifndef NOUI
+//Global Output Profile display order
+byte outputProfileDisplayOrder[] = {
+  OUTPUTPROFILE_ALARM,
+  OUTPUTPROFILE_FILLHLT,
+  OUTPUTPROFILE_FILLMASH,
+  OUTPUTPROFILE_HLTHEAT,
+  OUTPUTPROFILE_HLTIDLE,
+  OUTPUTPROFILE_HLTPWMACTIVE,
+  OUTPUTPROFILE_MASHHEAT,
+  OUTPUTPROFILE_MASHIDLE,
+  OUTPUTPROFILE_MASHPWMACTIVE,
+  OUTPUTPROFILE_ADDGRAIN,
+  OUTPUTPROFILE_SPARGEIN,
+  OUTPUTPROFILE_SPARGEOUT,
+  OUTPUTPROFILE_KETTLEHEAT,
+  OUTPUTPROFILE_KETTLEIDLE,
+  OUTPUTPROFILE_KETTLEPWMACTIVE,
+  OUTPUTPROFILE_HOPADD,
+  OUTPUTPROFILE_KETTLELID,
+  OUTPUTPROFILE_CHILL,
+  OUTPUTPROFILE_WORTOUT,
+  OUTPUTPROFILE_WHIRLPOOL,
+  OUTPUTPROFILE_DRAIN,
+  OUTPUTPROFILE_USER1,
+  OUTPUTPROFILE_USER2,
+  OUTPUTPROFILE_USER3
+};
 
 void editProgramMenu() {
   char itemDesc[20];
@@ -364,7 +391,7 @@ void menuSetup() {
     #endif  
     #ifdef DIGITAL_INPUTS
       else if (lastOption == 7)
-        cfgTriggers();
+        menuTriggers();
     #endif
     else return;
   }
@@ -590,10 +617,10 @@ byte menuSelectOutput(char sTitle[], byte currentSelection) {
   return lastOption;
 }
 
-unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection) {
+unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection, boolean doTest) {
   unsigned long newSelection = currentSelection;
   while (1) {
-    menu outputMenu(3, outputs->getCount() + 2);
+    menu outputMenu(3, outputs->getCount() + 3);
     for (byte i = 0; i < outputs->getCount(); i++) {
       if (newSelection & (1 << i)) {
         outputMenu.setItem(outputs->getOutputBankName(i, buf), i);
@@ -602,7 +629,8 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection) {
       }
     }
     outputMenu.setItem_P(PSTR("[Add Output]"), 254);
-    outputMenu.setItem_P(PSTR("[Test Profile]"), 253);
+    if (doTest)
+      outputMenu.setItem_P(PSTR("[Test Profile]"), 253);
     outputMenu.setItem_P(EXIT, 255);
   
     byte lastOption = scrollMenu(sTitle, &outputMenu);
@@ -631,6 +659,38 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection) {
     } else
       newSelection &= ~(1<<lastOption);
   }
+}
+
+unsigned long menuSelectOutputProfiles(char sTitle[], unsigned long currentSelection) {
+  unsigned long newSelection = currentSelection;
+  while (1) {
+    menu outputMenu(3, OUTPUTPROFILE_USERCOUNT + 2);
+    for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++) {
+      if (newSelection & (1ul << outputProfileDisplayOrder[i]))
+        outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[outputProfileDisplayOrder[i]])), outputProfileDisplayOrder[i]);
+    }
+    outputMenu.setItem_P(PSTR("[Add Profile]"), 254);
+    outputMenu.setItem_P(EXIT, 255);
+    
+    byte lastOption = scrollMenu(sTitle, &outputMenu);
+    if (lastOption == 254) {
+      byte addOutput = menuSelectOutputProfile("Add Profile");
+      if (addOutput < OUTPUTPROFILE_USERCOUNT)
+        newSelection |= (1ul << addOutput);
+    }  else if (lastOption == 255) {
+      if (newSelection != currentSelection && confirmSave())
+        return newSelection;
+      return currentSelection;
+    } else
+      newSelection &= ~(1ul << lastOption);
+  }
+}
+
+byte menuSelectOutputProfile(char sTitle[]) {
+  menu outputMenu(3, OUTPUTPROFILE_USERCOUNT);
+  for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
+    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[outputProfileDisplayOrder[i]])), outputProfileDisplayOrder[i]);
+  return scrollMenu(sTitle, &outputMenu);
 }
 
 void menuVolume(){
@@ -719,7 +779,7 @@ byte menuSelectAnalogInput(char sTitle[], byte currentValue) {
 #endif
 
 byte menuSelectVessel(char sTitle[]) {
-    menu volMenu(3, 4);
+  menu volMenu(3, 4);
   for (byte i =0; i <= VS_KETTLE; i++)
     volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
   volMenu.setItem_P(PSTR("None"), 255);
@@ -812,40 +872,14 @@ void volCalibEntryMenu(byte vessel, byte entry) {
 }
 
 void menuOutputProfiles() {
-  byte dispOrder[] = {
-    OUTPUTPROFILE_ALARM,
-    OUTPUTPROFILE_FILLHLT,
-    OUTPUTPROFILE_FILLMASH,
-    OUTPUTPROFILE_HLTHEAT,
-    OUTPUTPROFILE_HLTIDLE,
-    OUTPUTPROFILE_HLTPWMACTIVE,
-    OUTPUTPROFILE_MASHHEAT,
-    OUTPUTPROFILE_MASHIDLE,
-    OUTPUTPROFILE_MASHPWMACTIVE,
-    OUTPUTPROFILE_ADDGRAIN,
-    OUTPUTPROFILE_SPARGEIN,
-    OUTPUTPROFILE_SPARGEOUT,
-    OUTPUTPROFILE_KETTLEHEAT,
-    OUTPUTPROFILE_KETTLEIDLE,
-    OUTPUTPROFILE_KETTLEPWMACTIVE,
-    OUTPUTPROFILE_HOPADD,
-    OUTPUTPROFILE_KETTLELID,
-    OUTPUTPROFILE_CHILL,
-    OUTPUTPROFILE_WORTOUT,
-    OUTPUTPROFILE_WHIRLPOOL,
-    OUTPUTPROFILE_DRAIN,
-    OUTPUTPROFILE_USER1,
-    OUTPUTPROFILE_USER2,
-    OUTPUTPROFILE_USER3
-  };
   menu outputProfileMenu(3, OUTPUTPROFILE_USERCOUNT + 1);
   for (byte profile = 0; profile < OUTPUTPROFILE_USERCOUNT; profile++)
-    outputProfileMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[dispOrder[profile]])), dispOrder[profile]);
+    outputProfileMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[outputProfileDisplayOrder[profile]])), outputProfileDisplayOrder[profile]);
   outputProfileMenu.setItem_P(EXIT, 255);
   while (1) {
     byte profile = scrollMenu("Output Profiles", &outputProfileMenu);
     if (profile >= OUTPUTPROFILE_USERCOUNT) return;
-    else setOutputProfile(profile, menuSelectOutputs(outputProfileMenu.getSelectedRow(buf), outputs->getProfileMask(profile)));
+    else setOutputProfile(profile, menuSelectOutputs(outputProfileMenu.getSelectedRow(buf), outputs->getProfileMask(profile), 1));
   }
 }
 
@@ -1056,26 +1090,186 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
   }
 #endif //#ifdef UI_DISPLAY_SETUP
 
-#ifdef DIGITAL_INPUTS
-  void cfgTriggers() {
-    menu triggerMenu(3, 6);
-   
-    while(1) {
+void menuTriggers() {
+  menu triggerMenu(3, USERTRIGGER_COUNT + 2);
+ 
+  while(1) {
+    #ifdef ESTOP_PIN
       triggerMenu.setItem_P(PSTR("E-Stop: "), 0);
-      triggerMenu.setItem_P(PSTR("Sparge Max: "), 1);
-      triggerMenu.setItem_P(PSTR("HLT Min: "), 2);
-      triggerMenu.setItem_P(PSTR("Mash Min: "), 3);
-      triggerMenu.setItem_P(PSTR("Kettle Min: "), 4);
-      triggerMenu.setItem_P(PSTR("Exit"), 255);
-      for (byte i = 0; i < 5; i++) {
-        if (getTriggerPin(i)) triggerMenu.appendItem(itoa(getTriggerPin(i), buf, 10), i);
-        else triggerMenu.appendItem_P(PSTR("None"), i);
+      if (getEStopEnabled())
+        triggerMenu.appendItem_P(PSTR("Enabled"), 0);
+      else
+        triggerMenu.appendItem_P(PSTR("Disabled"), 0);
+    #endif
+    
+    for (byte i = 0; i < USERTRIGGER_COUNT; i++) {
+      struct TriggerConfiguration trigConfig;
+      loadTriggerConfiguration(i, &trigConfig);
+      switch (trigConfig.type) {
+        case TRIGGERTYPE_NONE:
+          triggerMenu.setItem_P(PSTR("NOT CONFIGURED"), i + 1);
+          break;
+        case TRIGGERTYPE_GPIO:
+          triggerMenu.setItem_P(PSTR("INPUT "), i + 1);
+          triggerMenu.appendItem(itoa(trigConfig.index + 1, buf, 10), i + 1);
+          break;
+        case TRIGGERTYPE_VOLUME:
+          triggerMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), i + 1);
+          triggerMenu.appendItem_P(PSTR(" Volume"), i + 1);
+          break;
       }
-      
-      byte lastOption = scrollMenu("Trigger Assignment", &triggerMenu);
-      if (lastOption < 5) setTriggerPin(lastOption, getValue_P(PSTR("Input Pin (0=None):"), getTriggerPin(lastOption), 1, DIGIN_COUNT, PSTR("")));
-      else return;
     }
+    
+    triggerMenu.setItem_P(PSTR("Exit"), 255);
+          
+    byte lastOption = scrollMenu("Triggers", &triggerMenu);
+    if (lastOption == 0) {
+      #ifdef ESTOP_PIN
+        setEStopEnabled(~getEStopEnabled());
+        estopInit();
+      #endif
+    } else if (lastOption <= USERTRIGGER_COUNT)
+      cfgTrigger(lastOption - 1);
+    else
+      return;
+  }
+}
+
+void cfgTrigger(byte triggerIndex) {
+  struct TriggerConfiguration trigConfig;
+  loadTriggerConfiguration(triggerIndex, &trigConfig);
+  
+  struct TriggerConfiguration origConfig = trigConfig;
+  byte lastOption = 0;
+  
+  while(1) {
+    menu triggerMenu(3, 9);
+    triggerMenu.setItem_P(PSTR("Type: "), 0);
+    switch (trigConfig.type) {
+      case TRIGGERTYPE_NONE:
+        triggerMenu.appendItem_P(PSTR("Disabled"), 0);
+        break;
+      case TRIGGERTYPE_GPIO:
+        #ifdef DIGITAL_INPUTS
+          triggerMenu.appendItem_P(PSTR("Digital Input"), 0);
+          triggerMenu.setItem_P(PSTR("Input: "), 1);
+          triggerMenu.appendItem(itoa(trigConfig.index + 1, buf, 10), 1);
+        #endif
+        break;
+      case TRIGGERTYPE_VOLUME:
+        triggerMenu.appendItem_P(PSTR("Volume"), 0);
+        triggerMenu.setItem_P(PSTR("Vessel: "), 2);
+        triggerMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), 2);
+        triggerMenu.setItem_P(PSTR("Threshold"), 3);
+        break;
+    }
+    if (trigConfig.type != TRIGGERTYPE_NONE) {
+      triggerMenu.setItem_P(PSTR("Active: "), 4);
+      triggerMenu.appendItem_P(trigConfig.activeLow ? PSTR("Low") : PSTR("High"), 4);
+      triggerMenu.setItem_P(PSTR("Profile Filter"), 5);
+      triggerMenu.setItem_P(PSTR("Disabled Outputs"), 6);
+      triggerMenu.setItem_P(PSTR("Release Delay: "), 7);
+      if (trigConfig.releaseHysteresis) {
+        triggerMenu.appendItem(itoa(trigConfig.releaseHysteresis, buf, 10), 7);
+        triggerMenu.appendItem_P(PSTR("s"), 7);
+      }
+      else
+        triggerMenu.appendItem_P(PSTR("None"), 7);
+    }
+    triggerMenu.setItem_P(PSTR("Exit"), 255);
+    triggerMenu.setSelected(lastOption);
+    lastOption = scrollMenu("Triggers", &triggerMenu);
+    if (lastOption == 0) {
+      byte origType = trigConfig.type;
+      trigConfig.type = menuTriggerType(trigConfig.type);
+      if (trigConfig.type != origType)
+        trigConfig.index = 0;
+    }
+    #ifdef DIGITAL_INPUTS
+      else if (lastOption == 1)
+        trigConfig.index = menuDigitalInput(trigConfig.index);
+    #endif
+    else if (lastOption == 2)
+      trigConfig.index = menuVessel(trigConfig.index);
+    else if (lastOption == 3)
+      trigConfig.threshold = getValue_P(PSTR("Trigger Threshold"), trigConfig.threshold, 1000, 9999999, VOLUNIT);
+    else if (lastOption == 4) 
+      trigConfig.activeLow = ~trigConfig.activeLow;
+    else if (lastOption == 5)
+      trigConfig.profileFilter = menuSelectOutputProfiles("Profile Filter", trigConfig.profileFilter);
+    else if (lastOption == 6)
+      trigConfig.disableMask = menuSelectOutputs("Disabled Output", trigConfig.disableMask, 0);
+    else if (lastOption == 7)
+      trigConfig.releaseHysteresis = getValue_P(PSTR("Release Delay"), trigConfig.releaseHysteresis, 1, 255, PSTR("s"));
+    else {
+      if (triggerConfigurationDidChange(&trigConfig, &origConfig) && confirmSave()) {
+        saveTriggerConfiguration(triggerIndex, &trigConfig);
+        triggerInitInstance(triggerIndex);
+      }
+      return;
+    }
+  }
+}
+
+boolean triggerConfigurationDidChange(struct TriggerConfiguration *a, struct TriggerConfiguration *b) {
+  if (a->type == b->type 
+      && a->index == b->index 
+      && a->activeLow == b->activeLow 
+      && a->threshold == b->threshold
+      && a->profileFilter == b->profileFilter
+      && a->disableMask == b->disableMask
+      && a->releaseHysteresis == b->releaseHysteresis
+    )
+    return 0;
+  return 1;
+}
+
+byte menuTriggerType (byte type) {
+  menu triggerMenu(3, 3);
+  for (byte i = 0; i < TRIGGERTYPE_COUNT; i++) {
+    #ifndef DIGITAL_INPUTS
+    if (i != TRIGGERTYPE_GPIO)
+    #endif
+    triggerMenu.setItem_P(type == i ? PSTR("*") : PSTR(""), i);
+  }
+  triggerMenu.appendItem_P(PSTR("Disabled"), 0);
+  #ifdef DIGITAL_INPUTS
+    triggerMenu.appendItem_P(PSTR("Digital Input"), 1);
+  #endif
+  triggerMenu.appendItem_P(PSTR("Volume"), 2);
+  triggerMenu.setSelected(type);
+  byte newType = scrollMenu("Trigger Type", &triggerMenu);
+  if (newType == 255)
+    return type;
+  return newType;
+}
+
+byte menuVessel(byte vessel){
+  menu vesselMenu(3, 3);
+  for (byte i = 0; i <= VS_KETTLE; i++) {
+    vesselMenu.setItem_P(i == vessel ? PSTR("*") : PSTR(""), i);
+    vesselMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
+  }
+  vesselMenu.setSelected(vessel);
+  byte lastOption = scrollMenu("Select Vessel", &vesselMenu);
+  if (lastOption == 255)
+    return vessel;
+  return lastOption;
+}
+
+#ifdef DIGITAL_INPUTS
+  byte menuDigitalInput(byte index){
+    menu inputMenu(3, DIGITAL_INPUTS_COUNT);
+    for (byte i = 0; i < DIGITAL_INPUTS_COUNT; i++) {
+      inputMenu.setItem_P(i == index ? PSTR("*") : PSTR(""), i);
+      inputMenu.appendItem_P(PSTR("Digital Input "), i);
+      inputMenu.appendItem(itoa(i + 1, buf, 10), i);
+    }
+    inputMenu.setSelected(index);
+    byte lastOption = scrollMenu("Select Input", &inputMenu);
+    if (lastOption == 255)
+      return index;
+    return lastOption;
   }
 #endif
 

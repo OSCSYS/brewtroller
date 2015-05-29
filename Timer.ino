@@ -60,9 +60,10 @@ void clearTimer(byte timer) {
 void updateTimers() {
   for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
     if (timerStatus[timer]) {
-      if (isEStop()) {
-        pauseTimer(timer);
-      }
+      #ifdef ESTOP_PIN
+        if (isEStop())
+          pauseTimer(timer);
+      #endif
       
       unsigned long now = millis();
       if (timerValue[timer] > now - lastTime[timer]) {

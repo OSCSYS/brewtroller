@@ -37,15 +37,10 @@ BrewTroller 4.0 Pro Hardware Configuration
   #define OUTPUTBANK_MUX_ENABLELOGIC
 
   #define DIGITAL_INPUTS
-  #define DIGIN_COUNT 5
-  #define DIGIN1_PIN 18
-  #define DIGIN2_PIN 19
-  #define DIGIN3_PIN 20
-  #define DIGIN4_PIN 21
-  #define DIGIN5_PIN 22
-  
-  #define DIGITAL_INPUTS_COUNT 5
-  #define DIGITAL_INPUTS_PINS {18, 19, 20, 21, 22}
+  #define DIGITAL_INPUTS_COUNT 4
+  #define DIGITAL_INPUTS_PINS {18, 19, 20, 21}
+
+  #define ESTOP_PIN 22
 
   #define HLTVOL_APIN 3
   #define MASHVOL_APIN 2
