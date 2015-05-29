@@ -525,28 +525,22 @@ unsigned long getProgGrain(byte preset) { return EEPROMreadLong(PROGRAM_START_AD
 //**********************************************************************************
 
 //**********************************************************************************
-//Trigger Pins (2050-2054) ATMEGA1284P Only  +Reserved: 2055-2064
+//EStop Enabled (2050)
 //**********************************************************************************
-#ifdef DIGITAL_INPUTS
-  byte getTriggerPin(byte triggerIndex) {
-    #if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
-      return EEPROM.read(2050 + triggerIndex);
-    #else
-      return 0;
-    #endif
-  }
-  
-  void setTriggerPin(byte triggerIndex, byte inputIndex) {
-    #if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
-      EEPROM.write(2050 + triggerIndex, inputIndex);
-      triggerInit(); //Call triggerInit() to reattach
-    #endif
-  }
-#endif
+boolean getEStopEnabled() {
+  return EEPROM.read(2050);
+}
 
+void setEStopEnabled(boolean enabled) {
+  EEPROM.write(2050, enabled);
+}
 
 //**********************************************************************************
-//Modbus Relay Boards (2065-2076) ATMEGA1284P Only + Reserved: 2077-2088 
+//OPEN (2051-2064)
+//**********************************************************************************
+
+//**********************************************************************************
+//Modbus Relay Boards (2065-2076) + Reserved: 2077-2088 
 //**********************************************************************************
 byte getOutModbusAddr(byte board) {
   return EEPROM.read(2065 + board * 4);
@@ -620,6 +614,17 @@ byte getRGBIOAssignmentRecipe(byte boardIndex, byte channelIndex) {
   return (assignment & B01100000) >> 5;
 }
 
+//**********************************************************************************
+//Trigger Configuration (13-Bytes * 6 + 4 Reserved (2157-2286)
+//**********************************************************************************
+struct TriggerConfiguration* loadTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *configuration) {
+  eeprom_read_block((void *) configuration, (unsigned char *) 2157 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
+  return configuration;
+}
+
+void saveTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *configuration) {
+  eeprom_write_block((void *) configuration, (unsigned char *) 2157 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
+}
 
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
@@ -648,9 +653,6 @@ boolean checkConfig() {
         EEPROM.write(76 + vessel * 5, EEPROM.read(76 + vessel * 5) * 10);
       //Set cfgVersion = 1
     case 1:
-      //Set triggers to disabled by default
-      for (byte trig = 0; trig < NUM_TRIGGERS; trig++)
-        EEPROM.write(2050 + trig, 0);
     case 2:
     case 3:
       //Reset profiles as bits have shifted
@@ -692,7 +694,21 @@ boolean checkConfig() {
         setPIDLimit(i, 100);
         setPWMResolution(i, 120);
       }
-      EEPROM.write(2047, 4);
+    case 4:
+      //Set triggers to disabled by default
+      setEStopEnabled(0);
+      for (byte i = 0; i < 6; i++) {
+        struct TriggerConfiguration *defaultConfig;
+        defaultConfig->type = TRIGGERTYPE_NONE;
+        defaultConfig->index = 0;
+        defaultConfig->activeLow = 0;
+        defaultConfig->threshold = 0;
+        defaultConfig->profileFilter = 0;
+        defaultConfig->disableMask = 0;
+        defaultConfig->releaseHysteresis = 0;
+        saveTriggerConfiguration(i, defaultConfig);
+      }
+      EEPROM.write(2047, 5);
   }
   return 0;
 }

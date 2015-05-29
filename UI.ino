@@ -214,9 +214,13 @@ void uiSetCustomCharactors() {
 // uiUpdate(): Called in main loop to handle all UI functions
 //**********************************************************************************
 void uiUpdate() {
-  if (isEStop())
+  #ifdef ESTOP_PIN
+  if (isEStop()) {
     uiEStop(); //Note: Holds focus in event of eStop Trigger
-    
+    uiJumpScreen(activeScreen);
+  }
+  #endif
+  
   if (Encoder.change() >= 0) {
     if (screenLock)
       (*screenMap[activeScreen])(SCREENSIGNAL_ENCODERCHANGE);
@@ -939,6 +943,8 @@ void screenAUX (enum ScreenSignal signal) {
   }
 }
 
+#ifdef ESTOP_PIN
+// uiEStop() uses custom screen instead of menu object to auto-hide UI if E-Stop is cleaered.
 void uiEStop() {
   LCD.clear();
   LCD.print_P(0, 0, PSTR("E-Stop Triggered"));
@@ -946,23 +952,27 @@ void uiEStop() {
   Encoder.setMax(1);
   Encoder.setCount(0);
   LCD.print_P(1, 0, PSTR(">Clear Alarm"));
-  LCD.print_P(2, 0, PSTR(" Clear E-Stop"));
+  LCD.print_P(2, 0, PSTR(" Disable E-Stop"));
 
   while (isEStop()) {
     if (Encoder.change() >= 0) {
-      LCD.print(2 - Encoder.getCount(), 0, " ");
+      for (byte i = 0; i < 3; i++)
+        LCD.print(i + 1, 0, " ");
       LCD.print(Encoder.getCount() + 1, 0, ">");
       LCD.update();
     }
     if (Encoder.ok()) {
       if (Encoder.getCount() == 0)
         setAlarm(0);
-      else if (Encoder.getCount() == 1)
-        outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, 0xFFFFFFFFul);
+      else if (Encoder.getCount() == 1) {
+        setEStopEnabled(0);
+        estopInit();
+      }
     }
     brewCore();
   }
 }
+#endif
 
 void boilControlMenu() {
   menu boilMenu(3, 3);

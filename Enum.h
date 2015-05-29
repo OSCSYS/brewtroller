@@ -69,7 +69,7 @@
     OUTPUTENABLE_ESTOP,          //Used by EStop logic to disable all outputs
     OUTPUTENABLE_BTNIC,          //Used by BTNIC logic to force off specific outputs (not implemented)
     OUTPUTENABLE_RGBIO,          //Used by RGBIO logic to force off specific outputs
-    OUTPUTENABLE_VESSELMIN,      //Used by vessel minimum volume and triggers to disable specific outputs
+    OUTPUTENABLE_TRIGGER,        //Used by vessel minimum volume and triggers to disable specific outputs
     OUTPUTENABLE_SYSTEMTEST,     //Used to test output profiles by forcing off outputs not in the mask being tested
     OUTPUTENABLE_COUNT
   };
@@ -162,14 +162,14 @@ enum EventIndex {
 #define BTNIC 1
 #define BINARY 2
 
-typedef enum {
-  TRIGGER_ESTOP,
-  TRIGGER_SPARGEMAX,
-  TRIGGER_HLTMIN,
-  TRIGGER_MASHMIN,
-  TRIGGER_KETTLEMIN,
-  NUM_TRIGGERS
-} TriggerType;
+#define USERTRIGGER_COUNT 6
+
+enum triggerType {
+  TRIGGERTYPE_NONE,
+  TRIGGERTYPE_GPIO,
+  TRIGGERTYPE_VOLUME,
+  TRIGGERTYPE_COUNT
+};
 
 typedef enum {
   CONTROLSTATE_OFF,

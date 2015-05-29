@@ -72,11 +72,6 @@ void updatePIDHeat(byte vessel) {
       PIDOutput[vessel] = 0;
   #endif
   
-  //Trigger based element save
-  if (vesselMinTrigger(vessel) != NULL)
-    if(!vesselMinTrigger(vessel)->get())
-      PIDOutput[vessel] = 0;
-  
   if (pwmOutput[vessel]) {
     pwmOutput[vessel]->setValue(PIDOutput[vessel]);
     pwmOutput[vessel]->update();
@@ -99,12 +94,7 @@ void updateOnOffHeatOn(byte vessel) {
   // determine if setpoint has ben reached, or there is a bad temp reading.
   // If it either condition, turn it off.
 
-  //Indicates if the minimum volume has been reached (defaults to true in case trigger is not used)
-  boolean vesselMinTrig = 1;
-  if (vesselMinTrigger(vessel) != NULL)
-    vesselMinTrig = (vesselMinTrigger(vessel)->get());
-
-  if (!vesselMinTrig || (temp[vessel] == BAD_TEMP || temp[vessel] >= setpoint[vessel])) { 
+  if (temp[vessel] == BAD_TEMP || temp[vessel] >= setpoint[vessel]) { 
     outputs->setProfileState(vesselHeatProfile(vessel), 0);
     outputs->setProfileState(vesselIdleProfile(vessel), 1);
     heatStatus[vessel] = 0;
@@ -119,13 +109,7 @@ void updateOnOffHeatOn(byte vessel) {
 
 void updateOnOffHeatOff(byte vessel) {
   // Determine is the vessel temperature is below the setpoint, accounting for hysteresis.
-
-  //Indicates if the minimum volume has been reached (defaults to true in case trigger is not used)
-  boolean vesselMinTrig = 1;
-  if (vesselMinTrigger(vessel) != NULL)
-    vesselMinTrig = (vesselMinTrigger(vessel)->get());
-
-  if (vesselMinTrig && (temp[vessel] != BAD_TEMP && (setpoint[vessel] - temp[vessel]) >= hysteresis[vessel] * 10)) {
+  if (temp[vessel] != BAD_TEMP && (setpoint[vessel] - temp[vessel]) >= hysteresis[vessel] * 10) {
       // The temperature of the vessel is below what we want, so insure the correct pin is turned on,
       // and the heatStatus is updated.
     outputs->setProfileState(vesselHeatProfile(vessel), 1);
@@ -275,16 +259,6 @@ byte vesselPWMActiveProfile(byte vessel) {
     return OUTPUTPROFILE_KETTLEPWMACTIVE;
 }
 
-pin * vesselMinTrigger(byte vessel) {
-  if (vessel == VS_HLT)
-    return TriggerPin[TRIGGER_HLTMIN];
-  else if (vessel == VS_MASH)
-    return TriggerPin[TRIGGER_MASHMIN];
-  else if (vessel == VS_KETTLE)
-    return TriggerPin[TRIGGER_KETTLEMIN];
-  return NULL;
-}
-
 byte autoValveBitmask(void) {
   byte modeMask = 0;
   for (byte i = AV_FILL; i < NUM_AV; i++)
@@ -296,6 +270,8 @@ byte getHeatPower (byte vessel) {
   return (pwmOutput[vessel] ? ((unsigned int)(pwmOutput[vessel]->getValue()) * 100 / pwmOutput[vessel]->getLimit()) : (heatStatus[vessel] ? 100 : 0));
 }
 
+#ifdef ESTOP_PIN
 boolean isEStop() {
   return (outputs->getOutputEnableMask(OUTPUTENABLE_ESTOP) == outputs->getProfileMask(OUTPUTPROFILE_ALARM));
 }
+#endif

@@ -26,8 +26,11 @@ OpenTroller DX1 Hardware Configuration
   #define RS485_RTS_PIN    23
 
   #define DIGITAL_INPUTS
-  #define DIGITAL_INPUTS_COUNT 6
-  #define DIGITAL_INPUTS_PINS {21, 20, 19, 18, 5, 22}
+  #define DIGITAL_INPUTS_COUNT 5
+  //Silkscreen puts digital input 1 next to com which is OPT5 in Eagle file. Reversing order of inputs:
+  #define DIGITAL_INPUTS_PINS {5, 18, 19, 20, 21}
+  
+  #define ESTOP_PIN 22
 
   #define ANALOGINPUTS_GPIO
   #define ANALOGINPUTS_GPIO_COUNT 4
