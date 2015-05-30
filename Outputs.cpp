@@ -392,6 +392,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     pinIndex = index;
     limit = resolution;
     period = p;
+    value = 0;
   }
   
   OutputSystem* analogOutput_SWPWM::outputs = NULL;
