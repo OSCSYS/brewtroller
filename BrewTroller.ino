@@ -60,7 +60,7 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
 #include "wiring_private.h"
 #include <encoder.h>
 #ifdef RGBIO8_ENABLE
-  #include "Com_RGBIO8.h"
+  #include "RGBIO8.h"
 #endif
 
 void(* softReset) (void) = 0;
@@ -182,11 +182,13 @@ long flowRate[3] = {0,0,0};
 #elif defined UI_LCD_I2C
   LCDI2C LCD(UI_LCD_I2CADDR);
 #endif
-
-
  
 boolean autoValve[NUM_AV];
 OutputSystem* outputs;
+
+#ifdef RGBIO8_ENABLE
+  RGBIO8* rgbio[RGBIO8_MAX_BOARDS];
+#endif
 
 //Shared buffers
 char buf[20];
@@ -259,6 +261,10 @@ void setup() {
   //Communications initialization (Com.ino)
   //Must occur after output initialization and loading setup due to RGBIO logic
   comInit();
+  
+  #ifdef RGBIO8_ENABLE
+    RGBIO8_Init();
+  #endif
   
   #ifdef DIGITAL_INPUTS
     //Digital Input Interrupt Setup

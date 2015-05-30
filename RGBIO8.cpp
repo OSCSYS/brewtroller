@@ -1,4 +1,4 @@
-#include "Com_RGBIO8.h"
+#include "RGBIO8.h"
 
 OutputSystem* RGBIO8::outputs;
 uint16_t RGBIO8::output_recipes[RGBIO8_MAX_OUTPUT_RECIPES][RGBIORECIPE_MODECOUNT];
