@@ -415,7 +415,7 @@ void BTnic::execCmd(void) {
       setPIDi(cmdIndex, getCmdParamNum(4));
       setPIDd(cmdIndex, getCmdParamNum(5));
       setHysteresis(cmdIndex, getCmdParamNum(6));
-      loadPWMOutputs();
+      loadPWMOutput(cmdIndex);
     case CMD_GET_OSET:  //D
       logFieldCmd(CMD_GET_OSET, cmdIndex);
       logFieldI(getPWMPin(cmdIndex));

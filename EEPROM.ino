@@ -42,8 +42,6 @@ void loadSetup() {
   for (byte i = VS_HLT; i <= VS_KETTLE; i++)
     hysteresis[i] = EEPROM.read(77 + i * 5);
 
-  loadPWMOutputs();
-  
   //**********************************************************************************
   //boilPwr (112)
   //**********************************************************************************
@@ -78,6 +76,9 @@ void loadSetup() {
   
   loadOutputSystem();
 
+  for (byte i = VS_HLT; i <= VS_KETTLE; i++)
+    loadPWMOutput(i);
+
   //**********************************************************************************
   //Timer/Alarm Status (306)
   //**********************************************************************************
@@ -104,23 +105,21 @@ void loadSetup() {
     eepromLoadProgramThread(i, &programThread[i]);
 }
 
-void loadPWMOutputs() {
-  for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-    byte pwmPin = getPWMPin(i);
-    byte pwmCycle = getPWMPeriod(i);
-    byte pwmResolution = getPWMResolution(i);
-    byte pidLimit = getPIDLimit(i);
-    if (pwmOutput[i])
-      delete pwmOutput[i];
-    if (pwmPin != PWMPIN_NONE)
-      pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
-      
-    pid[i].SetInputLimits(0, 25500);
-    pid[i].SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
-    pid[i].SetTunings(getPIDp(i), getPIDi(i), getPIDd(i));
-    pid[i].SetMode(AUTO);
-    pid[i].SetSampleTime(PID_UPDATE_INTERVAL);
-  }
+void loadPWMOutput(byte i) {
+  byte pwmPin = getPWMPin(i);
+  byte pwmCycle = getPWMPeriod(i);
+  byte pwmResolution = getPWMResolution(i);
+  byte pidLimit = getPIDLimit(i);
+  if (pwmOutput[i])
+    delete pwmOutput[i];
+  if (pwmPin != PWMPIN_NONE)
+    pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
+    
+  pid[i].SetInputLimits(0, 25500);
+  pid[i].SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
+  pid[i].SetTunings(getPIDp(i), getPIDi(i), getPIDd(i));
+  pid[i].SetMode(AUTO);
+  pid[i].SetSampleTime(PID_UPDATE_INTERVAL);
 }
 
 void loadOutputSystem() {
