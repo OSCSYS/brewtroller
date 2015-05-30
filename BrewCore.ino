@@ -38,6 +38,9 @@ enum schedulerTasks {
   SCHEDULETASK_FLOWRATES,
 #endif
   SCHEDULETASK_PROGRAMS,
+#ifdef RGBIO8_ENABLE
+  SCHEDULETASK_RGBIO,
+#endif
   SCHEDULETASK_COMS,
   SCHEDULETASK_AUTOVALVE,
   SCHEDULETASK_COUNT
@@ -92,6 +95,11 @@ void brewCore() {
       //Step Logic: StepLogic.ino
       programThreadsUpdate();
       break;
+      
+#ifdef RGBIO8_ENABLE
+    case SCHEDULETASK_RGBIO:
+      RGBIO8_Update();
+#endif
       
     case SCHEDULETASK_COMS:
       //Communications: Com.ino

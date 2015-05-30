@@ -56,12 +56,6 @@ void updateFlowRates() {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
       // note that the * 60000 is from converting thousands of a gallon / miliseconds to thousands of a gallon / minutes 
       flowRate[i] = round((float)((float)(((float)volAvg[i] - (float)prevFlowVol[i])) / (float)((float)tempmill - (float)lastFlowChk)) * (float)MiliToMin);
-      #ifdef DEBUG_VOL_READ
-      logStart_P(LOGDEBUG);
-      logField_P(PSTR("VOL_Calc"));
-      logFieldI(i);
-      logFieldI(flowRate[i]);
-      #endif
       prevFlowVol[i] = volAvg[i];
     }
     lastFlowChk = tempmill;

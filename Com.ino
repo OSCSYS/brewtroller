@@ -32,9 +32,6 @@ void comInit() {
   #ifdef COM_SERIAL0
     Serial.begin(SERIAL0_BAUDRATE);
   #endif
-  #ifdef RGBIO8_ENABLE
-    RGBIO8_Init();
-  #endif
 }
 
 void updateCom() {
@@ -49,9 +46,6 @@ void updateCom() {
   //BTPD Support
   #ifdef BTPD_SUPPORT
     updateBTPD();
-  #endif
-  #ifdef RGBIO8_ENABLE
-    RGBIO8_Update();
   #endif
 }
 
@@ -133,31 +127,6 @@ void updateCom() {
     #endif
   #endif
 #endif
-
-
-#ifdef RGBIO8_ENABLE
-  RGBIO8* rgbio[RGBIO8_MAX_BOARDS];
-  unsigned long lastRGBIO8 = 0;
-  
-  // Initializes the RGBIO8 system. If you want to provide custom IO mappings
-  // this is the place to do it. See the CUSTOM CONFIGURATION section below for
-  // further instructions.
-  void RGBIO8_Init() {
-    RGBIO8::setup(outputs);
-  }
-  
-  void RGBIO8_Update() {
-    if (millis() > (lastRGBIO8 + RGBIO8_INTERVAL)) {
-      for (int i = 0; i < RGBIO8_MAX_BOARDS; i++) {
-        if (rgbio[i])
-          rgbio[i]->update();
-      }
-      outputs->setProfileState(OUTPUTPROFILE_RGBIO, outputs->getProfileMask(OUTPUTPROFILE_RGBIO) ? 1 : 0);
-      lastRGBIO8 = millis();
-    }
-  }
-#endif
-
 
 void comEvent(byte eventID, int eventParam) {
   #ifdef BTNIC_PROTOCOL

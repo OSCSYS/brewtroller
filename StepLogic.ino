@@ -26,18 +26,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 unsigned long lastHop, grainInStart;
 unsigned int boilAdds, triggered;
 
-struct ProgramThread programThread[PROGRAMTHREAD_MAX];
-
-void programThreadsInit() {
-  for(byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
-    eepromLoadProgramThread(i, &programThread[i]);
-    if (programThread[i].activeStep != BREWSTEP_NONE) {
-      programThreadSignal(programThread + i, STEPSIGNAL_INIT);
-      eventHandler(EVENT_STEPINIT, programThread[i].activeStep);  
-    }
-  }
-}
-
 void programThreadsUpdate() {
   for (byte i = 0; i < PROGRAMTHREAD_MAX; i++)
     if (programThread[i].activeStep != BREWSTEP_NONE)
