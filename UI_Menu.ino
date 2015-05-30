@@ -587,7 +587,7 @@ void menuOutputSettings(byte vessel) {
     else if (lastOption == 7)
       setHysteresis(vessel, getValue_P(HYSTERESIS, hysteresis[vessel], 10, 255, TUNIT));
     else {
-      loadPWMOutputs();
+      loadPWMOutput(vessel);
       return;
     }
   } 
