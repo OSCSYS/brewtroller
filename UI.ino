@@ -966,7 +966,7 @@ void uiEStop() {
         setAlarm(0);
       else if (Encoder.getCount() == 1) {
         setEStopEnabled(0);
-        estopInit();
+        loadEStop();
       }
     }
     brewCore();

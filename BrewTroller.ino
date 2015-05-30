@@ -133,10 +133,10 @@ struct TriggerConfiguration {
 // Globals
 //**********************************************************************************
 //Vessel PWM Output Pin Array
-analogOutput_SWPWM* pwmOutput[3] = {0, 0, 0};
+analogOutput_SWPWM* pwmOutput[3] = {NULL, NULL, NULL};
 
 #ifdef ESTOP_PIN
-  pin *estopPin;
+  pin *estopPin = NULL;
 #endif
 
 #ifdef HEARTBEAT
@@ -156,7 +156,7 @@ int temp[9];
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
 #ifdef SPARGE_IN_PUMP_CONTROL
-unsigned long prevSpargeVol[2] = {0,0};
+unsigned long prevSpargeVol[2] = {0, 0};
 #endif
 
 #ifdef HLT_MIN_REFILL
@@ -165,7 +165,7 @@ unsigned long SpargeVol = 0;
 
 #ifdef FLOWRATE_CALCS
 //Flowrate in thousandths of gal/l per minute
-long flowRate[3] = {0,0,0};
+long flowRate[3] = {0, 0, 0};
 #endif
 
 
@@ -184,7 +184,7 @@ long flowRate[3] = {0,0,0};
 #endif
  
 boolean autoValve[NUM_AV];
-OutputSystem* outputs;
+OutputSystem* outputs = NULL;
 
 #ifdef RGBIO8_ENABLE
   RGBIO8* rgbio[RGBIO8_MAX_BOARDS];
@@ -220,6 +220,8 @@ boolean timerStatus[2], alarmStatus;
 boolean preheated[4];
 ControlState boilControlState = CONTROLSTATE_OFF;
 
+struct ProgramThread programThread[PROGRAMTHREAD_MAX];
+
 //Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
 unsigned int hoptimes[11] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5, 0 };
 byte pitchTemp;
@@ -248,37 +250,31 @@ void setup() {
     hbPin.setup(HEARTBEAT_PIN, OUTPUT);
   #endif
 
-  tempInit();
+  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
+    programThread[i].activeStep = BREWSTEP_NONE;
+    programThread[i].recipe = RECIPE_NONE;
+  }
   
-  //We need some object, this will get thrown away after setup is loaded
+  for (byte i = 0; i < USERTRIGGER_COUNT; i++)
+    trigger[i] = NULL;
+
+  //We need some object for UI in case setup is not loaded due to missing config
+  //This will get thrown away after setup is loaded
   outputs = new OutputSystem();
   outputs->init();
+
+  tempInit();  
+  comInit();
   
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.ino)
   if (!checkConfig())
     loadSetup();
-
-  //Communications initialization (Com.ino)
-  //Must occur after output initialization and loading setup due to RGBIO logic
-  comInit();
-  
-  #ifdef RGBIO8_ENABLE
-    RGBIO8_Init();
-  #endif
-  
-  #ifdef DIGITAL_INPUTS
-    //Digital Input Interrupt Setup
-    triggerInit();
-  #endif
   
   //User Interface Initialization (UI.ino)
   //Moving this to last of setup() to allow time for I2CLCD to initialize
   #ifndef NOUI
     uiInit();
   #endif
-  
-  //Init of program threads will call event handler to set active screen and must be called after uiInit()
-  programThreadsInit();
 }
 
 

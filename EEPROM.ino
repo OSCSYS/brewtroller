@@ -75,6 +75,8 @@ void loadSetup() {
   //timers (302-305)
   //**********************************************************************************
   for (byte i=TIMER_MASH; i<=TIMER_BOIL; i++) { timerValue[i] = EEPROMreadInt(302 + i * 2) * 60000; }
+  
+  loadOutputSystem();
 
   //**********************************************************************************
   //Timer/Alarm Status (306)
@@ -86,90 +88,128 @@ void loadSetup() {
   }
   alarmStatus = bitRead(options, 2);
   outputs->setProfileState(OUTPUTPROFILE_ALARM, alarmStatus);
-  
-
-  //**********************************************************************************
-  //401-480 Output Profiles
-  //**********************************************************************************
-    loadOutputSystem();
     
-    #ifdef RGBIO8_ENABLE
-      loadRGBIO8();
-    #endif
+  #ifdef ESTOP_PIN
+    loadEStop();
+  #endif
+  
+  for (byte i = 0; i < USERTRIGGER_COUNT; i++)
+    loadTriggerInstance(i);
+    
+  #ifdef RGBIO8_ENABLE
+    loadRGBIO8();
+  #endif
+  
+  for(byte i = 0; i < PROGRAMTHREAD_MAX; i++)
+    eepromLoadProgramThread(i, &programThread[i]);
 }
 
-  void loadPWMOutputs() {
-    for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-      byte pwmPin = getPWMPin(i);
-      byte pwmCycle = getPWMPeriod(i);
-      byte pwmResolution = getPWMResolution(i);
-      byte pidLimit = getPIDLimit(i);
-      if (pwmOutput[i])
-        delete pwmOutput[i];
-      if (pwmPin != PWMPIN_NONE)
-        pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
-        
-      pid[i].SetInputLimits(0, 25500);
-      pid[i].SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
-      pid[i].SetTunings(getPIDp(i), getPIDi(i), getPIDd(i));
-      pid[i].SetMode(AUTO);
-      pid[i].SetSampleTime(PID_UPDATE_INTERVAL);
-    }
-  }
-  
-  void loadOutputSystem() {
-    //Refresh output object
-    if (outputs)
-      delete outputs;
-    outputs = new OutputSystem();
-    outputs->init();
-    loadOutputProfiles();
-    #ifdef OUTPUTBANK_MODBUS
-      loadOutModbus();
-    #endif
-    analogOutput_SWPWM::setup(outputs);
-  }
-
-  void loadOutputProfiles() {
-    for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
-      outputs->setProfileMask(i, getOutputProfile(i));
-  }
-  
-  #ifdef OUTPUTBANK_MODBUS
-    void loadOutModbus() {
-      for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++) {
-        byte addr = getOutModbusAddr(i);
-        if (addr != OUTPUTBANK_MODBUS_ADDRNONE)
-          outputs->newModbusBank(addr, getOutModbusReg(i), getOutModbusCoilCount(i));
-      }
-    }
-  #endif 
-  
-  #ifdef RGBIO8_ENABLE
-    void loadRGBIO8() {
-      for(byte i = 0; i < RGBIO8_MAX_OUTPUT_RECIPES; i++) {
-        unsigned int recipe[4];
-        getRGBIORecipe(i, recipe);
-        RGBIO8::setOutputRecipe(i, recipe[0], recipe[1], recipe[2], recipe[3]);
-      }
+void loadPWMOutputs() {
+  for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
+    byte pwmPin = getPWMPin(i);
+    byte pwmCycle = getPWMPeriod(i);
+    byte pwmResolution = getPWMResolution(i);
+    byte pidLimit = getPIDLimit(i);
+    if (pwmOutput[i])
+      delete pwmOutput[i];
+    if (pwmPin != PWMPIN_NONE)
+      pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
       
-      for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
-        if (rgbio[i])
-          delete rgbio[i];
-        byte addr = getRGBIOAddr(i);
-        if (addr != RGBIO8_UNASSIGNED) {
-          rgbio[i] = new RGBIO8(addr);
-          for (int j = 0; j < 8; j++) {
-            byte assignment = getRGBIOAssignment(i, j);
-            if (assignment != RGBIO8_UNASSIGNED) {
-              byte recipe = getRGBIOAssignmentRecipe(i, j);
-              rgbio[i]->assign(j, assignment, recipe);
-            }
+    pid[i].SetInputLimits(0, 25500);
+    pid[i].SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
+    pid[i].SetTunings(getPIDp(i), getPIDi(i), getPIDd(i));
+    pid[i].SetMode(AUTO);
+    pid[i].SetSampleTime(PID_UPDATE_INTERVAL);
+  }
+}
+
+void loadOutputSystem() {
+  //Refresh output object
+  if (outputs)
+    delete outputs;
+  outputs = new OutputSystem();
+  outputs->init();
+  loadOutputProfiles();
+  #ifdef OUTPUTBANK_MODBUS
+    loadOutModbus();
+  #endif
+  analogOutput_SWPWM::setup(outputs);
+}
+
+void loadOutputProfiles() {
+  for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
+    outputs->setProfileMask(i, getOutputProfile(i));
+}
+
+#ifdef OUTPUTBANK_MODBUS
+  void loadOutModbus() {
+    for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++) {
+      byte addr = getOutModbusAddr(i);
+      if (addr != OUTPUTBANK_MODBUS_ADDRNONE)
+        outputs->newModbusBank(addr, getOutModbusReg(i), getOutModbusCoilCount(i));
+    }
+  }
+#endif
+  
+void loadTriggerInstance(byte i) {
+  if (trigger[i])
+    delete trigger[i];
+  trigger[i] = NULL;
+  
+  byte triggerPinMap[] = DIGITAL_INPUTS_PINS;
+  
+  struct TriggerConfiguration trigConfig;
+  loadTriggerConfiguration(i, &trigConfig);
+  
+  if (trigConfig.type == TRIGGERTYPE_VOLUME) {
+    trigger[i] = new TriggerValue(&volAvg[trigConfig.index], trigConfig.threshold, trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
+  } 
+#ifdef DIGITAL_INPUTS  
+  else if (trigConfig.type == TRIGGERTYPE_GPIO) {
+    trigger[i] = new TriggerGPIO(triggerPinMap[trigConfig.index], trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
+  }
+#endif  
+}
+
+#ifdef ESTOP_PIN
+  void loadEStop() {
+    outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, 0xFFFFFFFFul); //Enable all pins in estop enable mask
+    if (estopPin)
+      delete estopPin;
+    estopPin = NULL;
+    if (getEStopEnabled()) {
+      estopPin = new pin;
+      estopPin->setup(ESTOP_PIN, INPUT);
+    }
+  }
+#endif
+
+#ifdef RGBIO8_ENABLE
+  void loadRGBIO8() {
+    for(byte i = 0; i < RGBIO8_MAX_OUTPUT_RECIPES; i++) {
+      unsigned int recipe[4];
+      getRGBIORecipe(i, recipe);
+      RGBIO8::setOutputRecipe(i, recipe[0], recipe[1], recipe[2], recipe[3]);
+    }
+    
+    for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
+      if (rgbio[i])
+        delete rgbio[i];
+      byte addr = getRGBIOAddr(i);
+      if (addr != RGBIO8_UNASSIGNED) {
+        rgbio[i] = new RGBIO8(addr);
+        for (int j = 0; j < 8; j++) {
+          byte assignment = getRGBIOAssignment(i, j);
+          if (assignment != RGBIO8_UNASSIGNED) {
+            byte recipe = getRGBIOAssignmentRecipe(i, j);
+            rgbio[i]->assign(j, assignment, recipe);
           }
         }
       }
     }
-  #endif
+    RGBIO8::setup(outputs);
+  }
+#endif
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions
@@ -352,6 +392,10 @@ void setPWMPin(byte vessel, byte pin) { EEPROM.write(309 + vessel, pin); }
 
 void eepromLoadProgramThread(byte index, struct ProgramThread *thread) {
   eeprom_read_block((void *) thread, (unsigned char *) 313 + index * sizeof(struct ProgramThread), sizeof(struct ProgramThread));
+  if (thread->activeStep != BREWSTEP_NONE) {
+    programThreadSignal(programThread + index, STEPSIGNAL_INIT);
+    eventHandler(EVENT_STEPINIT, thread->activeStep);  
+  }
 }
 
 void eepromSaveProgramThread(byte index, struct ProgramThread *thread) {

@@ -23,36 +23,6 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
-
-void triggerInit() {
-  //If EEPROM is not initialized skip trigger init
-  if (checkConfig()) return;
-  
-  #ifdef ESTOP_PIN
-    estopInit();
-  #endif
-  
-  for (byte i = 0; i < USERTRIGGER_COUNT; i++)
-    triggerInitInstance(i);
-}
-
-void triggerInitInstance(byte i) {
-  if (trigger[i])
-    delete trigger[i];
-  trigger[i] = NULL;
-  
-  byte triggerPinMap[] = DIGITAL_INPUTS_PINS;
-  
-  struct TriggerConfiguration trigConfig;
-  loadTriggerConfiguration(i, &trigConfig);
-  
-  if (trigConfig.type == TRIGGERTYPE_GPIO) {
-    trigger[i] = new TriggerGPIO(triggerPinMap[trigConfig.index], trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
-  } else if (trigConfig.type == TRIGGERTYPE_VOLUME) {
-    trigger[i] = new TriggerValue(&volAvg[trigConfig.index], trigConfig.threshold, trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
-  }
-}
-
 void triggerUpdate() {
   #ifdef ESTOP_PIN
     estopUpdate();
@@ -67,28 +37,17 @@ void triggerUpdate() {
 }
 
 #ifdef ESTOP_PIN
-void estopInit() {
-  outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, 0xFFFFFFFFul); //Enable all pins in estop enable mask
-  if (estopPin)
-    delete estopPin;
-  estopPin = NULL;
-  if (getEStopEnabled()) {
-    estopPin = new pin;
-    estopPin->setup(ESTOP_PIN, INPUT);
-  }
-}
-
-void estopUpdate() {
-  if (estopPin) {
-    if (estopPin->get())
-      outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, 0xFFFFFFFFul); //Enable all pins in estop enable mask
-    else {
-      setAlarm(1);
-      //Disable all pins except alarm pin(s)
-      outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, outputs->getProfileMask(OUTPUTPROFILE_ALARM));
-      outputs->update();
-      updateTimers();
+  void estopUpdate() {
+    if (estopPin) {
+      if (estopPin->get())
+        outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, 0xFFFFFFFFul); //Enable all pins in estop enable mask
+      else {
+        setAlarm(1);
+        //Disable all pins except alarm pin(s)
+        outputs->setOutputEnableMask(OUTPUTENABLE_ESTOP, outputs->getProfileMask(OUTPUTPROFILE_ALARM));
+        outputs->update();
+        updateTimers();
+      }
     }
   }
-}
 #endif

@@ -1126,7 +1126,7 @@ void menuTriggers() {
     if (lastOption == 0) {
       #ifdef ESTOP_PIN
         setEStopEnabled(~getEStopEnabled());
-        estopInit();
+        loadEStop();
       #endif
     } else if (lastOption <= USERTRIGGER_COUNT)
       cfgTrigger(lastOption - 1);
@@ -1204,7 +1204,7 @@ void cfgTrigger(byte triggerIndex) {
     else {
       if (triggerConfigurationDidChange(&trigConfig, &origConfig) && confirmSave()) {
         saveTriggerConfiguration(triggerIndex, &trigConfig);
-        triggerInitInstance(triggerIndex);
+        loadTriggerInstance(triggerIndex);
       }
       return;
     }
