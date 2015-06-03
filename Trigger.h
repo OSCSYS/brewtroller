@@ -60,7 +60,7 @@ class TriggerValue : public Trigger
   unsigned long threshold;
   
   public:
-  TriggerValue(unsigned long *v, boolean aLow, unsigned long t, unsigned long filter, unsigned long dMask, byte rHysteresis);
+  TriggerValue(unsigned long *v, unsigned long t, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis);
   ~TriggerValue();
   boolean getRawValue(void);
 };

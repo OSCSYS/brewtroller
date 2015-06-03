@@ -68,7 +68,7 @@ boolean TriggerGPIO::getRawValue(void) {
   return inputPin.get();
 }
   
-TriggerValue::TriggerValue(unsigned long *v, boolean aLow, unsigned long t, unsigned long filter, unsigned long dMask, byte rHysteresis) {
+TriggerValue::TriggerValue(unsigned long *v, unsigned long t, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis) {
   value = v;
   threshold = t;
   activeLow = aLow;
@@ -83,5 +83,5 @@ TriggerValue::~TriggerValue() {
 }
 
 boolean TriggerValue::getRawValue(void) {
-  return (*value > threshold);
+  return (*value > threshold) ? 1 : 0;
 }
