@@ -112,7 +112,7 @@ void loadPWMOutput(byte i) {
   byte pidLimit = getPIDLimit(i);
   if (pwmOutput[i])
     delete pwmOutput[i];
-  if (pwmPin != PWMPIN_NONE)
+  if (pwmPin != INDEX_NONE)
     pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
     
   pid[i].SetInputLimits(0, 25500);
@@ -391,7 +391,7 @@ void setPWMPin(byte vessel, byte pin) { EEPROM.write(309 + vessel, pin); }
 
 void eepromLoadProgramThread(byte index, struct ProgramThread *thread) {
   eeprom_read_block((void *) thread, (unsigned char *) 313 + index * sizeof(struct ProgramThread), sizeof(struct ProgramThread));
-  if (thread->activeStep != BREWSTEP_NONE) {
+  if (thread->activeStep != INDEX_NONE) {
     programThreadSignal(programThread + index, STEPSIGNAL_INIT);
     eventHandler(EVENT_STEPINIT, thread->activeStep);  
   }
@@ -669,6 +669,8 @@ void saveTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *co
   eeprom_write_block((void *) configuration, (unsigned char *) 2157 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
 }
 
+
+
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
 //*****************************************************************************************************************************
@@ -732,8 +734,8 @@ boolean checkConfig() {
       }
 
       for (byte i = 0; i <= VS_KETTLE; i++) {
-        setPWMPin(i, PWMPIN_NONE);
-        setVolumeSensor(i, VOLUMESENSOR_NONE);
+        setPWMPin(i, INDEX_NONE);
+        setVolumeSensor(i, INDEX_NONE);
         setPIDLimit(i, 100);
         setPWMResolution(i, 120);
       }
@@ -805,8 +807,8 @@ void initEEPROM() {
   //Set all steps idle
   for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
     struct ProgramThread thread;
-    thread.activeStep = BREWSTEP_NONE;
-    thread.recipe = RECIPE_NONE;
+    thread.activeStep = INDEX_NONE;
+    thread.recipe = INDEX_NONE;
     eepromSaveProgramThread(i, &thread);
   }
   

@@ -144,7 +144,7 @@ analogOutput_SWPWM* pwmOutput[3] = {NULL, NULL, NULL};
 #endif
 
 //Volume Sensor Pin Array
-byte vSensor[3] = {VOLUMESENSOR_NONE, VOLUMESENSOR_NONE, VOLUMESENSOR_NONE};
+byte vSensor[3] = {INDEX_NONE, INDEX_NONE, INDEX_NONE};
 
 Trigger *trigger[USERTRIGGER_COUNT];
 
@@ -251,8 +251,8 @@ void setup() {
   #endif
 
   for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
-    programThread[i].activeStep = BREWSTEP_NONE;
-    programThread[i].recipe = RECIPE_NONE;
+    programThread[i].activeStep = INDEX_NONE;
+    programThread[i].recipe = INDEX_NONE;
   }
   
   for (byte i = 0; i < USERTRIGGER_COUNT; i++)

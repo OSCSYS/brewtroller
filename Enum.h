@@ -28,8 +28,7 @@
   #define AV_CHILL 4
   #define NUM_AV 5
 
-  #define PWMPIN_NONE  255
-  #define VOLUMESENSOR_NONE  255
+  #define INDEX_NONE  255
   
   //Valve Array Element Constants and Variables
   #define VLV_ALL 0xFFFFFFFF
@@ -95,8 +94,7 @@ enum BrewStepIndex {
   BREWSTEP_SPARGE,
   BREWSTEP_BOIL,
   BREWSTEP_CHILL,
-  BREWSTEP_COUNT,
-  BREWSTEP_NONE = 255
+  BREWSTEP_COUNT
 };
 
 enum StepSignal {
@@ -122,10 +120,8 @@ enum ScreenSignal {
 };
 
 #define PROGRAMTHREAD_MAX 2
-#define PROGRAMTHREAD_NONE 255
 
 #define RECIPE_MAX 20
-#define RECIPE_NONE 255
 
 enum MashStepIndex {
   MASHSTEP_DOUGHIN,
