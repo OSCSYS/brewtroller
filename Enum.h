@@ -162,7 +162,7 @@ enum EventIndex {
 #define BTNIC 1
 #define BINARY 2
 
-#define USERTRIGGER_COUNT 6
+#define USERTRIGGER_COUNT 10
 
 enum triggerType {
   TRIGGERTYPE_NONE,

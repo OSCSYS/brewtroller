@@ -658,7 +658,7 @@ byte getRGBIOAssignmentRecipe(byte boardIndex, byte channelIndex) {
 }
 
 //**********************************************************************************
-//Trigger Configuration (13-Bytes * 6 + 4 Reserved (2157-2286)
+//Trigger Configuration - 13-Bytes * 10 Triggers (2157-2286)
 //**********************************************************************************
 struct TriggerConfiguration* loadTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *configuration) {
   eeprom_read_block((void *) configuration, (unsigned char *) 2157 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
