@@ -62,6 +62,7 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
 #ifdef RGBIO8_ENABLE
   #include "RGBIO8.h"
 #endif
+#include "Vol_Bubbler.h"
 
 void(* softReset) (void) = 0;
 
@@ -144,7 +145,7 @@ analogOutput_SWPWM* pwmOutput[3] = {NULL, NULL, NULL};
 #endif
 
 //Volume Sensor Pin Array
-byte vSensor[3] = {VOLUMESENSOR_NONE, VOLUMESENSOR_NONE, VOLUMESENSOR_NONE};
+byte vSensor[3] = {INDEX_NONE, INDEX_NONE, INDEX_NONE};
 
 Trigger *trigger[USERTRIGGER_COUNT];
 
@@ -168,6 +169,7 @@ unsigned long SpargeVol = 0;
 long flowRate[3] = {0, 0, 0};
 #endif
 
+Bubbler *bubbler = NULL;
 
 //Create the appropriate 'LCD' object for the hardware configuration (4-Bit GPIO, I2C)
 #if defined UI_LCD_4BIT
@@ -251,8 +253,8 @@ void setup() {
   #endif
 
   for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
-    programThread[i].activeStep = BREWSTEP_NONE;
-    programThread[i].recipe = RECIPE_NONE;
+    programThread[i].activeStep = INDEX_NONE;
+    programThread[i].recipe = INDEX_NONE;
   }
   
   for (byte i = 0; i < USERTRIGGER_COUNT; i++)

@@ -100,9 +100,11 @@ void loadSetup() {
   #ifdef RGBIO8_ENABLE
     loadRGBIO8();
   #endif
-  
+
+  loadBubbler();
+
   for(byte i = 0; i < PROGRAMTHREAD_MAX; i++)
-    eepromLoadProgramThread(i, &programThread[i]);
+    eepromLoadProgramThread(i, &programThread[i]);  
 }
 
 void loadPWMOutput(byte i) {
@@ -112,7 +114,7 @@ void loadPWMOutput(byte i) {
   byte pidLimit = getPIDLimit(i);
   if (pwmOutput[i])
     delete pwmOutput[i];
-  if (pwmPin != PWMPIN_NONE)
+  if (pwmPin != INDEX_NONE)
     pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
     
   pid[i].SetInputLimits(0, 25500);
@@ -209,6 +211,16 @@ void loadTriggerInstance(byte i) {
     RGBIO8::setup(outputs);
   }
 #endif
+
+void loadBubbler() {  
+  if (bubbler)
+    delete bubbler;
+  bubbler = NULL;
+  byte bubbleOut = getBubblerOutput();
+  if (bubbleOut != INDEX_NONE) {
+    bubbler = new Bubbler(outputs, bubbleOut, getBubblerInterval(), getBubblerDuration(), getBubblerDelay());
+  }
+}
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions
@@ -391,7 +403,7 @@ void setPWMPin(byte vessel, byte pin) { EEPROM.write(309 + vessel, pin); }
 
 void eepromLoadProgramThread(byte index, struct ProgramThread *thread) {
   eeprom_read_block((void *) thread, (unsigned char *) 313 + index * sizeof(struct ProgramThread), sizeof(struct ProgramThread));
-  if (thread->activeStep != BREWSTEP_NONE) {
+  if (thread->activeStep != INDEX_NONE) {
     programThreadSignal(programThread + index, STEPSIGNAL_INIT);
     eventHandler(EVENT_STEPINIT, thread->activeStep);  
   }
@@ -669,6 +681,42 @@ void saveTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *co
   eeprom_write_block((void *) configuration, (unsigned char *) 2157 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
 }
 
+//**********************************************************************************
+//Intermittent Bubbler Configuration -  (2187-2190)
+//**********************************************************************************
+byte getBubblerOutput() {
+  return EEPROM.read(2187);
+}
+
+void setBubblerOutput(byte outputIndex) {
+  return EEPROM.write(2187, outputIndex);
+}
+
+byte getBubblerInterval() {
+  return EEPROM.read(2188);
+}
+
+void setBubblerInterval(byte interval) {
+  return EEPROM.write(2188, interval);
+}
+
+byte getBubblerDuration() {
+  return EEPROM.read(2189);
+}
+
+void setBubblerDuration(byte duration) {
+  return EEPROM.write(2189, duration);
+}
+
+byte getBubblerDelay() {
+  return EEPROM.read(2190);
+}
+
+void setBubblerDelay(byte delayTime) {
+  return EEPROM.write(2190, delayTime);
+}
+
+
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
 //*****************************************************************************************************************************
@@ -732,8 +780,8 @@ boolean checkConfig() {
       }
 
       for (byte i = 0; i <= VS_KETTLE; i++) {
-        setPWMPin(i, PWMPIN_NONE);
-        setVolumeSensor(i, VOLUMESENSOR_NONE);
+        setPWMPin(i, INDEX_NONE);
+        setVolumeSensor(i, INDEX_NONE);
         setPIDLimit(i, 100);
         setPWMResolution(i, 120);
       }
@@ -751,7 +799,12 @@ boolean checkConfig() {
         defaultConfig->releaseHysteresis = 0;
         saveTriggerConfiguration(i, defaultConfig);
       }
-      EEPROM.write(2047, 5);
+    case 5:
+      setBubblerOutput(INDEX_NONE); //Disabled
+      setBubblerInterval(30); //30s
+      setBubblerDuration(5); //0.5s
+      setBubblerDelay(5); //0.5s
+      EEPROM.write(2047, 6);
   }
   return 0;
 }
@@ -805,8 +858,8 @@ void initEEPROM() {
   //Set all steps idle
   for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
     struct ProgramThread thread;
-    thread.activeStep = BREWSTEP_NONE;
-    thread.recipe = RECIPE_NONE;
+    thread.activeStep = INDEX_NONE;
+    thread.recipe = INDEX_NONE;
     eepromSaveProgramThread(i, &thread);
   }
   

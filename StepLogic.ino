@@ -28,7 +28,7 @@ unsigned int boilAdds, triggered;
 
 void programThreadsUpdate() {
   for (byte i = 0; i < PROGRAMTHREAD_MAX; i++)
-    if (programThread[i].activeStep != BREWSTEP_NONE)
+    if (programThread[i].activeStep != INDEX_NONE)
       programThreadSignal(programThread + i, STEPSIGNAL_UPDATE);
 }
 
@@ -79,7 +79,7 @@ byte programThreadRecipeIndex(byte threadIndex) {
 
 struct ProgramThread *programThreadAcquire() {
   for (byte i = 0; i < PROGRAMTHREAD_MAX; i++)
-    if (programThread[i].activeStep == BREWSTEP_NONE)
+    if (programThread[i].activeStep == INDEX_NONE)
       return programThread + i;
   return 0;
 }
@@ -130,7 +130,7 @@ struct ProgramThread *programThreadInit(byte recipe, byte brewStep) {
     return 0;
 
   //If we made it without an abort, save the thread without an activeStep
-  thread->activeStep = BREWSTEP_NONE;
+  thread->activeStep = INDEX_NONE;
   thread->recipe = recipe;
   programThreadSave(thread);
   
@@ -138,7 +138,7 @@ struct ProgramThread *programThreadInit(byte recipe, byte brewStep) {
   (*stepFunc)(STEPSIGNAL_INIT, thread);
   
   //Abort if the brew step is still unset
-  if (thread->activeStep == BREWSTEP_NONE)
+  if (thread->activeStep == INDEX_NONE)
     return 0;
   return thread;
 }
@@ -152,7 +152,7 @@ void programThreadSetStep(struct ProgramThread *thread, byte brewStep) {
   byte lastStep = thread->activeStep;
   thread->activeStep = brewStep;
   programThreadSave(thread);
-  if (brewStep == BREWSTEP_NONE)
+  if (brewStep == INDEX_NONE)
     eventHandler(EVENT_STEPEXIT, lastStep);
   else
     eventHandler(EVENT_STEPINIT, thread->activeStep);
@@ -214,7 +214,7 @@ void brewStepFill(enum StepSignal signal, struct ProgramThread *thread) {
       #endif
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       tgtVol[VS_HLT] = 0;
       tgtVol[VS_MASH] = 0;
@@ -244,7 +244,7 @@ void brewStepDelay(enum StepSignal signal, struct ProgramThread *thread) {
         brewStepDelay(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       clearTimer(TIMER_MASH);
       setAlarm(0);
@@ -289,7 +289,7 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
       #endif
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       clearTimer(TIMER_MASH);
       setSetpoint(VS_HLT, 0);
@@ -342,7 +342,7 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
         outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       tgtVol[VS_HLT] = 0;
       autoValve[AV_SPARGEIN] = 0;
@@ -382,7 +382,7 @@ void brewStepRefill(enum StepSignal signal, struct ProgramThread *thread) {
       #endif
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       tgtVol[VS_HLT] = 0;
       tgtVol[VS_MASH] = 0;
@@ -438,7 +438,7 @@ void brewStepMashHelper(byte mashStep, enum StepSignal signal, struct ProgramThr
         brewStepMashHelper(mashStep, STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       clearTimer(TIMER_MASH);
       setSetpoint(VS_HLT, 0);
@@ -497,7 +497,7 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
       #endif
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       setSetpoint(VS_HLT, 0);
       setSetpoint(VS_MASH, 0);
@@ -549,7 +549,7 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
       #endif
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       #ifdef HLT_HEAT_SPARGE
         setSetpoint(TS_HLT, 0);
@@ -640,7 +640,7 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       }
       break;
     case STEPSIGNAL_ABORT:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
       #ifdef AUTO_BOIL_RECIRC
@@ -668,7 +668,7 @@ void brewStepChill(enum StepSignal signal, struct ProgramThread *thread) {
       break;
     case STEPSIGNAL_ABORT:
     case STEPSIGNAL_ADVANCE:
-      programThreadSetStep(thread, BREWSTEP_NONE);
+      programThreadSetStep(thread, INDEX_NONE);
       autoValve[AV_CHILL] = 0;
       outputs->setProfileState(OUTPUTPROFILE_WORTOUT, 0);
       outputs->setProfileState(OUTPUTPROFILE_CHILL, 0);

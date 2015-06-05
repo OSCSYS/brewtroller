@@ -538,7 +538,7 @@ void menuOutputSettings(byte vessel) {
     menu outputMenu(3, 9);
     outputMenu.setItem_P(PSTR("PWM: "), 0);
     byte pwmPin = getPWMPin(vessel);
-    if (pwmPin == PWMPIN_NONE)
+    if (pwmPin == INDEX_NONE)
       outputMenu.appendItem_P(PSTR("NONE"), 0);
     else {
       outputMenu.appendItem(outputs->getOutputBankName(pwmPin, buf), 0);
@@ -603,7 +603,7 @@ byte menuSelectOutput(char sTitle[], byte currentSelection) {
     outputMenu.appendItem("-", i);
     outputMenu.appendItem(outputs->getOutputName(i, buf), i);
   }
-  if (currentSelection == PWMPIN_NONE)
+  if (currentSelection == INDEX_NONE)
     outputMenu.setItem_P(PSTR("*None"), 254);
   else
     outputMenu.setItem_P(PSTR("None"), 254);
@@ -613,7 +613,7 @@ byte menuSelectOutput(char sTitle[], byte currentSelection) {
   if (lastOption == 255)
     return currentSelection;
   else if (lastOption == 254)
-    return PWMPIN_NONE;
+    return INDEX_NONE;
   return lastOption;
 }
 
@@ -635,7 +635,7 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection, b
   
     byte lastOption = scrollMenu(sTitle, &outputMenu);
     if (lastOption == 254) {
-      byte addOutput = menuSelectOutput("Add Output", PWMPIN_NONE);
+      byte addOutput = menuSelectOutput("Add Output", INDEX_NONE);
       if (addOutput < outputs->getCount())
         newSelection |= (1 << addOutput);
     } else if (lastOption == 253) {
@@ -694,15 +694,59 @@ byte menuSelectOutputProfile(char sTitle[]) {
 }
 
 void menuVolume(){
-  menu volMenu(3, 4);
+  menu volMenu(3, 5);
   for (byte i =0; i <= VS_KETTLE; i++)
     volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
+  volMenu.setItem_P(PSTR("Bubbler"), 254);  
   volMenu.setItem_P(EXIT, 255);
   while (1) {
     byte lastOption = scrollMenu("Volume", &volMenu);
-    if (lastOption == 255)
+    if (lastOption == 254)
+      menuBubbler();
+    else if (lastOption == 255)
       return;
-    menuVolumeVessel(lastOption);
+    else
+      menuVolumeVessel(lastOption);
+  }
+}
+
+void menuBubbler() {
+  while (1) {
+    byte bubbleOutput = getBubblerOutput();
+    byte bubbleInterval = getBubblerInterval();
+    byte bubbleDuration = getBubblerDuration();
+    byte bubbleReadDelay = getBubblerDelay();
+    menu volMenu(3, 5);
+    
+    if (bubbleOutput == INDEX_NONE)
+      volMenu.setItem_P(PSTR("Output: DISABLED"), 0);
+    else {
+      char menuItem[21];
+      char bankName[6];
+      char outName[7];
+      sprintf(menuItem, "Output: %s-%s", outputs->getOutputBankName(bubbleOutput, bankName), outputs->getOutputName(bubbleOutput, outName));
+      volMenu.setItem(menuItem, 0);
+      sprintf(menuItem, "Interval: %ds", bubbleInterval);
+      volMenu.setItem(menuItem, 1);
+      sprintf(menuItem, "Duration: %d.%ds", bubbleDuration / 10, bubbleDuration - (bubbleDuration / 10) * 10);
+      volMenu.setItem(menuItem, 2);
+      sprintf(menuItem, "Delay: %d.%ds", bubbleReadDelay / 10, bubbleReadDelay - (bubbleReadDelay / 10) * 10);
+      volMenu.setItem(menuItem, 3);
+    }
+    volMenu.setItem_P(EXIT, 255);
+    byte lastOption = scrollMenu("Volume", &volMenu);
+    if (lastOption == 0)
+      setBubblerOutput(menuSelectOutput("Bubbler Output", bubbleOutput));
+    else if (lastOption == 1)
+      setBubblerInterval(getValue("Bubbler Interval", bubbleInterval, 1, 255, PSTR("s")));
+    else if (lastOption == 2)
+      setBubblerDuration(getValue("Bubbler Duration", bubbleDuration, 10, 255, PSTR("s")));
+    else if (lastOption == 3)
+      setBubblerDelay(getValue("Bubbler Read Delay", bubbleReadDelay, 10, 255, PSTR("s")));
+    else {
+      loadBubbler();
+      return;
+    }
   }
 }
 
@@ -769,10 +813,10 @@ byte menuSelectAnalogInput(char sTitle[], byte currentValue) {
     pos += strlen(pos) + 1;
   }
   
-  volMenu.setItem("", VOLUMESENSOR_NONE);
-  if (currentValue == VOLUMESENSOR_NONE)
-    volMenu.appendItem("*", VOLUMESENSOR_NONE);
-  volMenu.appendItem_P(PSTR("None"), VOLUMESENSOR_NONE);
+  volMenu.setItem("", INDEX_NONE);
+  if (currentValue == INDEX_NONE)
+    volMenu.appendItem("*", INDEX_NONE);
+  volMenu.appendItem_P(PSTR("None"), INDEX_NONE);
   
   return scrollMenu(sTitle, &volMenu);
 }
@@ -1425,7 +1469,7 @@ byte menuVessel(byte vessel){
       title[16] = '1' + channel;
       byte lastOption = scrollMenu(title, &assignMenu);
       if (lastOption == 0)
-        assignment = menuSelectOutput(title, assignment == RGBIO8_UNASSIGNED ? PWMPIN_NONE : assignment);
+        assignment = menuSelectOutput(title, assignment == RGBIO8_UNASSIGNED ? INDEX_NONE : assignment);
       else if (lastOption == 1)
         recipe = menuRGBIOSelectRecipe(title, recipe);
       else if (lastOption == 2)

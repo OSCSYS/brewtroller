@@ -378,12 +378,12 @@ void screenFill (enum ScreenSignal signal) {
       LCD.print_P(1, 1, PSTR("Target"));
       LCD.print_P(2, 1, PSTR("Actual"));
       
-      uiLabelFPoint(1, 9, 5, tgtVol[VS_HLT], 1000);
-      uiLabelFPoint(1, 15, 5, tgtVol[VS_MASH], 1000);
+      uiLabelFPoint(1, 10, 4, tgtVol[VS_HLT], 1000);
+      uiLabelFPoint(1, 16, 4, tgtVol[VS_MASH], 1000);
       break;
     case SCREENSIGNAL_UPDATE:
-      uiLabelFPoint(2, 9, 5, volAvg[VS_HLT], 1000);
-      uiLabelFPoint(2, 15, 5, volAvg[VS_MASH], 1000);
+      uiLabelFPoint(2, 10, 4, volAvg[VS_HLT], 1000);
+      uiLabelFPoint(2, 16, 4, volAvg[VS_MASH], 1000);
   
       LCD.print_P(3, 11, outputs->getProfileState(OUTPUTPROFILE_FILLHLT) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
       LCD.print_P(3, 17, outputs->getProfileState(OUTPUTPROFILE_FILLMASH) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
@@ -600,7 +600,7 @@ void screenSparge (enum ScreenSignal signal) {
       break;
     case SCREENSIGNAL_UPDATE:
       for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-        uiLabelFPoint(1 + i, 14, 6, vSensor[i] == VOLUMESENSOR_NONE ? tgtVol[i] : volAvg[i], 1000);
+        uiLabelFPoint(1 + i, 14, 6, vSensor[i] == INDEX_NONE ? tgtVol[i] : volAvg[i], 1000);
         uiLabelTemperature (i + 1, 8, 5, temp[i]);
       }
       break;
@@ -993,7 +993,7 @@ void boilControlMenu() {
 }
 
 void continueClick() {
-  byte brewstep = BREWSTEP_NONE;
+  byte brewstep = INDEX_NONE;
   if (brewStepIsActive(BREWSTEP_FILL)) brewstep = BREWSTEP_FILL;
   else if (brewStepIsActive(BREWSTEP_REFILL)) brewstep = BREWSTEP_REFILL;
   else if (brewStepIsActive(BREWSTEP_SPARGE)) brewstep = BREWSTEP_SPARGE;
@@ -1009,7 +1009,7 @@ void continueClick() {
   else if (brewStepIsActive(BREWSTEP_MASHHOLD)) brewstep = BREWSTEP_MASHHOLD;
   else if (brewStepIsActive(BREWSTEP_BOIL)) brewstep = BREWSTEP_BOIL;
   
-  if(brewstep == BREWSTEP_NONE)
+  if(brewstep == INDEX_NONE)
     uiNextScreen();
   else {
     brewStepSignal(brewstep, STEPSIGNAL_ADVANCE);
