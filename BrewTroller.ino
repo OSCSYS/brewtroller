@@ -62,6 +62,7 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
 #ifdef RGBIO8_ENABLE
   #include "RGBIO8.h"
 #endif
+#include "Vol_Bubbler.h"
 
 void(* softReset) (void) = 0;
 
@@ -168,6 +169,7 @@ unsigned long SpargeVol = 0;
 long flowRate[3] = {0, 0, 0};
 #endif
 
+Bubbler *bubbler = NULL;
 
 //Create the appropriate 'LCD' object for the hardware configuration (4-Bit GPIO, I2C)
 #if defined UI_LCD_4BIT

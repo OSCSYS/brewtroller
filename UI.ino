@@ -378,12 +378,12 @@ void screenFill (enum ScreenSignal signal) {
       LCD.print_P(1, 1, PSTR("Target"));
       LCD.print_P(2, 1, PSTR("Actual"));
       
-      uiLabelFPoint(1, 9, 5, tgtVol[VS_HLT], 1000);
-      uiLabelFPoint(1, 15, 5, tgtVol[VS_MASH], 1000);
+      uiLabelFPoint(1, 10, 4, tgtVol[VS_HLT], 1000);
+      uiLabelFPoint(1, 16, 4, tgtVol[VS_MASH], 1000);
       break;
     case SCREENSIGNAL_UPDATE:
-      uiLabelFPoint(2, 9, 5, volAvg[VS_HLT], 1000);
-      uiLabelFPoint(2, 15, 5, volAvg[VS_MASH], 1000);
+      uiLabelFPoint(2, 10, 4, volAvg[VS_HLT], 1000);
+      uiLabelFPoint(2, 16, 4, volAvg[VS_MASH], 1000);
   
       LCD.print_P(3, 11, outputs->getProfileState(OUTPUTPROFILE_FILLHLT) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
       LCD.print_P(3, 17, outputs->getProfileState(OUTPUTPROFILE_FILLMASH) ? LABEL_BUTTONON : LABEL_BUTTONOFF);

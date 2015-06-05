@@ -694,15 +694,59 @@ byte menuSelectOutputProfile(char sTitle[]) {
 }
 
 void menuVolume(){
-  menu volMenu(3, 4);
+  menu volMenu(3, 5);
   for (byte i =0; i <= VS_KETTLE; i++)
     volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
+  volMenu.setItem_P(PSTR("Bubbler"), 254);  
   volMenu.setItem_P(EXIT, 255);
   while (1) {
     byte lastOption = scrollMenu("Volume", &volMenu);
-    if (lastOption == 255)
+    if (lastOption == 254)
+      menuBubbler();
+    else if (lastOption == 255)
       return;
-    menuVolumeVessel(lastOption);
+    else
+      menuVolumeVessel(lastOption);
+  }
+}
+
+void menuBubbler() {
+  while (1) {
+    byte bubbleOutput = getBubblerOutput();
+    byte bubbleInterval = getBubblerInterval();
+    byte bubbleDuration = getBubblerDuration();
+    byte bubbleReadDelay = getBubblerDelay();
+    menu volMenu(3, 5);
+    
+    if (bubbleOutput == INDEX_NONE)
+      volMenu.setItem_P(PSTR("Output: DISABLED"), 0);
+    else {
+      char menuItem[21];
+      char bankName[6];
+      char outName[7];
+      sprintf(menuItem, "Output: %s-%s", outputs->getOutputBankName(bubbleOutput, bankName), outputs->getOutputName(bubbleOutput, outName));
+      volMenu.setItem(menuItem, 0);
+      sprintf(menuItem, "Interval: %ds", bubbleInterval);
+      volMenu.setItem(menuItem, 1);
+      sprintf(menuItem, "Duration: %d.%ds", bubbleDuration / 10, bubbleDuration - (bubbleDuration / 10) * 10);
+      volMenu.setItem(menuItem, 2);
+      sprintf(menuItem, "Delay: %d.%ds", bubbleReadDelay / 10, bubbleReadDelay - (bubbleReadDelay / 10) * 10);
+      volMenu.setItem(menuItem, 3);
+    }
+    volMenu.setItem_P(EXIT, 255);
+    byte lastOption = scrollMenu("Volume", &volMenu);
+    if (lastOption == 0)
+      setBubblerOutput(menuSelectOutput("Bubbler Output", bubbleOutput));
+    else if (lastOption == 1)
+      setBubblerInterval(getValue("Bubbler Interval", bubbleInterval, 1, 255, PSTR("s")));
+    else if (lastOption == 2)
+      setBubblerDuration(getValue("Bubbler Duration", bubbleDuration, 10, 255, PSTR("s")));
+    else if (lastOption == 3)
+      setBubblerDelay(getValue("Bubbler Read Delay", bubbleReadDelay, 10, 255, PSTR("s")));
+    else {
+      loadBubbler();
+      return;
+    }
   }
 }
 

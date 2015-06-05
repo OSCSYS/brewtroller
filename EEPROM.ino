@@ -100,9 +100,11 @@ void loadSetup() {
   #ifdef RGBIO8_ENABLE
     loadRGBIO8();
   #endif
-  
+
+  loadBubbler();
+
   for(byte i = 0; i < PROGRAMTHREAD_MAX; i++)
-    eepromLoadProgramThread(i, &programThread[i]);
+    eepromLoadProgramThread(i, &programThread[i]);  
 }
 
 void loadPWMOutput(byte i) {
@@ -209,6 +211,16 @@ void loadTriggerInstance(byte i) {
     RGBIO8::setup(outputs);
   }
 #endif
+
+void loadBubbler() {  
+  if (bubbler)
+    delete bubbler;
+  bubbler = NULL;
+  byte bubbleOut = getBubblerOutput();
+  if (bubbleOut != INDEX_NONE) {
+    bubbler = new Bubbler(outputs, bubbleOut, getBubblerInterval(), getBubblerDuration(), getBubblerDelay());
+  }
+}
 
 //*****************************************************************************************************************************
 // Individual EEPROM Get/Set Variable Functions
@@ -669,6 +681,40 @@ void saveTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *co
   eeprom_write_block((void *) configuration, (unsigned char *) 2157 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
 }
 
+//**********************************************************************************
+//Intermittent Bubbler Configuration -  (2187-2190)
+//**********************************************************************************
+byte getBubblerOutput() {
+  return EEPROM.read(2187);
+}
+
+void setBubblerOutput(byte outputIndex) {
+  return EEPROM.write(2187, outputIndex);
+}
+
+byte getBubblerInterval() {
+  return EEPROM.read(2188);
+}
+
+void setBubblerInterval(byte interval) {
+  return EEPROM.write(2188, interval);
+}
+
+byte getBubblerDuration() {
+  return EEPROM.read(2189);
+}
+
+void setBubblerDuration(byte duration) {
+  return EEPROM.write(2189, duration);
+}
+
+byte getBubblerDelay() {
+  return EEPROM.read(2190);
+}
+
+void setBubblerDelay(byte delayTime) {
+  return EEPROM.write(2190, delayTime);
+}
 
 
 //*****************************************************************************************************************************
@@ -753,7 +799,12 @@ boolean checkConfig() {
         defaultConfig->releaseHysteresis = 0;
         saveTriggerConfiguration(i, defaultConfig);
       }
-      EEPROM.write(2047, 5);
+    case 5:
+      setBubblerOutput(INDEX_NONE); //Disabled
+      setBubblerInterval(30); //30s
+      setBubblerDuration(5); //0.5s
+      setBubblerDelay(5); //0.5s
+      EEPROM.write(2047, 6);
   }
   return 0;
 }
