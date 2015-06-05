@@ -484,24 +484,35 @@ void displayAssignSensorTemp(int sensor) {
 
 
 void menuSystemSettings() {
-    menu settingsMenu(3, 4);
-    settingsMenu.setItem_P(PSTR("Boil Temp"), 0);
-    settingsMenu.setItem_P(PSTR("Boil Power"), 1);
-    settingsMenu.setItem_P(PSTR("Evaporation Rate"), 2);
+    menu settingsMenu(3, 6);
+    settingsMenu.setItem_P(BOIL_TEMP, 0);
+    settingsMenu.setItem_P(BOIL_POWER, 1);
+    settingsMenu.setItem_P(EVAPORATION_RATE, 2);
+    settingsMenu.setItem_P(GRAIN_DISPLACEMENT, 3);
+    settingsMenu.setItem_P(GRAIN_LIQUOR_LOSS, 4);
     settingsMenu.setItem_P(EXIT, 255);
 
     while (1) {
       byte lastOption = scrollMenu("System Settings", &settingsMenu);
       if (lastOption == 0)
-        setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
+        setBoilTemp(getValue_P(BOIL_TEMP, getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
       else if (lastOption == 1)
-        setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
+        setBoilPwr(getValue_P(BOIL_POWER, boilPwr, 1, 100, PSTR("%")));
+    #ifdef USEMETRIC
       else if (lastOption == 2)
-        #ifdef USEMETRIC
-          setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 1, 255, PSTR("l/hr")));
-        #else
-          setEvapRate(getValue_P(PSTR("Evaporation Rate"), getEvapRate(), 10, 255, PSTR("gal /hr")));
-        #endif
+        setEvapRate(getValue_P(EVAPORATION_RATE, getEvapRate(), 1, 255, PSTR("l/hr")));
+      else if (lastOption == 3)
+        setGrainDisplacement(getValue_P(GRAIN_DISPLACEMENT, getGrainDisplacement(), 1000, 65535, PSTR("l /kg")));
+      else if (lastOption == 4)
+        setGrainLiquorLoss(getValue_P(GRAIN_LIQUOR_LOSS, getGrainLiquorLoss(), 10000, 65535, PSTR("l /kg")));
+    #else
+      else if (lastOption == 2)
+        setEvapRate(getValue_P(EVAPORATION_RATE, getEvapRate(), 10, 255, PSTR("gal /hr")));
+      else if (lastOption == 3)
+        setGrainDisplacement(getValue_P(GRAIN_DISPLACEMENT, getGrainDisplacement(), 1000, 65535, PSTR("gal/lb")));
+      else if (lastOption == 4)
+        setGrainLiquorLoss(getValue_P(GRAIN_LIQUOR_LOSS, getGrainLiquorLoss(), 10000, 65535, PSTR("gal/lb")));
+    #endif
       else
         return;
     }

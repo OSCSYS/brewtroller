@@ -758,12 +758,12 @@ unsigned long calcPreboilVol(byte recipe) {
 
 unsigned long calcGrainLoss(byte recipe) {
   unsigned long retValue;
-  retValue = round(getProgGrain(recipe) * GRAIN_VOL_LOSS);
+  retValue = round(getProgGrain(recipe) * (getGrainLiquorLoss() / 10000.0));
   return retValue;
 }
 
 unsigned long calcGrainVolume(byte recipe) {
-  return round (getProgGrain(recipe) * GRAIN2VOL);
+  return round (getProgGrain(recipe) * (getGrainDisplacement() / 1000.0));
 }
 
 /**
