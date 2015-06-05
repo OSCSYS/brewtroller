@@ -19,25 +19,6 @@
 //**********************************************************************************
 // Brewing Calculation Factors
 //**********************************************************************************
-// GRAIN2VOL: The amount of volume in l/kg or gal/lb that grain occupies in the mash
-// Conservatively 1 lb = 0.15 gal 
-// Aggressively 1 lb = 0.093 gal
-#ifdef USEMETRIC
-  #define GRAIN2VOL 1.25
-#else
-  #define GRAIN2VOL .15
-#endif
-
-// GRAIN_VOL_LOSS: The amount of liquid volume lost with spent grain. This value can
-// vary by grain types, crush, etc.
-// Default values are pretty conservative (err on more absorbtion)
-// Ray Daniels suggests .20, Denny Conn suggests .10
-#ifdef USEMETRIC
-  #define GRAIN_VOL_LOSS 1.7884
-#else
-  #define GRAIN_VOL_LOSS .2143
-#endif
-
 // VOL_SHRINKAGE: The amount of liquid volume reduced as a result of decrease in temperature. 
 // This value used to be .96 in BrewTroller 2.4 and earlier versions but this value should
 // not be used in volume calculations for water at ground temperature when targeting pitch temps.

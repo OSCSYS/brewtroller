@@ -125,6 +125,12 @@ const char CAPACITY[] PROGMEM = "Capacity";
 const char DEADSPACE[] PROGMEM = "Dead Space";
 const char CALIBRATION[] PROGMEM = "Calibration";
 
+const char BOIL_TEMP[] PROGMEM = "Boil Temp";
+const char BOIL_POWER[] PROGMEM = "Boil Power";
+const char EVAPORATION_RATE[] PROGMEM = "Evaporation Rate";
+const char GRAIN_DISPLACEMENT[] PROGMEM = "Grain Displacement";
+const char GRAIN_LIQUOR_LOSS[] PROGMEM = "Grain Liquor Loss";
+
 const char HLTDESC[] PROGMEM = "Hot Liquor Tank";
 const char MASHDESC[] PROGMEM = "Mash Tun";
 const char SEC[] PROGMEM = "s";

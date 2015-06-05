@@ -716,6 +716,24 @@ void setBubblerDelay(byte delayTime) {
   return EEPROM.write(2190, delayTime);
 }
 
+//*****************************************************************************************************************************
+// Calculation Factors
+//*****************************************************************************************************************************
+unsigned int getGrainDisplacement() {
+  return EEPROMreadInt(2191);
+}
+
+void setGrainDisplacement(unsigned int displacement) {
+  EEPROMwriteInt(2191, displacement);
+}
+
+unsigned int getGrainLiquorLoss() {
+  return EEPROMreadInt(2193);
+}
+
+void setGrainLiquorLoss(unsigned int loss) {
+  EEPROMwriteInt(2193, loss);
+}
 
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
@@ -804,6 +822,14 @@ boolean checkConfig() {
       setBubblerInterval(30); //30s
       setBubblerDuration(5); //0.5s
       setBubblerDelay(5); //0.5s
+    case 6:
+    #ifdef USEMETRIC
+      setGrainDisplacement(1250); //1.250 litres /kg
+      setGrainLiquorLoss(17884); //1.7884 litres /kg
+    #else
+      setGrainDisplacement(150); //0.15 Gallons /lb
+      setGrainLiquorLoss(2143);  //0.2143 Gallons /lb
+    #endif
       EEPROM.write(2047, 6);
   }
   return 0;
