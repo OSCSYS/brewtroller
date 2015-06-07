@@ -134,6 +134,7 @@ class OutputSystem
   boolean getProfileState(byte profileIndex);
   uint32_t getProfileStateMask(void);
   void setProfileState(byte profileIndex, boolean newState);
+  void toggleProfileState(byte profileIndex);
   void setProfileStateMask(unsigned long selectedProfileMask, boolean newState);
   unsigned long getProfileMask(byte profileIndex);
   boolean getProfileMaskBit(byte profileIndex, byte bitIndex);

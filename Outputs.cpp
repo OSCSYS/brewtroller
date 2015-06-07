@@ -342,6 +342,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       profileState &= ~mask;
   }
   
+  void OutputSystem::toggleProfileState(byte profileIndex) {
+    unsigned long mask = (unsigned long)1 << profileIndex;
+    profileState ^= mask;
+  }
+  
   void OutputSystem::setProfileStateMask(unsigned long selectedProfileMask, boolean newState) {
     if (newState)
       profileState |= selectedProfileMask;

@@ -366,119 +366,119 @@ void screenHomeMenu() {
 void screenFill (enum ScreenSignal signal) {
   switch (signal) {
     case SCREENSIGNAL_INIT:
-      LCD.clear();
-      if (brewStepIsActive(BREWSTEP_FILL))
-        LCD.print_P(0, 1, PSTR("Fill"));
-      else if (brewStepIsActive(BREWSTEP_REFILL))
-        LCD.print_P(0, 1, PSTR("Refill"));
-      else
-      LCD.print_P(0, 0, PSTR("Fill"));
-      LCD.print_P(0, 11, PSTR("HLT"));
-      LCD.print_P(0, 16, PSTR("Mash"));
-      LCD.print_P(1, 1, PSTR("Target"));
-      LCD.print_P(2, 1, PSTR("Actual"));
-      
-      uiLabelFPoint(1, 10, 4, tgtVol[VS_HLT], 1000);
-      uiLabelFPoint(1, 16, 4, tgtVol[VS_MASH], 1000);
+      {
+        boolean fillActive = brewStepIsActive(BREWSTEP_FILL);
+        boolean refillActive = brewStepIsActive(BREWSTEP_REFILL);
+        LCD.clear();
+        if (fillActive)
+          LCD.print_P(0, 1, PSTR("Fill"));
+        else if (refillActive)
+          LCD.print_P(0, 1, PSTR("Refill"));
+        else
+        LCD.print_P(0, 0, PSTR("Fill"));
+        LCD.print_P(1, 1, PSTR("HLT"));
+        LCD.print_P(2, 1, PSTR("Mash"));
+        LCD.print_P(3, 1, PSTR("Auto"));
+      }
+      LCD.setCustChar_P(0, BUTTON_OFF);
+      LCD.setCustChar_P(1, BUTTON_ON);
+      LCD.setCustChar_P(2, BUTTON_OFF_SELECTED);
+      LCD.setCustChar_P(3, BUTTON_ON_SELECTED);
       break;
     case SCREENSIGNAL_UPDATE:
-      uiLabelFPoint(2, 10, 4, volAvg[VS_HLT], 1000);
-      uiLabelFPoint(2, 16, 4, volAvg[VS_MASH], 1000);
-  
-      LCD.print_P(3, 11, outputs->getProfileState(OUTPUTPROFILE_FILLHLT) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
-      LCD.print_P(3, 17, outputs->getProfileState(OUTPUTPROFILE_FILLMASH) ? LABEL_BUTTONON : LABEL_BUTTONOFF);
+      uiLabelFPoint(1, 9, 4, tgtVol[VS_HLT], 1000);
+      uiLabelFPoint(2, 9, 4, tgtVol[VS_MASH], 1000);
+      uiLabelFPoint(1, 15, 4, volAvg[VS_HLT], 1000);
+      uiLabelFPoint(2, 15, 4, volAvg[VS_MASH], 1000);
+      screenFillUpdateButtons(screenLock ? Encoder.getCount() : INDEX_NONE);
       break;
     case SCREENSIGNAL_ENCODEROK:
-      switch (Encoder.getCount()) {
-        case 0:
-          continueClick();
-          break;
-        case 1:
-          autoValve[AV_FILL] = 0; 
-          outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0); 
-          outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 1);
-          break;
-        case 2:
-          autoValve[AV_FILL] = 0; 
-          outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0); 
-          outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 1);
-          break;
-        case 3:
-          autoValve[AV_FILL] = 0;
-          outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 1);
-          outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 1);
-          break;
-        case 4:
-          autoValve[AV_FILL] = 0;
-          outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
-          outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0);
-          break;
-        case 5:
-          screenFillMenu();
-          uiRedrawActiveScreen();
-          break;
+      {
+        boolean fillActive = brewStepIsActive(BREWSTEP_FILL);
+        boolean refillActive = brewStepIsActive(BREWSTEP_REFILL);
+        switch (Encoder.getCount()) {
+          case 0:
+            if (confirmAdvance())
+              continueClick();
+            uiRedrawActiveScreen();
+            break;
+          case 1:
+            outputs->toggleProfileState(OUTPUTPROFILE_FILLHLT);
+            break;
+          case 2:
+            tgtVol[VS_HLT] = getValue_P(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 1000, 9999999, VOLUNIT);
+            uiRedrawActiveScreen();
+            break;
+          case 3:
+            outputs->toggleProfileState(OUTPUTPROFILE_FILLMASH);
+            break;
+          case 4:
+            tgtVol[VS_MASH] = getValue_P(PSTR("Mash Target Vol"), tgtVol[VS_MASH], 1000, 9999999, VOLUNIT);
+            uiRedrawActiveScreen();
+            break;
+          case 5:
+            autoValve[AV_FILL] ^= 1;
+            break;
+          case 6:
+            outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
+            outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0);
+            autoValve[AV_FILL] = 0;
+            break;
+          case 7:
+            if (confirmAbort()) {
+              if (fillActive)
+                brewStepSignal(BREWSTEP_FILL, STEPSIGNAL_ABORT);
+              else
+                brewStepSignal(BREWSTEP_REFILL, STEPSIGNAL_ABORT);
+            }
+            uiRedrawActiveScreen();
+            break;
+        }
       }
       break;
     case SCREENSIGNAL_ENCODERCHANGE:
-      LCD.rPad(3, 1, "", 9, ' ');
-      switch (Encoder.getCount()) {
-        case 0:
-          LCD.print_P(3, 1, CONTINUE);
-          break;
-        case 1:
-          LCD.print_P(3, 1, FILLHLT);
-          break;
-        case 2:
-          LCD.print_P(3, 1, FILLMASH);
-          break;
-        case 3:
-          LCD.print_P(3, 1, FILLBOTH);
-          break;
-        case 4:
-          LCD.print_P(3, 2, ALLOFF);
-          break;
-        case 5:
-          LCD.print_P(3, 3, MENU);
-          break;
+      {
+        byte cursorPosition = Encoder.getCount();        
+        uiCursorHasFocus(1, 8, 6, cursorPosition == 2);
+        uiCursorHasFocus(2, 8, 6, cursorPosition == 4);
+        uiCursorHasFocus(3, 6, 6, cursorPosition == 6);
+
+        if (brewStepIsActive(BREWSTEP_FILL) || brewStepIsActive(BREWSTEP_REFILL)) {
+          uiCursorHasFocus(0, 10, 10, cursorPosition == 0);
+          uiCursorHasFocus(3, 13, 7, cursorPosition == 7);
+        }
       }
       break;
     case SCREENSIGNAL_LOCK:
-      LCD.print_P(3, 1, CONTINUE);
-      Encoder.setMin(0);
-      Encoder.setMax(5);
-      Encoder.setCount(0);
-      screenFill(SCREENSIGNAL_INIT);
-      uiCursorFocus(3, 0, 11);
-      screenFill(SCREENSIGNAL_ENCODERCHANGE);
+      {
+        boolean fillActive = brewStepIsActive(BREWSTEP_FILL);
+        boolean refillActive = brewStepIsActive(BREWSTEP_REFILL);
+        Encoder.setMin  (fillActive || refillActive ? 0 : 1);
+        Encoder.setMax  (fillActive || refillActive ? 7 : 6);
+        Encoder.setCount(fillActive || refillActive ? 0 : 1);
+        LCD.print_P(3, 7, PSTR("Stop"));
+        if (fillActive || refillActive) {
+          LCD.print_P(0, 11, PSTR("Continue"));
+          LCD.print_P(3, 14, PSTR("Abort"));
+        }
+        screenFill(SCREENSIGNAL_ENCODERCHANGE);
+      }
       break;
     case SCREENSIGNAL_UNLOCK:
-      LCD.rPad(3, 0, "", 11, ' ');
+      screenFillUpdateButtons(INDEX_NONE);
+      LCD.rPad(3, 6, "", 6, ' ');
+      LCD.rPad(0, 10, "", 9, ' ');
+      LCD.rPad(3, 13, "", 7, ' ');
+      uiCursorNone(1, 8, 6);
+      uiCursorNone(2, 8, 6);
       break;
   }
 }
 
-void screenFillMenu() {
-  menu fillMenu(3, 6);
-  fillMenu.setItem_P(PSTR("Auto Fill"), 0);
-  fillMenu.setItem_P(PSTR("HLT Target"), 1);
-  fillMenu.setItem_P(PSTR("Mash Target"), 2);
-  fillMenu.setItem_P(CONTINUE, 3);
-  fillMenu.setItem_P(ABORT, 4);
-  fillMenu.setItem_P(EXIT, 255);
-
-  byte lastOption = scrollMenu("Fill Menu", &fillMenu);
-  if (lastOption == 0) { if(tgtVol[VS_HLT] || tgtVol[VS_MASH]) autoValve[AV_FILL] = 1; }
-  else if (lastOption == 1) tgtVol[VS_HLT] = getValue_P(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 1000, 9999999, VOLUNIT);
-  else if (lastOption == 2) tgtVol[VS_MASH] = getValue_P(PSTR("Mash Target Vol"), tgtVol[VS_MASH], 1000, 9999999, VOLUNIT);
-  else if (lastOption == 3) continueClick();     
-  else if (lastOption == 4) {
-    if (confirmAbort()) {
-      if (brewStepIsActive(BREWSTEP_FILL))
-        brewStepSignal(BREWSTEP_FILL, STEPSIGNAL_ABORT);
-      else
-        brewStepSignal(BREWSTEP_REFILL, STEPSIGNAL_ABORT);
-    }
-  }
+void screenFillUpdateButtons(byte cursorPosition) {
+  LCD.writeCustChar(1, 0, (outputs->getProfileState(OUTPUTPROFILE_FILLHLT) ? 1 : 0) | ((cursorPosition == 1) ? 2 : 0));
+  LCD.writeCustChar(2, 0, (outputs->getProfileState(OUTPUTPROFILE_FILLMASH) ? 1 : 0) | ((cursorPosition == 3) ? 2 : 0));
+  LCD.writeCustChar(3, 0, (autoValve[AV_FILL] ? 1 : 0) | ((cursorPosition == 5) ? 2 : 0));
 }
 
 void screenMash (enum ScreenSignal signal) {
@@ -909,7 +909,7 @@ void screenChill (enum ScreenSignal signal) {
       Encoder.setMin(0);
       Encoder.setMax(7);
       Encoder.setCount(0);
-      screenChill(SCREENSIGNAL_INIT);
+      LCD.print_P(0, 17, PSTR("H2O"));
       uiCursorFocus(3, 0, 12);
       screenChill(SCREENSIGNAL_ENCODERCHANGE);
       break;
