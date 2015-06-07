@@ -45,6 +45,12 @@ void uiCursorUnfocus(byte row, byte col, byte width) {
   LCD.print_P(row, col + width - 1, PSTR("]"));
 }
 
+void uiCursorHasFocus(byte row, byte col, byte width, boolean hasFocus) {
+  if (hasFocus)
+    uiCursorFocus(row, col, width);
+  else
+    uiCursorUnfocus(row, col, width);
+}
 
 /*
   scrollMenu() & drawMenu():
@@ -155,6 +161,10 @@ boolean confirmDel() {
 
 boolean confirmSave() {
   return confirmChoice("Save Changes?", "", "", PSTR("Save"));
+}
+
+boolean confirmAdvance() {
+  return confirmChoice("Advance program?", "", "", PSTR("Advance"));
 }
 
 unsigned long getValue_P(const char *sTitle, unsigned long defValue, unsigned int divisor, unsigned long maxValue, const char *dispUnit) {
