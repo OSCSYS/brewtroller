@@ -809,17 +809,22 @@ void menuBubbler() {
     if (bubbleOutput == INDEX_NONE)
       volMenu.setItem_P(PSTR("Output: DISABLED"), 0);
     else {
-      char menuItem[21];
-      char bankName[6];
-      char outName[7];
-      sprintf(menuItem, "Output: %s-%s", outputs->getOutputBankName(bubbleOutput, bankName), outputs->getOutputName(bubbleOutput, outName));
-      volMenu.setItem(menuItem, 0);
-      sprintf(menuItem, "Interval: %ds", bubbleInterval);
-      volMenu.setItem(menuItem, 1);
-      sprintf(menuItem, "Duration: %d.%ds", bubbleDuration / 10, bubbleDuration - (bubbleDuration / 10) * 10);
-      volMenu.setItem(menuItem, 2);
-      sprintf(menuItem, "Delay: %d.%ds", bubbleReadDelay / 10, bubbleReadDelay - (bubbleReadDelay / 10) * 10);
-      volMenu.setItem(menuItem, 3);
+      volMenu.setItem_P(PSTR("Output: "), 0);
+      volMenu.appendItem(outputs->getOutputBankName(bubbleOutput, buf), 0);
+      volMenu.appendItem("-", 0);
+      volMenu.appendItem(outputs->getOutputName(bubbleOutput, buf), 0);
+
+      volMenu.setItem_P(PSTR("Interval: "), 1);
+      volMenu.appendItem(itoa(bubbleInterval, buf, 10), 1);
+      volMenu.appendItem("s", 1);
+
+      volMenu.setItem_P(PSTR("Duration: "), 2);
+      volMenu.appendItem(vftoa(bubbleDuration, buf, 10, 1), 2);
+      volMenu.appendItem("s", 2);
+
+      volMenu.setItem_P(PSTR("Delay: "), 3);
+      volMenu.appendItem(vftoa(bubbleReadDelay, buf, 10, 1), 3);
+      volMenu.appendItem("s", 3);
     }
     volMenu.setItem_P(EXIT, 255);
     byte lastOption = scrollMenu("Bubbler Setup", &volMenu);

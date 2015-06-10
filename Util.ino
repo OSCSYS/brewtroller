@@ -33,7 +33,7 @@ void strLPad(char retString[], byte len, char pad) {
 }
 
 //Converts a "Virtual Float" (fixed decimal value represented in tenths, hundredths, thousandths, etc.) to a string
-void vftoa(unsigned long val, char retStr[], unsigned int divisor, boolean decimal) {
+char* vftoa(unsigned long val, char *retStr, unsigned int divisor, boolean decimal) {
   char lbuf[11];
   itoa(divisor - 1, lbuf, 10);
   byte precision = strlen(lbuf);
@@ -46,6 +46,7 @@ void vftoa(unsigned long val, char retStr[], unsigned int divisor, boolean decim
     strLPad(lbuf, precision, '0');
     strcat(retStr, lbuf);
   }
+  return retStr;
 }
 
 //Truncate a string representation of a float to (length) chars but do not end string with a decimal point
