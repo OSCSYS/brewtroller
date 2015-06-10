@@ -191,27 +191,21 @@ void programThreadResetAll() {
 void brewStepFill(enum StepSignal signal, struct ProgramThread *thread) {
   switch (signal) {
     case STEPSIGNAL_INIT:
-      tgtVol[VS_HLT] = calcSpargeVol(thread->recipe);
+      tgtVol[VS_HLT] = 0;
+      if (brewStepConfiguration.fillSpargeBeforePreheat)
+        tgtVol[VS_HLT] = calcSpargeVol(thread->recipe);
       tgtVol[VS_MASH] = calcStrikeVol(thread->recipe);
       if (getProgMLHeatSrc(thread->recipe) == VS_HLT) {
         tgtVol[VS_HLT] = min(tgtVol[VS_HLT] + tgtVol[VS_MASH], getCapacity(VS_HLT));
         tgtVol[VS_MASH] = 0;
       }
-      #ifdef AUTO_FILL_START
+      if (brewStepConfiguration.autoStartFill)
         autoValve[AV_FILL] = 1;
-      #endif
       programThreadSetStep(thread, BREWSTEP_FILL);
       break;
     case STEPSIGNAL_UPDATE:
-      #ifdef AUTO_FILL_EXIT
-        if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH])
-          brewStepFill(STEPSIGNAL_ADVANCE, thread);
-      #else
-        #ifndef VOLUME_MANUAL
-          if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH])
-            outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
-        #endif
-      #endif
+      if (brewStepConfiguration.autoExitFill && volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH])
+        brewStepFill(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
@@ -280,10 +274,9 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
         setAlarm(1);
       }
     
-      #ifdef AUTO_PREHEAT_EXIT 
-        if (preheated[preheatVessel])
-          brewStepPreheat(STEPSIGNAL_ADVANCE, thread);
-      #endif
+      if (brewStepConfiguration.autoExitPreheat && preheated[preheatVessel])
+        brewStepPreheat(STEPSIGNAL_ADVANCE, thread);
+
       #if defined SMART_HERMS_HLT && defined SMART_HERMS_PREHEAT
         smartHERMSHLT();
       #endif
@@ -317,21 +310,18 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
           // In manual volume mode show the target mash volume as a guide to the user
           tgtVol[VS_MASH] = mashVol;
         #endif
-        #ifdef AUTO_ML_XFER
+        if (brewStepConfiguration.autoStrikeTransfer)
            autoValve[AV_SPARGEIN] = 1;
-        #endif
       }
       programThreadSetStep(thread, BREWSTEP_GRAININ);
       break;
     case STEPSIGNAL_UPDATE:
-      #ifdef AUTO_GRAININ_EXIT
-        if(!autoValve[AV_SPARGEIN]) {
-          if (!grainInStart)
-            grainInStart = millis();
-          else if ((millis() - grainInStart) / 1000 > AUTO_GRAININ_EXIT)
-            brewStepGrainIn(STEPSIGNAL_ADVANCE, thread);
-        } 
-      #endif
+      if (brewStepConfiguration.autoExitGrainInMinutes && !autoValve[AV_SPARGEIN]) {
+        if (!grainInStart)
+          grainInStart = millis();
+        else if ((millis() - grainInStart) / 60000 > brewStepConfiguration.autoExitGrainInMinutes)
+          brewStepGrainIn(STEPSIGNAL_ADVANCE, thread);
+      }
       //Turn off Sparge In AutoValve if tgtVol has been reached
       //Because this function is called before processautovalves() if we clear the auto valve here the bit in the active profile will still be set until the
       // user exits the grain in step, causing it to not shut off when target volume is reached. 
@@ -351,10 +341,7 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
       setSetpoint(VS_HLT, 0);
       setSetpoint(VS_MASH, 0);
       if (signal == STEPSIGNAL_ADVANCE) {
-        if (calcRefillVolume(thread->recipe))
-          brewStepRefill(STEPSIGNAL_INIT, thread);
-        else
-          brewStepDoughIn(STEPSIGNAL_INIT, thread);
+        brewStepRefill(STEPSIGNAL_INIT, thread);
       }
       break;
   }
@@ -363,23 +350,19 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
 void brewStepRefill(enum StepSignal signal, struct ProgramThread *thread) {
   switch (signal) {
     case STEPSIGNAL_INIT:
-      tgtVol[VS_HLT] = calcRefillVolume(thread->recipe);
+      //Check if we delayed filling the HLT (default logic) OR if strike was heated in HLT and it wasn't big enough to hold both strike and sparge
+      if (!brewStepConfiguration.fillSpargeBeforePreheat || ((getProgMLHeatSrc(thread->recipe) == VS_HLT) && (calcStrikeVol(thread->recipe) + calcSpargeVol(thread->recipe) > getCapacity(VS_HLT)))) {
+        tgtVol[VS_HLT] = calcSpargeVol(thread->recipe);
+      }
+
       tgtVol[VS_MASH] = 0;
-      #ifdef AUTO_REFILL_START
+      if (brewStepConfiguration.autoStartFill)
         autoValve[AV_FILL] = 1;
-      #endif
       programThreadSetStep(thread, BREWSTEP_REFILL);
       break;
     case STEPSIGNAL_UPDATE:
-      #ifdef AUTO_FILL_EXIT
-        if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH])
-          brewStepRefill(STEPSIGNAL_ADVANCE, thread);
-      #else
-        #ifndef VOLUME_MANUAL
-          if (volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH])
-            outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
-        #endif
-      #endif
+      if (tgtVol[VS_HLT] == 0 || (brewStepConfiguration.autoExitFill && volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH]))
+        brewStepRefill(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
@@ -491,10 +474,8 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, BREWSTEP_MASHHOLD);
       break;
     case STEPSIGNAL_UPDATE:
-      #ifdef AUTO_MASH_HOLD_EXIT 
-        if (!zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= setpoint[VS_HLT])
-          brewStepMashHold(STEPSIGNAL_ADVANCE, thread);
-      #endif
+      if (brewStepConfiguration.autoExitMash && !zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= setpoint[VS_HLT])
+        brewStepMashHold(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
@@ -517,18 +498,14 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
             setSetpoint(TS_HLT, getProgSparge(stepProgram[BREWSTEP_SPARGE]));
       #endif
       
-      #ifdef BATCH_SPARGE
-        
-      #else
-          #ifdef SPARGE_IN_PUMP_CONTROL
-          prevSpargeVol[1] = volAvg[VS_HLT]; // init the value at the start of sparge
-          prevSpargeVol[0] = 0;
-          #endif
-        tgtVol[VS_KETTLE] = calcPreboilVol(thread->recipe);
-        #ifdef AUTO_SPARGE_START
-          autoValve[AV_FLYSPARGE] = 1;
-        #endif
+      #ifdef SPARGE_IN_PUMP_CONTROL
+        prevSpargeVol[1] = volAvg[VS_HLT]; // init the value at the start of sparge
+        prevSpargeVol[0] = 0;
       #endif
+      tgtVol[VS_KETTLE] = calcPreboilVol(thread->recipe);
+      if (brewStepConfiguration.autoStartFlySparge)
+        autoValve[AV_FLYSPARGE] = 1;
+
       programThreadSetStep(thread, BREWSTEP_SPARGE);
       break;
     case STEPSIGNAL_UPDATE:
@@ -539,14 +516,8 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
         #endif
       #endif
       
-      #ifdef BATCH_SPARGE
-      
-      #else
-        #ifdef AUTO_SPARGE_EXIT
-           if (volAvg[VS_KETTLE] >= tgtVol[VS_KETTLE])
-             brewStepSparge(STEPSIGNAL_ADVANCE, thread);
-        #endif
-      #endif
+      if (brewStepConfiguration.autoExitSparge && volAvg[VS_KETTLE] >= tgtVol[VS_KETTLE])
+        brewStepSparge(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
@@ -625,10 +596,8 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
           }
         }
         
-        #ifdef AUTO_BOIL_RECIRC
-        if (timerValue[TIMER_BOIL] <= AUTO_BOIL_RECIRC * 60000)
+        if (brewStepConfiguration.autoBoilWhirlpoolMinutes && timerValue[TIMER_BOIL] <= brewStepConfiguration.autoBoilWhirlpoolMinutes * 60000)
           outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 1);
-        #endif
       }
       //Exit Condition  
       if(preheated[VS_KETTLE] && timerValue[TIMER_BOIL] == 0) {
@@ -643,9 +612,7 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
       outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
-      #ifdef AUTO_BOIL_RECIRC
-        outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 0);
-      #endif
+      outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 0);
       setSetpoint(VS_KETTLE, 0);
       clearTimer(TIMER_BOIL);
       if (signal == STEPSIGNAL_ADVANCE)
@@ -732,20 +699,12 @@ unsigned long calcSpargeVol(byte recipe) {
 
   //Subtract Strike Water Volume
   retValue -= calcStrikeVol(recipe);
+  
+  #ifdef HLT_MIN_REFILL
+    retValue = max(retValue, HLT_MIN_REFILL_VOL);
+  #endif
+      
   return retValue;
-}
-
-unsigned long calcRefillVolume(byte recipe) {
-  unsigned long returnValue;
-  if (getProgMLHeatSrc(recipe) == VS_HLT) {
-    #ifdef HLT_MIN_REFILL
-      SpargeVol = calcSpargeVol(recipe);
-      returnValue = max(SpargeVol, HLT_MIN_REFILL_VOL);
-    #else
-      returnValue = calcSpargeVol(recipe);
-    #endif
-  }
-  return returnValue;
 }
 
 unsigned long calcPreboilVol(byte recipe) {

@@ -349,21 +349,22 @@ void warnBoil(unsigned long preboilVol) {
 // System Setup Menus
 //*****************************************************************************************************************************
 void menuSetup() {
-  menu setupMenu(3, 9);
+  menu setupMenu(3, 10);
   setupMenu.setItem_P(PSTR("System Settings"), 0);
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 1);
   setupMenu.setItem_P(PSTR("Outputs"), 2);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 3);
-  setupMenu.setItem_P(INIT_EEPROM, 4);
-  #ifdef UI_DISPLAY_SETUP
-    setupMenu.setItem_P(PSTR("Display"), 5);
+  setupMenu.setItem_P(PSTR("Step Automation"), 8);
+  #ifdef DIGITAL_INPUTS
+    setupMenu.setItem_P(PSTR("Triggers"), 7);
   #endif
   #ifdef RGBIO8_ENABLE
     setupMenu.setItem_P(PSTR("RGB Setup"), 6);
   #endif  
-  #ifdef DIGITAL_INPUTS
-    setupMenu.setItem_P(PSTR("Triggers"), 7);
+  #ifdef UI_DISPLAY_SETUP
+    setupMenu.setItem_P(PSTR("Display"), 5);
   #endif
+  setupMenu.setItem_P(INIT_EEPROM, 4);
   setupMenu.setItem_P(EXIT, 255);
   
   while(1) {
@@ -393,6 +394,8 @@ void menuSetup() {
       else if (lastOption == 7)
         menuTriggers();
     #endif
+    else if (lastOption == 8)
+        menuBrewStepAutomation();
     else return;
   }
 }
@@ -516,6 +519,73 @@ void menuSystemSettings() {
       else
         return;
     }
+}
+
+void menuBrewStepAutomation() {
+  byte lastOption = 0;
+  while(1) {
+    menu settingsMenu(3, 11);
+    char menuItem[20];
+    sprintf(menuItem, "Fill Sparge: %s", brewStepConfiguration.fillSpargeBeforePreheat ? "Start" : "Refill");
+    settingsMenu.setItem(menuItem, 0);
+    
+    sprintf(menuItem, "Start Fill: %s", brewStepConfiguration.autoStartFill ? "On" : "Off");
+    settingsMenu.setItem(menuItem, 1);
+
+    sprintf(menuItem, "Exit Fill: %s", brewStepConfiguration.autoExitFill ? "On" : "Off");
+    settingsMenu.setItem(menuItem, 2);
+
+    sprintf(menuItem, "Exit Preheat: %s", brewStepConfiguration.autoExitPreheat ? "On" : "Off");
+    settingsMenu.setItem(menuItem, 3);
+
+    sprintf(menuItem, "Strike Transfer:%s", brewStepConfiguration.autoStrikeTransfer ? " On" : "Off");
+    settingsMenu.setItem(menuItem, 4);
+    
+    sprintf(buf, "%d min", brewStepConfiguration.autoExitGrainInMinutes);
+    sprintf(menuItem, "Exit Grain: %s", brewStepConfiguration.autoExitGrainInMinutes ? buf : "Off");
+    settingsMenu.setItem(menuItem, 5);
+
+    sprintf(menuItem, "Exit Mash: %s", brewStepConfiguration.autoExitMash ? "On" : "Off");
+    settingsMenu.setItem(menuItem, 6);
+
+    sprintf(menuItem, "Fly Sparge: %s", brewStepConfiguration.autoStartFlySparge ? "On" : "Off");
+    settingsMenu.setItem(menuItem, 7);
+
+    sprintf(menuItem, "Exit Sparge: %s", brewStepConfiguration.autoExitSparge ? "On" : "Off");
+    settingsMenu.setItem(menuItem, 8);
+    
+    sprintf(buf, "%d min", brewStepConfiguration.autoBoilWhirlpoolMinutes);
+    sprintf(menuItem, "Boil Whirl: %s", brewStepConfiguration.autoBoilWhirlpoolMinutes ? buf : "Off");
+    settingsMenu.setItem(menuItem, 9); 
+    
+    settingsMenu.setItem_P(EXIT, 255);
+    
+    lastOption = scrollMenu("Step Automation", &settingsMenu);
+    if (lastOption == 0)
+      brewStepConfiguration.fillSpargeBeforePreheat ^= 1;
+    else if (lastOption == 1)
+      brewStepConfiguration.autoStartFill ^= 1;
+    else if (lastOption == 2)
+      brewStepConfiguration.autoExitFill ^= 1;
+    else if (lastOption == 3)
+      brewStepConfiguration.autoExitPreheat ^= 1;
+    else if (lastOption == 4)
+      brewStepConfiguration.autoStrikeTransfer ^= 1;
+    else if (lastOption == 5)
+      brewStepConfiguration.autoExitGrainInMinutes = getValue("Auto Exit Grain In", brewStepConfiguration.autoExitGrainInMinutes, 1, 255, PSTR("min"));
+    else if (lastOption == 6)
+      brewStepConfiguration.autoExitMash ^= 1;
+    else if (lastOption == 7)
+      brewStepConfiguration.autoStartFlySparge ^= 1;
+    else if (lastOption == 8)
+      brewStepConfiguration.autoExitSparge ^= 1;
+    else if (lastOption == 9)
+      brewStepConfiguration.autoBoilWhirlpoolMinutes = getValue("Auto Boil Whirlpool", brewStepConfiguration.autoBoilWhirlpoolMinutes, 1, 255, PSTR("min"));
+    else {
+      eepromSaveBrewStepConfiguration();
+      return;
+    }
+  }
 }
 
 void menuOutputs() {
@@ -745,7 +815,7 @@ void menuBubbler() {
       volMenu.setItem(menuItem, 3);
     }
     volMenu.setItem_P(EXIT, 255);
-    byte lastOption = scrollMenu("Volume", &volMenu);
+    byte lastOption = scrollMenu("Bubbler Setup", &volMenu);
     if (lastOption == 0)
       setBubblerOutput(menuSelectOutput("Bubbler Output", bubbleOutput));
     else if (lastOption == 1)

@@ -130,6 +130,19 @@ struct TriggerConfiguration {
   byte releaseHysteresis;
 };
 
+struct BrewStepConfiguration {
+  boolean fillSpargeBeforePreheat       :1;
+  boolean autoStartFill                 :1;
+  boolean autoExitFill                  :1;
+  boolean autoExitPreheat               :1;
+  boolean autoStrikeTransfer            :1;
+  byte autoExitGrainInMinutes           :8;
+  boolean autoExitMash                  :1;
+  boolean autoStartFlySparge            :1;
+  boolean autoExitSparge                :1;
+  byte autoBoilWhirlpoolMinutes         :8;
+};
+
 //**********************************************************************************
 // Globals
 //**********************************************************************************
@@ -224,6 +237,8 @@ ControlState boilControlState = CONTROLSTATE_OFF;
 
 struct ProgramThread programThread[PROGRAMTHREAD_MAX];
 
+struct BrewStepConfiguration brewStepConfiguration;
+
 //Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
 unsigned int hoptimes[11] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5, 0 };
 byte pitchTemp;
@@ -259,6 +274,8 @@ void setup() {
   
   for (byte i = 0; i < USERTRIGGER_COUNT; i++)
     trigger[i] = NULL;
+  
+  initializeBrewStepConfiguration();
 
   //We need some object for UI in case setup is not loaded due to missing config
   //This will get thrown away after setup is loaded

@@ -102,6 +102,7 @@ void loadSetup() {
   #endif
 
   loadBubbler();
+  eepromLoadBrewStepConfiguration();
 
   for(byte i = 0; i < PROGRAMTHREAD_MAX; i++)
     eepromLoadProgramThread(i, &programThread[i]);  
@@ -717,7 +718,7 @@ void setBubblerDelay(byte delayTime) {
 }
 
 //*****************************************************************************************************************************
-// Calculation Factors
+// Calculation Factors (2191-2194) + Reserved (2195-2204)
 //*****************************************************************************************************************************
 unsigned int getGrainDisplacement() {
   return EEPROMreadInt(2191);
@@ -733,6 +734,32 @@ unsigned int getGrainLiquorLoss() {
 
 void setGrainLiquorLoss(unsigned int loss) {
   EEPROMwriteInt(2193, loss);
+}
+
+//*****************************************************************************************************************************
+// Brew Step Configuration (2205 - 2207) + Reserved (2208-2217)
+//*****************************************************************************************************************************
+void eepromLoadBrewStepConfiguration() {
+  void *configuration = &brewStepConfiguration;
+  eeprom_read_block(configuration, (unsigned char *) 2205, sizeof(struct BrewStepConfiguration));
+}
+
+void eepromSaveBrewStepConfiguration() {
+  void *configuration = &brewStepConfiguration;
+  eeprom_write_block(configuration, (unsigned char *) 2205, sizeof(struct BrewStepConfiguration));
+}
+
+void initializeBrewStepConfiguration() {
+  brewStepConfiguration.fillSpargeBeforePreheat = 0;
+  brewStepConfiguration.autoStartFill = 0;
+  brewStepConfiguration.autoExitFill = 0;
+  brewStepConfiguration.autoExitPreheat = 0;
+  brewStepConfiguration.autoStrikeTransfer = 0;
+  brewStepConfiguration.autoExitGrainInMinutes = 0;
+  brewStepConfiguration.autoExitMash = 0;
+  brewStepConfiguration.autoStartFlySparge = 0;
+  brewStepConfiguration.autoExitSparge = 0;
+  brewStepConfiguration.autoBoilWhirlpoolMinutes = 0;
 }
 
 //*****************************************************************************************************************************
@@ -830,7 +857,10 @@ boolean checkConfig() {
       setGrainDisplacement(150); //0.15 Gallons /lb
       setGrainLiquorLoss(2143);  //0.2143 Gallons /lb
     #endif
-      EEPROM.write(2047, 6);
+    case 7:
+      initializeBrewStepConfiguration();
+      eepromSaveBrewStepConfiguration();
+      EEPROM.write(2047, 8);
   }
   return 0;
 }
