@@ -15,6 +15,8 @@ const char INIT_EEPROM[] PROGMEM = "Initialize EEPROM";
 const char CONTINUE[] PROGMEM = "Continue";
 const char LABEL_BUTTONON[] PROGMEM = "On ";
 const char LABEL_BUTTONOFF[] PROGMEM = "Off";
+const char ON[] PROGMEM = "On";
+const char OFF[] PROGMEM = "Off";
 
 prog_char FILLHLT[] PROGMEM = "Fill HLT";
 prog_char FILLMASH[] PROGMEM = "Fill Mash";
@@ -143,6 +145,8 @@ const char VOLUNIT[] PROGMEM = "gal";
 const char WTUNIT[] PROGMEM = "lb";
 const char TUNIT[] PROGMEM = "F";
 #endif
+
+const char MIN[] PROGMEM = " min";
 
 //**********************************************************************************
 // UI Custom LCD Chars
