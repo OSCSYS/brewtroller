@@ -26,7 +26,7 @@ prog_char MASHIDLE[] PROGMEM = "Mash Idle";
 prog_char SPARGEIN[] PROGMEM = "Sparge In";
 prog_char SPARGEOUT[] PROGMEM = "Sparge Out";
 prog_char BOILADDS[] PROGMEM = "Boil Additions";
-prog_char KETTLELID[] PROGMEM = "Kettle Lid";
+prog_char STRIKETRANSFER[] PROGMEM = "Not Implemented";
 prog_char CHILL[] PROGMEM = "Chill";
 prog_char WORTOUT[] PROGMEM = "Wort Out";
 prog_char WHIRLPOOL[] PROGMEM = "Whirlpool";
@@ -68,7 +68,7 @@ PROGMEM const char *TITLE_VLV[] = {
   SPARGEIN,
   SPARGEOUT,
   BOILADDS,
-  KETTLELID,
+  STRIKETRANSFER,
   CHILL,
   WORTOUT,
   WHIRLPOOL,

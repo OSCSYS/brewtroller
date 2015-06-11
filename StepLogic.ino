@@ -306,10 +306,8 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
         unsigned long spargeVol = calcSpargeVol(thread->recipe);
         unsigned long mashVol = calcStrikeVol(thread->recipe);
         tgtVol[VS_HLT] = (min((spargeVol + mashVol), getCapacity(VS_HLT)) - mashVol);
-        #ifdef VOLUME_MANUAL
-          // In manual volume mode show the target mash volume as a guide to the user
-          tgtVol[VS_MASH] = mashVol;
-        #endif
+        tgtVol[VS_MASH] = mashVol;
+
         if (brewStepConfiguration.autoStrikeTransfer)
            autoValve[AV_SPARGEIN] = 1;
       }
@@ -491,13 +489,6 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
 void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
   switch (signal) {
     case STEPSIGNAL_INIT:
-      #ifdef HLT_HEAT_SPARGE
-        #ifdef HLT_MIN_SPARGE
-          if (volAvg[VS_HLT] >= HLT_MIN_SPARGE)
-        #endif
-            setSetpoint(TS_HLT, getProgSparge(stepProgram[BREWSTEP_SPARGE]));
-      #endif
-      
       #ifdef SPARGE_IN_PUMP_CONTROL
         prevSpargeVol[1] = volAvg[VS_HLT]; // init the value at the start of sparge
         prevSpargeVol[0] = 0;
@@ -509,22 +500,12 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, BREWSTEP_SPARGE);
       break;
     case STEPSIGNAL_UPDATE:
-      #ifdef HLT_HEAT_SPARGE
-        #ifdef HLT_MIN_SPARGE
-          if (volAvg[VS_HLT] < HLT_MIN_SPARGE)
-            setSetpoint(TS_HLT, 0);
-        #endif
-      #endif
-      
       if (brewStepConfiguration.autoExitSparge && volAvg[VS_KETTLE] >= tgtVol[VS_KETTLE])
         brewStepSparge(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
-      #ifdef HLT_HEAT_SPARGE
-        setSetpoint(TS_HLT, 0);
-      #endif
       tgtVol[VS_HLT] = 0;
       tgtVol[VS_KETTLE] = 0;
       resetSpargeOutputs();
@@ -628,10 +609,6 @@ void brewStepChill(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, BREWSTEP_CHILL);
       break;
     case STEPSIGNAL_UPDATE:
-      if (temp[TS_KETTLE] != -1 && temp[TS_KETTLE] <= KETTLELID_THRESH)
-        outputs->setProfileState(OUTPUTPROFILE_KETTLELID, 1);
-      else
-        outputs->setProfileState(OUTPUTPROFILE_KETTLELID, 0);
       break;
     case STEPSIGNAL_ABORT:
     case STEPSIGNAL_ADVANCE:

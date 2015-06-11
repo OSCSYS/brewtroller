@@ -39,22 +39,6 @@
 //**********************************************************************************
 
 //**********************************************************************************
-// Kettle Lid Control
-//**********************************************************************************
-// The kettle lid Valve Profile can be used to automate covering of the boil kettle.
-// The kettle lid profile is activated in the Chill step of a program when the
-// kettle temperature is less than the threshhold specified below.
-//
-#ifdef USEMETRIC
-  //Celcius
-  #define KETTLELID_THRESH 80
-#else
-  //Fahrenheit
-  #define KETTLELID_THRESH 176
-#endif
-//**********************************************************************************
-
-//**********************************************************************************
 // Hop Addition Valve Profile
 //**********************************************************************************
 // A valve profile is activated based on the boil additions schedule during the boil
@@ -172,14 +156,29 @@
 //**********************************
 
 //**********************************************************************************
-// Volume Sensor Settings
+// Min HLT refill volume
 //**********************************************************************************
-// VOLUME_MANUAL: Modifies the user interface to show target volumes instead of
-// current volumes for people who are not using volume sensors. The target
-// volume information will be shown during Add Grain and during Sparge.
+// EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT
+// during the refill step. This is so that you can make any amount of sparge water needed by making
+// sure your heating elements are covered by water so they can heat your sparge water even if you're
+// only going to use 0.25 gallons of it or some other small amount of sparge water.
+// NOTE: Volume is in thousandths of a Gallons/Liters
+// USE CAUTION! TESTING REQUIRED.
 //
-//#define VOLUME_MANUAL
+//#define HLT_MIN_REFILL
+//#define HLT_MIN_REFILL_VOL 4000
 //**********************************************************************************
+
+
+
+
+
+
+
+//**********************************************************************************
+// Settings below this bar are likely to remain compile options
+//**********************************************************************************
+
 
 //**********************************************************************************
 // Volume Averaging Settings
@@ -199,14 +198,15 @@
 // volume changes over a specified interval
 // FLOWRATE_READ_INTERVAL: Time in ms between flowrate calculation updates
 //
-//#define FLOWRATE_CALCS
+#define FLOWRATE_CALCS
 #define FLOWRATE_READ_INTERVAL 1000
 //**********************************************************************************
-
 
 //**********************************************************************************
 // RS485/Modbus Configuration
 //**********************************************************************************
+// Used only if OUTPUTBANK_MODBUS is defined in HWProfile.h
+
   #define RS485_BAUDRATE    76800
   #define RS485_PARITY      SERIAL_8E1
   
@@ -220,93 +220,10 @@
   #define OUTPUTBANK_MODBUS_REGSLAVEADDR 9001
   #define OUTPUTBANK_MODBUS_REGRESTART 9002
 
-/***********************************************************************************
- * EXPERIMENTAL OPTIONS
- ***********************************************************************************
- The following options are experimental with little to no testing.
- **********************************************************************************/
-
 //**********************************************************************************
-// Min HLT refill volume
+// RGBIO8 Support
 //**********************************************************************************
-// EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT
-// during the refill step. This is so that you can make any amount of sparge water needed by making
-// sure your heating elements are covered by water so they can heat your sparge water even if you're
-// only going to use 0.25 gallons of it or some other small amount of sparge water.
-// NOTE: Volume is in thousandths of a Gallons/Liters
-// USE CAUTION! TESTING REQUIRED.
-//
-//#define HLT_MIN_REFILL
-//#define HLT_MIN_REFILL_VOL 4000
-//**********************************************************************************
-
-
-//**********************************************************************************
-// HLT Heat During Sparge
-//**********************************************************************************
-// HLT_HEAT_SPARGE: Enables the HLT setpoint during the sparge until a minimum
-// volume level is reached.
-// HLT_MIN_SPARGE: Minimum HLT volume trigger to disable the HLT Setpoint during
-// sparge. Value represents thousandths of Gallons/Litres.
-//
-//  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//  !! WARNING: ENABLING THIS OPTION WITHOUT VOLUME LEVEL SENSING OR USING A MINIMUM !!
-//  !! HLT VOLUME FLOAT SWITCH WILL RESULT IN DRY FIRING THE HLT AND CAUSING DAMAGE  !!
-//  !! AND/OR PERSONAL HARM!                                                         !!
-//  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-//#define HLT_HEAT_SPARGE
-//#define HLT_MIN_SPARGE 2000
-//**********************************************************************************
-
-//**********************************************************************************
-// RGB Board options
-//**********************************************************************************
-// The RGB Board allows you to have RGB LEDs show the status of 8 heat or PV outputs
-// and allows you to have up to 8 switches connected to control them. You can connect
-// multiple RGB boards to the BrewTroller to expand the number of inputs and outputs.
-//
-// Each numbered output provides the 4 neccesary connections for a common anode RGB
-// LED. Each numbered input provides 2 commons, an auto and a manual input connection
-// for connecting a 3 position toggle switch, or similar switch.
-//
-// RGBIO assignments are configured at runtime in System Setup
-//
-    // The system is configured by providing input and output mappings
-    // for heat outputs and pump/valve outputs-> Each of these outputs
-    // can be in one of four states:
-    // Off:       The output is forced off, no matter what other systems attempt.
-    // Auto Off:  The output is under auto control of BrewTroller, and is
-    //            currently set to off. It may turn on at any time.
-    // Auto On:   The output is under auto control of BrewTroller, and is
-    //            currently set to on. It may turn off at any time.
-    // On:        The output is forced on and is not under control of 
-    //            BrewTroller.
-    // 
-    // The first thing that is configured are output "recipes". These recipes
-    // define the color that will be shown for each of the states above.
-    // 
-    // Often times you will see colors on a web page expressed in RGB
-    // hexidecimal, such as #FF0000 meaning bright red or #FFFF00 meaning
-    // bright yellow. The RGBIO8 board uses a similar system for color,
-    // except it uses 3 digits instead of 6. In most cases, if you find
-    // a color you like that is in the #ABCDEF format, you can convert it
-    // to the right code for RGBIO8 by removing the second, fourth and
-    // last digit. So, for instance, #ABCDEF would become #ACE.
-    // 
-    // The system has room for four recipes, so you can create 4 different
-    // color schemes that map to your outputs->
-    // 
-    // By default we use two recipes. One for heat outputs and another for
-    // pump/valve outputs-> They are listed below. If you like, you can just
-    // change the colors in a recipe, or you can create entirely new recipes.
-    
-// Enables the RGBIO8 system.
-//
 #define RGBIO8_ENABLE
-//
-//
-//**********************************************************************************
 
 #endif
 
