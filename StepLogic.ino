@@ -553,7 +553,7 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
           pauseTimer(TIMER_BOIL);
       }
       //Turn off hop valve profile after 5s
-      if (lastHop > 0 && millis() - lastHop > HOPADD_DELAY) {
+      if (lastHop > 0 && millis() - lastHop > brewStepConfiguration.boilAdditionSeconds * 1000) {
         outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
         lastHop = 0;
       }

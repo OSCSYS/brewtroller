@@ -737,7 +737,7 @@ void setGrainLiquorLoss(unsigned int loss) {
 }
 
 //*****************************************************************************************************************************
-// Brew Step Configuration (2205 - 2207) + Reserved (2208-2217)
+// Brew Step Configuration (2205 - 2208) + Reserved (2209-2217)
 //*****************************************************************************************************************************
 void eepromLoadBrewStepConfiguration() {
   void *configuration = &brewStepConfiguration;
@@ -760,6 +760,7 @@ void initializeBrewStepConfiguration() {
   brewStepConfiguration.autoStartFlySparge = 0;
   brewStepConfiguration.autoExitSparge = 0;
   brewStepConfiguration.autoBoilWhirlpoolMinutes = 0;
+  brewStepConfiguration.boilAdditionSeconds = 0;
 }
 
 //*****************************************************************************************************************************

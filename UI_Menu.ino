@@ -524,7 +524,7 @@ void menuSystemSettings() {
 void menuBrewStepAutomation() {
   byte lastOption = 0;
   while(1) {
-    menu settingsMenu(3, 11);
+    menu settingsMenu(3, 12);
     settingsMenu.setItem_P(PSTR("Fill Sparge: "), 0);
     settingsMenu.appendItem_P(brewStepConfiguration.fillSpargeBeforePreheat ? PSTR("Start") : PSTR("Refill"), 0);
     
@@ -565,6 +565,14 @@ void menuBrewStepAutomation() {
       settingsMenu.appendItem_P(OFF, 9);
     }
     
+    settingsMenu.setItem_P(PSTR("Boil Adds: "), 10);
+    if(brewStepConfiguration.boilAdditionSeconds) {
+      settingsMenu.appendItem(itoa(brewStepConfiguration.boilAdditionSeconds, buf, 10), 10);
+      settingsMenu.appendItem("s", 10);
+    } else {
+      settingsMenu.appendItem_P(OFF, 10);
+    }
+    
     settingsMenu.setItem_P(EXIT, 255);
     settingsMenu.setSelected(lastOption);
     lastOption = scrollMenu("Step Automation", &settingsMenu);
@@ -588,6 +596,8 @@ void menuBrewStepAutomation() {
       brewStepConfiguration.autoExitSparge ^= 1;
     else if (lastOption == 9)
       brewStepConfiguration.autoBoilWhirlpoolMinutes = getValue("Auto Boil Whirlpool", brewStepConfiguration.autoBoilWhirlpoolMinutes, 1, 255, MIN);
+    else if (lastOption == 10)
+      brewStepConfiguration.boilAdditionSeconds = getValue("Boil Additions", brewStepConfiguration.boilAdditionSeconds, 1, 255, PSTR("s"));
     else {
       eepromSaveBrewStepConfiguration();
       return;

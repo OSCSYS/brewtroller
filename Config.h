@@ -17,17 +17,6 @@
 
 
 //**********************************************************************************
-// Brewing Calculation Factors
-//**********************************************************************************
-// VOL_SHRINKAGE: The amount of liquid volume reduced as a result of decrease in temperature. 
-// This value used to be .96 in BrewTroller 2.4 and earlier versions but this value should
-// not be used in volume calculations for water at ground temperature when targeting pitch temps.
-// A value of '1' (default) will eliminate this from brewing calculations.
-#define VOL_SHRINKAGE 1
-//#define VOL_SHRINKAGE .96
-
-
-//**********************************************************************************
 // Fly sparge pump control to turn the sparge in pump on/off based on a hysteresis from volume of sparge out
 //**********************************************************************************
 // This #define will turn the fly sparge in valve config on when the hysteresis amount of fluid has been pumped
@@ -36,15 +25,6 @@
 // Note: SPARGE_IN_HYSTERSIS is in 1000ths of a gallon or liter. 
 //#define SPARGE_IN_PUMP_CONTROL
 #define SPARGE_IN_HYSTERESIS 250
-//**********************************************************************************
-
-//**********************************************************************************
-// Hop Addition Valve Profile
-//**********************************************************************************
-// A valve profile is activated based on the boil additions schedule during the boil
-// stage of AutoBrew. The parameter below is used to define how long (in milliseconds)
-// the profile stays active during each addition.
-#define HOPADD_DELAY 0
 //**********************************************************************************
 
 //**********************************************************************************
@@ -201,6 +181,18 @@
 #define FLOWRATE_CALCS
 #define FLOWRATE_READ_INTERVAL 1000
 //**********************************************************************************
+
+
+//**********************************************************************************
+// Brewing Calculation Factors
+//**********************************************************************************
+// VOL_SHRINKAGE: The amount of liquid volume reduced as a result of decrease in temperature. 
+// This value used to be .96 in BrewTroller 2.4 and earlier versions but this value should
+// not be used in volume calculations for water at ground temperature when targeting pitch temps.
+// A value of '1' (default) will eliminate this from brewing calculations.
+#define VOL_SHRINKAGE 1
+//#define VOL_SHRINKAGE .96
+
 
 //**********************************************************************************
 // RS485/Modbus Configuration

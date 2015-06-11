@@ -141,6 +141,7 @@ struct BrewStepConfiguration {
   boolean autoStartFlySparge            :1;
   boolean autoExitSparge                :1;
   byte autoBoilWhirlpoolMinutes         :8;
+  byte boilAdditionSeconds              :8;
 };
 
 //**********************************************************************************
