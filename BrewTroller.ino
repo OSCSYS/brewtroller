@@ -223,13 +223,6 @@ PID pid[3] = {
   PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
 };
 
-#ifdef RIMS_MLT_SETPOINT_DELAY
-  byte steptoset = 0;
-  byte RIMStimeExpired = 0;
-  unsigned long starttime = 0;
-  unsigned long timetoset = 0;
-#endif
-
 //Timer Globals
 unsigned long timerValue[2], lastTime[2];
 boolean timerStatus[2], alarmStatus;

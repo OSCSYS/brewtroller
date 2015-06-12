@@ -163,14 +163,14 @@ void loadTriggerInstance(byte i) {
   struct TriggerConfiguration trigConfig;
   loadTriggerConfiguration(i, &trigConfig);
   
-  if (trigConfig.type == TRIGGERTYPE_VOLUME) {
+  if (trigConfig.type == TRIGGERTYPE_VOLUME)
     trigger[i] = new TriggerValue(&volAvg[trigConfig.index], trigConfig.threshold, trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
-  } 
 #ifdef DIGITAL_INPUTS  
-  else if (trigConfig.type == TRIGGERTYPE_GPIO) {
+  else if (trigConfig.type == TRIGGERTYPE_GPIO)
     trigger[i] = new TriggerGPIO(triggerPinMap[trigConfig.index], trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
-  }
-#endif  
+#endif
+  else if (trigConfig.type == TRIGGERTYPE_SETPOINTDELAY)
+    trigger[i] = new TriggerSetpointDelay(&setpoint[trigConfig.index], trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
 }
 
 #ifdef ESTOP_PIN

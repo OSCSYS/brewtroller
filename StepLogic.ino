@@ -380,16 +380,8 @@ void brewStepMashHelper(byte mashStep, enum StepSignal signal, struct ProgramThr
   switch (signal) {
     case STEPSIGNAL_INIT:
       setSetpoint(TS_HLT, getProgHLT(thread->recipe));
-      #ifdef RIMS_MLT_SETPOINT_DELAY
-        starttime = millis(); // get current time
-        timetoset = starttime + RIMS_DELAY; //note that overflow of the milisecond timer is not covered here 
-        steptoset = BREWSTEP_DOUGHIN + mashStep; //step that we need to set the setpoint to after the timer is done. 
-        RIMStimeExpired = 0; //reset the boolean so that we know if the timer has expired for this program or not
-        autoValve[vesselAV(TS_MASH)] = 1; // turn on the mash recirc valve profile as if the setpoint had been set
-      #else
-        setSetpoint(TS_MASH, getProgMashTemp(thread->recipe, mashStep));
-      #endif
-      
+      setSetpoint(TS_MASH, getProgMashTemp(thread->recipe, mashStep));
+     
       preheated[VS_MASH] = 0;
       //Set timer only if empty (for purposes of power loss recovery)
       if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(thread->recipe, mashStep)); 
@@ -407,15 +399,7 @@ void brewStepMashHelper(byte mashStep, enum StepSignal signal, struct ProgramThr
         if (!timerStatus[TIMER_MASH]) pauseTimer(TIMER_MASH);
       }
       //Exit Condition (and skip unused mash steps)
-      if (
-          #ifdef RIMS_MLT_SETPOINT_DELAY
-            getProgMashTemp(stepProgram[BREWSTEP_DOUGHIN + mashStep], mashStep) == 0 
-            || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0)
-          #else
-            setpoint[VS_MASH] == 0 
-            || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0)
-          #endif
-         )
+      if (setpoint[VS_MASH] == 0 || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0))
         brewStepMashHelper(mashStep, STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:

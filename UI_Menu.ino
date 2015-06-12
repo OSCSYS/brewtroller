@@ -1278,6 +1278,10 @@ void menuTriggers() {
           triggerMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), i + 1);
           triggerMenu.appendItem_P(PSTR(" Volume"), i + 1);
           break;
+        case TRIGGERTYPE_SETPOINTDELAY:
+          triggerMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), i + 1);
+          triggerMenu.appendItem_P(PSTR(" Delay"), i + 1);
+          break;
       }
     }
     
@@ -1305,23 +1309,28 @@ void cfgTrigger(byte triggerIndex) {
   
   while(1) {
     menu triggerMenu(3, 9);
-    triggerMenu.setItem_P(PSTR("Type: "), 0);
+    triggerMenu.setItem_P(PSTR("Type:"), 0);
     switch (trigConfig.type) {
       case TRIGGERTYPE_NONE:
         triggerMenu.appendItem_P(PSTR("Disabled"), 0);
         break;
       case TRIGGERTYPE_GPIO:
         #ifdef DIGITAL_INPUTS
-          triggerMenu.appendItem_P(PSTR("Digital Input"), 0);
+          triggerMenu.appendItem_P(PSTR(" Digital Input"), 0);
           triggerMenu.setItem_P(PSTR("Input: "), 1);
           triggerMenu.appendItem(itoa(trigConfig.index + 1, buf, 10), 1);
         #endif
         break;
       case TRIGGERTYPE_VOLUME:
-        triggerMenu.appendItem_P(PSTR("Volume"), 0);
+        triggerMenu.appendItem_P(PSTR(" Volume"), 0);
         triggerMenu.setItem_P(PSTR("Vessel: "), 2);
         triggerMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), 2);
         triggerMenu.setItem_P(PSTR("Threshold"), 3);
+        break;
+      case TRIGGERTYPE_SETPOINTDELAY:
+        triggerMenu.appendItem_P(PSTR("Setpoint Delay"), 0);
+        triggerMenu.setItem_P(PSTR("Vessel: "), 2);
+        triggerMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), 2);
         break;
     }
     if (trigConfig.type != TRIGGERTYPE_NONE) {
@@ -1386,18 +1395,19 @@ boolean triggerConfigurationDidChange(struct TriggerConfiguration *a, struct Tri
 }
 
 byte menuTriggerType (byte type) {
-  menu triggerMenu(3, 3);
+  menu triggerMenu(3, TRIGGERTYPE_COUNT);
   for (byte i = 0; i < TRIGGERTYPE_COUNT; i++) {
     #ifndef DIGITAL_INPUTS
     if (i != TRIGGERTYPE_GPIO)
     #endif
     triggerMenu.setItem_P(type == i ? PSTR("*") : PSTR(""), i);
   }
-  triggerMenu.appendItem_P(PSTR("Disabled"), 0);
+  triggerMenu.appendItem_P(PSTR("Disabled"), TRIGGERTYPE_NONE);
   #ifdef DIGITAL_INPUTS
-    triggerMenu.appendItem_P(PSTR("Digital Input"), 1);
+    triggerMenu.appendItem_P(PSTR("Digital Input"), TRIGGERTYPE_GPIO);
   #endif
-  triggerMenu.appendItem_P(PSTR("Volume"), 2);
+  triggerMenu.appendItem_P(PSTR("Volume"), TRIGGERTYPE_VOLUME);
+  triggerMenu.appendItem_P(PSTR("Setpoint Delay"), TRIGGERTYPE_SETPOINTDELAY);
   triggerMenu.setSelected(type);
   byte newType = scrollMenu("Trigger Type", &triggerMenu);
   if (newType == 255)

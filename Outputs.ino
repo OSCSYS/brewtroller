@@ -124,14 +124,6 @@ void updateOnOffHeatOff(byte vessel) {
 }
 
 void updateHeatOutputs() {
-  #ifdef RIMS_MLT_SETPOINT_DELAY
-    if(timetoset <= millis() && timetoset != 0){
-      RIMStimeExpired = 1;
-      timetoset = 0;
-      setSetpoint(TS_MASH, getProgMashTemp(stepProgram[steptoset], steptoset - 5));
-    }
-  #endif
-  
   updateBoilController();
   
   for (int vesselIndex = 0; vesselIndex <= VS_KETTLE; vesselIndex++) {

@@ -120,18 +120,6 @@
 //**********************************************************************************
 
 
-//**********************************************************************************
-// Delay setting the first setpoint for the MLT for a RIMS tube so the RIMS tube can be full before power on
-//**********************************************************************************
-// This code will add a delay of RIMS_DELAY (in miliseconds) to expire before the first MLT setpoint is set. This is to allow the RIMS
-// tube to be filled up with the recirc pump and come to a steady state before turning on the power. 
-//NOTE: Do not use this code if you do not have a dough in time set that is longer than the RIMS_DELAY for any program 
-// start. 
-//#define RIMS_MLT_SETPOINT_DELAY
-#define RIMS_DELAY 60000
-//**********************************
-
-
 
 
 
