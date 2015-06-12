@@ -539,13 +539,11 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, BREWSTEP_BOIL);
       break;
     case STEPSIGNAL_UPDATE:
-      #ifdef PREBOIL_ALARM
-        if (!(triggered & 32768) && temp[TS_KETTLE] != BAD_TEMP && temp[TS_KETTLE] >= PREBOIL_ALARM * 100) {
-          setAlarm(1);
-          triggered |= 32768; 
-          setBoilAddsTrig(triggered);
-        }
-      #endif
+      if (!(triggered & 32768) && temp[TS_KETTLE] != BAD_TEMP && temp[TS_KETTLE] >= brewStepConfiguration.preBoilAlarm * 100) {
+        setAlarm(1);
+        triggered |= 32768; 
+        setBoilAddsTrig(triggered);
+      }
       if (!preheated[VS_KETTLE] && temp[TS_KETTLE] >= setpoint[VS_KETTLE] && setpoint[VS_KETTLE] > 0) {
         preheated[VS_KETTLE] = 1;
         //Unpause Timer
@@ -709,36 +707,25 @@ byte calcStrikeTemp(byte recipe) {
   //Metric temps are stored as quantity of 0.5C increments
   float strikeTemp = (float)getFirstStepTemp(recipe) / SETPOINT_DIV;
   float grainTemp = (float)getGrainTemp() / SETPOINT_DIV;
+  float grainWeight = getProgGrain(recipe) / 1000.0;
+  float strikeVol = calcStrikeVol(recipe) / 1000.0;
+  float mashThermoDynamic = 0.0;
   
-  //Imperial units must be converted from gallons to quarts
-  #ifdef USEMETRIC
-    const uint8_t kMashRatioVolumeFactor = 1;
-  #else
-    const uint8_t kMashRatioVolumeFactor = 4;
-  #endif
-  
-  //Calculate mash ratio to include logic for no sparge recipes (Using mash ratio of 0 would not work in calcs)
-  float mashRatio = (float)calcStrikeVol(recipe) *  kMashRatioVolumeFactor / getProgGrain(recipe);
+  //If we are not heating strike directly in the mash we should account for the mash tun heat capacity
+  if (getProgMLHeatSrc(recipe) != VS_MASH)
+    mashThermoDynamic = brewStepConfiguration.mashTunHeatCapacity / 1000.0;
   
   #ifdef USEMETRIC
     const float kGrainThermoDynamic = 0.41;
   #else
-    const float kGrainThermoDynamic = 0.2;
+    const float kGrainThermoDynamic = 0.05;
   #endif
   
-  //Calculate strike temp using the formula:
-  //  Tw = (TDC/r)(T2 - T1) + T2
-  //  where:
-  //    TDC = Thermodynamic constant (0.2 for Imperial Units and 0.41 for Metric)
-  //    r = The ratio of water to grain in quarts per pound or l per kg
-  //    T1 = The initial temperature of the mash
-  //    T2 = The target temperature of the mash
-  //    Tw = The actual temperature of the infusion water
-  strikeTemp = (kGrainThermoDynamic / mashRatio) * (strikeTemp - grainTemp) + strikeTemp;
-
-  //Add Config.h value for adjustments if any
-  strikeTemp += STRIKE_TEMP_OFFSET;
-  
+  float totalSpecificHeat = strikeTemp * (kGrainThermoDynamic * grainWeight + strikeVol + mashThermoDynamic);
+  float grainSpecificHeat = kGrainThermoDynamic * grainWeight * grainTemp;
+  float mashTunSpecificHeat = mashThermoDynamic * (temp[VS_MASH] / 100.00);
+  strikeTemp = (totalSpecificHeat - grainSpecificHeat - mashTunSpecificHeat) / strikeVol;
+ 
   //Return value in EEPROM format which is 0-255F or 0-255 x 0.5C
   return strikeTemp * SETPOINT_DIV;
 }

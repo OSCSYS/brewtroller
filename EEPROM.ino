@@ -761,6 +761,8 @@ void initializeBrewStepConfiguration() {
   brewStepConfiguration.autoExitSparge = 0;
   brewStepConfiguration.autoBoilWhirlpoolMinutes = 0;
   brewStepConfiguration.boilAdditionSeconds = 0;
+  brewStepConfiguration.preBoilAlarm = 205;
+  brewStepConfiguration.mashTunHeatCapacity = 0;
 }
 
 //*****************************************************************************************************************************

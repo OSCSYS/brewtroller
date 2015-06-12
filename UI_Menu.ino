@@ -524,7 +524,7 @@ void menuSystemSettings() {
 void menuBrewStepAutomation() {
   byte lastOption = 0;
   while(1) {
-    menu settingsMenu(3, 12);
+    menu settingsMenu(3, 14);
     settingsMenu.setItem_P(PSTR("Fill Sparge: "), 0);
     settingsMenu.appendItem_P(brewStepConfiguration.fillSpargeBeforePreheat ? PSTR("Start") : PSTR("Refill"), 0);
     
@@ -573,6 +573,16 @@ void menuBrewStepAutomation() {
       settingsMenu.appendItem_P(OFF, 10);
     }
     
+    settingsMenu.setItem_P(PSTR("Preboil Alarm: "), 11);
+    if(brewStepConfiguration.preBoilAlarm) {
+      settingsMenu.appendItem(itoa(brewStepConfiguration.preBoilAlarm, buf, 10), 11);
+      settingsMenu.appendItem_P(TUNIT, 11);
+    } else {
+      settingsMenu.appendItem_P(OFF, 11);
+    }
+    
+    settingsMenu.setItem_P(PSTR("Mash Specific Heat"), 12);    
+    
     settingsMenu.setItem_P(EXIT, 255);
     settingsMenu.setSelected(lastOption);
     lastOption = scrollMenu("Step Automation", &settingsMenu);
@@ -598,6 +608,10 @@ void menuBrewStepAutomation() {
       brewStepConfiguration.autoBoilWhirlpoolMinutes = getValue("Auto Boil Whirlpool", brewStepConfiguration.autoBoilWhirlpoolMinutes, 1, 255, MIN);
     else if (lastOption == 10)
       brewStepConfiguration.boilAdditionSeconds = getValue("Boil Additions", brewStepConfiguration.boilAdditionSeconds, 1, 255, PSTR("s"));
+    else if (lastOption == 11)
+      brewStepConfiguration.preBoilAlarm = getValue("Preboil Alarm", brewStepConfiguration.preBoilAlarm, 1, 255, TUNIT);
+    else if (lastOption == 12)
+      brewStepConfiguration.mashTunHeatCapacity = getValue("Mash Specific Heat", brewStepConfiguration.mashTunHeatCapacity, 1000, 65536, PSTR(""));
     else {
       eepromSaveBrewStepConfiguration();
       return;

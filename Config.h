@@ -17,17 +17,6 @@
 
 
 //**********************************************************************************
-// Fly sparge pump control to turn the sparge in pump on/off based on a hysteresis from volume of sparge out
-//**********************************************************************************
-// This #define will turn the fly sparge in valve config on when the hysteresis amount of fluid has been pumped
-// into the kettle from the MLT. It will then shut off the pump when that equal amount of sparge water has been
-// pumped out of the HLT. 
-// Note: SPARGE_IN_HYSTERSIS is in 1000ths of a gallon or liter. 
-//#define SPARGE_IN_PUMP_CONTROL
-#define SPARGE_IN_HYSTERESIS 250
-//**********************************************************************************
-
-//**********************************************************************************
 // Smart HERMS HLT
 //**********************************************************************************
 // SMART_HERMS_HLT: Varies HLT setpoint based on mash target + variance
@@ -44,26 +33,16 @@
 //#define SMART_HERMS_PREHEAT
 //**********************************************************************************
 
-//**********************************************************************************
-// Strike Temperature Correction
-//**********************************************************************************
-// STRIKE_TEMP_OFFSET: Adjusts strike temperature to compensate for thermal mass of
-// mash tun.
-// Value may be positive or negative. Decimal values are allowed.
-
-#define STRIKE_TEMP_OFFSET 0
 
 //**********************************************************************************
-
-
+// Fly sparge pump control to turn the sparge in pump on/off based on a hysteresis from volume of sparge out
 //**********************************************************************************
-// Mash Temperature Adjustment
-//**********************************************************************************
-// MASH_AVG_AUXx: Uncomment one or more of the following lines to include averaging
-// of AUX1, AUX2 and/or AUX3 temp sensors with mash temp sensor.
-//#define MASH_AVG_AUX1
-//#define MASH_AVG_AUX2
-//#define MASH_AVG_AUX3
+// This #define will turn the fly sparge in valve config on when the hysteresis amount of fluid has been pumped
+// into the kettle from the MLT. It will then shut off the pump when that equal amount of sparge water has been
+// pumped out of the HLT. 
+// Note: SPARGE_IN_HYSTERSIS is in 1000ths of a gallon or liter. 
+//#define SPARGE_IN_PUMP_CONTROL
+#define SPARGE_IN_HYSTERESIS 250
 //**********************************************************************************
 
 
@@ -81,13 +60,19 @@
 
 
 //**********************************************************************************
-// Pre-Boil Alarm
+// Min HLT refill volume
 //**********************************************************************************
-// PREBOIL_ALARM: Triggers the alarm during the boil stage when the defined
-// temperature is reached
+// EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT
+// during the refill step. This is so that you can make any amount of sparge water needed by making
+// sure your heating elements are covered by water so they can heat your sparge water even if you're
+// only going to use 0.25 gallons of it or some other small amount of sparge water.
+// NOTE: Volume is in thousandths of a Gallons/Liters
+// USE CAUTION! TESTING REQUIRED.
+//
+//#define HLT_MIN_REFILL
+//#define HLT_MIN_REFILL_VOL 4000
+//**********************************************************************************
 
-#define PREBOIL_ALARM 205
-//**********************************************************************************
 
 //**********************************************************************************
 // Buzzer modulation parameters
@@ -99,6 +84,17 @@
 //
 //#define BUZZER_CYCLE_TIME 1200 //the value is in milliseconds for the ON and OFF buzzer cycle
 //#define BUZZER_ON_TIME 500     //the duration in milliseconds where the alarm will stay on
+//**********************************************************************************
+
+
+//**********************************************************************************
+// Mash Temperature Adjustment
+//**********************************************************************************
+// MASH_AVG_AUXx: Uncomment one or more of the following lines to include averaging
+// of AUX1, AUX2 and/or AUX3 temp sensors with mash temp sensor.
+//#define MASH_AVG_AUX1
+//#define MASH_AVG_AUX2
+//#define MASH_AVG_AUX3
 //**********************************************************************************
 
 
@@ -134,20 +130,6 @@
 //#define RIMS_MLT_SETPOINT_DELAY
 #define RIMS_DELAY 60000
 //**********************************
-
-//**********************************************************************************
-// Min HLT refill volume
-//**********************************************************************************
-// EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT
-// during the refill step. This is so that you can make any amount of sparge water needed by making
-// sure your heating elements are covered by water so they can heat your sparge water even if you're
-// only going to use 0.25 gallons of it or some other small amount of sparge water.
-// NOTE: Volume is in thousandths of a Gallons/Liters
-// USE CAUTION! TESTING REQUIRED.
-//
-//#define HLT_MIN_REFILL
-//#define HLT_MIN_REFILL_VOL 4000
-//**********************************************************************************
 
 
 
