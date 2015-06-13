@@ -577,12 +577,8 @@ void menuBrewStepAutomation() {
     }
     
     settingsMenu.setItem_P(PSTR("Preboil Alarm: "), 11);
-    if(brewStepConfiguration.preBoilAlarm) {
-      settingsMenu.appendItem(itoa(brewStepConfiguration.preBoilAlarm, buf, 10), 11);
-      settingsMenu.appendItem_P(TUNIT, 11);
-    } else {
-      settingsMenu.appendItem_P(OFF, 11);
-    }
+    settingsMenu.appendItem(itoa(brewStepConfiguration.preBoilAlarm, buf, 10), 11);
+    settingsMenu.appendItem_P(TUNIT, 11);
     
     settingsMenu.setItem_P(PSTR("Mash Specific Heat"), 12);    
     

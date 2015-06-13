@@ -761,7 +761,11 @@ void initializeBrewStepConfiguration() {
   brewStepConfiguration.autoExitSparge = 0;
   brewStepConfiguration.autoBoilWhirlpoolMinutes = 0;
   brewStepConfiguration.boilAdditionSeconds = 0;
-  brewStepConfiguration.preBoilAlarm = 205;
+  #ifdef USEMETRIC
+    brewStepConfiguration.preBoilAlarm = 96;
+  #else
+    brewStepConfiguration.preBoilAlarm = 205;
+  #endif
   brewStepConfiguration.mashTunHeatCapacity = 0;
   brewStepConfiguration.flySpargeHysteresis = 0;
   brewStepConfiguration.minimumSpargeVolume = 0;
