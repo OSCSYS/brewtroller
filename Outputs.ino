@@ -171,11 +171,7 @@ void updateHeatOutputs() {
                  outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1);
              prevSpargeVol[0] = volAvg[VS_KETTLE];
           }
-          #ifdef HLT_FLY_SPARGE_STOP
-          else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < HLT_FLY_SPARGE_STOP_VOLUME + 20)
-          #else
           else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < getVolLoss(VS_HLT) + 20)
-          #endif
           {
              outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
              prevSpargeVol[1] = volAvg[VS_HLT];

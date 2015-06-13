@@ -47,19 +47,6 @@
 
 
 //**********************************************************************************
-// Stop fly sparge removing water from HLT at this volume
-//**********************************************************************************
-// This feature was added because the dead space for the HLT may be less than the space lost in the tubing. 
-// In particular if you're flushing your RIMS tube wort with fly sparge in water the water in the RIMS tube 
-// will need to be added to the HLT dead space even though the dead space of water actually left in the 
-// HLT will be less than that and we want to continue fly sparging until it's that low. 
-// NOTE: volume is in thousands of a gallon
-//#define HLT_FLY_SPARGE_STOP
-//#define HLT_FLY_SPARGE_STOP_VOLUME 250
-//**********************************************************************************
-
-
-//**********************************************************************************
 // Min HLT refill volume
 //**********************************************************************************
 // EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT
@@ -96,6 +83,10 @@
 //#define MASH_AVG_AUX2
 //#define MASH_AVG_AUX3
 //**********************************************************************************
+
+
+
+
 
 
 //**********************************************************************************
