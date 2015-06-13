@@ -15,6 +15,8 @@ const char INIT_EEPROM[] PROGMEM = "Initialize EEPROM";
 const char CONTINUE[] PROGMEM = "Continue";
 const char LABEL_BUTTONON[] PROGMEM = "On ";
 const char LABEL_BUTTONOFF[] PROGMEM = "Off";
+const char ON[] PROGMEM = "On";
+const char OFF[] PROGMEM = "Off";
 
 prog_char FILLHLT[] PROGMEM = "Fill HLT";
 prog_char FILLMASH[] PROGMEM = "Fill Mash";
@@ -24,7 +26,7 @@ prog_char MASHIDLE[] PROGMEM = "Mash Idle";
 prog_char SPARGEIN[] PROGMEM = "Sparge In";
 prog_char SPARGEOUT[] PROGMEM = "Sparge Out";
 prog_char BOILADDS[] PROGMEM = "Boil Additions";
-prog_char KETTLELID[] PROGMEM = "Kettle Lid";
+prog_char STRIKETRANSFER[] PROGMEM = "Not Implemented";
 prog_char CHILL[] PROGMEM = "Chill";
 prog_char WORTOUT[] PROGMEM = "Wort Out";
 prog_char WHIRLPOOL[] PROGMEM = "Whirlpool";
@@ -66,7 +68,7 @@ PROGMEM const char *TITLE_VLV[] = {
   SPARGEIN,
   SPARGEOUT,
   BOILADDS,
-  KETTLELID,
+  STRIKETRANSFER,
   CHILL,
   WORTOUT,
   WHIRLPOOL,
@@ -143,6 +145,8 @@ const char VOLUNIT[] PROGMEM = "gal";
 const char WTUNIT[] PROGMEM = "lb";
 const char TUNIT[] PROGMEM = "F";
 #endif
+
+const char MIN[] PROGMEM = " min";
 
 //**********************************************************************************
 // UI Custom LCD Chars

@@ -31,7 +31,6 @@ void triggerUpdate() {
   unsigned long triggerEnable = 0xFFFFFFFFul;
   for (byte i = 0; i < USERTRIGGER_COUNT; i++) {
     if (trigger[i]) {
-      boolean rawValue = trigger[i]->getRawValue();
       unsigned long activeProfiles = outputs->getProfileStateMask();
       unsigned long disableMask = trigger[i]->compute(activeProfiles);
       triggerEnable &= ~disableMask;

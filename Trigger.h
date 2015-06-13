@@ -64,4 +64,16 @@ class TriggerValue : public Trigger
   ~TriggerValue();
   boolean getRawValue(void);
 };
+
+class TriggerSetpointDelay : public Trigger
+{
+  private:
+  double *value;
+  boolean tripped;
+  
+  public:
+  TriggerSetpointDelay(double *v, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis);
+  ~TriggerSetpointDelay();
+  boolean getRawValue(void);
+};
 #endif

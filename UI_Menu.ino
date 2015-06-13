@@ -11,13 +11,13 @@ byte outputProfileDisplayOrder[] = {
   OUTPUTPROFILE_MASHIDLE,
   OUTPUTPROFILE_MASHPWMACTIVE,
   OUTPUTPROFILE_ADDGRAIN,
+  OUTPUTPROFILE_STRIKETRANSFER,
   OUTPUTPROFILE_SPARGEIN,
   OUTPUTPROFILE_SPARGEOUT,
   OUTPUTPROFILE_KETTLEHEAT,
   OUTPUTPROFILE_KETTLEIDLE,
   OUTPUTPROFILE_KETTLEPWMACTIVE,
   OUTPUTPROFILE_HOPADD,
-  OUTPUTPROFILE_KETTLELID,
   OUTPUTPROFILE_CHILL,
   OUTPUTPROFILE_WORTOUT,
   OUTPUTPROFILE_WHIRLPOOL,
@@ -349,21 +349,22 @@ void warnBoil(unsigned long preboilVol) {
 // System Setup Menus
 //*****************************************************************************************************************************
 void menuSetup() {
-  menu setupMenu(3, 9);
+  menu setupMenu(3, 10);
   setupMenu.setItem_P(PSTR("System Settings"), 0);
   setupMenu.setItem_P(PSTR("Temperature Sensors"), 1);
   setupMenu.setItem_P(PSTR("Outputs"), 2);
   setupMenu.setItem_P(PSTR("Volume/Capacity"), 3);
-  setupMenu.setItem_P(INIT_EEPROM, 4);
-  #ifdef UI_DISPLAY_SETUP
-    setupMenu.setItem_P(PSTR("Display"), 5);
+  setupMenu.setItem_P(PSTR("Step Automation"), 8);
+  #ifdef DIGITAL_INPUTS
+    setupMenu.setItem_P(PSTR("Triggers"), 7);
   #endif
   #ifdef RGBIO8_ENABLE
     setupMenu.setItem_P(PSTR("RGB Setup"), 6);
   #endif  
-  #ifdef DIGITAL_INPUTS
-    setupMenu.setItem_P(PSTR("Triggers"), 7);
+  #ifdef UI_DISPLAY_SETUP
+    setupMenu.setItem_P(PSTR("Display"), 5);
   #endif
+  setupMenu.setItem_P(INIT_EEPROM, 4);
   setupMenu.setItem_P(EXIT, 255);
   
   while(1) {
@@ -393,6 +394,8 @@ void menuSetup() {
       else if (lastOption == 7)
         menuTriggers();
     #endif
+    else if (lastOption == 8)
+        menuBrewStepAutomation();
     else return;
   }
 }
@@ -516,6 +519,111 @@ void menuSystemSettings() {
       else
         return;
     }
+}
+
+void menuBrewStepAutomation() {
+  byte lastOption = 0;
+  while(1) {
+    menu settingsMenu(3, 16);
+    settingsMenu.setItem_P(PSTR("Fill Sparge: "), 0);
+    settingsMenu.appendItem_P(brewStepConfiguration.fillSpargeBeforePreheat ? PSTR("Start") : PSTR("Refill"), 0);
+    
+    settingsMenu.setItem_P(PSTR("Start Fill: "), 1);
+    settingsMenu.appendItem_P(brewStepConfiguration.autoStartFill ? ON : OFF, 1);
+    
+    settingsMenu.setItem_P(PSTR("Exit Fill: "), 2);
+    settingsMenu.appendItem_P(brewStepConfiguration.autoExitFill ? ON : OFF, 2);
+
+    settingsMenu.setItem_P(PSTR("Exit Preheat: "), 3);
+    settingsMenu.appendItem_P(brewStepConfiguration.autoExitPreheat ? ON : OFF, 3);
+
+    settingsMenu.setItem_P(PSTR("Strike Transfer:"), 4);
+    settingsMenu.appendItem_P(brewStepConfiguration.autoStrikeTransfer ? ON : OFF, 4);
+
+    settingsMenu.setItem_P(PSTR("Exit Grain: "), 5);
+    if (brewStepConfiguration.autoExitGrainInMinutes) {
+      settingsMenu.appendItem(itoa(brewStepConfiguration.autoExitGrainInMinutes, buf, 10), 5);
+      settingsMenu.appendItem_P(MIN, 5);
+    } else {
+      settingsMenu.appendItem_P(OFF, 5);
+    }
+
+    settingsMenu.setItem_P(PSTR("Exit Mash: "), 6);
+    settingsMenu.appendItem_P(brewStepConfiguration.autoExitMash ? ON : OFF, 6);
+
+    settingsMenu.setItem_P(PSTR("Fly Sparge: "), 7);
+    settingsMenu.appendItem_P(brewStepConfiguration.autoStartFlySparge ? ON : OFF, 7);
+
+    settingsMenu.setItem_P(PSTR("Sparge Hysteresis"), 13);
+    settingsMenu.setItem_P(PSTR("Min Sparge Volume"), 14);
+
+    settingsMenu.setItem_P(PSTR("Exit Sparge: "), 8);
+    settingsMenu.appendItem_P(brewStepConfiguration.autoExitSparge ? ON : OFF, 8);
+
+    settingsMenu.setItem_P(PSTR("Boil Whirl: "), 9);
+    if(brewStepConfiguration.autoBoilWhirlpoolMinutes) {
+      settingsMenu.appendItem(itoa(brewStepConfiguration.autoBoilWhirlpoolMinutes, buf, 10), 9);
+      settingsMenu.appendItem_P(MIN, 9);
+    } else {
+      settingsMenu.appendItem_P(OFF, 9);
+    }
+    
+    settingsMenu.setItem_P(PSTR("Boil Adds: "), 10);
+    if(brewStepConfiguration.boilAdditionSeconds) {
+      settingsMenu.appendItem(itoa(brewStepConfiguration.boilAdditionSeconds, buf, 10), 10);
+      settingsMenu.appendItem("s", 10);
+    } else {
+      settingsMenu.appendItem_P(OFF, 10);
+    }
+    
+    settingsMenu.setItem_P(PSTR("Preboil Alarm: "), 11);
+    if(brewStepConfiguration.preBoilAlarm) {
+      settingsMenu.appendItem(itoa(brewStepConfiguration.preBoilAlarm, buf, 10), 11);
+      settingsMenu.appendItem_P(TUNIT, 11);
+    } else {
+      settingsMenu.appendItem_P(OFF, 11);
+    }
+    
+    settingsMenu.setItem_P(PSTR("Mash Specific Heat"), 12);    
+    
+    settingsMenu.setItem_P(EXIT, 255);
+    settingsMenu.setSelected(lastOption);
+    lastOption = scrollMenu("Step Automation", &settingsMenu);
+    if (lastOption == 0)
+      brewStepConfiguration.fillSpargeBeforePreheat ^= 1;
+    else if (lastOption == 1)
+      brewStepConfiguration.autoStartFill ^= 1;
+    else if (lastOption == 2)
+      brewStepConfiguration.autoExitFill ^= 1;
+    else if (lastOption == 3)
+      brewStepConfiguration.autoExitPreheat ^= 1;
+    else if (lastOption == 4)
+      brewStepConfiguration.autoStrikeTransfer ^= 1;
+    else if (lastOption == 5)
+      brewStepConfiguration.autoExitGrainInMinutes = getValue("Auto Exit Grain In", brewStepConfiguration.autoExitGrainInMinutes, 1, 255, MIN);
+    else if (lastOption == 6)
+      brewStepConfiguration.autoExitMash ^= 1;
+    else if (lastOption == 7)
+      brewStepConfiguration.autoStartFlySparge ^= 1;
+    else if (lastOption == 8)
+      brewStepConfiguration.autoExitSparge ^= 1;
+    else if (lastOption == 9)
+      brewStepConfiguration.autoBoilWhirlpoolMinutes = getValue("Auto Boil Whirlpool", brewStepConfiguration.autoBoilWhirlpoolMinutes, 1, 255, MIN);
+    else if (lastOption == 10)
+      brewStepConfiguration.boilAdditionSeconds = getValue("Boil Additions", brewStepConfiguration.boilAdditionSeconds, 1, 255, PSTR("s"));
+    else if (lastOption == 11)
+      brewStepConfiguration.preBoilAlarm = getValue("Preboil Alarm", brewStepConfiguration.preBoilAlarm, 1, 255, TUNIT);
+    else if (lastOption == 12)
+      brewStepConfiguration.mashTunHeatCapacity = getValue("Mash Specific Heat", brewStepConfiguration.mashTunHeatCapacity, 1000, 65536, PSTR(""));
+    else if (lastOption == 13)
+      brewStepConfiguration.flySpargeHysteresis = getValue("Sparge Hysteresis", brewStepConfiguration.mashTunHeatCapacity, 10, 255, VOLUNIT);
+    else if (lastOption == 14)
+      brewStepConfiguration.minimumSpargeVolume = getValue("Min Sparge Volume", brewStepConfiguration.minimumSpargeVolume, 10, 65536, VOLUNIT);
+    else {
+      eepromSaveBrewStepConfiguration();
+      return;
+    }
+  }
 }
 
 void menuOutputs() {
@@ -732,20 +840,25 @@ void menuBubbler() {
     if (bubbleOutput == INDEX_NONE)
       volMenu.setItem_P(PSTR("Output: DISABLED"), 0);
     else {
-      char menuItem[21];
-      char bankName[6];
-      char outName[7];
-      sprintf(menuItem, "Output: %s-%s", outputs->getOutputBankName(bubbleOutput, bankName), outputs->getOutputName(bubbleOutput, outName));
-      volMenu.setItem(menuItem, 0);
-      sprintf(menuItem, "Interval: %ds", bubbleInterval);
-      volMenu.setItem(menuItem, 1);
-      sprintf(menuItem, "Duration: %d.%ds", bubbleDuration / 10, bubbleDuration - (bubbleDuration / 10) * 10);
-      volMenu.setItem(menuItem, 2);
-      sprintf(menuItem, "Delay: %d.%ds", bubbleReadDelay / 10, bubbleReadDelay - (bubbleReadDelay / 10) * 10);
-      volMenu.setItem(menuItem, 3);
+      volMenu.setItem_P(PSTR("Output: "), 0);
+      volMenu.appendItem(outputs->getOutputBankName(bubbleOutput, buf), 0);
+      volMenu.appendItem("-", 0);
+      volMenu.appendItem(outputs->getOutputName(bubbleOutput, buf), 0);
+
+      volMenu.setItem_P(PSTR("Interval: "), 1);
+      volMenu.appendItem(itoa(bubbleInterval, buf, 10), 1);
+      volMenu.appendItem("s", 1);
+
+      volMenu.setItem_P(PSTR("Duration: "), 2);
+      volMenu.appendItem(vftoa(bubbleDuration, buf, 10, 1), 2);
+      volMenu.appendItem("s", 2);
+
+      volMenu.setItem_P(PSTR("Delay: "), 3);
+      volMenu.appendItem(vftoa(bubbleReadDelay, buf, 10, 1), 3);
+      volMenu.appendItem("s", 3);
     }
     volMenu.setItem_P(EXIT, 255);
-    byte lastOption = scrollMenu("Volume", &volMenu);
+    byte lastOption = scrollMenu("Bubbler Setup", &volMenu);
     if (lastOption == 0)
       setBubblerOutput(menuSelectOutput("Bubbler Output", bubbleOutput));
     else if (lastOption == 1)
@@ -1172,6 +1285,10 @@ void menuTriggers() {
           triggerMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), i + 1);
           triggerMenu.appendItem_P(PSTR(" Volume"), i + 1);
           break;
+        case TRIGGERTYPE_SETPOINTDELAY:
+          triggerMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), i + 1);
+          triggerMenu.appendItem_P(PSTR(" Delay"), i + 1);
+          break;
       }
     }
     
@@ -1199,23 +1316,28 @@ void cfgTrigger(byte triggerIndex) {
   
   while(1) {
     menu triggerMenu(3, 9);
-    triggerMenu.setItem_P(PSTR("Type: "), 0);
+    triggerMenu.setItem_P(PSTR("Type:"), 0);
     switch (trigConfig.type) {
       case TRIGGERTYPE_NONE:
         triggerMenu.appendItem_P(PSTR("Disabled"), 0);
         break;
       case TRIGGERTYPE_GPIO:
         #ifdef DIGITAL_INPUTS
-          triggerMenu.appendItem_P(PSTR("Digital Input"), 0);
+          triggerMenu.appendItem_P(PSTR(" Digital Input"), 0);
           triggerMenu.setItem_P(PSTR("Input: "), 1);
           triggerMenu.appendItem(itoa(trigConfig.index + 1, buf, 10), 1);
         #endif
         break;
       case TRIGGERTYPE_VOLUME:
-        triggerMenu.appendItem_P(PSTR("Volume"), 0);
+        triggerMenu.appendItem_P(PSTR(" Volume"), 0);
         triggerMenu.setItem_P(PSTR("Vessel: "), 2);
         triggerMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), 2);
         triggerMenu.setItem_P(PSTR("Threshold"), 3);
+        break;
+      case TRIGGERTYPE_SETPOINTDELAY:
+        triggerMenu.appendItem_P(PSTR("Setpoint Delay"), 0);
+        triggerMenu.setItem_P(PSTR("Vessel: "), 2);
+        triggerMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), 2);
         break;
     }
     if (trigConfig.type != TRIGGERTYPE_NONE) {
@@ -1280,18 +1402,19 @@ boolean triggerConfigurationDidChange(struct TriggerConfiguration *a, struct Tri
 }
 
 byte menuTriggerType (byte type) {
-  menu triggerMenu(3, 3);
+  menu triggerMenu(3, TRIGGERTYPE_COUNT);
   for (byte i = 0; i < TRIGGERTYPE_COUNT; i++) {
     #ifndef DIGITAL_INPUTS
     if (i != TRIGGERTYPE_GPIO)
     #endif
     triggerMenu.setItem_P(type == i ? PSTR("*") : PSTR(""), i);
   }
-  triggerMenu.appendItem_P(PSTR("Disabled"), 0);
+  triggerMenu.appendItem_P(PSTR("Disabled"), TRIGGERTYPE_NONE);
   #ifdef DIGITAL_INPUTS
-    triggerMenu.appendItem_P(PSTR("Digital Input"), 1);
+    triggerMenu.appendItem_P(PSTR("Digital Input"), TRIGGERTYPE_GPIO);
   #endif
-  triggerMenu.appendItem_P(PSTR("Volume"), 2);
+  triggerMenu.appendItem_P(PSTR("Volume"), TRIGGERTYPE_VOLUME);
+  triggerMenu.appendItem_P(PSTR("Setpoint Delay"), TRIGGERTYPE_SETPOINTDELAY);
   triggerMenu.setSelected(type);
   byte newType = scrollMenu("Trigger Type", &triggerMenu);
   if (newType == 255)

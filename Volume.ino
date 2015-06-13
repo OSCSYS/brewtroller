@@ -52,16 +52,14 @@ void updateVols() {
 
 #ifdef FLOWRATE_CALCS
 void updateFlowRates() {
-   unsigned long tempmill = millis();
-   unsigned long MiliToMin = 60000;
+   unsigned long timestamp = millis();
   //Check flowrate periodically (FLOWRATE_READ_INTERVAL)
-  if (tempmill - lastFlowChk >= FLOWRATE_READ_INTERVAL) {
+  if (timestamp - lastFlowChk > FLOWRATE_READ_INTERVAL) {
     for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-      // note that the * 60000 is from converting thousands of a gallon / miliseconds to thousands of a gallon / minutes 
-      flowRate[i] = round((float)((float)(((float)volAvg[i] - (float)prevFlowVol[i])) / (float)((float)tempmill - (float)lastFlowChk)) * (float)MiliToMin);
+      flowRate[i] = round((volAvg[i] - prevFlowVol[i]) * 60000.0 / (timestamp - lastFlowChk));
       prevFlowVol[i] = volAvg[i];
     }
-    lastFlowChk = tempmill;
+    lastFlowChk = timestamp;
   }
 }
 #endif

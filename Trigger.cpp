@@ -23,7 +23,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 #include "Trigger.h"
 
-
 unsigned long Trigger::compute(unsigned long filterValue) {
   //Filter is set but filter condition is not active; return no disables
   if (filterBits && !(filterValue & filterBits)) {
@@ -34,9 +33,10 @@ unsigned long Trigger::compute(unsigned long filterValue) {
   unsigned long now = millis();
   
   //Check if release hysteresis is active
-  if (releaseMillis > now)
+  if (releaseMillis > now) {
     return disableMask;
-    
+  }
+  
   //Not in hysteresis so if not active return 0
   if (activeLow == getRawValue()) {
     releaseMillis = 0;
@@ -47,7 +47,6 @@ unsigned long Trigger::compute(unsigned long filterValue) {
   //If release isn't set then trigger just went active, store timestamp for release
   if (releaseMillis == 0)
     releaseMillis = now + releaseHysteresis * 1000;
- 
   return disableMask;
 }
 
@@ -84,4 +83,30 @@ TriggerValue::~TriggerValue() {
 
 boolean TriggerValue::getRawValue(void) {
   return (*value > threshold) ? 1 : 0;
+}
+
+TriggerSetpointDelay::TriggerSetpointDelay(double *v, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis) {
+  value = v;
+  tripped = 0;
+  activeLow = aLow;
+  filterBits = filter;
+  disableMask = dMask;
+  releaseHysteresis = rHysteresis;
+  releaseMillis = 0;
+}
+
+TriggerSetpointDelay::~TriggerSetpointDelay() {
+  
+}
+
+boolean TriggerSetpointDelay::getRawValue(void) {
+  if (*value == 0)
+    tripped = 0;
+  else {
+    if (!tripped) {
+      tripped = 1;
+      return 1;
+    }
+  }
+  return 0;
 }

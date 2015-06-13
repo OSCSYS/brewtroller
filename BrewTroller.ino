@@ -130,6 +130,24 @@ struct TriggerConfiguration {
   byte releaseHysteresis;
 };
 
+struct BrewStepConfiguration {
+  boolean fillSpargeBeforePreheat       :1;
+  boolean autoStartFill                 :1;
+  boolean autoExitFill                  :1;
+  boolean autoExitPreheat               :1;
+  boolean autoStrikeTransfer            :1;
+  byte autoExitGrainInMinutes           :8;
+  boolean autoExitMash                  :1;
+  boolean autoStartFlySparge            :1;
+  boolean autoExitSparge                :1;
+  byte autoBoilWhirlpoolMinutes         :8;
+  byte boilAdditionSeconds              :8;
+  byte preBoilAlarm                     :8;
+  unsigned int mashTunHeatCapacity      :16;
+  byte flySpargeHysteresis              :8;
+  unsigned int minimumSpargeVolume      :16;
+};
+
 //**********************************************************************************
 // Globals
 //**********************************************************************************
@@ -156,13 +174,7 @@ int temp[9];
 //Volume in (thousandths of gal/l)
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
-#ifdef SPARGE_IN_PUMP_CONTROL
 unsigned long prevSpargeVol[2] = {0, 0};
-#endif
-
-#ifdef HLT_MIN_REFILL
-unsigned long SpargeVol = 0;
-#endif
 
 #ifdef FLOWRATE_CALCS
 //Flowrate in thousandths of gal/l per minute
@@ -207,13 +219,6 @@ PID pid[3] = {
   PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
 };
 
-#ifdef RIMS_MLT_SETPOINT_DELAY
-  byte steptoset = 0;
-  byte RIMStimeExpired = 0;
-  unsigned long starttime = 0;
-  unsigned long timetoset = 0;
-#endif
-
 //Timer Globals
 unsigned long timerValue[2], lastTime[2];
 boolean timerStatus[2], alarmStatus;
@@ -223,6 +228,8 @@ boolean preheated[4];
 ControlState boilControlState = CONTROLSTATE_OFF;
 
 struct ProgramThread programThread[PROGRAMTHREAD_MAX];
+
+struct BrewStepConfiguration brewStepConfiguration;
 
 //Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
 unsigned int hoptimes[11] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5, 0 };
@@ -259,6 +266,8 @@ void setup() {
   
   for (byte i = 0; i < USERTRIGGER_COUNT; i++)
     trigger[i] = NULL;
+  
+  initializeBrewStepConfiguration();
 
   //We need some object for UI in case setup is not loaded due to missing config
   //This will get thrown away after setup is loaded
