@@ -144,6 +144,8 @@ struct BrewStepConfiguration {
   byte boilAdditionSeconds              :8;
   byte preBoilAlarm                     :8;
   unsigned int mashTunHeatCapacity      :16;
+  byte flySpargeHysteresis              :8;
+  unsigned int minimumSpargeVolume      :16;
 };
 
 //**********************************************************************************
@@ -172,13 +174,7 @@ int temp[9];
 //Volume in (thousandths of gal/l)
 unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
 unsigned int calibVals[3][10];
-#ifdef SPARGE_IN_PUMP_CONTROL
 unsigned long prevSpargeVol[2] = {0, 0};
-#endif
-
-#ifdef HLT_MIN_REFILL
-unsigned long SpargeVol = 0;
-#endif
 
 #ifdef FLOWRATE_CALCS
 //Flowrate in thousandths of gal/l per minute

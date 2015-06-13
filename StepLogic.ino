@@ -659,10 +659,7 @@ unsigned long calcSpargeVol(byte recipe) {
   //Subtract Strike Water Volume
   retValue -= calcStrikeVol(recipe);
   
-  #ifdef HLT_MIN_REFILL
-    retValue = max(retValue, HLT_MIN_REFILL_VOL);
-  #endif
-      
+  retValue = max(retValue, brewStepConfiguration.minimumSpargeVolume * 100ul);
   return retValue;
 }
 

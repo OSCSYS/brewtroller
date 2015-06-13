@@ -34,32 +34,6 @@
 //**********************************************************************************
 
 
-//**********************************************************************************
-// Fly sparge pump control to turn the sparge in pump on/off based on a hysteresis from volume of sparge out
-//**********************************************************************************
-// This #define will turn the fly sparge in valve config on when the hysteresis amount of fluid has been pumped
-// into the kettle from the MLT. It will then shut off the pump when that equal amount of sparge water has been
-// pumped out of the HLT. 
-// Note: SPARGE_IN_HYSTERSIS is in 1000ths of a gallon or liter. 
-//#define SPARGE_IN_PUMP_CONTROL
-#define SPARGE_IN_HYSTERESIS 250
-//**********************************************************************************
-
-
-//**********************************************************************************
-// Min HLT refill volume
-//**********************************************************************************
-// EXPERIMENTAL: Uncomment the following line to enable forcing a minimum refill amount in the HLT
-// during the refill step. This is so that you can make any amount of sparge water needed by making
-// sure your heating elements are covered by water so they can heat your sparge water even if you're
-// only going to use 0.25 gallons of it or some other small amount of sparge water.
-// NOTE: Volume is in thousandths of a Gallons/Liters
-// USE CAUTION! TESTING REQUIRED.
-//
-//#define HLT_MIN_REFILL
-//#define HLT_MIN_REFILL_VOL 4000
-//**********************************************************************************
-
 
 //**********************************************************************************
 // Buzzer modulation parameters

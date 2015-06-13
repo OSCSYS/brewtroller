@@ -142,9 +142,6 @@ void updateHeatOutputs() {
 }
 
   void updateAutoValve() {
-    #ifdef HLT_MIN_REFILL
-      unsigned long HLTStopVol;
-    #endif
     //Do Valves
     if (autoValve[AV_FILL]) {
       outputs->setProfileState(OUTPUTPROFILE_FILLHLT, (volAvg[VS_HLT] < tgtVol[VS_HLT]) ? 1 : 0);
@@ -159,26 +156,17 @@ void updateHeatOutputs() {
 
     if (autoValve[AV_FLYSPARGE]) {
       if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
-        #ifdef SPARGE_IN_PUMP_CONTROL
-          if((long)volAvg[VS_KETTLE] - (long)prevSpargeVol[0] >= SPARGE_IN_HYSTERESIS)
-          {
-            #ifdef HLT_MIN_REFILL
-               HLTStopVol = (SpargeVol > HLT_MIN_REFILL_VOL ? getVolLoss(VS_HLT) : (HLT_MIN_REFILL_VOL - SpargeVol));
-               if(volAvg[VS_HLT] > HLTStopVol + 20)
-            #else
-               if(volAvg[VS_HLT] > getVolLoss(VS_HLT) + 20)
-            #endif
-                 outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1);
+        if (brewStepConfiguration.flySpargeHysteresis) {
+          if((long)volAvg[VS_KETTLE] - (long)prevSpargeVol[0] >= brewStepConfiguration.flySpargeHysteresis * 100ul) {
+             outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1);
              prevSpargeVol[0] = volAvg[VS_KETTLE];
-          }
-          else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= SPARGE_IN_HYSTERESIS || volAvg[VS_HLT] < getVolLoss(VS_HLT) + 20)
-          {
+          } else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= brewStepConfiguration.flySpargeHysteresis * 100ul) {
              outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
              prevSpargeVol[1] = volAvg[VS_HLT];
           }
-        #else
+        } else {
           outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1);
-        #endif
+        }
         outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 1);
       } else {
         outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
