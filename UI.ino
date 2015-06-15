@@ -246,7 +246,10 @@ void uiUpdate() {
 
 void uiCheckConfig() {
   if (checkConfig()) {
-    if (confirmChoice("Missing Config", "", "", INIT_EEPROM))
+    //Workaround: Initial encoder change results in a bogus cacncel press being detected.
+    //Use infobox (which ignores cancel) before confirmChoice to prevent skipping of EEPROM init.
+    infoBox("Configuration", "Not Found", "", CONTINUE);
+    if (confirmChoice("Reset Configuration?", "", "", INIT_EEPROM))
       UIinitEEPROM();
     LCD.clear();
   }
