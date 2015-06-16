@@ -17,7 +17,8 @@
   enum VesselIndex {
     VS_HLT,
     VS_MASH,
-    VS_KETTLE
+    VS_KETTLE,
+    VESSEL_COUNT
   };
 
 //Auto-Valve Modes
