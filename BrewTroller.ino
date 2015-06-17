@@ -143,9 +143,7 @@ struct BrewStepConfiguration {
   byte autoBoilWhirlpoolMinutes         :8;
   byte boilAdditionSeconds              :8;
   byte preBoilAlarm                     :8;
-  unsigned int mashTunHeatCapacity      :16;
   byte flySpargeHysteresis              :8;
-  unsigned int minimumSpargeVolume      :16;
 };
 
 //**********************************************************************************

@@ -661,7 +661,7 @@ unsigned long calcSpargeVol(byte recipe) {
   //Subtract Strike Water Volume
   retValue -= calcStrikeVol(recipe);
   
-  retValue = max(retValue, brewStepConfiguration.minimumSpargeVolume * 100ul);
+  retValue = max(retValue, getMinimumSpargeVolume() * 100ul);
   return retValue;
 }
 
@@ -707,7 +707,7 @@ byte calcStrikeTemp(byte recipe) {
   
   //If we are not heating strike directly in the mash we should account for the mash tun heat capacity
   if (getProgMLHeatSrc(recipe) != VS_MASH)
-    mashThermoDynamic = brewStepConfiguration.mashTunHeatCapacity / 1000.0;
+    mashThermoDynamic = getMashTunHeatCapacity() / 1000.0;
   
   #ifdef USEMETRIC
     const float kGrainThermoDynamic = 0.41;

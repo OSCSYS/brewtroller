@@ -293,8 +293,30 @@ void setCapacity(byte vessel, unsigned long value) {
 unsigned long getCapacity(byte vessel) { return EEPROMreadLong(93 + vessel * 4); }
 
 //**********************************************************************************
-//OPEN (105-110)
+// Mash Tun heat Capacity (105-106)
 //**********************************************************************************
+void setMashTunHeatCapacity(unsigned int value) {
+  EEPROMwriteInt(105, value);
+}
+unsigned int getMashTunHeatCapacity() {
+  return EEPROMreadInt(105);
+}
+
+//**********************************************************************************
+// Minimum Sparge Volume (107-108)
+//**********************************************************************************
+void setMinimumSpargeVolume(unsigned int value) {
+  EEPROMwriteInt(107, value);
+}
+unsigned int getMinimumSpargeVolume() {
+  return EEPROMreadInt(107);
+}
+
+
+//**********************************************************************************
+// OPEN (109-111)
+//**********************************************************************************
+
 
 //**********************************************************************************
 //Boil Temp (111)
@@ -794,9 +816,7 @@ void initializeBrewStepConfiguration() {
   #else
     brewStepConfiguration.preBoilAlarm = 205;
   #endif
-  brewStepConfiguration.mashTunHeatCapacity = 0;
   brewStepConfiguration.flySpargeHysteresis = 0;
-  brewStepConfiguration.minimumSpargeVolume = 0;
 }
 
 //*****************************************************************************************************************************
@@ -902,7 +922,10 @@ boolean checkConfig() {
       setSpargeLoss(0);
       setMashLoss(0);
       setBoilLoss(0);
-      EEPROM.write(2047, 9);
+    case 9:
+      setMashTunHeatCapacity(0);
+      setMinimumSpargeVolume(0);
+      EEPROM.write(2047, 10);
   }
   return 0;
 }

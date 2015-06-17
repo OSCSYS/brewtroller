@@ -630,7 +630,7 @@ void displayAssignSensorTemp(int sensor) {
 
 
 void menuSystemSettings() {
-    menu settingsMenu(3, 10);
+    menu settingsMenu(3, 12);
     settingsMenu.setItem_P(BOIL_TEMP, 0);
     settingsMenu.setItem_P(BOIL_POWER, 1);
     settingsMenu.setItem_P(EVAPORATION_RATE, 2);
@@ -640,6 +640,8 @@ void menuSystemSettings() {
     settingsMenu.setItem_P(SPARGE_LOSS, 6);
     settingsMenu.setItem_P(MASH_LOSS, 7);
     settingsMenu.setItem_P(BOIL_LOSS, 8);
+    settingsMenu.setItem_P(PSTR("Mash Specific Heat"), 9);
+    settingsMenu.setItem_P(PSTR("Min Sparge Volume"), 10);
     settingsMenu.setItem_P(EXIT, 255);
 
     while (1) {
@@ -662,6 +664,10 @@ void menuSystemSettings() {
         setMashLoss(getValue_P(MASH_LOSS, getMashLoss(), 1000, 65535, VOLUNIT));
       else if (lastOption == 8)
         setBoilLoss(getValue_P(BOIL_LOSS, getBoilLoss(), 1000, 65535, VOLUNIT));
+      else if (lastOption == 9)
+        setMashTunHeatCapacity(getValue("Mash Specific Heat", getMashTunHeatCapacity(), 1000, 65536, PSTR("")));
+      else if (lastOption == 10)
+        setMinimumSpargeVolume(getValue("Min Sparge Volume", getMinimumSpargeVolume(), 10, 65536, VOLUNIT));
       else
         return;
     }
@@ -670,7 +676,7 @@ void menuSystemSettings() {
 void menuBrewStepAutomation() {
   byte lastOption = 0;
   while(1) {
-    menu settingsMenu(3, 16);
+    menu settingsMenu(3, 14);
     settingsMenu.setItem_P(PSTR("Fill Sparge: "), 0);
     settingsMenu.appendItem_P(brewStepConfiguration.fillSpargeBeforePreheat ? PSTR("Start") : PSTR("Refill"), 0);
     
@@ -700,8 +706,7 @@ void menuBrewStepAutomation() {
     settingsMenu.setItem_P(PSTR("Fly Sparge: "), 7);
     settingsMenu.appendItem_P(brewStepConfiguration.autoStartFlySparge ? ON : OFF, 7);
 
-    settingsMenu.setItem_P(PSTR("Sparge Hysteresis"), 13);
-    settingsMenu.setItem_P(PSTR("Min Sparge Volume"), 14);
+    settingsMenu.setItem_P(PSTR("Sparge Hysteresis"), 12);
 
     settingsMenu.setItem_P(PSTR("Exit Sparge: "), 8);
     settingsMenu.appendItem_P(brewStepConfiguration.autoExitSparge ? ON : OFF, 8);
@@ -725,9 +730,7 @@ void menuBrewStepAutomation() {
     settingsMenu.setItem_P(PSTR("Preboil Alarm: "), 11);
     settingsMenu.appendItem(itoa(brewStepConfiguration.preBoilAlarm, buf, 10), 11);
     settingsMenu.appendItem_P(TUNIT, 11);
-    
-    settingsMenu.setItem_P(PSTR("Mash Specific Heat"), 12);    
-    
+
     settingsMenu.setItem_P(EXIT, 255);
     settingsMenu.setSelected(lastOption);
     lastOption = scrollMenu("Step Automation", &settingsMenu);
@@ -756,11 +759,7 @@ void menuBrewStepAutomation() {
     else if (lastOption == 11)
       brewStepConfiguration.preBoilAlarm = getValue("Preboil Alarm", brewStepConfiguration.preBoilAlarm, 1, 255, TUNIT);
     else if (lastOption == 12)
-      brewStepConfiguration.mashTunHeatCapacity = getValue("Mash Specific Heat", brewStepConfiguration.mashTunHeatCapacity, 1000, 65536, PSTR(""));
-    else if (lastOption == 13)
-      brewStepConfiguration.flySpargeHysteresis = getValue("Sparge Hysteresis", brewStepConfiguration.mashTunHeatCapacity, 10, 255, VOLUNIT);
-    else if (lastOption == 14)
-      brewStepConfiguration.minimumSpargeVolume = getValue("Min Sparge Volume", brewStepConfiguration.minimumSpargeVolume, 10, 65536, VOLUNIT);
+      brewStepConfiguration.flySpargeHysteresis = getValue("Sparge Hysteresis", brewStepConfiguration.flySpargeHysteresis, 10, 255, VOLUNIT);
     else {
       eepromSaveBrewStepConfiguration();
       return;
