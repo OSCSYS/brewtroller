@@ -897,7 +897,12 @@ boolean checkConfig() {
     case 7:
       initializeBrewStepConfiguration();
       eepromSaveBrewStepConfiguration();
-      EEPROM.write(2047, 8);
+    case 8:
+      setStrikeLoss(0);
+      setSpargeLoss(0);
+      setMashLoss(0);
+      setBoilLoss(0);
+      EEPROM.write(2047, 9);
   }
   return 0;
 }
