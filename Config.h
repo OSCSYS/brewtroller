@@ -121,11 +121,12 @@
 //**********************************************************************************
 // Brewing Calculation Factors
 //**********************************************************************************
-// VOL_SHRINKAGE: The amount of liquid volume reduced as a result of decrease in temperature. 
-// This value used to be .96 in BrewTroller 2.4 and earlier versions but this value should
-// not be used in volume calculations for water at ground temperature when targeting pitch temps.
-// A value of '1' (default) will eliminate this from brewing calculations.
-#define VOL_SHRINKAGE 1
+// VOL_SHRINKAGE: The amount of liquid volume reduced as a result of decrease in
+// temperature. This value used to be used in BrewTroller 2.4 and earlier versions
+// but this value should only be used when measuring water at boiling temperatures
+// to determine the expected cooled volume. Since this factor was used during 
+// filling to calculate liquor requirements it would inflate the volumes needed.
+// Leaving the option here but commented out if someone wishes to revert the logic.
 //#define VOL_SHRINKAGE .96
 
 

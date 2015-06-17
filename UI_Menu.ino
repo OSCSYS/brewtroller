@@ -630,12 +630,16 @@ void displayAssignSensorTemp(int sensor) {
 
 
 void menuSystemSettings() {
-    menu settingsMenu(3, 6);
+    menu settingsMenu(3, 10);
     settingsMenu.setItem_P(BOIL_TEMP, 0);
     settingsMenu.setItem_P(BOIL_POWER, 1);
     settingsMenu.setItem_P(EVAPORATION_RATE, 2);
     settingsMenu.setItem_P(GRAIN_DISPLACEMENT, 3);
     settingsMenu.setItem_P(GRAIN_LIQUOR_LOSS, 4);
+    settingsMenu.setItem_P(STRIKE_LOSS, 5);
+    settingsMenu.setItem_P(SPARGE_LOSS, 6);
+    settingsMenu.setItem_P(MASH_LOSS, 7);
+    settingsMenu.setItem_P(BOIL_LOSS, 8);
     settingsMenu.setItem_P(EXIT, 255);
 
     while (1) {
@@ -644,21 +648,20 @@ void menuSystemSettings() {
         setBoilTemp(getValue_P(BOIL_TEMP, getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
       else if (lastOption == 1)
         setBoilPwr(getValue_P(BOIL_POWER, boilPwr, 1, 100, PSTR("%")));
-    #ifdef USEMETRIC
       else if (lastOption == 2)
-        setEvapRate(getValue_P(EVAPORATION_RATE, getEvapRate(), 1, 255, PSTR("l/hr")));
+        setEvapRate(getValue_P(EVAPORATION_RATE, getEvapRate(), 1, 255, EVAPUNIT));
       else if (lastOption == 3)
-        setGrainDisplacement(getValue_P(GRAIN_DISPLACEMENT, getGrainDisplacement(), 1000, 65535, PSTR("l /kg")));
+        setGrainDisplacement(getValue_P(GRAIN_DISPLACEMENT, getGrainDisplacement(), 1000, 65535, GRAINRATIOUNIT));
       else if (lastOption == 4)
-        setGrainLiquorLoss(getValue_P(GRAIN_LIQUOR_LOSS, getGrainLiquorLoss(), 10000, 65535, PSTR("l /kg")));
-    #else
-      else if (lastOption == 2)
-        setEvapRate(getValue_P(EVAPORATION_RATE, getEvapRate(), 10, 255, PSTR("gal /hr")));
-      else if (lastOption == 3)
-        setGrainDisplacement(getValue_P(GRAIN_DISPLACEMENT, getGrainDisplacement(), 1000, 65535, PSTR("gal/lb")));
-      else if (lastOption == 4)
-        setGrainLiquorLoss(getValue_P(GRAIN_LIQUOR_LOSS, getGrainLiquorLoss(), 10000, 65535, PSTR("gal/lb")));
-    #endif
+        setGrainLiquorLoss(getValue_P(GRAIN_LIQUOR_LOSS, getGrainLiquorLoss(), 10000, 65535, GRAINRATIOUNIT));
+      else if (lastOption == 5)
+        setStrikeLoss(getValue_P(STRIKE_LOSS, getStrikeLoss(), 1000, 65535, VOLUNIT));
+      else if (lastOption == 6)
+        setSpargeLoss(getValue_P(SPARGE_LOSS, getSpargeLoss(), 1000, 65535, VOLUNIT));
+      else if (lastOption == 7)
+        setMashLoss(getValue_P(MASH_LOSS, getMashLoss(), 1000, 65535, VOLUNIT));
+      else if (lastOption == 8)
+        setBoilLoss(getValue_P(BOIL_LOSS, getBoilLoss(), 1000, 65535, VOLUNIT));
       else
         return;
     }
@@ -786,7 +789,7 @@ void menuVessels() {
 void menuVesselSettings(byte vessel) {
   byte lastOption = 0;
   while(1) {
-    menu vesselMenu(3, 14);
+    menu vesselMenu(3, 13);
     vesselMenu.setItem_P(PSTR("PWM: "), 0);
     byte pwmPin = getPWMPin(vessel);
     if (pwmPin == INDEX_NONE)
@@ -820,9 +823,8 @@ void menuVesselSettings(byte vessel) {
       vesselMenu.setItem_P(PSTR("Volume Sensor"), 8);
     #endif
     vesselMenu.setItem_P(CAPACITY, 9);
-    vesselMenu.setItem_P(DEADSPACE, 10);
-    vesselMenu.setItem_P(PSTR("Volume Calibration"), 11);
-    vesselMenu.setItem_P(PSTR("Clone Settings"), 12);
+    vesselMenu.setItem_P(PSTR("Volume Calibration"), 10);
+    vesselMenu.setItem_P(PSTR("Clone Settings"), 11);
     vesselMenu.setItem_P(EXIT, 255);
     
     char title[20];
@@ -862,12 +864,9 @@ void menuVesselSettings(byte vessel) {
       } 
     #endif
     else if (lastOption == 10) {
-      strcat_P(title, DEADSPACE);
-      setVolLoss(vessel, getValue(title, getVolLoss(vessel), 1000, 65535, VOLUNIT));
-    } else if (lastOption == 11) {
       strcat_P(title, CALIBRATION);
       volCalibMenu(title, vessel);
-    } else if (lastOption == 12) {
+    } else if (lastOption == 11) {
       byte source = menuSelectVessel("Clone From:");
       if (source <= VS_KETTLE) {
         setPWMPin(vessel, getPWMPin(source));
@@ -880,7 +879,6 @@ void menuVesselSettings(byte vessel) {
         setHysteresis(vessel, hysteresis[source]);
         setVolumeSensor(vessel, getVolumeSensor(source));
         setCapacity(vessel, getCapacity(source));
-        setVolLoss(vessel, getVolLoss(source));
         for (byte i = 0; i < 10; i++)
           setVolCalib(vessel, i, calibVals[source][i], calibVols[source][i]);
       }

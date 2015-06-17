@@ -124,7 +124,6 @@ const char PIDCYCLE[] PROGMEM = " PID Cycle";
 const char PIDGAIN[] PROGMEM = " PID Gain";
 const char HYSTERESIS[] PROGMEM = "Hysteresis";
 const char CAPACITY[] PROGMEM = "Capacity";
-const char DEADSPACE[] PROGMEM = "Dead Space";
 const char CALIBRATION[] PROGMEM = "Calibration";
 
 const char BOIL_TEMP[] PROGMEM = "Boil Temp";
@@ -132,18 +131,27 @@ const char BOIL_POWER[] PROGMEM = "Boil Power";
 const char EVAPORATION_RATE[] PROGMEM = "Evaporation Rate";
 const char GRAIN_DISPLACEMENT[] PROGMEM = "Grain Displacement";
 const char GRAIN_LIQUOR_LOSS[] PROGMEM = "Grain Liquor Loss";
+const char STRIKE_LOSS[] PROGMEM = "Strike Loss";
+const char SPARGE_LOSS[] PROGMEM = "Sparge Loss";
+const char MASH_LOSS[] PROGMEM = "Mash Loss";
+const char BOIL_LOSS[] PROGMEM = "Boil Loss";
 
 const char HLTDESC[] PROGMEM = "Hot Liquor Tank";
 const char MASHDESC[] PROGMEM = "Mash Tun";
 const char SEC[] PROGMEM = "s";
+
 #ifdef USEMETRIC
 const char VOLUNIT[] PROGMEM = "l";
 const char WTUNIT[] PROGMEM = "kg";
 const char TUNIT[] PROGMEM = "C";
+const char EVAPUNIT[] PROGMEM = "l /hr";
+const char GRAINRATIOUNIT[] PROGMEM = "l /kg";
 #else
 const char VOLUNIT[] PROGMEM = "gal";
 const char WTUNIT[] PROGMEM = "lb";
 const char TUNIT[] PROGMEM = "F";
+const char EVAPUNIT[] PROGMEM = "gal /hr";
+const char GRAINRATIOUNIT[] PROGMEM = "gal/lb";
 #endif
 
 const char MIN[] PROGMEM = " min";

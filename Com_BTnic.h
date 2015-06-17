@@ -579,11 +579,10 @@ void BTnic::execCmd(void) {
 
     case CMD_SET_VSET:  //R
       setCapacity(cmdIndex, getCmdParamNum(1));
-      setVolLoss(cmdIndex, getCmdParamNum(2));
     case CMD_GET_VSET:  //H
       logFieldCmd(CMD_GET_VSET, cmdIndex);
       logFieldI(getCapacity(cmdIndex));
-      logFieldI(getVolLoss(cmdIndex));  
+      logFieldI(0);  
       break;
 
 

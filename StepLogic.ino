@@ -623,39 +623,41 @@ void smartHERMSHLT() {
   
 unsigned long calcStrikeVol(byte recipe) {
   unsigned int mashRatio = getProgRatio(recipe);
-  unsigned long retValue;
-  if (mashRatio) {
-    retValue = round(getProgGrain(recipe) * mashRatio / 100.0);
-
-    //Convert qts to gal for US
-    #ifndef USEMETRIC
-      retValue = round(retValue / 4.0);
-    #endif
-    retValue += getVolLoss(TS_MASH);
-  }
-  else {
-    //No Sparge Logic (Matio Ratio = 0)
-    retValue = calcPreboilVol(recipe);
-  
-    //Add Water Lost in Spent Grain
-    retValue += calcGrainLoss(recipe);
+  if (!mashRatio)
+    return calcTotalLiquorVol(recipe);
     
-    //Add Loss from other Vessels
-    retValue += (getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
-  }
+  unsigned long retValue = round(getProgGrain(recipe) * mashRatio / 100.0);
+
+  //Convert qts to gal for US
+  #ifndef USEMETRIC
+    retValue = round(retValue / 4.0);
+  #endif
+  
+  //Add extra strike volume needed for loss during strike transfer
+  retValue += getStrikeLoss();
+
   return retValue;
 }
 
-unsigned long calcSpargeVol(byte recipe) {
-  //Determine Preboil Volume Needed (Batch + Evap + Deadspace + Thermo Shrinkage)
+unsigned long calcTotalLiquorVol(byte recipe) {
   unsigned long retValue = calcPreboilVol(recipe);
 
   //Add Water Lost in Spent Grain
   retValue += calcGrainLoss(recipe);
   
-  //Add Loss from other Vessels
-  retValue += (getVolLoss(TS_HLT) + getVolLoss(TS_MASH));
+  //Add extra sparge volume needed for loss during transfer of sprage liquor
+  retValue += getSpargeLoss();
+  
+  //Add extra strike volume needed for loss during strike transfer
+  retValue += getStrikeLoss();
+  
+  //Add extra volume needed for loss during transfer from mash to boil
+  retValue += getMashLoss();
+}
 
+unsigned long calcSpargeVol(byte recipe) {
+  unsigned long retValue = calcTotalLiquorVol(recipe);
+  
   //Subtract Strike Water Volume
   retValue -= calcStrikeVol(recipe);
   
@@ -664,11 +666,22 @@ unsigned long calcSpargeVol(byte recipe) {
 }
 
 unsigned long calcPreboilVol(byte recipe) {
-  // Pre-Boil Volume is the total volume needed in the kettle to ensure you can collect your anticipated batch volume
-  // It is (((batch volume + kettle loss) / thermo shrinkage factor ) / evap loss factor )
-  //unsigned long retValue = (getProgBatchVol(recipe) / (1.0 - getEvapRate() / 100.0 * getProgBoil(recipe) / 60.0)) + getVolLoss(TS_KETTLE); // old logic 
-  unsigned long retValue = (((getProgBatchVol(recipe) + getVolLoss(TS_KETTLE)) / VOL_SHRINKAGE) + (((unsigned long)getEvapRate() * EvapRateConversion) * getProgBoil(recipe) / 60.0));
-  return round(retValue);
+  unsigned long retValue = getProgBatchVol(recipe);
+  
+  //Add loss in boil kettle and plumbing
+  //Note: Will affect mash efficiency and hop utilization
+  //Alternatively set to 0, adjust batch volume and scale recipe
+  retValue += getBoilLoss(); 
+  
+  //Shrinkage should nto be calculated as filling volume at ground water temperature
+  // will first expand at boil and then shrink at pitch temp resulting in no change.
+  #ifdef VOL_SHRINKAGE
+    retValue /= VOL_SHRINKAGE;
+  #endif
+  
+  //Add evaporative losses based on boil time and system evaporation rate
+  retValue += (unsigned long)getEvapRate() * EvapRateConversion * getProgBoil(recipe) / 60;
+  return retValue;
 }
 
 unsigned long calcGrainLoss(byte recipe) {

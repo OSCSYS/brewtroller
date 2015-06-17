@@ -293,12 +293,8 @@ void setCapacity(byte vessel, unsigned long value) {
 unsigned long getCapacity(byte vessel) { return EEPROMreadLong(93 + vessel * 4); }
 
 //**********************************************************************************
-//volLoss HLT (105-106), Mash (107-108), Kettle (109-110)
+//OPEN (105-110)
 //**********************************************************************************
-void setVolLoss(byte vessel, unsigned int value) {
-  EEPROMwriteInt(105 + vessel * 2, value);
-}
-unsigned int getVolLoss(byte vessel) { return EEPROMreadInt(105 + vessel * 2); }
 
 //**********************************************************************************
 //Boil Temp (111)
@@ -718,7 +714,7 @@ void setBubblerDelay(byte delayTime) {
 }
 
 //*****************************************************************************************************************************
-// Calculation Factors (2191-2194) + Reserved (2195-2204)
+// Calculation Factors (2191-2202) + Reserved (2203-2204)
 //*****************************************************************************************************************************
 unsigned int getGrainDisplacement() {
   return EEPROMreadInt(2191);
@@ -734,6 +730,38 @@ unsigned int getGrainLiquorLoss() {
 
 void setGrainLiquorLoss(unsigned int loss) {
   EEPROMwriteInt(2193, loss);
+}
+
+unsigned int getStrikeLoss() {
+  return EEPROMreadInt(2195);
+}
+
+void setStrikeLoss(unsigned int loss) {
+  EEPROMwriteInt(2195, loss);
+}
+
+unsigned int getSpargeLoss() {
+  return EEPROMreadInt(2197);
+}
+
+void setSpargeLoss(unsigned int loss) {
+  EEPROMwriteInt(2197, loss);
+}
+
+unsigned int getMashLoss() {
+  return EEPROMreadInt(2199);
+}
+
+void setMashLoss(unsigned int loss) {
+  EEPROMwriteInt(2199, loss);
+}
+
+unsigned int getBoilLoss() {
+  return EEPROMreadInt(2201);
+}
+
+void setBoilLoss(unsigned int loss) {
+  EEPROMwriteInt(2201, loss);
 }
 
 //*****************************************************************************************************************************

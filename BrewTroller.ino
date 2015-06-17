@@ -44,9 +44,9 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
 #include <avr/pgmspace.h>
 #include <PID_Beta6.h>
 #include <pin.h>
-#include <menu.h>
 #include <ModbusMaster.h>
 #include <Wire.h>
+#include <menu.h>
 
 #include "HWProfile.h"
 #include "Config.h"
