@@ -714,7 +714,10 @@ void screenBoil (enum ScreenSignal signal) {
       if (screenLock) {
         switch (boilControlState) {
           case CONTROLSTATE_OFF:
-            LCD.print_P(0, 14, PSTR("   Off"));
+            if (setpoint[VS_KETTLE])
+              uiLabelTemperature(0, 14, 6, setpoint[VS_KETTLE]);
+            else
+              LCD.print_P(0, 14, PSTR("   Off"));
             break;
           case CONTROLSTATE_AUTO:
             LCD.print_P(0, 14, PSTR("  Auto"));
@@ -756,7 +759,7 @@ void screenBoil (enum ScreenSignal signal) {
 }
 
 void screenBoilMenu() {
-  menu boilMenu(3, 9);
+  menu boilMenu(3, 10);
   boilMenu.setItem_P(PSTR("Set Timer"), 0);
   
   if (timerStatus[TIMER_BOIL]) boilMenu.setItem_P(PSTR("Pause Timer"), 1);
@@ -775,6 +778,11 @@ void screenBoilMenu() {
       break;
   }
 
+  boilMenu.setItem_P(PSTR("Setpoint:"), 8);
+  vftoa(setpoint[VS_KETTLE], buf, 100, 8);
+  truncFloat(buf, 4);
+  boilMenu.appendItem(buf, 8);
+  boilMenu.appendItem_P(TUNIT, 8);
   
   boilMenu.setItem_P(PSTR("Boil Temp: "), 3);
   vftoa(getBoilTemp() * SETPOINT_MULT, buf, 100, 1);
@@ -816,6 +824,10 @@ void screenBoilMenu() {
   else if (lastOption == 7) {
     if (confirmAbort())
       brewStepSignal(BREWSTEP_BOIL, STEPSIGNAL_ABORT);
+  }
+  else if (lastOption == 8) {
+    setSetpoint(VS_KETTLE, getValue_P(PSTR("Kettle Setpoint"), setpoint[VS_KETTLE] / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
+    boilControlState = CONTROLSTATE_OFF;
   }
 }
 
