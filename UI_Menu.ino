@@ -377,7 +377,7 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection, b
   while (1) {
     menu outputMenu(3, outputs->getCount() + 3);
     for (byte i = 0; i < outputs->getCount(); i++) {
-      if (newSelection & (1 << i)) {
+      if (newSelection & (1uL << i)) {
         outputMenu.setItem(outputs->getOutputBankName(i, buf), i);
         outputMenu.appendItem("-", i);
         outputMenu.appendItem(outputs->getOutputName(i, buf), i);
@@ -392,7 +392,7 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection, b
     if (lastOption == 254) {
       byte addOutput = menuSelectOutput("Add Output", INDEX_NONE);
       if (addOutput < outputs->getCount())
-        newSelection |= (1 << addOutput);
+        newSelection |= (1uL << addOutput);
     } else if (lastOption == 253) {
       //Test Profile: Use OUTPUTENABLE_SYSTEMTEST to disable unused outputs
       outputs->setOutputEnableMask(OUTPUTENABLE_SYSTEMTEST, newSelection);
@@ -412,7 +412,7 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection, b
         return newSelection;
       return currentSelection;
     } else
-      newSelection &= ~(1<<lastOption);
+      newSelection &= ~(1uL << lastOption);
   }
 }
 
