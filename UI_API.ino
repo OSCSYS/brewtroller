@@ -214,7 +214,12 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
         vftoa(retValue, strValue, divisor, 0);
         strLPad(strValue, digits, '0');
         strValue[cursorPos] = '0' + encValue * increment;
-        retValue = min(strtoul(strValue, NULL, 10) / (mult / divisor), maxValue);
+        unsigned long newValue = strtoul(strValue, NULL, 10) / (mult / divisor);
+        if (newValue <= maxValue)
+          retValue = newValue;
+        vftoa(retValue, strValue, divisor, 0);
+        strLPad(strValue, digits, '0');
+        Encoder.setCount((strValue[cursorPos] - '0') / increment);
       } else {
         cursorPos = encValue;
         for (byte i = valuePos - 1; i < valuePos - 1 + digits - precision; i++) LCD.writeCustChar(2, i, 0);
