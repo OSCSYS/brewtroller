@@ -26,11 +26,11 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 #ifdef TS_ONEWIRE
   #ifdef TS_ONEWIRE_GPIO
-    #include <OneWire.h>
+    #include "LOCAL_OneWire.h"
     OneWire ds(TEMP_PIN);
   #endif
   #ifdef TS_ONEWIRE_I2C
-    #include <DS2482.h>
+    #include "LOCAL_DS2482.h"
     DS2482 ds(DS2482_ADDR);
   #endif
   //One Wire Bus on 

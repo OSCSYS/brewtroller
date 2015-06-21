@@ -88,8 +88,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       muxLatchPin.clear();
       muxEnablePin.set(); //Disable clear
     #else
-      outputsState = 0;
-      update();
+      set(0);
       muxEnablePin.clear();
     #endif
   }

@@ -27,8 +27,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include <Arduino.h>
 #include "Config.h"
 #include "HWProfile.h"
-#include <pin.h>
-#include <ModbusMaster.h>
+#include "LOCAL_Pin.h"
+#include "LOCAL_ModbusMaster.h"
   
 //Includes string term \0
 #define OUTPUTBANK_NAME_MAXLEN 6

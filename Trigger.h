@@ -25,7 +25,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #define OT_Trigger_h
 
 #include <Arduino.h>
-#include <pin.h>
+#include "LOCAL_Pin.h"
 
 class Trigger
 {

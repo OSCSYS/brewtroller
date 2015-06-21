@@ -27,12 +27,6 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 /*
 Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATMEGA1284P
-  Using the following libraries:
-    PID  v0.6 (Beta 6) (http://www.arduino.cc/playground/Code/PIDLibrary)
-    OneWire 2.0 (http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip)
-    Encoder by CodeRage ()
-    FastPin and modified LiquidCrystal with FastPin by CodeRage (http://www.brewtroller.com/forum/showthread.php?t=626)
-    Menu
 */
 
 
@@ -42,11 +36,11 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
 //*****************************************************************************************************************************
 
 #include <avr/pgmspace.h>
-#include <PID_Beta6.h>
-#include <pin.h>
-#include <ModbusMaster.h>
+#include "LOCAL_PID_Beta6.h"
+#include "LOCAL_Pin.h"
+#include "LOCAL_ModbusMaster.h"
 #include <Wire.h>
-#include <menu.h>
+#include "LOCAL_Menu.h"
 
 #include "HWProfile.h"
 #include "Config.h"
@@ -58,7 +52,7 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
 #include <avr/eeprom.h>
 #include <EEPROM.h>
 #include "wiring_private.h"
-#include <encoder.h>
+#include "LOCAL_Encoder.h"
 #ifdef RGBIO8_ENABLE
   #include "RGBIO8.h"
 #endif
@@ -183,7 +177,7 @@ Bubbler *bubbler = NULL;
 
 //Create the appropriate 'LCD' object for the hardware configuration (4-Bit GPIO, I2C)
 #if defined UI_LCD_4BIT
-  #include <LiquidCrystalFP.h>
+  //#include "LOCAL_LiquidCrystalFP.h"
   
   #ifndef UI_DISPLAY_SETUP
     LCD4Bit LCD(LCD_RS_PIN, LCD_ENABLE_PIN, LCD_DATA4_PIN, LCD_DATA5_PIN, LCD_DATA6_PIN, LCD_DATA7_PIN);

@@ -31,7 +31,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #include "Enum.h"
   #include "HWProfile.h"
   #include <Wire.h>
-  #include <LiquidCrystalFP.h>
+  #include "LOCAL_LiquidCrystalFP.h"
   #include <stdlib.h> // for malloc and free
   #include <EEPROM.h>
 

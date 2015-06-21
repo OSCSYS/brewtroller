@@ -152,14 +152,15 @@ void loadOutputProfiles() {
     }
   }
 #endif
-  
+
 void loadTriggerInstance(byte i) {
   if (trigger[i])
     delete trigger[i];
   trigger[i] = NULL;
-  
+#ifdef DIGITAL_INPUTS
   byte triggerPinMap[] = DIGITAL_INPUTS_PINS;
-  
+#endif
+
   struct TriggerConfiguration trigConfig;
   loadTriggerConfiguration(i, &trigConfig);
   
@@ -983,9 +984,12 @@ void initEEPROM() {
     thread.recipe = INDEX_NONE;
     eepromSaveProgramThread(i, &thread);
   }
-  
+  #ifdef LCD_DEFAULT_BRIGHTNESS
     EEPROM.write(2048, LCD_DEFAULT_BRIGHTNESS);
+  #endif
+  #ifdef LCD_DEFAULT_CONTRAST
     EEPROM.write(2049, LCD_DEFAULT_CONTRAST);
+  #endif
   
   //Set cfgVersion = 0
   EEPROM.write(2047, 0);
