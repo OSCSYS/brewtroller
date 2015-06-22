@@ -18,39 +18,39 @@ const char LABEL_BUTTONOFF[] PROGMEM = "Off";
 const char ON[] PROGMEM = "On";
 const char OFF[] PROGMEM = "Off";
 
-prog_char FILLHLT[] PROGMEM = "Fill HLT";
-prog_char FILLMASH[] PROGMEM = "Fill Mash";
-prog_char ADDGRAIN[] PROGMEM = "Add Grain";
-prog_char MASHHEAT[] PROGMEM = "Mash Heat";
-prog_char MASHIDLE[] PROGMEM = "Mash Idle";
-prog_char SPARGEIN[] PROGMEM = "Sparge In";
-prog_char SPARGEOUT[] PROGMEM = "Sparge Out";
-prog_char BOILADDS[] PROGMEM = "Boil Additions";
-prog_char STRIKETRANSFER[] PROGMEM = "Not Implemented";
-prog_char CHILL[] PROGMEM = "Chill";
-prog_char WORTOUT[] PROGMEM = "Wort Out";
-prog_char WHIRLPOOL[] PROGMEM = "Whirlpool";
-prog_char DRAIN[] PROGMEM = "Drain";
-prog_char HLTHEAT[] PROGMEM = "HLT Heat";
-prog_char HLTIDLE[] PROGMEM = "HLT Idle";
-prog_char KETTLEHEAT[] PROGMEM = "Kettle Heat";
-prog_char KETTLEIDLE[] PROGMEM = "Kettle Idle";
-prog_char USER1[] PROGMEM = "User Profile 1";
-prog_char USER2[] PROGMEM = "User Profile 2";
-prog_char USER3[] PROGMEM = "User Profile 3";
-prog_char ALARM[] PROGMEM = "Alarm";
-prog_char HLTPWMACTIVE[] PROGMEM = "HLT PWM Active";
-prog_char MASHPWMACTIVE[] PROGMEM = "Mash PWM Active";
-prog_char KETTLEPWMACTIVE[] PROGMEM = "Kettle PWM Active";
+const char FILLHLT[] PROGMEM = "Fill HLT";
+const char FILLMASH[] PROGMEM = "Fill Mash";
+const char ADDGRAIN[] PROGMEM = "Add Grain";
+const char MASHHEAT[] PROGMEM = "Mash Heat";
+const char MASHIDLE[] PROGMEM = "Mash Idle";
+const char SPARGEIN[] PROGMEM = "Sparge In";
+const char SPARGEOUT[] PROGMEM = "Sparge Out";
+const char BOILADDS[] PROGMEM = "Boil Additions";
+const char STRIKETRANSFER[] PROGMEM = "Not Implemented";
+const char CHILL[] PROGMEM = "Chill";
+const char WORTOUT[] PROGMEM = "Wort Out";
+const char WHIRLPOOL[] PROGMEM = "Whirlpool";
+const char DRAIN[] PROGMEM = "Drain";
+const char HLTHEAT[] PROGMEM = "HLT Heat";
+const char HLTIDLE[] PROGMEM = "HLT Idle";
+const char KETTLEHEAT[] PROGMEM = "Kettle Heat";
+const char KETTLEIDLE[] PROGMEM = "Kettle Idle";
+const char USER1[] PROGMEM = "User Profile 1";
+const char USER2[] PROGMEM = "User Profile 2";
+const char USER3[] PROGMEM = "User Profile 3";
+const char ALARM[] PROGMEM = "Alarm";
+const char HLTPWMACTIVE[] PROGMEM = "HLT PWM Active";
+const char MASHPWMACTIVE[] PROGMEM = "Mash PWM Active";
+const char KETTLEPWMACTIVE[] PROGMEM = "Kettle PWM Active";
 
-prog_char DOUGHIN[] PROGMEM = "Dough In:";
-prog_char ACID[] PROGMEM = "Acid Rest:";
-prog_char PROTEIN[] PROGMEM = "Protein Rest:";
-prog_char SACCH[] PROGMEM = "Sacch Rest:";
-prog_char SACCH2[] PROGMEM = "Sacch2 Rest:";
-prog_char MASHOUT[] PROGMEM = "Mash Out:";
+const char DOUGHIN[] PROGMEM = "Dough In:";
+const char ACID[] PROGMEM = "Acid Rest:";
+const char PROTEIN[] PROGMEM = "Protein Rest:";
+const char SACCH[] PROGMEM = "Sacch Rest:";
+const char SACCH2[] PROGMEM = "Sacch2 Rest:";
+const char MASHOUT[] PROGMEM = "Mash Out:";
 
-PROGMEM const char *TITLE_MASHSTEP[] = {
+const char * const TITLE_MASHSTEP[] PROGMEM = {
   DOUGHIN,
   ACID,
   PROTEIN,
@@ -59,7 +59,7 @@ PROGMEM const char *TITLE_MASHSTEP[] = {
   MASHOUT
 };
 
-PROGMEM const char *TITLE_VLV[] = {
+const char * const TITLE_VLV[] PROGMEM = {
   FILLHLT,
   FILLMASH,
   ADDGRAIN,
@@ -91,11 +91,11 @@ const char FILLBOTH[] PROGMEM = "Fill Both";
 const char FLYSPARGE[] PROGMEM = "Fly Sparge";
 const char WHIRLCHILL[] PROGMEM = "WhirlChill";
 
-prog_char TITLE_VS_HLT[] PROGMEM = "HLT";
-prog_char TITLE_VS_MASH[] PROGMEM = "Mash";
-prog_char TITLE_VS_KETTLE[] PROGMEM = "Kettle";
+const char TITLE_VS_HLT[] PROGMEM = "HLT";
+const char TITLE_VS_MASH[] PROGMEM = "Mash";
+const char TITLE_VS_KETTLE[] PROGMEM = "Kettle";
 
-PROGMEM const char *TITLE_VS[] = {
+const char * const TITLE_VS[] PROGMEM = {
   TITLE_VS_HLT,
   TITLE_VS_MASH,
   TITLE_VS_KETTLE
@@ -108,7 +108,7 @@ const char TITLE_TS_AUX1[] PROGMEM = "AUX 1";
 const char TITLE_TS_AUX2[] PROGMEM = "AUX 2";
 const char TITLE_TS_AUX3[] PROGMEM = "AUX 3";
 
-PROGMEM const char *TITLE_TS[] = {
+const char * const TITLE_TS[] PROGMEM = {
   TITLE_VS_HLT,
   TITLE_VS_MASH,
   TITLE_VS_KETTLE,
@@ -155,6 +155,18 @@ const char GRAINRATIOUNIT[] PROGMEM = "gal/lb";
 #endif
 
 const char MIN[] PROGMEM = " min";
+
+const char RGBTITLE_OFF[] PROGMEM =     "Off:      0x";
+const char RGBTITLE_AUTOOFF[] PROGMEM = "Auto Off: 0x";
+const char RGBTITLE_AUTOON[] PROGMEM =  "Auto On:  0x";
+const char RGBTITLE_ON[] PROGMEM =      "On:       0x";
+
+const char * const TITLE_RGBMODES[] PROGMEM = {
+  RGBTITLE_OFF,
+  RGBTITLE_AUTOOFF,
+  RGBTITLE_AUTOON,
+  RGBTITLE_ON
+};
 
 //**********************************************************************************
 // UI Custom LCD Chars

@@ -9,9 +9,9 @@ class PID
 
   public:
 
-  #define AUTO	1
-  #define MANUAL	0
-  #define LIBRARY_VERSION	0.6
+  #define AUTO  1
+  #define MANUAL  0
+  #define LIBRARY_VERSION 0.6
 
   //commonly used functions **************************************************************************
     PID(double*, double*, double*,        // * constructor.  links the PID to the Input, Output, and 
@@ -109,4 +109,5 @@ class PID
     bool justCalced;              // * flag gets set for one cycle after the pid calculates
 };
 #endif
+
 

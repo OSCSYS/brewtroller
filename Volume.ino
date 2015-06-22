@@ -50,19 +50,18 @@ void updateVols() {
   }
 }
 
-#ifdef FLOWRATE_CALCS
 void updateFlowRates() {
-   unsigned long timestamp = millis();
-  //Check flowrate periodically (FLOWRATE_READ_INTERVAL)
-  if (timestamp - lastFlowChk > FLOWRATE_READ_INTERVAL) {
-    for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-      flowRate[i] = round((volAvg[i] - prevFlowVol[i]) * 60000.0 / (timestamp - lastFlowChk));
+  unsigned long timestamp = millis();
+  unsigned long ellapsed = timestamp - lastFlowChk;
+  if (ellapsed > FLOWRATE_READ_INTERVAL) {
+    for (byte i = 0; i < VESSEL_COUNT; i++) {
+      long difference = volAvg[i] - prevFlowVol[i];
+      flowRate[i] = difference * 60000 / ellapsed;
       prevFlowVol[i] = volAvg[i];
     }
     lastFlowChk = timestamp;
   }
 }
-#endif
 
 unsigned long calibrateVolume( unsigned int aValue, unsigned long calibrationVols[10], unsigned int calibrationValues[10] ) {
   unsigned long retValue;
