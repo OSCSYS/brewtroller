@@ -34,7 +34,7 @@ Arduino library for communicating with Modbus slaves over RS232/485 (via RTU pro
 #include <pins_arduino.h>
 
 /* _____GLOBAL VARIABLES_____________________________________________________ */
-HardwareSerial MBSerial = Serial; ///< Pointer to Serial class object
+HardwareSerial *MBSerial = &Serial; ///< Pointer to Serial class object
 
 
 /* _____PUBLIC FUNCTIONS_____________________________________________________ */
@@ -122,26 +122,26 @@ void ModbusMaster::begin(uint32_t BaudRate, uint8_t config)
   {
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284P__) 
     case 1:
-      MBSerial = Serial1;
+      MBSerial = &Serial1;
       break;
 #endif
 #if defined(__AVR_ATmega1280__)
     case 2:
-      MBSerial = Serial2;
+      MBSerial = &Serial2;
       break;
       
     case 3:
-      MBSerial = Serial3;
+      MBSerial = &Serial3;
       break;
 #endif
       
     case 0:
     default:
-      MBSerial = Serial;
+      MBSerial = &Serial;
       break;
   }
   
-  MBSerial.begin(BaudRate, config);
+  MBSerial->begin(BaudRate, config);
 }
 
 void ModbusMaster::setupRTS(uint8_t pinID)
@@ -624,11 +624,11 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   
   for (i = 0; i < u8ModbusADUSize; i++)
   {
-    MBSerial.write(u8ModbusADU[i]);
+    MBSerial->write(u8ModbusADU[i]);
   }
   
   u8ModbusADUSize = 0;
-  MBSerial.flush();
+  MBSerial->flush();
 
   //Fix for Serial.Flush() not waiting for buffer to clear. Hardcoded to Serial1
   while (!(UCSR1A & (1 << UDRE1)))  // Wait for empty transmit buffer
@@ -641,9 +641,9 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   u32RXStartTime = millis();
   while (millis() - u32RXStartTime < ku8MBResponseTimeout && u8BytesLeft && !u8MBStatus)
   {
-    if (MBSerial.available())
+    if (MBSerial->available())
     {
-      u8ModbusADU[u8ModbusADUSize++] = MBSerial.read();
+      u8ModbusADU[u8ModbusADUSize++] = MBSerial->read();
       u8BytesLeft--;
     }
 	

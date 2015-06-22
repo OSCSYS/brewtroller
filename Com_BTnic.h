@@ -119,7 +119,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   #define CMDCODE_MAX 126
   #define NO_CMDINDEX -1
   
-  static byte CMD_PARAM_COUNTS[] PROGMEM = 
+  const static byte CMD_PARAM_COUNTS[] PROGMEM = 
   {
     0,  //CMD_GET_PROGNAMES (All)
     22, //CMD_SET_PROGRAM (Full)
@@ -188,7 +188,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     0   //CMD_GET_BOILCNT
   };
 
-  static byte CMD_INDEX_MAXVALUE[] PROGMEM = 
+  const static byte CMD_INDEX_MAXVALUE[] PROGMEM = 
   {
     0,                  //CMD_GET_PROGNAMES (All)
     RECIPE_MAX - 1,     //CMD_SET_PROGRAM (Full)

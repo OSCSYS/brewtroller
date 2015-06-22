@@ -1615,19 +1615,6 @@ byte menuVessel(byte vessel){
     return lastOption;
   }
 
-
-  prog_char RGBTITLE_OFF[] PROGMEM =     "Off:      0x";
-  prog_char RGBTITLE_AUTOOFF[] PROGMEM = "Auto Off: 0x";
-  prog_char RGBTITLE_AUTOON[] PROGMEM =  "Auto On:  0x";
-  prog_char RGBTITLE_ON[] PROGMEM =      "On:       0x";
-  
-  PROGMEM const char *TITLE_RGBMODES[] = {
-    RGBTITLE_OFF,
-    RGBTITLE_AUTOOFF,
-    RGBTITLE_AUTOON,
-    RGBTITLE_ON
-  };
-
   void menuRGBIORecipe(byte recipeIndex) {
     unsigned int recipe[4], origRecipe[4];
     getRGBIORecipe(recipeIndex, recipe);
