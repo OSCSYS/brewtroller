@@ -842,13 +842,13 @@ void menuVesselSettings(byte vessel) {
     else if (lastOption == 2)
       setPWMResolution(vessel, getValue_P(PSTR("PWM Resolution"), getPWMResolution(vessel), 1, 255, PSTR("")));
     else if (lastOption == 3)
-      setPIDp(vessel, getValue_P(PSTR("P Gain"), getPIDp(vessel), 0, 255, PSTR("")));
+      setPIDp(vessel, getValue_P(PSTR("P Gain"), getPIDp(vessel), 1, 255, PSTR("")));
     else if (lastOption == 4)
-      setPIDi(vessel, getValue_P(PSTR("I Gain"), getPIDi(vessel), 0, 255, PSTR("")));
+      setPIDi(vessel, getValue_P(PSTR("I Gain"), getPIDi(vessel), 1, 255, PSTR("")));
     else if (lastOption == 5)
-      setPIDd(vessel, getValue_P(PSTR("D Gain"), getPIDd(vessel), 0, 255, PSTR("")));
+      setPIDd(vessel, getValue_P(PSTR("D Gain"), getPIDd(vessel), 1, 255, PSTR("")));
     else if (lastOption == 6)
-      setPIDLimit(vessel, getValue_P(PSTR("PID Limit"), getPIDLimit(vessel), 0, 100, PSTR("")));
+      setPIDLimit(vessel, getValue_P(PSTR("PID Limit"), getPIDLimit(vessel), 1, 100, PSTR("")));
     else if (lastOption == 7)
       setHysteresis(vessel, getValue_P(HYSTERESIS, hysteresis[vessel], 10, 255, TUNIT));
 
