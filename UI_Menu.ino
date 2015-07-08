@@ -1,89 +1,70 @@
 #ifndef NOUI
-//Global Output Profile display order
-byte outputProfileDisplayOrder[] = {
-  OUTPUTPROFILE_ALARM,
-  OUTPUTPROFILE_FILLHLT,
-  OUTPUTPROFILE_FILLMASH,
-  OUTPUTPROFILE_HLTHEAT,
-  OUTPUTPROFILE_HLTIDLE,
-  OUTPUTPROFILE_HLTPWMACTIVE,
-  OUTPUTPROFILE_MASHHEAT,
-  OUTPUTPROFILE_MASHIDLE,
-  OUTPUTPROFILE_MASHPWMACTIVE,
-  OUTPUTPROFILE_ADDGRAIN,
-  OUTPUTPROFILE_STRIKETRANSFER,
-  OUTPUTPROFILE_SPARGEIN,
-  OUTPUTPROFILE_SPARGEOUT,
-  OUTPUTPROFILE_KETTLEHEAT,
-  OUTPUTPROFILE_KETTLEIDLE,
-  OUTPUTPROFILE_KETTLEPWMACTIVE,
-  OUTPUTPROFILE_HOPADD,
-  OUTPUTPROFILE_CHILL,
-  OUTPUTPROFILE_WORTOUT,
-  OUTPUTPROFILE_WHIRLPOOL,
-  OUTPUTPROFILE_DRAIN,
-  OUTPUTPROFILE_USER1,
-  OUTPUTPROFILE_USER2,
-  OUTPUTPROFILE_USER3
+
+class menuProgramList : public menu {
+  public:
+    menuProgramList(byte pSize) : menu (pSize) {}
+    byte getItemCount(void) { return 20; }
+    
+    char* getItem(byte index, char *retString) {
+      getProgName(index, retString);
+      return retString;
+    }
 };
 
 void editProgramMenu() {
-  char itemDesc[20];
-  menu progMenu(3, 20);
-  for (byte i = 0; i < 20; i++) {
-    getProgName(i, itemDesc);
-    progMenu.setItem(itemDesc, i);
-  }
+  menuProgramList progMenu(3);
   byte profile = scrollMenu("Edit Program", &progMenu);
-  if (profile < 20) {
-    progMenu.getSelectedRow(itemDesc);
-    getString(PSTR("Program Name:"), itemDesc, 19);
-    setProgName(profile, itemDesc);
+  if (profile < 20)
     editProgram(profile);
-  }
 }
 
+class menuStartProgramOptions : public menuPROGMEM {
+  public:
+    menuStartProgramOptions(byte pSize) : menuPROGMEM (pSize, STARTPROGRAMOPTIONS, ARRAY_LENGTH(STARTPROGRAMOPTIONS)) {}
+    
+    char* getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      if (index == 1) {
+        char numText[4];
+        strcat(retString, itoa(getGrainTemp() / SETPOINT_DIV, numText, 10));
+        strcat_P(retString, TUNIT);
+      }
+      return retString;
+    }
+};
+
 void startProgramMenu() {
-  char progName[20];
-  menu progMenu(3, 20);
-  for (byte i = 0; i < 20; i++) {
-    getProgName(i, progName);
-    progMenu.setItem(progName, i);
-  }
+  menuProgramList progMenu(3);
   byte profile = scrollMenu("Start Program", &progMenu);
-  progMenu.getSelectedRow(progName);
   if (profile < 20) {
-    byte lastOption = 0; 
-    menu startMenu(3, 5);
+    char progName[20];
+    getProgName(profile, progName);
+    menuStartProgramOptions startMenu(3);
     while(1) {
       unsigned long spargeVol = calcSpargeVol(profile);
+      if (spargeVol > getCapacity(VS_HLT))
+        warnHLT(spargeVol);
+
       unsigned long mashVol = calcStrikeVol(profile);
       unsigned long grainVol = calcGrainVolume(profile);
-      unsigned long preboilVol = calcPreboilVol(profile);
-      if (spargeVol > getCapacity(VS_HLT)) warnHLT(spargeVol);
-      if (mashVol + grainVol > getCapacity(VS_MASH)) warnMash(mashVol, grainVol);
-      if (preboilVol > getCapacity(VS_KETTLE)) warnBoil(preboilVol);
-      startMenu.setItem_P(PSTR("Edit Program"), 0);
-      
-      startMenu.setItem_P(PSTR("Grain Temp:"), 1);
-      startMenu.appendItem(itoa(getGrainTemp() / SETPOINT_DIV, buf, 10), 1);
-      startMenu.appendItem_P(TUNIT, 1);
-      
-      startMenu.setItem_P(PSTR("Start"), 2);
-      startMenu.setItem_P(PSTR("Delay Start"), 3);
-      startMenu.setItem_P(EXIT, 255);
+      if (mashVol + grainVol > getCapacity(VS_MASH))
+        warnMash(mashVol, grainVol);
 
-      lastOption = scrollMenu(progName, &startMenu);
-      if (lastOption == 0) editProgram(profile);
-      else if (lastOption == 1) setGrainTemp(getValue_P(PSTR("Grain Temp"), getGrainTemp(), SETPOINT_DIV, 255, TUNIT)); 
-      else if (lastOption == 2 || lastOption == 3) {
+      unsigned long preboilVol = calcPreboilVol(profile);
+      if (preboilVol > getCapacity(VS_KETTLE))
+        warnBoil(preboilVol);
+ 
+      byte lastOption = scrollMenu(progName, &startMenu);
+      if (lastOption == 0)
+        editProgram(profile);
+      else if (lastOption == 1)
+        setGrainTemp(getValue_P(PSTR("Grain Temp"), getGrainTemp(), SETPOINT_DIV, 255, TUNIT)); 
+      else if (lastOption < 4) {
         if (zoneIsActive(ZONE_MASH))
           infoBox("Cannot start program", "while mash zone is", "active.", CONTINUE);
         else {
-          if (lastOption == 3) {
-            //Delay Start
+          if (lastOption == 3)
             setDelayMins(getTimerValue(PSTR("Delay Start"), getDelayMins(), 23));
-          }
           if (!programThreadInit(profile))
             infoBox("", "Program start failed", "", CONTINUE);
           else
@@ -95,89 +76,100 @@ void startProgramMenu() {
   }
 }
 
+class menuEditProgramOptions : public menuPROGMEM {
+  private:
+    byte recipe;
+    
+  public:
+    menuEditProgramOptions(byte pSize, byte r) : menuPROGMEM(pSize, EDITPROGRAMOPTIONS, ARRAY_LENGTH(EDITPROGRAMOPTIONS)) {
+      recipe = r;
+    }
+    char *getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      char numText[12];
+      if (index == 0)
+        getProgName(recipe, retString);
+      else if (index == 1) {
+        vftoa(getProgBatchVol(recipe), numText, 1000, 1);
+        truncFloat(numText, 5);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 2) {
+        vftoa(getProgGrain(recipe), numText, 1000, 1);
+        truncFloat(numText, 7);
+        strcat(retString, numText);
+        strcat_P(retString, WTUNIT);
+      } else if (index == 3) {
+        strcat(retString, itoa(getProgBoil(recipe), numText, 10));
+        strcat_P(retString, MIN);
+      } else if (index == 4) {
+        unsigned int mashRatio = getProgRatio(recipe);
+        if (mashRatio) {
+          vftoa(mashRatio, numText, 100, 1);
+          truncFloat(numText, 4);
+          strcat(retString, numText);
+          strcat_P(retString, PSTR(":1"));
+        } else {
+          strcat_P(retString, PSTR("NoSparge"));
+        }
+      } else if (index == 5) {
+        vftoa(getProgHLT(recipe) * SETPOINT_MULT, numText, 100, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, TUNIT);
+      } else if (index == 6) {
+        vftoa(getProgSparge(recipe) * SETPOINT_MULT, numText, 100, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, TUNIT);
+      } else if (index == 7) {
+        vftoa(getProgPitch(recipe) * SETPOINT_MULT, numText, 100, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, TUNIT);
+      } else if (index == 9)
+        strcat_P(retString, (char*)pgm_read_word(&(TITLE_VS[getProgMLHeatSrc(recipe)])));
+      return retString;
+    }
+};
+
 void editProgram(byte pgm) {
-  menu progMenu(3, 12);
-
+  menuEditProgramOptions progMenu(3, pgm);
   while (1) {
-    
-    progMenu.setItem_P(PSTR("Batch Vol:"), 0);
-    vftoa(getProgBatchVol(pgm), buf, 1000, 1);
-    truncFloat(buf, 5);
-    progMenu.appendItem(buf, 0);
-    progMenu.appendItem_P(VOLUNIT, 0);
-
-    progMenu.setItem_P(PSTR("Grain Wt:"), 1);
-    vftoa(getProgGrain(pgm), buf, 1000, 1);
-    truncFloat(buf, 7);
-    progMenu.appendItem(buf, 1);
-    progMenu.appendItem_P(WTUNIT, 1);
-
-    
-    progMenu.setItem_P(PSTR("Boil Length:"), 2);
-    progMenu.appendItem(itoa(getProgBoil(pgm), buf, 10), 2);
-    progMenu.appendItem_P(PSTR(" min"), 2);
-    
-    progMenu.setItem_P(PSTR("Mash Ratio:"), 3);
-    unsigned int mashRatio = getProgRatio(pgm);
-    if (mashRatio) {
-      vftoa(mashRatio, buf, 100, 1);
-      truncFloat(buf, 4);
-      progMenu.appendItem(buf, 3);
-      progMenu.appendItem_P(PSTR(":1"), 3);
-    }
-    else {
-      progMenu.appendItem_P(PSTR("NoSparge"), 3);
-    }
-    
-    progMenu.setItem_P( PSTR("HLT Temp:"), 4);
-    vftoa(getProgHLT(pgm) * SETPOINT_MULT, buf, 100, 1);
-    truncFloat(buf, 4);
-    progMenu.appendItem(buf, 4);
-    progMenu.appendItem_P(TUNIT, 4);
-    
-    progMenu.setItem_P(PSTR("Sparge Temp:"), 5);
-    vftoa(getProgSparge(pgm) * SETPOINT_MULT, buf, 100, 1);
-    truncFloat(buf, 4);
-    progMenu.appendItem(buf, 5);
-    progMenu.appendItem_P(TUNIT, 5);
-    
-    progMenu.setItem_P(PSTR("Pitch Temp:"), 6);
-    vftoa(getProgPitch(pgm) * SETPOINT_MULT, buf, 100, 1);
-    truncFloat(buf, 4);
-    progMenu.appendItem(buf, 6);
-    progMenu.appendItem_P(TUNIT, 6);
-
-    progMenu.setItem_P(PSTR("Mash Schedule"), 7);
-
-    progMenu.setItem_P(PSTR("Heat Strike In:"), 8);
-    byte MLHeatSrc = getProgMLHeatSrc(pgm);
-    if (MLHeatSrc == VS_HLT) progMenu.appendItem_P(PSTR("HLT"), 8);
-    else if (MLHeatSrc == VS_MASH) progMenu.appendItem_P(PSTR("MASH"), 8);
-    else progMenu.appendItem_P(PSTR("UNKWN"), 8);
-
-    progMenu.setItem_P(BOILADDS, 9);
-    progMenu.setItem_P(PSTR("Program Calcs"), 10);
-    progMenu.setItem_P(EXIT, 255);
-
     byte lastOption = scrollMenu("Program Parameters", &progMenu);
     
-    if (lastOption == 0) setProgBatchVol(pgm, getValue_P(PSTR("Batch Volume"), getProgBatchVol(pgm), 1000, 9999999, VOLUNIT));
-    else if (lastOption == 1) setProgGrain(pgm, getValue_P(PSTR("Grain Weight"), getProgGrain(pgm), 1000, 9999999, WTUNIT));
-    else if (lastOption == 2) setProgBoil(pgm, getTimerValue(PSTR("Boil Length"), getProgBoil(pgm), 2));
-    else if (lastOption == 3) { 
+    if (lastOption == 0) {
+        char itemDesc[20];
+        getProgName(pgm, itemDesc);
+        getString(PSTR("Program Name:"), itemDesc, 19);
+        setProgName(pgm, itemDesc);
+    } else if (lastOption == 1)
+      setProgBatchVol(pgm, getValue_P(PSTR("Batch Volume"), getProgBatchVol(pgm), 1000, 9999999, VOLUNIT));
+    else if (lastOption == 2)
+      setProgGrain(pgm, getValue_P(PSTR("Grain Weight"), getProgGrain(pgm), 1000, 9999999, WTUNIT));
+    else if (lastOption == 3)
+      setProgBoil(pgm, getTimerValue(PSTR("Boil Length"), getProgBoil(pgm), 2));
+    else if (lastOption == 4) { 
       #ifdef USEMETRIC
         setProgRatio(pgm, getValue_P(PSTR("Mash Ratio"), getProgRatio(pgm), 100, 999, PSTR(" l/kg"))); 
       #else
         setProgRatio(pgm, getValue_P(PSTR("Mash Ratio"), getProgRatio(pgm), 100, 999, PSTR(" qts/lb")));
       #endif
     }
-    else if (lastOption == 4) setProgHLT(pgm, getValue_P(PSTR("HLT Setpoint"), getProgHLT(pgm), SETPOINT_DIV, 255, TUNIT));
-    else if (lastOption == 5) setProgSparge(pgm, getValue_P(PSTR("Sparge Temp"), getProgSparge(pgm), SETPOINT_DIV, 255, TUNIT));
-    else if (lastOption == 6) setProgPitch(pgm, getValue_P(PSTR("Pitch Temp"), getProgPitch(pgm), SETPOINT_DIV, 255, TUNIT));
-    else if (lastOption == 7) editMashSchedule(pgm);
-    else if (lastOption == 8) setProgMLHeatSrc(pgm, MLHeatSrcMenu(getProgMLHeatSrc(pgm)));
-    else if (lastOption == 9) setProgAdds(pgm, editHopSchedule(getProgAdds(pgm)));
-    else if (lastOption == 10) showProgCalcs(pgm);
+    else if (lastOption == 5)
+      setProgHLT(pgm, getValue_P(PSTR("HLT Setpoint"), getProgHLT(pgm), SETPOINT_DIV, 255, TUNIT));
+    else if (lastOption == 6)
+      setProgSparge(pgm, getValue_P(PSTR("Sparge Temp"), getProgSparge(pgm), SETPOINT_DIV, 255, TUNIT));
+    else if (lastOption == 7)
+      setProgPitch(pgm, getValue_P(PSTR("Pitch Temp"), getProgPitch(pgm), SETPOINT_DIV, 255, TUNIT));
+    else if (lastOption == 8)
+      editMashSchedule(pgm);
+    else if (lastOption == 9)
+      setProgMLHeatSrc(pgm, MLHeatSrcMenu(getProgMLHeatSrc(pgm)));
+    else if (lastOption == 10)
+      setProgAdds(pgm, editHopSchedule(getProgAdds(pgm)));
+    else if (lastOption == 11)
+      showProgCalcs(pgm);
     else return;
     unsigned long spargeVol = calcSpargeVol(pgm);
     unsigned long mashVol = calcStrikeVol(pgm);
@@ -189,129 +181,169 @@ void editProgram(byte pgm) {
   }
 }
 
+class menuRecipeCalculations : public menuPROGMEM {
+  private:
+    byte recipe;
+    
+  public:
+    menuRecipeCalculations(byte pSize, byte r) : menuPROGMEM(pSize, RECIPECALCS, ARRAY_LENGTH(RECIPECALCS)) {
+      recipe = r;
+    }
+    char *getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      char numText[12];
+      if (index == 0) {
+        vftoa(calcStrikeTemp(recipe) * SETPOINT_MULT, numText, 100, 1);
+        truncFloat(numText, 3);
+        strcat(retString, numText);
+        strcat_P(retString, TUNIT);
+      } else if (index == 1) {
+        vftoa(calcStrikeVol(recipe), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 2) {
+        vftoa(calcSpargeVol(recipe), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 3) {
+        vftoa(calcPreboilVol(recipe), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 4) {
+        vftoa(calcGrainVolume(recipe), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 5) {
+        vftoa(calcGrainLoss(recipe), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      }
+      return retString;
+    }
+};
+
 void showProgCalcs(byte pgm) {
-  menu calcsMenu(3, 6);
-  unsigned long value;
-  char valtxt[8];
-
-  calcsMenu.setItem_P(PSTR("Strike Temp:"), 0);
-  value = calcStrikeTemp(pgm);
-  vftoa(value * SETPOINT_MULT, buf, 100, 1);
-  truncFloat(buf, 3);
-  calcsMenu.appendItem(buf, 0);
-  calcsMenu.appendItem_P(TUNIT, 0);
-  
-  calcsMenu.setItem_P(PSTR("Strike Vol:"), 1);
-  value = calcStrikeVol(pgm);
-  vftoa(value, buf, 1000, 1);
-  truncFloat(buf, 4);
-  calcsMenu.appendItem(buf, 1);
-  calcsMenu.appendItem_P(VOLUNIT, 1);
-  
-  calcsMenu.setItem_P(PSTR("Sparge Vol:"), 2);
-  value = calcSpargeVol(pgm);
-  vftoa(value, buf, 1000, 1);
-  truncFloat(buf, 4);
-  calcsMenu.appendItem(buf, 2);
-  calcsMenu.appendItem_P(VOLUNIT, 2);
-
-  calcsMenu.setItem_P(PSTR("Preboil Vol:"), 3);
-  value = calcPreboilVol(pgm);
-  vftoa(value, buf, 1000, 1);
-  truncFloat(buf, 4);
-  calcsMenu.appendItem(buf, 3);
-  calcsMenu.appendItem_P(VOLUNIT, 3);
-
-  calcsMenu.setItem_P(PSTR("Grain Vol:"), 4);
-  value = calcGrainVolume(pgm);
-  vftoa(value, buf, 1000, 1);
-  truncFloat(buf, 4);
-  calcsMenu.appendItem(buf, 4);
-  calcsMenu.appendItem_P(VOLUNIT, 4);
-
-  calcsMenu.setItem_P(PSTR("Grain Loss:"), 5);
-  value = calcGrainLoss(pgm);
-  vftoa(value, buf, 1000, 1);
-  truncFloat(buf, 4);
-  calcsMenu.appendItem(buf, 5);
-  calcsMenu.appendItem_P(VOLUNIT, 5);
-  
+  menuRecipeCalculations calcsMenu(3, pgm);
   scrollMenu("Program Calcs", &calcsMenu);
 }
 
 
-#define OPT_SETMINS 0
-#define OPT_SETTEMP 1
+class menuMashSchedule : public menu {
+  private:
+    byte recipe;
+    
+  public:
+    menuMashSchedule(byte pSize, byte r) : menu (pSize) {
+      recipe = r;
+    }
+   
+    byte getItemCount(void) {
+      return MASHSTEP_COUNT * 2 + 1;
+    }
+
+    char *getItem(byte index, char *retString) {
+      if (index < MASHSTEP_COUNT * 2)
+        return getItemMash(index, retString);
+      return strcpy_P(retString, EXIT);
+    }
+    char *getItemMash(byte index, char *retString) {
+      byte mashStep = index >> 1;
+      strcpy_P(retString, (char*)pgm_read_word(&(TITLE_MASHSTEP[mashStep])));
+      char numText[7];
+      
+      if (index & 1) {
+        vftoa(getProgMashTemp(recipe, mashStep) * SETPOINT_MULT, numText, 100, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        return strcat_P(retString, TUNIT);
+      }
+      strcat(retString, itoa(getProgMashMins(recipe, mashStep), numText, 10));
+      return strcat_P(retString, MIN);
+    }
+};
 
 //Note: Menu values represent two 4-bit values
 //High-nibble = mash step: MASH_DOUGHIN-MASH_MASHOUT
 //Low-nibble = menu item: OPT_XXXXXXXX (see #defines above)
 void editMashSchedule(byte pgm) {
-  menu mashMenu(3, 13);
+  menuMashSchedule mashMenu(3, pgm);
   while (1) {
-
-    for (byte i = 0; i < MASHSTEP_COUNT; i++) {  
-      mashMenu.setItem_P((char*)pgm_read_word(&(TITLE_MASHSTEP[i])), i << 4 | OPT_SETMINS);
-      mashMenu.setItem_P((char*)pgm_read_word(&(TITLE_MASHSTEP[i])), i << 4 | OPT_SETTEMP);
-      
-      mashMenu.appendItem(itoa(getProgMashMins(pgm, i), buf, 10), i << 4 | OPT_SETMINS);
-      mashMenu.appendItem(" min", i << 4 | OPT_SETMINS);
-
-      vftoa(getProgMashTemp(pgm, i) * SETPOINT_MULT, buf, 100, 1);
-      truncFloat(buf, 4);
-      mashMenu.appendItem(buf, i << 4 | OPT_SETTEMP);
-      mashMenu.appendItem_P(TUNIT, i << 4 | OPT_SETTEMP);
-    }
-    mashMenu.setItem_P(EXIT, 255);
     byte lastOption = scrollMenu("Mash Schedule", &mashMenu);
-    byte mashstep = lastOption>>4;
-    
-    if ((lastOption & B00001111) == OPT_SETMINS)
-      setProgMashMins(pgm, mashstep, getTimerValue((char*)pgm_read_word(&(TITLE_MASHSTEP[mashstep])), getProgMashMins(pgm, mashstep), 1));
-    else if ((lastOption & B00001111) == OPT_SETTEMP)
+    if (lastOption > 11)
+      return;
+    byte mashstep = lastOption >> 1;
+    if (lastOption & 1)
       setProgMashTemp(pgm, mashstep, getValue_P((char*)pgm_read_word(&(TITLE_MASHSTEP[mashstep])), getProgMashTemp(pgm, mashstep), SETPOINT_DIV, 255, TUNIT));
-    else return;
+    else
+      setProgMashMins(pgm, mashstep, getTimerValue((char*)pgm_read_word(&(TITLE_MASHSTEP[mashstep])), getProgMashMins(pgm, mashstep), 1));
   }
 }
 
+
+class menuBoilAddsList : public menu {
+  private:
+    unsigned int *bitmask;
+    
+  public:
+    menuBoilAddsList(byte pSize, unsigned int *m) : menu(pSize) {
+      bitmask = m;
+    }
+    byte getItemCount(void) {
+      return 13;
+    }
+    char *getItem(byte index, char *retString) {
+      byte value = hoptimes[index];
+      if (value == 255)
+        return strcpy_P(retString, EXIT);
+      retString[0] = '\0';
+      if (value == 254)
+        strcpy(retString, "At Boil: ");
+      if (value < 100)
+        strcat(retString, " ");
+      if (value < 10)
+        strcat(retString, " ");
+      if (value < 254) {
+        char numText[4];
+        strcat(retString, itoa(value, numText, 10));
+        strcat(retString, " Min: ");
+      }
+      return strcat_P(retString, (*bitmask & (1 << index))? ON : OFF);
+    }
+};
+
 unsigned int editHopSchedule (unsigned int sched) {
   unsigned int retVal = sched;
-  menu hopMenu(3, 13);
+  menuBoilAddsList hopMenu(3, &retVal);
   
   while (1) {
-    if (retVal & 1) hopMenu.setItem_P(PSTR("At Boil: On"), 0); else hopMenu.setItem_P(PSTR("At Boil: Off"), 0);
-    for (byte i = 0; i < 10; i++) {
-      hopMenu.setItem(itoa(hoptimes[i], buf, 10), i + 1);
-      if (i == 0) hopMenu.appendItem_P(PSTR(" Min: "), i + 1);
-      else if (i < 9) hopMenu.appendItem_P(PSTR("  Min: "), i + 1);
-      else hopMenu.appendItem_P(PSTR("   Min: "), i + 1);
-      if (retVal & (1<<(i + 1))) hopMenu.appendItem_P(PSTR("On"), i + 1); else hopMenu.appendItem_P(PSTR("Off"), i + 1);
-    }
-    if (retVal & 2048) hopMenu.setItem_P(PSTR("0   Min: On"), 11); else hopMenu.setItem_P(PSTR("0   Min: Off"), 11);
-    hopMenu.setItem_P(EXIT, 12);
-
     byte lastOption = scrollMenu("Boil Additions", &hopMenu);
-    if (lastOption < 12) retVal = retVal ^ (1 << lastOption);
-    else if (lastOption == 12) return retVal;
-    else return sched;
+    if (lastOption < 12)
+      retVal = retVal ^ (1 << lastOption);
+    else
+      return retVal;
   }
 }
 
 byte MLHeatSrcMenu(byte MLHeatSrc) {
-  menu mlHeatMenu(3, 2);
-  mlHeatMenu.setItem_P(HLTDESC, VS_HLT);
-  mlHeatMenu.setItem_P(MASHDESC, VS_MASH);
-  mlHeatMenu.setSelectedByValue(MLHeatSrc);
+  menuPROGMEM mlHeatMenu(3, TITLE_VS, 2);
+  mlHeatMenu.setSelected(MLHeatSrc);
   byte lastOption = scrollMenu("Heat Strike In:", &mlHeatMenu);
-  if (lastOption > 1) return MLHeatSrc;
-  else return lastOption;
+  if (lastOption > 1)
+    return MLHeatSrc;
+  return lastOption;
 }
 
 void warnHLT(unsigned long spargeVol) {
   char line2[21] = "Sparge Vol:";
-  vftoa(spargeVol, buf, 1000, 1);
-  truncFloat(buf, 5);
-  strcat(line2, buf);
+  char numText[12];
+  vftoa(spargeVol, numText, 1000, 1);
+  truncFloat(numText, 5);
+  strcat(line2, numText);
   strcat_P(line2, VOLUNIT);
 
   infoBox("HLT Capacity Issue", line2, "", CONTINUE);
@@ -320,15 +352,16 @@ void warnHLT(unsigned long spargeVol) {
 
 void warnMash(unsigned long mashVol, unsigned long grainVol) {
   char line2[21] = "Strike Vol:";
-  vftoa(mashVol, buf, 1000, 1);
-  truncFloat(buf, 5);
-  strcat(line2, buf);
+  char numText[12];
+  vftoa(mashVol, numText, 1000, 1);
+  truncFloat(numText, 5);
+  strcat(line2, numText);
   strcat_P(line2, VOLUNIT);
 
   char line3[21] = "Grain Vol:";
-  vftoa(grainVol, buf, 1000, 1);
-  truncFloat(buf, 5);
-  strcat(line3, buf);
+  vftoa(grainVol, numText, 1000, 1);
+  truncFloat(numText, 5);
+  strcat(line3, numText);
   strcat_P(line3, VOLUNIT);
 
   infoBox("Mash Capacity Issue", line2, line3, CONTINUE);
@@ -336,9 +369,10 @@ void warnMash(unsigned long mashVol, unsigned long grainVol) {
 
 void warnBoil(unsigned long preboilVol) {
   char line2[21] = "Preboil Vol:";
-  vftoa(preboilVol, buf, 1000, 1);
-  truncFloat(buf, 5);
-  strcat(line2, buf);
+  char numText[12];
+  vftoa(preboilVol, numText, 1000, 1);
+  truncFloat(numText, 5);
+  strcat(line2, numText);
   strcat_P(line2, VOLUNIT);
 
   infoBox("Boil Capacity Issue", line2, "", CONTINUE);
@@ -348,46 +382,87 @@ void warnBoil(unsigned long preboilVol) {
 //*****************************************************************************************************************************
 // Generic selection dialogs
 //*****************************************************************************************************************************
-byte menuSelectOutput(char sTitle[], byte currentSelection) {
-  menu outputMenu(3, outputs->getCount() + 2);
-  for (byte i = 0; i < outputs->getCount(); i++) {
-    outputMenu.setItem("", i);
-    if (i == currentSelection)
-      outputMenu.setItem("*", i);
-    outputMenu.appendItem(outputs->getOutputBankName(i, buf), i);
-    outputMenu.appendItem("-", i);
-    outputMenu.appendItem(outputs->getOutputName(i, buf), i);
-  }
-  if (currentSelection == INDEX_NONE)
-    outputMenu.setItem_P(PSTR("*None"), 254);
-  else
-    outputMenu.setItem_P(PSTR("None"), 254);
-  outputMenu.setItem_P(EXIT, 255);
 
+class menuOutputList : public menu {
+  private:
+    byte currentSelection;
+    
+  public:
+    menuOutputList(byte pSize, byte s) : menu (pSize) {
+      currentSelection = min(s, outputs->getCount());
+    }
+    byte getItemCount(void) {
+      return outputs->getCount() + 1;
+    }
+    char *getItem(byte index, char *retString) {
+      strcpy(retString, index == currentSelection ? "*" : " ");
+
+      char outputName[OUTPUT_FULLNAME_MAXLEN] = "None";        
+      if (index < outputs->getCount())
+        outputs->getOutputFullName(index, outputName);
+      return strcat(retString, outputName);
+    }
+};
+
+byte menuSelectOutput(char sTitle[], byte currentSelection) {
+  menuOutputList outputMenu(3, currentSelection);
   byte lastOption = scrollMenu(sTitle, &outputMenu);
   if (lastOption == 255)
     return currentSelection;
-  else if (lastOption == 254)
+  else if (lastOption == outputs->getCount())
     return INDEX_NONE;
   return lastOption;
 }
 
+class menuOutputsBitmask : public menu {
+  private:
+    unsigned long *bitmask;
+    boolean showTest;
+    
+  public:
+    menuOutputsBitmask(byte pSize, unsigned long *m, boolean t) : menu(pSize) {
+      bitmask = m;
+      showTest = t;
+    }
+    byte getItemCount(void) {
+      byte count = showTest ? 3 : 2;
+      for (byte i = 0; i < outputs->getCount(); i++)
+        if ((*bitmask >> i) & 1)
+          count++;
+      return count;
+    }
+    byte getItemValue(byte index) {
+      byte count = 0;
+      byte bitPos = 0;
+      for (bitPos = 0; bitPos < outputs->getCount() && count < index + 1; bitPos++)
+        if ((*bitmask >> bitPos) & 1)
+          count++;
+      bitPos--;
+
+      if (index == count - 1)
+        return bitPos;
+      if (index == count)
+        return 254;
+      if (showTest && index == count + 1)
+        return 253;
+      return 255;  
+    }
+    char *getItem(byte index, char *retString) {
+      byte option = getItemValue(index);
+      if (option < outputs->getCount())
+        return outputs->getOutputFullName(option, retString);
+      if (option == 254)
+        return strcpy(retString, "[Add Output]");
+      if (option == 253)
+        return strcpy(retString, "[Test Profile]");
+      return strcpy_P(retString, EXIT);
+    }
+};
+
 unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection, boolean doTest) {
   unsigned long newSelection = currentSelection;
+  menuOutputsBitmask outputMenu(3, &newSelection, doTest);
   while (1) {
-    menu outputMenu(3, outputs->getCount() + 3);
-    for (byte i = 0; i < outputs->getCount(); i++) {
-      if (newSelection & (1uL << i)) {
-        outputMenu.setItem(outputs->getOutputBankName(i, buf), i);
-        outputMenu.appendItem("-", i);
-        outputMenu.appendItem(outputs->getOutputName(i, buf), i);
-      }
-    }
-    outputMenu.setItem_P(PSTR("[Add Output]"), 254);
-    if (doTest)
-      outputMenu.setItem_P(PSTR("[Test Profile]"), 253);
-    outputMenu.setItem_P(EXIT, 255);
-  
     byte lastOption = scrollMenu(sTitle, &outputMenu);
     if (lastOption == 254) {
       byte addOutput = menuSelectOutput("Add Output", INDEX_NONE);
@@ -416,17 +491,59 @@ unsigned long menuSelectOutputs(char sTitle[], unsigned long currentSelection, b
   }
 }
 
+class menuOutputProfileBitmask : public menuPROGMEM {
+  private:
+    unsigned long *bitmask;
+    
+  public:
+    menuOutputProfileBitmask(byte pSize, unsigned long *m) : menuPROGMEM(pSize, TITLE_VLV, ARRAY_LENGTH(TITLE_VLV) - 1) {
+      bitmask = m;
+    }
+    byte getItemCount(void) {
+      byte count = 2;
+      for (byte i = 0; i < menuPROGMEM::getItemCount(); i++)
+        if ((*bitmask >> i) & 1)
+          count++;
+      return count;
+    }
+    byte getItemValue(byte index) {
+      byte count = 0;
+      byte bitPos = 0;
+      for (bitPos = 0; bitPos < menuPROGMEM::getItemCount() && count < index + 1; bitPos++)
+        if ((*bitmask >> bitPos) & 1)
+          count++;
+      if (bitPos <  menuPROGMEM::getItemCount())
+        return outputProfileDisplayOrder[bitPos];
+      if (index == count)
+        return 254;
+      return 255;  
+    }
+    char *getItem(byte index, char *retString) {
+      byte option = getItemValue(index);
+      if (option < menuPROGMEM::getItemCount())
+        return menuPROGMEM::getItem(index, retString);
+      else if (option == 254)
+        return strcpy(retString, "[Add Profile]");
+      else
+        return strcpy_P(retString, EXIT);
+    }
+};
+
+class menuOutputProfileList : public menuPROGMEM {
+  public:
+    menuOutputProfileList(byte pSize) : menuPROGMEM(pSize, TITLE_VLV, ARRAY_LENGTH(TITLE_VLV)) {}
+    menuOutputProfileList(byte pSize, byte altSize) : menuPROGMEM(pSize, TITLE_VLV, altSize) {}
+    byte getItemValue(byte index) {
+      if (index < OUTPUTPROFILE_USERCOUNT)
+        return outputProfileDisplayOrder[index];
+      return index;
+    }
+};
+
 unsigned long menuSelectOutputProfiles(char sTitle[], unsigned long currentSelection) {
   unsigned long newSelection = currentSelection;
+  menuOutputProfileBitmask outputMenu(3, &newSelection);
   while (1) {
-    menu outputMenu(3, OUTPUTPROFILE_USERCOUNT + 2);
-    for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++) {
-      if (newSelection & (1ul << outputProfileDisplayOrder[i]))
-        outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[outputProfileDisplayOrder[i]])), outputProfileDisplayOrder[i]);
-    }
-    outputMenu.setItem_P(PSTR("[Add Profile]"), 254);
-    outputMenu.setItem_P(EXIT, 255);
-    
     byte lastOption = scrollMenu(sTitle, &outputMenu);
     if (lastOption == 254) {
       byte addOutput = menuSelectOutputProfile("Add Profile");
@@ -442,69 +559,122 @@ unsigned long menuSelectOutputProfiles(char sTitle[], unsigned long currentSelec
 }
 
 byte menuSelectOutputProfile(char sTitle[]) {
-  menu outputMenu(3, OUTPUTPROFILE_USERCOUNT);
-  for (byte i = 0; i < OUTPUTPROFILE_USERCOUNT; i++)
-    outputMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[outputProfileDisplayOrder[i]])), outputProfileDisplayOrder[i]);
+  menuOutputProfileList outputMenu(3, ARRAY_LENGTH(TITLE_VLV) - 1);
   return scrollMenu(sTitle, &outputMenu);
 }
 
 #ifdef ANALOGINPUTS_GPIO
+class menuAnalogInputSelection : public menu {
+  private:
+    byte currentSelection;
+    
+  public:
+    menuAnalogInputSelection(byte pSize, byte sel) : menu(pSize) {
+      currentSelection = ANALOGINPUTS_GPIO_COUNT;
+      byte analogInputs[] = ANALOGINPUTS_GPIO_PINS;
+      for (byte i = 0; i < ANALOGINPUTS_GPIO_COUNT; i++)
+        if (analogInputs[i] == sel)
+          currentSelection = i;
+        setSelected(currentSelection);
+    }
+    byte getItemCount(void) {
+      return ANALOGINPUTS_GPIO_COUNT + 1;
+    }
+    byte getItemValue(byte index) {
+      if (index < ANALOGINPUTS_GPIO_COUNT) {
+        byte analogInputs[] = ANALOGINPUTS_GPIO_PINS;
+        return analogInputs[index];
+      }
+      return INDEX_NONE;
+    }
+    char *getItem(byte index, char *retString) {
+      strcpy(retString, index == currentSelection ? "*" : " ");
+      if (index < ANALOGINPUTS_GPIO_COUNT)
+        return getItemAnalogItem(index, retString);
+      return strcat_P(retString, NONE);
+    }
+    char *getItemAnalogItem(byte index, char *retString) {
+      char analogTitles[] = ANALOGINPUTS_GPIO_NAMES;
+      char* titleItem = analogTitles;
+          
+      for (byte i = 0; i < index; i++)
+        titleItem += strlen(titleItem) + 1;
+      strcat(retString, titleItem);
+    }
+};
+
 byte menuSelectAnalogInput(char sTitle[], byte currentValue) {
-  menu volMenu(3, ANALOGINPUTS_GPIO_COUNT + 1);
-  byte analogInputs[ANALOGINPUTS_GPIO_COUNT] = ANALOGINPUTS_GPIO_PINS;
-  char analogTitles[] = ANALOGINPUTS_GPIO_NAMES;
-  char* pos = analogTitles;
-      
-  for (byte i =0; i < ANALOGINPUTS_GPIO_COUNT; i++) {
-    volMenu.setItem("", analogInputs[i]);
-    if (currentValue == analogInputs[i])
-      volMenu.appendItem("*", analogInputs[i]);
-    volMenu.appendItem(pos, analogInputs[i]);
-    pos += strlen(pos) + 1;
-  }
-  
-  volMenu.setItem("", INDEX_NONE);
-  if (currentValue == INDEX_NONE)
-    volMenu.appendItem("*", INDEX_NONE);
-  volMenu.appendItem_P(PSTR("None"), INDEX_NONE);
-  
+  menuAnalogInputSelection volMenu(3, currentValue);
   return scrollMenu(sTitle, &volMenu);
 }
 #endif
 
-byte menuSelectVessel(char sTitle[]) {
-  menu volMenu(3, 4);
-  for (byte i =0; i <= VS_KETTLE; i++)
-    volMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
-  volMenu.setItem_P(PSTR("None"), 255);
-  return scrollMenu(sTitle, &volMenu);
+byte menuSelectVessel(char sTitle[], byte cSelection, boolean showNone) {
+  menuPROGMEMSelection volMenu(3, VESSELSELECTION, ARRAY_LENGTH(VESSELSELECTION), cSelection);
+  byte lastOption = scrollMenu(sTitle, &volMenu);
+  //Check Cancel click
+  if (lastOption == 255)
+    return cSelection;
+  //Remap None (3) to INDEX_NONE
+  return lastOption == 3 ? INDEX_NONE : lastOption;
+}
+
+#ifdef DIGITAL_INPUTS
+  byte menuSelectDigitalInput(byte index) {
+    menuNumberedItemList inputMenu(3, index, DIGITAL_INPUTS_COUNT, PSTR("Digital Input "));
+    inputMenu.setSelected(index);
+    byte lastOption = scrollMenu("Select Input", &inputMenu);
+    if (lastOption == 255)
+      return index;
+    return lastOption;
+  }
+#endif
+
+byte menuSelectTempSensor(char sTitle[]) {
+  menuPROGMEM tsMenu(3, TITLE_TS, ARRAY_LENGTH(TITLE_TS));
+  return scrollMenu(sTitle, &tsMenu);
 }
 
 //*****************************************************************************************************************************
 // System Setup Menus
 //*****************************************************************************************************************************
-void menuSetup() {
-  menu setupMenu(3, 11);
-  setupMenu.setItem_P(PSTR("System Settings"), 0);
-  setupMenu.setItem_P(PSTR("Temperature Sensors"), 1);
-  setupMenu.setItem_P(PSTR("Vessel Settings"), 2);
-  setupMenu.setItem_P(PSTR("Output Profiles"), 3);
-  #ifdef OUTPUTBANK_MODBUS
-    setupMenu.setItem_P(PSTR("RS485 Outputs"), 4);
-  #endif
+class menuSystemSetup : public menuPROGMEM {
+  public:
+    menuSystemSetup(byte pSize) : menuPROGMEM(pSize, SYSTEMSETUPOPTIONS, ARRAY_LENGTH(SYSTEMSETUPOPTIONS)) {}
+    byte getItemCount(void) {
+      byte count = 8;
+      #ifdef  OUTPUTBANK_MODBUS
+        count++;
+      #endif
+      #ifdef  RGBIO8_ENABLE
+        count++;
+      #endif
+      #ifdef  UI_DISPLAY_SETUP
+        count++;
+      #endif
+      return count;
+    }
+    byte getItemValue(byte index) {
+      byte values[] = { 
+        0, 1, 2, 3,
+        #ifdef OUTPUTBANK_MODBUS
+          4,
+        #endif
+        5, 6,
+        #ifdef RGBIO8_ENABLE
+          7,
+        #endif
+        #ifdef UI_DISPLAY_SETUP
+          8,
+        #endif
+        9, 10
+      };
+      return values[index];
+    }
+};
 
-  setupMenu.setItem_P(PSTR("Step Automation"), 5);
-  #ifdef DIGITAL_INPUTS
-    setupMenu.setItem_P(PSTR("Triggers"), 6);
-  #endif
-  #ifdef RGBIO8_ENABLE
-    setupMenu.setItem_P(PSTR("RGB Setup"), 7);
-  #endif  
-  #ifdef UI_DISPLAY_SETUP
-    setupMenu.setItem_P(PSTR("Display"), 8);
-  #endif
-  setupMenu.setItem_P(INIT_EEPROM, 9);
-  setupMenu.setItem_P(EXIT, 255);
+void menuSetup() {
+  menuSystemSetup setupMenu(3);
   
   while(1) {
     byte lastOption = scrollMenu("System Setup", &setupMenu);
@@ -522,10 +692,8 @@ void menuSetup() {
     #endif
     else if (lastOption == 5)
         menuBrewStepAutomation();
-    #ifdef DIGITAL_INPUTS
-      else if (lastOption == 6)
-        menuTriggers();
-    #endif
+    else if (lastOption == 6)
+      menuTriggers();
     #ifdef RGBIO8_ENABLE
       else if (lastOption == 7) {
         menuRGBIO();
@@ -543,18 +711,8 @@ void menuSetup() {
   }
 }
 
-byte menuSelectTempSensor(char sTitle[]) {
-  menu tsMenu(1, NUM_TS + 1);
-  for (byte i = 0; i < NUM_TS; i++)
-    tsMenu.setItem_P((char*)pgm_read_word(&(TITLE_TS[i])), i);
-  tsMenu.setItem_P(EXIT, 255);
-  return scrollMenu(sTitle, &tsMenu);
-}
-
 void assignSensor() {
-  menu tsMenu(1, NUM_TS);
-  for (byte i = 0; i < NUM_TS; i++)
-    tsMenu.setItem_P((char*)pgm_read_word(&(TITLE_TS[i])), i);
+  menuPROGMEM tsMenu(1, TITLE_TS, ARRAY_LENGTH(TITLE_TS));
   
   Encoder.setMin(0);
   Encoder.setMax(tsMenu.getItemCount() - 1);
@@ -568,15 +726,18 @@ void assignSensor() {
       //First time entry or back from the sub-menu.
       redraw = 0;
       encValue = Encoder.getCount();
-    } else encValue = Encoder.change();
+    } else
+      encValue = Encoder.change();
     
     if (encValue >= 0) {
       tsMenu.setSelected(encValue);
       //The user has navigated toward a new temperature probe screen.
       LCD.clear();
       LCD.print_P(0, 0, PSTR("Assign Temp Sensor"));
-      LCD.center(1, 0, tsMenu.getSelectedRow(buf), 20);
-      for (byte i=0; i<8; i++) LCD.lPad(2,i*2+2,itoa(tSensor[tsMenu.getValue()][i], buf, 16), 2, '0');
+      char optionText[20];
+      LCD.center(1, 0, tsMenu.getSelectedRow(optionText), 20);
+      for (byte i=0; i<8; i++)
+        LCD.lPad(2,i*2+2,itoa(tSensor[tsMenu.getValue()][i], optionText, 16), 2, '0');
     }
     displayAssignSensorTemp(tsMenu.getValue()); //Update each loop
 
@@ -584,15 +745,12 @@ void assignSensor() {
     else if (Encoder.ok()) {
       encValue = Encoder.getCount();
       //Pop-Up Menu
-      menu tsOpMenu(3, 5);
-      tsOpMenu.setItem_P(PSTR("Scan Bus"), 0);
-      tsOpMenu.setItem_P(PSTR("Delete Address"), 1);
-      tsOpMenu.setItem_P(PSTR("Clone Address"), 3);
-      tsOpMenu.setItem_P(CANCEL, 2);
-      tsOpMenu.setItem_P(EXIT, 255);
-      byte selected = scrollMenu(tsMenu.getSelectedRow(buf), &tsOpMenu);
+      menuPROGMEM tsOpMenu(3, TSASSIGNOPTIONS, ARRAY_LENGTH(TSASSIGNOPTIONS));
+      char title[21];
+      byte selected = scrollMenu(tsMenu.getSelectedRow(title), &tsOpMenu);
       if (selected == 0) {
-        if (confirmChoice(tsMenu.getSelectedRow(buf), "Disconnect all other", "temp sensors now", CONTINUE)) {
+        char optionText[20];
+        if (confirmChoice(tsMenu.getSelectedRow(optionText), "Disconnect all other", "temp sensors now", CONTINUE)) {
           byte addr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
           getDSAddr(addr);
           setTSAddr(encValue, addr);
@@ -600,14 +758,14 @@ void assignSensor() {
       } else if (selected == 1) {
         byte addr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
         setTSAddr(encValue, addr);
-      } else if (selected == 3) {
+      } else if (selected == 2) {
         byte source = menuSelectTempSensor("Clone Sensor");
         if (source < NUM_TS) {
           byte addr[8];
           memcpy(addr, tSensor[source], 8);
           setTSAddr(encValue, addr);
         }
-      } else if (selected == 255)
+      } else if (selected == 4)
         return;
 
       Encoder.setMin(0);
@@ -624,25 +782,13 @@ void displayAssignSensorTemp(int sensor) {
   if (temp[sensor] == BAD_TEMP) {
     LCD.print_P(3, 7, PSTR("---"));
   } else {
-    LCD.lPad(3, 7, itoa(temp[sensor] / 100, buf, 10), 3, ' ');
+    char numText[7];
+    LCD.lPad(3, 7, itoa(temp[sensor] / 100, numText, 10), 3, ' ');
   }
 }
 
-
 void menuSystemSettings() {
-    menu settingsMenu(3, 12);
-    settingsMenu.setItem_P(BOIL_TEMP, 0);
-    settingsMenu.setItem_P(BOIL_POWER, 1);
-    settingsMenu.setItem_P(EVAPORATION_RATE, 2);
-    settingsMenu.setItem_P(GRAIN_DISPLACEMENT, 3);
-    settingsMenu.setItem_P(GRAIN_LIQUOR_LOSS, 4);
-    settingsMenu.setItem_P(STRIKE_LOSS, 5);
-    settingsMenu.setItem_P(SPARGE_LOSS, 6);
-    settingsMenu.setItem_P(MASH_LOSS, 7);
-    settingsMenu.setItem_P(BOIL_LOSS, 8);
-    settingsMenu.setItem_P(PSTR("Mash Specific Heat"), 9);
-    settingsMenu.setItem_P(PSTR("Min Sparge Volume"), 10);
-    settingsMenu.setItem_P(EXIT, 255);
+    menuPROGMEM settingsMenu(3, SYSTEMOPTIONS, ARRAY_LENGTH(SYSTEMOPTIONS));
 
     while (1) {
       byte lastOption = scrollMenu("System Settings", &settingsMenu);
@@ -673,67 +819,63 @@ void menuSystemSettings() {
     }
 }
 
+class menuAutomationOptions : public menuPROGMEM {
+  public:
+    menuAutomationOptions(byte pSize): menuPROGMEM(pSize, AUTOMATIONOPTIONS, ARRAY_LENGTH(AUTOMATIONOPTIONS)) {}
+    
+    char *getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      char numText[4];
+      if (index == 0)
+        strcat_P(retString, brewStepConfiguration.fillSpargeBeforePreheat ? PSTR("Start") : PSTR("Refill"));
+      else if (index == 1)
+        strcat_P(retString, brewStepConfiguration.autoStartFill ? ON : OFF);
+      else if (index == 2)
+        strcat_P(retString, brewStepConfiguration.autoExitFill ? ON : OFF);
+      else if (index == 3)
+        strcat_P(retString, brewStepConfiguration.autoExitPreheat ? ON : OFF);
+      else if (index == 4)
+        strcat_P(retString, brewStepConfiguration.autoStrikeTransfer ? ON : OFF);
+      else if (index == 5)
+      {  
+        if (brewStepConfiguration.autoExitGrainInMinutes) {
+          strcat(retString, itoa(brewStepConfiguration.autoExitGrainInMinutes, numText, 10));
+          strcat_P(retString, MIN);
+        } else {
+          strcat_P(retString, OFF);
+        }
+      }
+      else if (index == 6)
+        strcat_P(retString, brewStepConfiguration.autoExitMash ? ON : OFF);
+      else if (index == 7)
+        strcat_P(retString, brewStepConfiguration.autoStartFlySparge ? ON : OFF);
+      else if (index == 9)
+        strcat_P(retString, brewStepConfiguration.autoExitSparge ? ON : OFF);
+      else if (index == 10) {
+        if(brewStepConfiguration.autoBoilWhirlpoolMinutes) {
+          strcat(retString, itoa(brewStepConfiguration.autoBoilWhirlpoolMinutes, numText, 10));
+          strcat_P(retString, MIN);
+        } else {
+          strcat_P(retString, OFF);
+        }
+      } else if (index == 11) {
+        if(brewStepConfiguration.boilAdditionSeconds) {
+          strcat(retString, itoa(brewStepConfiguration.boilAdditionSeconds, numText, 10));
+          strcat(retString, "s");
+        } else {
+          strcat_P(retString, OFF);
+        }
+      } else if (index == 12) {
+        strcat(retString, itoa(brewStepConfiguration.preBoilAlarm, numText, 10));
+        strcat_P(retString, TUNIT);
+      }
+    }
+};
+
 void menuBrewStepAutomation() {
-  byte lastOption = 0;
+  menuAutomationOptions settingsMenu(3);
   while(1) {
-    menu settingsMenu(3, 14);
-    settingsMenu.setItem_P(PSTR("Fill Sparge: "), 0);
-    settingsMenu.appendItem_P(brewStepConfiguration.fillSpargeBeforePreheat ? PSTR("Start") : PSTR("Refill"), 0);
-    
-    settingsMenu.setItem_P(PSTR("Start Fill: "), 1);
-    settingsMenu.appendItem_P(brewStepConfiguration.autoStartFill ? ON : OFF, 1);
-    
-    settingsMenu.setItem_P(PSTR("Exit Fill: "), 2);
-    settingsMenu.appendItem_P(brewStepConfiguration.autoExitFill ? ON : OFF, 2);
-
-    settingsMenu.setItem_P(PSTR("Exit Preheat: "), 3);
-    settingsMenu.appendItem_P(brewStepConfiguration.autoExitPreheat ? ON : OFF, 3);
-
-    settingsMenu.setItem_P(PSTR("Strike Transfer:"), 4);
-    settingsMenu.appendItem_P(brewStepConfiguration.autoStrikeTransfer ? ON : OFF, 4);
-
-    settingsMenu.setItem_P(PSTR("Exit Grain: "), 5);
-    if (brewStepConfiguration.autoExitGrainInMinutes) {
-      settingsMenu.appendItem(itoa(brewStepConfiguration.autoExitGrainInMinutes, buf, 10), 5);
-      settingsMenu.appendItem_P(MIN, 5);
-    } else {
-      settingsMenu.appendItem_P(OFF, 5);
-    }
-
-    settingsMenu.setItem_P(PSTR("Exit Mash: "), 6);
-    settingsMenu.appendItem_P(brewStepConfiguration.autoExitMash ? ON : OFF, 6);
-
-    settingsMenu.setItem_P(PSTR("Fly Sparge: "), 7);
-    settingsMenu.appendItem_P(brewStepConfiguration.autoStartFlySparge ? ON : OFF, 7);
-
-    settingsMenu.setItem_P(PSTR("Sparge Hysteresis"), 12);
-
-    settingsMenu.setItem_P(PSTR("Exit Sparge: "), 8);
-    settingsMenu.appendItem_P(brewStepConfiguration.autoExitSparge ? ON : OFF, 8);
-
-    settingsMenu.setItem_P(PSTR("Boil Whirl: "), 9);
-    if(brewStepConfiguration.autoBoilWhirlpoolMinutes) {
-      settingsMenu.appendItem(itoa(brewStepConfiguration.autoBoilWhirlpoolMinutes, buf, 10), 9);
-      settingsMenu.appendItem_P(MIN, 9);
-    } else {
-      settingsMenu.appendItem_P(OFF, 9);
-    }
-    
-    settingsMenu.setItem_P(PSTR("Boil Adds: "), 10);
-    if(brewStepConfiguration.boilAdditionSeconds) {
-      settingsMenu.appendItem(itoa(brewStepConfiguration.boilAdditionSeconds, buf, 10), 10);
-      settingsMenu.appendItem("s", 10);
-    } else {
-      settingsMenu.appendItem_P(OFF, 10);
-    }
-    
-    settingsMenu.setItem_P(PSTR("Preboil Alarm: "), 11);
-    settingsMenu.appendItem(itoa(brewStepConfiguration.preBoilAlarm, buf, 10), 11);
-    settingsMenu.appendItem_P(TUNIT, 11);
-
-    settingsMenu.setItem_P(EXIT, 255);
-    settingsMenu.setSelected(lastOption);
-    lastOption = scrollMenu("Step Automation", &settingsMenu);
+    byte lastOption = scrollMenu("Step Automation", &settingsMenu);
     if (lastOption == 0)
       brewStepConfiguration.fillSpargeBeforePreheat ^= 1;
     else if (lastOption == 1)
@@ -751,15 +893,15 @@ void menuBrewStepAutomation() {
     else if (lastOption == 7)
       brewStepConfiguration.autoStartFlySparge ^= 1;
     else if (lastOption == 8)
-      brewStepConfiguration.autoExitSparge ^= 1;
-    else if (lastOption == 9)
-      brewStepConfiguration.autoBoilWhirlpoolMinutes = getValue("Auto Boil Whirlpool", brewStepConfiguration.autoBoilWhirlpoolMinutes, 1, 255, MIN);
-    else if (lastOption == 10)
-      brewStepConfiguration.boilAdditionSeconds = getValue("Boil Additions", brewStepConfiguration.boilAdditionSeconds, 1, 255, PSTR("s"));
-    else if (lastOption == 11)
-      brewStepConfiguration.preBoilAlarm = getValue("Preboil Alarm", brewStepConfiguration.preBoilAlarm, 1, 255, TUNIT);
-    else if (lastOption == 12)
       brewStepConfiguration.flySpargeHysteresis = getValue("Sparge Hysteresis", brewStepConfiguration.flySpargeHysteresis, 10, 255, VOLUNIT);
+    else if (lastOption == 9)
+      brewStepConfiguration.autoExitSparge ^= 1;
+    else if (lastOption == 10)
+      brewStepConfiguration.autoBoilWhirlpoolMinutes = getValue("Auto Boil Whirlpool", brewStepConfiguration.autoBoilWhirlpoolMinutes, 1, 255, MIN);
+    else if (lastOption == 11)
+      brewStepConfiguration.boilAdditionSeconds = getValue("Boil Additions", brewStepConfiguration.boilAdditionSeconds, 1, 255, PSTR("s"));
+    else if (lastOption == 12)
+      brewStepConfiguration.preBoilAlarm = getValue("Preboil Alarm", brewStepConfiguration.preBoilAlarm, 1, 255, TUNIT);
     else {
       eepromSaveBrewStepConfiguration();
       return;
@@ -768,12 +910,7 @@ void menuBrewStepAutomation() {
 }
 
 void menuVessels() {
-  menu vesselMenu(3, VESSEL_COUNT + 2);
-  for (byte i = VS_HLT; i < VESSEL_COUNT; i++)
-    vesselMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
-  vesselMenu.setItem_P(PSTR("Bubbler"), VESSEL_COUNT);
-  vesselMenu.setItem_P(EXIT, 255);
-  
+  menuPROGMEM vesselMenu(3, TITLE_VS, ARRAY_LENGTH(TITLE_VS));
   while (1) {
     byte lastOption = scrollMenu("Vessel Settings", &vesselMenu);
     if (lastOption < VESSEL_COUNT)
@@ -785,47 +922,45 @@ void menuVessels() {
   }
 }
 
+class menuVesselOptions : public menuPROGMEM {
+  private:
+    byte vessel;
+  public:
+    menuVesselOptions(byte pSize, byte v) : menuPROGMEM(pSize, MENUVESSELOPTIONS, ARRAY_LENGTH(MENUVESSELOPTIONS) ) {
+      vessel = v;  
+    }
+    byte getItemCount(void) {
+      #ifdef ANALOGINPUTS_GPIO
+        return (getPWMPin(vessel) == INDEX_NONE) ? 7 : 13;
+      #else
+        return (getPWMPin(vessel) == INDEX_NONE) ? 5 : 11;
+      #endif
+    }
+
+    byte getItemValue(byte index) {
+      #ifdef ANALOGINPUTS_GPIO
+        byte values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+      #else
+        byte values[] = {0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12};
+      #endif
+      
+      if (getPWMPin(vessel) == INDEX_NONE) {
+        #ifdef ANALOGINPUTS_GPIO
+          byte extraOptions[] = {7, 8, 9, 10, 11, 12, 12, 12, 12, 12, 12, 12};
+        #else
+          byte extraOptions[] = {7, 9, 11, 12, 12, 12, 12, 12, 12, 12};
+        #endif
+        memcpy(values + 1, extraOptions, sizeof(extraOptions));
+      }
+      return values[index];
+    }
+};
+
 void menuVesselSettings(byte vessel) {
   byte lastOption = 0;
   while(1) {
-    menu vesselMenu(3, 13);
-    vesselMenu.setItem_P(PSTR("PWM: "), 0);
-    byte pwmPin = getPWMPin(vessel);
-    if (pwmPin == INDEX_NONE)
-      vesselMenu.appendItem_P(PSTR("NONE"), 0);
-    else {
-      vesselMenu.appendItem(outputs->getOutputBankName(pwmPin, buf), 0);
-      vesselMenu.appendItem("-", 0);
-      vesselMenu.appendItem(outputs->getOutputName(pwmPin, buf), 0);
+    menuVesselOptions vesselMenu(3, vessel);
 
-      vesselMenu.setItem_P(PSTR("PWM Period: "), 1);
-      vftoa(getPWMPeriod(vessel), buf, 10, 1);
-      vesselMenu.appendItem(buf, 1);
-
-      vesselMenu.setItem_P(PSTR("PWM Res: "), 2);
-      vesselMenu.appendItem(itoa(getPWMResolution(vessel), buf, 10), 2);
-
-      vesselMenu.setItem_P(PSTR("P Gain: "), 3);
-      vesselMenu.appendItem(vftoa(getPIDp(vessel), buf, PIDGAIN_DIV, PIDGAIN_DEC), 3);
-
-      vesselMenu.setItem_P(PSTR("I Gain: "), 4);
-      vesselMenu.appendItem(vftoa(getPIDi(vessel), buf, PIDGAIN_DIV, PIDGAIN_DEC), 4);
-
-      vesselMenu.setItem_P(PSTR("D Gain: "), 5);
-      vesselMenu.appendItem(vftoa(getPIDd(vessel), buf, PIDGAIN_DIV, PIDGAIN_DEC), 5);
-      
-      vesselMenu.setItem_P(PSTR("PID Limit: "), 6);
-      vesselMenu.appendItem(itoa(getPIDLimit(vessel), buf, 10), 6);
-    }
-    vesselMenu.setItem_P(HYSTERESIS, 7);
-    #ifdef ANALOGINPUTS_GPIO
-      vesselMenu.setItem_P(PSTR("Volume Sensor"), 8);
-    #endif
-    vesselMenu.setItem_P(CAPACITY, 9);
-    vesselMenu.setItem_P(PSTR("Volume Calibration"), 10);
-    vesselMenu.setItem_P(PSTR("Clone Settings"), 11);
-    vesselMenu.setItem_P(EXIT, 255);
-    
     char title[20];
     strcpy_P(title, (char*)pgm_read_word(&(TITLE_VS[vessel])));
     strcat_P(title, PSTR(" Settings"));
@@ -866,7 +1001,7 @@ void menuVesselSettings(byte vessel) {
       strcat_P(title, CALIBRATION);
       volCalibMenu(title, vessel);
     } else if (lastOption == 11) {
-      byte source = menuSelectVessel("Clone From:");
+      byte source = menuSelectVessel("Clone From:", INDEX_NONE, 1);
       if (source <= VS_KETTLE) {
         setPWMPin(vessel, getPWMPin(source));
         setPWMPeriod(vessel, getPWMPeriod(source));
@@ -889,71 +1024,88 @@ void menuVesselSettings(byte vessel) {
   } 
 }
 
+class menuVolumeCalibrationList : public menu {
+  private:
+    byte vessel;
+    
+    char* getItemCalibration(byte index, char *retString) {
+      if (calibVals[vessel][index] == 0)
+        return strcpy(retString, "OPEN");
+      char numText[12];
+      vftoa(calibVols[vessel][index], retString, 1000, 1);
+      truncFloat(retString, 6);
+      strcat(retString, " ");
+      strcat_P(retString, VOLUNIT);
+      strcat(retString, " (");
+      strcat(retString, itoa(calibVals[vessel][index], numText, 10));
+      strcat(retString, ")");
+      return retString;
+    }
+        
+  public:
+    menuVolumeCalibrationList(byte pSize, byte v) : menu(pSize) {
+     vessel = v;
+    }
+    byte getItemCount(void) {
+      return 11;
+    }
+    char* getItem(byte index, char *retString) {
+      if (index < 10)
+        getItemCalibration(index, retString);
+      else
+        strcpy_P(retString, EXIT);
+      return retString;
+    }
+};
+
 void volCalibMenu(char sTitle[], byte vessel) {
-  menu calibMenu(3, 11);    
+  menuVolumeCalibrationList calibMenu(3, vessel);    
   while(1) {
-    for(byte i = 0; i < 10; i++) {
-      if (calibVals[vessel][i] > 0) {
-        vftoa(calibVols[vessel][i], buf, 1000, 1);
-        truncFloat(buf, 6);
-        calibMenu.setItem(buf, i);
-        calibMenu.appendItem_P(SPACE, i);
-        calibMenu.appendItem_P(VOLUNIT, i);
-        calibMenu.appendItem_P(PSTR(" ("), i);
-        calibMenu.appendItem(itoa(calibVals[vessel][i], buf, 10), i);
-        calibMenu.appendItem_P(PSTR(")"), i);
-      } else calibMenu.setItem_P(PSTR("OPEN"), i);
-    }
-    calibMenu.setItem_P(EXIT, 255);
     byte lastOption = scrollMenu(sTitle, &calibMenu);
-    if (lastOption > 9) return; 
-    else {
-      if (calibVals[vessel][lastOption] > 0) {
-        //There is already a value saved for that volume. 
-        //Review the saved value for the selected volume value.
-        volCalibEntryMenu(vessel, lastOption);
-      } else {
-        #ifdef DEBUG_VOLCALIB
-          logVolCalib("Value before dialog:", analogRead(vSensor[vessel]));
-        #endif
-
-        setVolCalib(vessel, lastOption, 0, getValue_P(PSTR("Current Volume:"), 0, 1000, 9999999, VOLUNIT)); //Set temporary the value to zero. It will be updated in the next step.
-        volCalibEntryMenu(vessel, lastOption);
-
-        #ifdef DEBUG_VOLCALIB
-          logVolCalib("Value that was saved:", PROMreadInt(239 + vessel * 20 + lastOption * 2));
-        #endif
-      } 
-    }
+    if (lastOption > 9)
+      return; 
+    if (calibVals[vessel][lastOption] == 0)
+      setVolCalib(vessel, lastOption, 0, getValue_P(PSTR("Current Volume:"), 0, 1000, 9999999, VOLUNIT));
+    volCalibEntryMenu(vessel, lastOption);
   }
 }
+
+class menuVolumeCalibrationOptions : public menuPROGMEM {
+  private:
+    unsigned int oldValue, newValue;
+    
+  public:
+   menuVolumeCalibrationOptions(byte pSize, unsigned int oValue, unsigned int nValue) : menuPROGMEM(pSize, VOLUMECALIBRATIONOPTIONS, ARRAY_LENGTH(VOLUMECALIBRATIONOPTIONS)) {
+     oldValue = oValue;
+     newValue = nValue;
+   }
+   char* getItem(byte index, char *retString) {
+     menuPROGMEM::getItem(index, retString);
+     if (index == 0) {
+       char numText[7];
+       strcat(retString, itoa(oldValue, numText, 10));
+       strcat(retString, " to ");
+       strcat(retString, itoa(newValue, numText, 10));
+     }
+     return retString;
+   }
+};
 
 //This function manages the volume value to calibrate. 
 //The value can be updated or deleted. 
 //Users can skip all actions by exiting. 
 void volCalibEntryMenu(byte vessel, byte entry) {
-  char sTitle[21] ="";
-  menu calibMenu(3, 4);
-  
   while(1) {
-    vftoa(calibVols[vessel][entry], buf, 1000, 1);
-    truncFloat(buf, 6);
-    strcpy_P(sTitle, PSTR("Calibrate"));
-    strcat_P(sTitle, SPACE);
-    strcat(sTitle, buf);
-    strcat_P(sTitle, SPACE);
+    char sTitle[21] = "Calibrate ";
+    char numText[12];
+    vftoa(calibVols[vessel][entry], numText, 1000, 1);
+    truncFloat(numText, 6);
+    strcat(sTitle, numText);
+    strcat(sTitle, " ");
     strcat_P(sTitle, VOLUNIT);
       
     unsigned int newSensorValue = GetCalibrationValue(vessel);
-    
-    calibMenu.setItem_P(PSTR("Update "), 0);
-    calibMenu.appendItem(itoa(calibVals[vessel][entry], buf, 10), 0); //Show the currently saved value which can be zero.
-    calibMenu.appendItem_P(PSTR(" To "), 0);
-    calibMenu.appendItem(itoa(newSensorValue, buf, 10), 0); //Show the value to be saved. So users know what to expect.
-    calibMenu.setItem_P(PSTR("Manual Entry"), 1);
-    calibMenu.setItem_P(DELETE, 2);
-    calibMenu.setItem_P(EXIT, 255);
-    
+    menuVolumeCalibrationOptions calibMenu(3, calibVals[vessel][entry], newSensorValue);
     byte lastOption = scrollMenu(sTitle, &calibMenu);
 
     if (lastOption == 0) {
@@ -974,44 +1126,54 @@ void volCalibEntryMenu(byte vessel, byte entry) {
   }
 }
 
+class menuBubblerConfig : public menuPROGMEM {
+  public:
+    menuBubblerConfig(byte pSize) : menuPROGMEM(pSize, BUBBLEROPTIONS, ARRAY_LENGTH(BUBBLEROPTIONS)) {}
+    byte getItemCount(void) {
+      return getBubblerOutput() == INDEX_NONE ? 2 : 5;
+    }
+    byte getItemValue(byte index) {
+      if (getBubblerOutput() == INDEX_NONE && index > 0)
+        return 4;
+      return index;
+    }
+    char* getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      byte option = getItemValue(index);
+      char numText[5];
+      if (option == 0) {
+        byte bubbleOutput = getBubblerOutput();
+        char outputFullName[OUTPUT_FULLNAME_MAXLEN] = "DISABLED";
+        if (bubbleOutput != INDEX_NONE)
+          outputs->getOutputFullName(bubbleOutput, outputFullName);
+        strcat(retString, outputFullName);
+      } else if (option == 1) {
+        strcat(retString, itoa(getBubblerInterval(), numText, 10));
+        strcat(retString, "s");
+      } else if (option == 2) {
+        strcat(retString, vftoa(getBubblerDuration(), numText, 10, 1));
+        strcat(retString, "s");
+      } else if (option == 3) {
+        strcat(retString, vftoa(getBubblerDelay(), numText, 10, 1));
+        strcat(retString, "s");        
+      }
+      return retString;
+    }
+};
+
 void menuBubbler() {
   while (1) {
-    byte bubbleOutput = getBubblerOutput();
-    byte bubbleInterval = getBubblerInterval();
-    byte bubbleDuration = getBubblerDuration();
-    byte bubbleReadDelay = getBubblerDelay();
-    menu volMenu(3, 5);
-    
-    if (bubbleOutput == INDEX_NONE)
-      volMenu.setItem_P(PSTR("Output: DISABLED"), 0);
-    else {
-      volMenu.setItem_P(PSTR("Output: "), 0);
-      volMenu.appendItem(outputs->getOutputBankName(bubbleOutput, buf), 0);
-      volMenu.appendItem("-", 0);
-      volMenu.appendItem(outputs->getOutputName(bubbleOutput, buf), 0);
+    menuBubblerConfig volMenu(3);
 
-      volMenu.setItem_P(PSTR("Interval: "), 1);
-      volMenu.appendItem(itoa(bubbleInterval, buf, 10), 1);
-      volMenu.appendItem("s", 1);
-
-      volMenu.setItem_P(PSTR("Duration: "), 2);
-      volMenu.appendItem(vftoa(bubbleDuration, buf, 10, 1), 2);
-      volMenu.appendItem("s", 2);
-
-      volMenu.setItem_P(PSTR("Delay: "), 3);
-      volMenu.appendItem(vftoa(bubbleReadDelay, buf, 10, 1), 3);
-      volMenu.appendItem("s", 3);
-    }
-    volMenu.setItem_P(EXIT, 255);
     byte lastOption = scrollMenu("Bubbler Setup", &volMenu);
     if (lastOption == 0)
-      setBubblerOutput(menuSelectOutput("Bubbler Output", bubbleOutput));
+      setBubblerOutput(menuSelectOutput("Bubbler Output", getBubblerOutput()));
     else if (lastOption == 1)
-      setBubblerInterval(getValue("Bubbler Interval", bubbleInterval, 1, 255, PSTR("s")));
+      setBubblerInterval(getValue("Bubbler Interval", getBubblerInterval(), 1, 255, PSTR("s")));
     else if (lastOption == 2)
-      setBubblerDuration(getValue("Bubbler Duration", bubbleDuration, 10, 255, PSTR("s")));
+      setBubblerDuration(getValue("Bubbler Duration", getBubblerDuration(), 10, 255, PSTR("s")));
     else if (lastOption == 3)
-      setBubblerDelay(getValue("Bubbler Read Delay", bubbleReadDelay, 10, 255, PSTR("s")));
+      setBubblerDelay(getValue("Bubbler Read Delay", getBubblerDelay(), 10, 255, PSTR("s")));
     else {
       loadBubbler();
       return;
@@ -1020,92 +1182,136 @@ void menuBubbler() {
 }
 
 void menuOutputProfiles() {
-  menu outputProfileMenu(3, OUTPUTPROFILE_USERCOUNT + 1);
-  for (byte profile = 0; profile < OUTPUTPROFILE_USERCOUNT; profile++)
-    outputProfileMenu.setItem_P((char*)pgm_read_word(&(TITLE_VLV[outputProfileDisplayOrder[profile]])), outputProfileDisplayOrder[profile]);
-  outputProfileMenu.setItem_P(EXIT, 255);
+  menuOutputProfileList outputProfileMenu(3);
   while (1) {
     byte profile = scrollMenu("Output Profiles", &outputProfileMenu);
-    if (profile >= OUTPUTPROFILE_USERCOUNT) return;
-    else setOutputProfile(profile, menuSelectOutputs(outputProfileMenu.getSelectedRow(buf), outputs->getProfileMask(profile), 1));
+    if (profile < OUTPUTPROFILE_USERCOUNT) {
+      char profileName[20];
+      strcpy_P(profileName, (char*)pgm_read_word(&(TITLE_VLV[profile])));
+      setOutputProfile(profile, menuSelectOutputs(profileName, outputs->getProfileMask(profile), 1));
+    } else
+      return;
   }
 }
 
 #ifdef OUTPUTBANK_MODBUS
-const uint8_t ku8MBSuccess                    = 0x00;
-const uint8_t ku8MBResponseTimedOut           = 0xE2;
+  class menuMODBUSOutputBoardList : public menu {
+    private:
 
-  void menuMODBUSOutputs() {
-    while(1) {
-      menu boardMenu(3, OUTPUTBANK_MODBUS_MAXBOARDS + 1);
-      for (byte i = 0; i < OUTPUTBANK_MODBUS_MAXBOARDS; i++) {
-        byte addr = getOutModbusAddr(i);
-        OutputBankMODBUS tempMB(addr, getOutModbusReg(i), getOutModbusCoilCount(i));
+    public:
+      menuMODBUSOutputBoardList(byte pSize) : menu(pSize) {}
+      byte getItemCount(void) {
+        return OUTPUTBANK_MODBUS_MAXBOARDS + 1;
+      }
+      char* getItem(byte index, char *retString) {
+        if (index < OUTPUTBANK_MODBUS_MAXBOARDS)
+          getItemBoard(index, retString);
+        else
+          strcpy_P(retString, EXIT);
+        return retString;
+      }
+      
+      char* getItemBoard(byte index, char *retString) {
+        strcpy(retString, "Board 1: ");
+        retString[6] += index;
+        byte addr = getOutModbusAddr(index);
+        OutputBankMODBUS tempMB(addr, getOutModbusReg(index), getOutModbusCoilCount(index));
         
-        boardMenu.setItem_P(PSTR("Board "), i);
-        boardMenu.appendItem(itoa(i + 1, buf, 10), i);
         if (addr == OUTPUTBANK_MODBUS_ADDRNONE)
-          boardMenu.appendItem_P(PSTR(": DISABLED"), i);
+          strcat(retString, "DISABLED");
         else {
           byte result = tempMB.detect();
-          if (result == ku8MBSuccess) 
-            boardMenu.appendItem_P(PSTR(": CONNECTED"), i);
-          else if (result == ku8MBResponseTimedOut)
-            boardMenu.appendItem_P(PSTR(": TIMEOUT"), i);
+          if (result == ModbusMaster::ku8MBSuccess) 
+            strcat(retString, "CONNECTED");
+          else if (result == ModbusMaster::ku8MBResponseTimedOut)
+            strcat(retString, "TIMEOUT");
           else {
-            boardMenu.appendItem_P(PSTR(": ERROR "), i);
-            boardMenu.appendItem(itoa(result, buf, 16), i);
+            strcat(retString, "ERROR ");
+            char numText[3];
+            strcat(retString, itoa(result, numText, 16));
           }
         }
+        return retString;
       }
-      boardMenu.setItem_P(PSTR("Exit"), 255);
-      
+  };
+
+  void menuMODBUSOutputs() {
+    menuMODBUSOutputBoardList boardMenu(3);
+    while(1) {
       byte lastOption = scrollMenu("RS485 Outputs", &boardMenu);
-      if (lastOption < OUTPUTBANK_MODBUS_MAXBOARDS) menuMODBUSOutputBoard(lastOption);
-      else return;
+      if (lastOption < OUTPUTBANK_MODBUS_MAXBOARDS)
+        menuMODBUSOutputBoard(lastOption);
+      else
+        return;
     }
   }
+
+  class menuMODBUSConfig : public menuPROGMEM {
+    private:
+      byte address;
+      unsigned int coilReg;
+      byte coilCount;
+      byte idMode;
+      
+    public:
+      menuMODBUSConfig(byte pSize, byte a, unsigned int r, byte c, byte m) : menuPROGMEM(pSize, MODBUSBOARDOPTIONS, ARRAY_LENGTH(MODBUSBOARDOPTIONS)) {
+        address = a;
+        coilReg = r;
+        coilCount = c;
+        idMode = m;
+      }
+      byte getItemCount(void) {
+        return (address == OUTPUTBANK_MODBUS_ADDRNONE) ? 3 : 6;
+      }
+      byte getItemValue(byte index) {
+        byte values[6] = {0, 3, 6, 6, 6, 6};
+        if (address != OUTPUTBANK_MODBUS_ADDRNONE) {
+          byte optValues[] = {0, 1, 2, 4, 5};
+          memcpy(values, optValues, sizeof(optValues));
+        }
+        return values[index];
+      }
+      char* getItem(byte index, char *retString) {
+        menuPROGMEM::getItem(index, retString);
+        byte option = getItemValue(index);
+        char numText[6] = "N/A";
+        if (option == 0) {
+          if (address != OUTPUTBANK_MODBUS_ADDRNONE)
+            itoa(address, numText, 10);
+          strcat(retString, numText);
+        } else if (option == 1)
+          strcat(retString, itoa(coilReg, numText, 10));
+        else if (option == 2)
+          strcat(retString, itoa(coilCount, numText, 10));
+        else if (option == 4)
+          strcat_P(retString, idMode ? ON : OFF);
+        return retString;
+      }
+  };
   
   void menuMODBUSOutputBoard(byte board) {
+    
     while(1) {
-      OutputBankMODBUS tempMB(getOutModbusAddr(board), getOutModbusReg(board), getOutModbusCoilCount(board));
-      menu boardMenu(3, 7);
-      boardMenu.setItem_P(PSTR("Address: "), 0);
-      byte addr = getOutModbusAddr(board);
-      if (addr != OUTPUTBANK_MODBUS_ADDRNONE)
-        boardMenu.appendItem(itoa(addr, buf, 10), 0);
-      else
-        boardMenu.appendItem_P(PSTR("N/A"), 0);
+      byte address = getOutModbusAddr(board);
+      unsigned int coilReg = getOutModbusReg(board);
+      byte coilCount = getOutModbusCoilCount(board);
+      OutputBankMODBUS tempMB(address, coilReg, coilCount);
+      byte idMode = tempMB.getIDMode();
+      menuMODBUSConfig boardMenu(3, address, coilReg, coilCount, idMode);
       
-      boardMenu.setItem_P(PSTR("Register: "), 1);
-      boardMenu.appendItem(itoa(getOutModbusReg(board), buf, 10), 1);
-      boardMenu.setItem_P(PSTR("Count: "), 2);
-      boardMenu.appendItem(itoa(getOutModbusCoilCount(board), buf, 10), 2);
-      
-      if (addr == OUTPUTBANK_MODBUS_ADDRNONE)
-        boardMenu.setItem_P(PSTR("Auto Assign"), 3);
-      else {
-        boardMenu.setItem_P(PSTR("ID Mode: "), 4);
-        boardMenu.appendItem_P((tempMB.getIDMode()) ? PSTR("On") : PSTR("Off"), 4);
-
-        boardMenu.setItem_P(DELETE, 5);
-      }
-      boardMenu.setItem_P(PSTR("Exit"), 255);
-      
-      char title[] = "RS485 Output Board  ";
-      title[19] = '0' + board;
+      char title[] = "RS485 Output Board 1";
+      title[19] += board;
       byte lastOption = scrollMenu(title, &boardMenu);
-      if (lastOption == 0) {
-        byte addr = getOutModbusAddr(board);
-        setOutModbusAddr(board, getValue_P(PSTR("RS485 Relay Address"), addr == OUTPUTBANK_MODBUS_ADDRNONE ? OUTPUTBANK_MODBUS_BASEADDR + board : addr, 1, 255, PSTR("")));
-      } else if (lastOption == 1)
-        setOutModbusReg(board, getValue_P(PSTR("Coil Register"), getOutModbusReg(board), 1, 65536, PSTR("")));
+      if (lastOption == 0)
+        setOutModbusAddr(board, getValue_P(PSTR("Address"), address == OUTPUTBANK_MODBUS_ADDRNONE ? OUTPUTBANK_MODBUS_BASEADDR + board : address, 1, 255, PSTR("")));
+      else if (lastOption == 1)
+        setOutModbusReg(board, getValue_P(PSTR("Coil Register"), coilReg, 1, 65536, PSTR("")));
       else if (lastOption == 2)
-        setOutModbusCoilCount(board, getValue_P(PSTR("Coil Count"), getOutModbusCoilCount(board), 1, 32, PSTR("")));
+        setOutModbusCoilCount(board, getValue_P(PSTR("Coil Count"), coilCount, 1, 32, PSTR("")));
       else if (lastOption == 3)
         cfgMODBUSOutputAssign(board);
       else if (lastOption == 4)
-        tempMB.setIDMode((tempMB.getIDMode()) ^ 1);
+        tempMB.setIDMode(idMode ^ 1);
       else {
         if (lastOption == 5)
           setOutModbusDefaults(board);
@@ -1114,37 +1320,51 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
       }
     }
   }
+
+  class menuMODBUSDetectError : public menu {
+    private:
+      byte *result;
+    public:
+      menuMODBUSDetectError(byte pSize, byte *r) : menu(pSize) {
+        result = r;
+      }
+      byte getItemCount(void) {
+        return 2;
+      }
+      char* getItem(byte index, char *retString) {
+        if (index)
+          return strcpy_P(retString, ABORT);
+
+        if (*result == ModbusMaster::ku8MBResponseTimedOut)
+          strcpy_P(retString, PSTR("Timeout"));
+        else {
+          strcpy_P(retString, PSTR("Error "));
+          char numText[3];
+          strcat(retString, itoa(*result, numText, 16));
+        }
+        strcat_P(retString, PSTR(": Retry?"));
+        return retString;
+      }
+  };
   
   void cfgMODBUSOutputAssign(byte board) {
     OutputBankMODBUS tempMB(OUTPUTBANK_MODBUS_ADDRINIT, getOutModbusReg(board), getOutModbusCoilCount(board));
     
     byte result = 1;
+    menuMODBUSDetectError choiceMenu(1, &result);
     while (result = tempMB.detect()) {
       LCD.clear();
       LCD.print_P(0, 0, PSTR("Click/hold to reset"));
       LCD.print_P(1, 0, PSTR("output board then"));
       LCD.print_P(2, 0, PSTR("click to activate."));
-      menu choiceMenu(1, 2);
-      if (result == ku8MBResponseTimedOut) {
-        choiceMenu.setItem_P(PSTR("Timeout"), 0);
-      } else {
-        choiceMenu.setItem_P(PSTR("Error "), 0);
-        choiceMenu.appendItem(itoa(result, buf, 16), 0);
-      }
-      choiceMenu.appendItem_P(PSTR(": Retry?"), 0);
-      choiceMenu.setItem_P(PSTR("Abort"), 1);
       if(getChoice(&choiceMenu, 3))
         return;      
     }
     byte newAddr = getValue_P(PSTR("New Address"), OUTPUTBANK_MODBUS_BASEADDR + board, 1, 254, PSTR(""));
-    if (tempMB.setAddr(newAddr)) {
-      LCD.clear();
-      LCD.print_P(1, 1, PSTR("Update Failed"));
-      LCD.print_P(2, 4, PSTR("> Continue <"));
-      while (!Encoder.ok()) brewCore();
-    } else {
+    if (tempMB.setAddr(newAddr))
+      infoBox("","Update Failed", "", CONTINUE);
+    else
       setOutModbusAddr(board, newAddr);
-    }
   }
 #endif
 
@@ -1208,8 +1428,9 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
             uiCursorFocus(3, 14, 6);
           }
         }
-        LCD.lPad(1, 13, itoa(bright, buf, 10), 3, ' ');
-        LCD.lPad(2, 13, itoa(contrast, buf, 10), 3, ' ');
+        char numText[4];
+        LCD.lPad(1, 13, itoa(bright, numText, 10), 3, ' ');
+        LCD.lPad(2, 13, itoa(contrast, numText, 10), 3, ' ');
       }
       if (Encoder.ok()) {
         if (cursorPos == 2) {
@@ -1238,104 +1459,139 @@ const uint8_t ku8MBResponseTimedOut           = 0xE2;
   }
 #endif //#ifdef UI_DISPLAY_SETUP
 
-void menuTriggers() {
-  menu triggerMenu(3, USERTRIGGER_COUNT + 2);
- 
-  while(1) {
-    #ifdef ESTOP_PIN
-      triggerMenu.setItem_P(PSTR("E-Stop: "), 0);
-      if (getEStopEnabled())
-        triggerMenu.appendItem_P(PSTR("Enabled"), 0);
-      else
-        triggerMenu.appendItem_P(PSTR("Disabled"), 0);
-    #endif
+class menuTriggerList : public menu {
+  private:
     
-    for (byte i = 0; i < USERTRIGGER_COUNT; i++) {
-      struct TriggerConfiguration trigConfig;
-      loadTriggerConfiguration(i, &trigConfig);
-      switch (trigConfig.type) {
-        case TRIGGERTYPE_NONE:
-          triggerMenu.setItem_P(PSTR("NOT CONFIGURED"), i + 1);
-          break;
-        case TRIGGERTYPE_GPIO:
-          triggerMenu.setItem_P(PSTR("INPUT "), i + 1);
-          triggerMenu.appendItem(itoa(trigConfig.index + 1, buf, 10), i + 1);
-          break;
-        case TRIGGERTYPE_VOLUME:
-          triggerMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), i + 1);
-          triggerMenu.appendItem_P(PSTR(" Volume"), i + 1);
-          break;
-        case TRIGGERTYPE_SETPOINTDELAY:
-          triggerMenu.setItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), i + 1);
-          triggerMenu.appendItem_P(PSTR(" Delay"), i + 1);
-          break;
-      }
+  public:
+    menuTriggerList(byte pSize) : menu(pSize) {
     }
     
-    triggerMenu.setItem_P(PSTR("Exit"), 255);
-          
+    byte getItemCount(void) {
+      #ifdef ESTOP_PIN
+        return USERTRIGGER_COUNT + 2;
+      #else
+        return USERTRIGGER_COUNT + 1;
+      #endif
+    }
+      
+    char* getItem(byte index, char *retString) {
+      if (index < USERTRIGGER_COUNT) {
+        struct TriggerConfiguration trigConfig;
+        loadTriggerConfiguration(index, &trigConfig);
+        switch (trigConfig.type) {
+          case TRIGGERTYPE_NONE:
+            strcpy_P(retString, PSTR("NOT CONFIGURED"));
+            break;
+        #ifdef DIGITAL_INPUTS
+          case TRIGGERTYPE_GPIO:
+            strcpy_P(retString, PSTR("INPUT 1"));
+            retString[6] += trigConfig.index;
+            break;
+        #endif
+          case TRIGGERTYPE_VOLUME:
+            strcpy_P(retString, (char*)pgm_read_word(&(TITLE_VS[trigConfig.index])));
+            strcat_P(retString, PSTR(" Volume"));
+            break;
+          case TRIGGERTYPE_SETPOINTDELAY:
+            strcpy_P(retString, (char*)pgm_read_word(&(TITLE_VS[trigConfig.index])));
+            strcat_P(retString, PSTR(" Delay"));
+            break;
+        }
+      }
+      #ifdef ESTOP_PIN
+        else if (index == USERTRIGGER_COUNT) {
+          strcpy_P(retString, PSTR("E-Stop: "));
+          strcat_P(retString, getEStopEnabled() ? PSTR("Enabled") : PSTR("Disabled"));
+          return retString;
+        }
+      #endif
+      else
+        strcpy_P(retString, EXIT);
+      return retString;
+    }
+};
+
+void menuTriggers() {
+  menuTriggerList triggerMenu(3);
+  while(1) {
     byte lastOption = scrollMenu("Triggers", &triggerMenu);
-    if (lastOption == 0) {
+    if (lastOption < USERTRIGGER_COUNT)
+      cfgTrigger(lastOption);
+    else if (lastOption == USERTRIGGER_COUNT) {
       #ifdef ESTOP_PIN
         setEStopEnabled(~getEStopEnabled());
         loadEStop();
       #endif
-    } else if (lastOption <= USERTRIGGER_COUNT)
-      cfgTrigger(lastOption - 1);
-    else
+    } else 
       return;
   }
 }
+
+class menuTriggerConfig : public menuPROGMEM {
+  private:
+    struct TriggerConfiguration *trigConfig;
+  public:
+    menuTriggerConfig(byte pSize, struct TriggerConfiguration *c) : menuPROGMEM(pSize, TRIGGEROPTIONS, ARRAY_LENGTH(TRIGGEROPTIONS)) {
+      trigConfig = c;
+    }
+    byte getItemCount(void) {
+      switch (trigConfig->type) {
+        case TRIGGERTYPE_NONE:
+          return 2;
+      #ifdef DIGITAL_INPUTS
+        case TRIGGERTYPE_GPIO:
+      #endif
+        case TRIGGERTYPE_SETPOINTDELAY:
+          return 7;
+        case TRIGGERTYPE_VOLUME:
+          return 8;
+      }
+    }
+    byte getItemValue(byte index) {
+      byte values[8] = {0, 8, 8, 8, 8, 8, 8, 8};
+      if (trigConfig->type == TRIGGERTYPE_VOLUME) {
+        byte optValues[] = {0, 2, 3, 4, 5, 6, 7};
+        memcpy(values, optValues, sizeof(optValues));
+    #ifdef DIGITAL_INPUTS
+      } else if (trigConfig->type == TRIGGERTYPE_GPIO) {
+        byte optValues[] = {0, 1, 4, 5, 6, 7};
+        memcpy(values, optValues, sizeof(optValues));
+    #endif
+      } else if (trigConfig->type == TRIGGERTYPE_SETPOINTDELAY) {
+        byte optValues[] = {0, 2, 4, 5, 6, 7};
+        memcpy(values, optValues, sizeof(optValues));
+      }
+      return values[index];
+    }
+    char* getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      byte option = getItemValue(index);
+      if (option == 0) {
+        strcat_P(retString, (char*)pgm_read_word(&(TITLE_TRIGGERTYPE[trigConfig->type])));
+      } else if (option == 1) {
+        retString[7] += trigConfig->index;        
+      } else if (option == 2) {
+        strcat_P(retString, (char*)pgm_read_word(&(TITLE_VS[trigConfig->index])));
+      } else if (option == 4) {
+        strcpy_P(retString, trigConfig->activeLow ? PSTR("Low") : PSTR("High"));
+      } else if (option == 7) {
+        char numText[4];
+        strcat(retString, itoa(trigConfig->releaseHysteresis, numText, 10));
+        strcat(retString, "s");
+      }
+      return retString;
+    }
+};
 
 void cfgTrigger(byte triggerIndex) {
   struct TriggerConfiguration trigConfig;
   loadTriggerConfiguration(triggerIndex, &trigConfig);
   
   struct TriggerConfiguration origConfig = trigConfig;
-  byte lastOption = 0;
+  menuTriggerConfig triggerMenu(3, &trigConfig);
   
   while(1) {
-    menu triggerMenu(3, 9);
-    triggerMenu.setItem_P(PSTR("Type:"), 0);
-    switch (trigConfig.type) {
-      case TRIGGERTYPE_NONE:
-        triggerMenu.appendItem_P(PSTR("Disabled"), 0);
-        break;
-      case TRIGGERTYPE_GPIO:
-        #ifdef DIGITAL_INPUTS
-          triggerMenu.appendItem_P(PSTR(" Digital Input"), 0);
-          triggerMenu.setItem_P(PSTR("Input: "), 1);
-          triggerMenu.appendItem(itoa(trigConfig.index + 1, buf, 10), 1);
-        #endif
-        break;
-      case TRIGGERTYPE_VOLUME:
-        triggerMenu.appendItem_P(PSTR(" Volume"), 0);
-        triggerMenu.setItem_P(PSTR("Vessel: "), 2);
-        triggerMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), 2);
-        triggerMenu.setItem_P(PSTR("Threshold"), 3);
-        break;
-      case TRIGGERTYPE_SETPOINTDELAY:
-        triggerMenu.appendItem_P(PSTR("Setpoint Delay"), 0);
-        triggerMenu.setItem_P(PSTR("Vessel: "), 2);
-        triggerMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[trigConfig.index])), 2);
-        break;
-    }
-    if (trigConfig.type != TRIGGERTYPE_NONE) {
-      triggerMenu.setItem_P(PSTR("Active: "), 4);
-      triggerMenu.appendItem_P(trigConfig.activeLow ? PSTR("Low") : PSTR("High"), 4);
-      triggerMenu.setItem_P(PSTR("Profile Filter"), 5);
-      triggerMenu.setItem_P(PSTR("Disabled Outputs"), 6);
-      triggerMenu.setItem_P(PSTR("Release Delay: "), 7);
-      if (trigConfig.releaseHysteresis) {
-        triggerMenu.appendItem(itoa(trigConfig.releaseHysteresis, buf, 10), 7);
-        triggerMenu.appendItem_P(PSTR("s"), 7);
-      }
-      else
-        triggerMenu.appendItem_P(PSTR("None"), 7);
-    }
-    triggerMenu.setItem_P(PSTR("Exit"), 255);
-    triggerMenu.setSelected(lastOption);
-    lastOption = scrollMenu("Triggers", &triggerMenu);
+    byte lastOption = scrollMenu("Triggers", &triggerMenu);
     if (lastOption == 0) {
       byte origType = trigConfig.type;
       trigConfig.type = menuTriggerType(trigConfig.type);
@@ -1344,10 +1600,10 @@ void cfgTrigger(byte triggerIndex) {
     }
     #ifdef DIGITAL_INPUTS
       else if (lastOption == 1)
-        trigConfig.index = menuDigitalInput(trigConfig.index);
+        trigConfig.index = menuSelectDigitalInput(trigConfig.index);
     #endif
     else if (lastOption == 2)
-      trigConfig.index = menuVessel(trigConfig.index);
+      trigConfig.index = menuSelectVessel("Select Vessel", trigConfig.index, 0);
     else if (lastOption == 3)
       trigConfig.threshold = getValue_P(PSTR("Trigger Threshold"), trigConfig.threshold, 1000, 9999999, VOLUNIT);
     else if (lastOption == 4) 
@@ -1381,80 +1637,79 @@ boolean triggerConfigurationDidChange(struct TriggerConfiguration *a, struct Tri
   return 1;
 }
 
+class menuTriggerTypes : public menu {
+  private:
+    byte currentSelection;
+    
+  public:
+    menuTriggerTypes(byte pSize, byte cSelect) : menu (pSize) {
+      currentSelection = cSelect;
+    }
+    byte getItemCount(void) { return TRIGGERTYPE_COUNT; }
+    char* getItem(byte index, char *retString) {
+      retString[0] = '\0';
+      if (currentSelection == index)
+        strcat(retString, "*");
+      strcat_P(retString, (char*)pgm_read_word(&(TITLE_TRIGGERTYPE[index])));
+      return retString;
+    }
+};
+
 byte menuTriggerType (byte type) {
-  menu triggerMenu(3, TRIGGERTYPE_COUNT);
-  for (byte i = 0; i < TRIGGERTYPE_COUNT; i++) {
-    #ifndef DIGITAL_INPUTS
-    if (i != TRIGGERTYPE_GPIO)
-    #endif
-    triggerMenu.setItem_P(type == i ? PSTR("*") : PSTR(""), i);
-  }
-  triggerMenu.appendItem_P(PSTR("Disabled"), TRIGGERTYPE_NONE);
-  #ifdef DIGITAL_INPUTS
-    triggerMenu.appendItem_P(PSTR("Digital Input"), TRIGGERTYPE_GPIO);
-  #endif
-  triggerMenu.appendItem_P(PSTR("Volume"), TRIGGERTYPE_VOLUME);
-  triggerMenu.appendItem_P(PSTR("Setpoint Delay"), TRIGGERTYPE_SETPOINTDELAY);
-  triggerMenu.setSelected(type);
+  menuTriggerTypes triggerMenu(3, type);
   byte newType = scrollMenu("Trigger Type", &triggerMenu);
   if (newType == 255)
     return type;
   return newType;
 }
 
-byte menuVessel(byte vessel){
-  menu vesselMenu(3, 3);
-  for (byte i = 0; i <= VS_KETTLE; i++) {
-    vesselMenu.setItem_P(i == vessel ? PSTR("*") : PSTR(""), i);
-    vesselMenu.appendItem_P((char*)pgm_read_word(&(TITLE_VS[i])), i);
-  }
-  vesselMenu.setSelected(vessel);
-  byte lastOption = scrollMenu("Select Vessel", &vesselMenu);
-  if (lastOption == 255)
-    return vessel;
-  return lastOption;
-}
-
-#ifdef DIGITAL_INPUTS
-  byte menuDigitalInput(byte index){
-    menu inputMenu(3, DIGITAL_INPUTS_COUNT);
-    for (byte i = 0; i < DIGITAL_INPUTS_COUNT; i++) {
-      inputMenu.setItem_P(i == index ? PSTR("*") : PSTR(""), i);
-      inputMenu.appendItem_P(PSTR("Digital Input "), i);
-      inputMenu.appendItem(itoa(i + 1, buf, 10), i);
-    }
-    inputMenu.setSelected(index);
-    byte lastOption = scrollMenu("Select Input", &inputMenu);
-    if (lastOption == 255)
-      return index;
-    return lastOption;
-  }
-#endif
-
 #ifdef RGBIO8_ENABLE
+  class menuRGBIOConfig : public menu {
+    private:
+      enum connectionStatusIndex *connectStatus;
+      
+    public:
+      menuRGBIOConfig(byte pSize, enum connectionStatusIndex *c) : menu(pSize) {
+        connectStatus = c;
+      }
+      byte getItemCount(void) { return RGBIO8_MAX_BOARDS + RGBIO8_MAX_OUTPUT_RECIPES + 1; }
+      char* getItem(byte index, char *retString) {
+        if (index < RGBIO8_MAX_BOARDS)
+          return getItemBoard(index, retString);
+        if (index < RGBIO8_MAX_BOARDS + RGBIO8_MAX_OUTPUT_RECIPES)
+          return getItemRecipe(index - RGBIO8_MAX_BOARDS, retString);
+        return strcpy_P(retString, EXIT);
+      }
+      char* getItemBoard(byte index, char *retString) {
+        strcpy_P(retString, PSTR("Board 1: "));
+        retString[6] += index;
+        strcat_P(retString, (char*)pgm_read_word(&(CONNECTIONSTATETITLES[connectStatus[index]])));
+        return retString;
+      }
+      char* getItemRecipe(byte index, char *retString) {
+        strcpy_P(retString, PSTR("Color Recipe 1"));
+        retString[13] += index;
+        return retString;
+      }
+  };
+
   void menuRGBIO() {
     while(1) {
-      menu rgbioMenu(3, RGBIO8_MAX_BOARDS + RGBIO8_MAX_OUTPUT_RECIPES + 1);
+      enum connectionStatusIndex connectStatus[RGBIO8_MAX_BOARDS];
       for (byte i = 0; i < RGBIO8_MAX_BOARDS; i++) {
         byte addr = getRGBIOAddr(i);
-        rgbioMenu.setItem_P(PSTR("Board "), i);
-        rgbioMenu.appendItem(itoa(i + 1, buf, 10), i);
         if (addr == RGBIO8_UNASSIGNED)
-          rgbioMenu.appendItem_P(PSTR(": DISABLED"), i);
+          connectStatus[i] = CONNECTIONSTATUS_DISABLED;
         else {
           RGBIO8 tempRGBIO(addr);
           byte result = tempRGBIO.getInputs();
           if (result) 
-            rgbioMenu.appendItem_P(PSTR(": CONNECTED"), i);
+            connectStatus[i] = CONNECTIONSTATUS_CONNECTED;
           else
-            rgbioMenu.appendItem_P(PSTR(": ERROR"), i);
+            connectStatus[i] = CONNECTIONSTATUS_ERROR;
         }
-      }
-      for (byte i = 0; i < RGBIO8_MAX_OUTPUT_RECIPES; i++) {
-        rgbioMenu.setItem_P(PSTR("Color Recipe "), RGBIO8_MAX_BOARDS + i);
-        rgbioMenu.appendItem(itoa(i + 1, buf, 10), RGBIO8_MAX_BOARDS + i);
-      }
-      rgbioMenu.setItem_P(PSTR("Exit"), 255);
+      }              
+      menuRGBIOConfig rgbioMenu(3, connectStatus);
       
       byte lastOption = scrollMenu("RGBIO", &rgbioMenu);
       if (lastOption < RGBIO8_MAX_BOARDS)
@@ -1465,32 +1720,53 @@ byte menuVessel(byte vessel){
         return;
     }
   }
+
+  class menuRGBIOBoardConfig : public menuPROGMEM {
+    private:
+      byte *address;
+      boolean *idMode;
+    public:
+      menuRGBIOBoardConfig(byte pSize, byte *a, boolean *id) : menuPROGMEM(pSize, RGBIOBOARDOPTIONS, ARRAY_LENGTH(RGBIOBOARDOPTIONS)) {
+        address = a;
+        idMode = id;
+      }
+      byte getItemCount(void) { return (*address == RGBIO8_UNASSIGNED ? 3 : 4); }
+      byte getItemValue(byte index) {
+        byte values[5] = {0, 1, 4, 4};
+        if (*address != RGBIO8_UNASSIGNED) {
+          values[1] = 2;
+          values[2] = 3;
+        }
+        return values[index];
+      }
+      char* getItem(byte index, char *retString) {
+        menuPROGMEM::getItem(index, retString);
+        byte option = getItemValue(index);
+        if (option == 0) {
+            if (*address == RGBIO8_UNASSIGNED)
+              strcat_P(retString, PSTR("None"));
+            else {
+              char numText[4];
+              strcat(retString, itoa(*address, numText, 10));
+            }
+        } else if (option == 2)
+          strcat_P(retString, (*idMode ? ON : OFF));
+        return retString;
+      }
+  };
   
   void menuRGBIOBoard(byte board) {
     boolean idMode = 0;
-    while(1) {
-      byte addr = getRGBIOAddr(board);
+    byte addr = getRGBIOAddr(board);
+    
+    menuRGBIOBoardConfig boardMenu(3, &addr, &idMode);
+    char title[] = "RGBIO Board 1";
+    title[12] += board;
+    while(1) {      
       RGBIO8 tempRGBIO(addr);
-      menu boardMenu(3, 6);
-      boardMenu.setItem_P(PSTR("Address: "), 0);
-      
-      if (addr != RGBIO8_UNASSIGNED) {
+      if (addr != RGBIO8_UNASSIGNED)
         tempRGBIO.setIdMode(idMode);
-        boardMenu.appendItem(itoa(addr, buf, 10), 0);
-        
-        boardMenu.setItem_P(PSTR("ID Mode: "), 2);
-        boardMenu.appendItem_P(idMode ? PSTR("On") : PSTR("Off"), 2);
-        
-        boardMenu.setItem_P(PSTR("Assignments"), 3);
-        boardMenu.setItem_P(DELETE, 4);
-      } else {
-        boardMenu.appendItem_P(PSTR("N/A"), 0);
-        boardMenu.setItem_P(PSTR("Auto Address"), 1);
-      }
-      boardMenu.setItem_P(PSTR("Exit"), 255);
       
-      char title[] = "RGBIO Board x";
-      title[12] = '1' + board;
       byte lastOption = scrollMenu(title, &boardMenu);
       if (lastOption == 0)
         setRGBIOAddr(board, getValue_P(PSTR("RGBIO Address"), addr == RGBIO8_UNASSIGNED ? RGBIO8_START_ADDR + board : addr, 1, 127, PSTR("")));
@@ -1526,26 +1802,40 @@ byte menuVessel(byte vessel){
     setRGBIOAddr(board, newAddr);
     loadRGBIO8();
   }
+
+  class menuRGBIOChannels : public menu {
+    private:
+      byte *assignment;
+      
+    public:
+      menuRGBIOChannels(byte pSize, byte *a) : menu(pSize) {
+        assignment = a;
+      }
+      byte getItemCount(void) { return 9; }
+      char* getItem(byte index, char *retString) {
+        if (index < 8) {
+          strcpy_P(retString, PSTR("1: "));
+          retString[0] += index;
+          char outName[OUTPUT_FULLNAME_MAXLEN] = "None";
+          if (assignment[index] != RGBIO8_UNASSIGNED)
+            outputs->getOutputFullName(assignment[index], outName);
+          strcat(retString, outName);
+        } else
+          strcpy_P(retString, EXIT);
+        return retString;
+      }
+  };
   
   void menuRGBIOAssignments(byte board) {
     while(1) {
-      menu assignMenu(3, 9);
-      for (byte i = 0; i < 8; i++) {
-        assignMenu.setItem(itoa(i + 1, buf, 10), i);
-        assignMenu.appendItem(": ", i);
-        byte assignment = getRGBIOAssignment(board, i);
-        if (assignment == RGBIO8_UNASSIGNED)
-          assignMenu.appendItem_P(PSTR("None"), i);
-        else {
-          assignMenu.appendItem(outputs->getOutputBankName(assignment, buf), i);
-          assignMenu.appendItem("-", i);
-          assignMenu.appendItem(outputs->getOutputName(assignment, buf), i);
-        }
-      }
-      assignMenu.setItem_P(EXIT, 255);
+      byte assignment[8];
+      for (byte i = 0; i < 8; i++)
+        assignment[i] = getRGBIOAssignment(board, i);
+
+      menuRGBIOChannels assignMenu(3, assignment);
       
-      char title[20] = "RGBIO x Assignments";
-      title[6] = '1' + board;
+      char title[20] = "RGBIO 1 Assignments";
+      title[6] += board;
       byte lastOption = scrollMenu(title, &assignMenu);
       if (lastOption < 8)
         menuRGBIOAssignment(board, lastOption);
@@ -1553,34 +1843,40 @@ byte menuVessel(byte vessel){
         return;
     }
   }
+
+  class menuRGBIOChannelConfig : public menuPROGMEM {
+    private:
+      byte *assignment;
+      byte *recipe;
+    
+    public:
+      menuRGBIOChannelConfig(byte pSize, byte *a, byte *r) : menuPROGMEM(pSize, RGBIOCHANNELCONFIGTITLES, ARRAY_LENGTH(RGBIOCHANNELCONFIGTITLES)) {
+        assignment = a;
+        recipe = r;
+      }
+
+      char* getItem(byte index, char *retString) {
+        menuPROGMEM::getItem(index, retString);
+        if (index == 0 && *assignment != RGBIO8_UNASSIGNED)
+          outputs->getOutputFullName(*assignment, retString);
+        else if (index == 1)
+          retString[8] += *recipe;
+        return retString;
+      }
+  };
   
   void menuRGBIOAssignment(byte board, byte channel) {
     byte assignment = getRGBIOAssignment(board, channel);
     byte recipe = getRGBIOAssignmentRecipe(board, channel);
     byte origAssignment = assignment;
     byte origRecipe = recipe;
-    
+
+    menuRGBIOChannelConfig assignMenu(3, &assignment, &recipe);
+    char title[] = "RGBIO 1 Channel 1";
+    title[6] += board;
+    title[16] += channel;
     boolean changed = 0;
     while(1) {
-      menu assignMenu(3, 4);
-      
-      if (assignment == RGBIO8_UNASSIGNED)
-        assignMenu.setItem_P(PSTR("No Assignment"), 0);
-      else {
-        assignMenu.setItem(outputs->getOutputBankName(assignment, buf), 0);
-        assignMenu.appendItem("-", 0);
-        assignMenu.appendItem(outputs->getOutputName(assignment, buf), 0);
-        
-        assignMenu.setItem_P(PSTR("Recipe: "), 1);
-        assignMenu.appendItem(itoa(recipe + 1, buf, 10), 1);
-        
-        assignMenu.setItem_P(DELETE, 2);
-      }
-      assignMenu.setItem_P(EXIT, 255);
-      
-      char title[] = "RGBIO x Channel y";
-      title[6] = '1' + board;
-      title[16] = '1' + channel;
       byte lastOption = scrollMenu(title, &assignMenu);
       if (lastOption == 0)
         assignment = menuSelectOutput(title, assignment == RGBIO8_UNASSIGNED ? INDEX_NONE : assignment);
@@ -1600,34 +1896,39 @@ byte menuVessel(byte vessel){
   }
   
   byte menuRGBIOSelectRecipe(char sTitle[], byte currentSelection) {
-    menu recipeMenu(3, RGBIO8_MAX_OUTPUT_RECIPES);
-    for (byte i = 0; i < RGBIO8_MAX_OUTPUT_RECIPES; i++) {
-      recipeMenu.setItem("", i);
-      if (i == currentSelection)
-        recipeMenu.setItem("*", i);
-      recipeMenu.appendItem("Color Recipe ", i);
-      recipeMenu.appendItem(itoa(i + 1, buf, 10), i);
-    }
-  
+    menuNumberedItemList recipeMenu(3, currentSelection, RGBIO8_MAX_OUTPUT_RECIPES, PSTR("Color Recipe  "));
+
     byte lastOption = scrollMenu(sTitle, &recipeMenu);
     if (lastOption == 255)
       return currentSelection;
     return lastOption;
   }
 
+  class menuRGBIORecipeItems : public menuPROGMEM {
+    private:
+      unsigned int *recipe;
+      
+    public:
+      menuRGBIORecipeItems(byte pSize, unsigned int *r) : menuPROGMEM(pSize, TITLE_RGBMODES, ARRAY_LENGTH(TITLE_RGBMODES)) {
+        recipe = r;
+      }
+      char* getItem(byte index, char *retString) {
+        if (index < 4) {
+            char hexValue[4];
+            sprintf(hexValue, "%03X", recipe[index]);
+            strcat(retString, hexValue);
+        }
+        return retString;
+      }
+  };
+
   void menuRGBIORecipe(byte recipeIndex) {
     unsigned int recipe[4], origRecipe[4];
     getRGBIORecipe(recipeIndex, recipe);
     memcpy(&origRecipe, &recipe, 8);
     
+    menuRGBIORecipeItems recipeMenu(3, recipe);
     while (1) {
-      menu recipeMenu(3, 5);
-      for(byte i = 0; i < 4; i++) {
-        recipeMenu.setItem_P((char*)pgm_read_word(&(TITLE_RGBMODES[i])), i);
-        sprintf(buf, "%03X", recipe[i]);
-        recipeMenu.appendItem(buf, i);
-      }
-      recipeMenu.setItem_P(EXIT, 255);
       char title[] = "Color Recipe x";
       title[13] = '1' + recipeIndex;
       byte recipeMode = scrollMenu(title, &recipeMenu);

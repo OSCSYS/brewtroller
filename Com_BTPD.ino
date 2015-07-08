@@ -253,27 +253,28 @@ void sendVsTime(byte chan, byte timer1, byte timer2) {
 */
 void SendTimeBTPD(byte chan, byte AA, byte BB, byte CC, byte DD) {
   Wire.beginTransmission(chan);
+  char numText[4];
   if (AA > 99 || BB > 59) {
     Wire.write("--:--");
   } else {
     if (AA < 10)
       Wire.write("0");
-    Wire.write(itoa(AA, buf, 10));
+    Wire.write(itoa(AA, numText, 10));
     Wire.write(":");
     if(BB < 10)
       Wire.write("0");
-    Wire.write(itoa(BB, buf, 10));
+    Wire.write(itoa(BB, numText, 10));
   }
   if(CC > 99 || DD > 59) {
     Wire.write("--:--");
   } else {
     if(CC < 10)
       Wire.write("0");
-    Wire.write(itoa(CC, buf, 10));
+    Wire.write(itoa(CC, numText, 10));
     Wire.write(":");
     if(DD < 10)
       Wire.write("0");
-    Wire.write(itoa(DD, buf, 10));
+    Wire.write(itoa(DD, numText, 10));
   }
   Wire.endTransmission();
 }

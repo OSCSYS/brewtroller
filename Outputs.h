@@ -33,6 +33,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 //Includes string term \0
 #define OUTPUTBANK_NAME_MAXLEN 6
 #define OUTPUT_NAME_MAXLEN 7
+#define OUTPUT_FULLNAME_MAXLEN OUTPUTBANK_NAME_MAXLEN + OUTPUT_NAME_MAXLEN
 #define OUTPUTBANKS_MAXBANKS 4
 
 class OutputBank
@@ -125,6 +126,7 @@ class OutputSystem
   void update(void);
   char* getOutputBankName(byte outputIndex, char* retString);
   char* getOutputName(byte outputIndex, char* retString);
+  char* getOutputFullName(byte outputIndex, char* retString);
   boolean getOutputState(byte index);
   unsigned long getOutputStateMask(void);
   boolean getOutputEnable(byte enableIndex, byte index);

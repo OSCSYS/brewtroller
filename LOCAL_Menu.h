@@ -3,29 +3,11 @@
 
 #include <Arduino.h>
 
-typedef struct {
-  char name[21];
-  byte value;
-} menuItem;
-
-
 class menu
 {
 public:
-	/* Constructor: pagesize (rows), maximum menu item count */
-	menu(byte, byte);
-
-	/* Frees menuItems memory */
-	~menu(void);
-
-	/* Adds or updates a menu item (based on unique value) */
-	void setItem(char[], byte);
-	void setItem_P(const char *, byte);
-
-	/* Appends text to an existing menu item */
-	void appendItem(char[], byte);
-	void appendItem_P(const char *, byte);
-
+  menu(byte);
+  
 	/* Set selected by specifying index */
 	void setSelected(byte);
 
@@ -51,18 +33,57 @@ public:
 	byte getCursor(void);
 
 	/* Get total number of defined menu items */
-	byte getItemCount(void);
+	virtual byte getItemCount(void) = 0;
+
+  /* Get the item text at the specified index */
+  virtual char* getItem(byte, char *) = 0;
+  
+  /* Get the item value at the specified index */
+  virtual byte getItemValue(byte);
 
 	/* Get menu item index based on specified menu item value */
 	byte getIndexByValue(byte);
 private:
 	byte 	_pageSize,
-		_maxOpts,
-		_itemCount,
 		_selected,
 		_topItem;
-			
-	menuItem *_menuItems;
+};
+
+//Pure PROGMEM Implementation
+class menuPROGMEM : public menu
+{
+  private:
+    const void *PROGMEMData;
+    byte menuSize;
+        
+  public:
+    menuPROGMEM(byte pSize, const void *d, byte s);
+    virtual byte getItemCount(void);
+    virtual char* getItem(byte index, char *retString);
+};
+
+//Pure PROGMEM with *selected item
+class menuPROGMEMSelection : public menu
+{
+  private:
+    const void *PROGMEMData;
+    byte menuSize, currentSelection;
+        
+  public:
+    menuPROGMEMSelection(byte pSize, const void *d, byte s, byte sel);
+    virtual byte getItemCount(void);
+    virtual char* getItem(byte index, char *retString);
+};
+
+class menuNumberedItemList : public menu {
+  private:
+    byte currentSelection, itemCount;
+    const char *itemText;
+    
+  public:
+    menuNumberedItemList(byte, byte, byte, const char *);
+    byte getItemCount(void);
+    char* getItem(byte, char *);
 };
 
 #endif
