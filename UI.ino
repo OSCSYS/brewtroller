@@ -779,7 +779,7 @@ void screenBoilMenu() {
   }
 
   boilMenu.setItem_P(PSTR("Setpoint:"), 8);
-  vftoa(setpoint[VS_KETTLE], buf, 100, 8);
+  vftoa(setpoint[VS_KETTLE], buf, 100, 1);
   truncFloat(buf, 4);
   boilMenu.appendItem(buf, 8);
   boilMenu.appendItem_P(TUNIT, 8);
@@ -814,7 +814,7 @@ void screenBoilMenu() {
   else if (lastOption == 2) boilControlMenu();
   else if (lastOption == 3) {
     setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
-    setSetpoint(VS_KETTLE, getBoilTemp() * SETPOINT_MULT);
+    setSetpoint(VS_KETTLE, getBoilTemp());
   }
   else if (lastOption == 4) setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
   else if (lastOption == 5)
@@ -1002,7 +1002,7 @@ void boilControlMenu() {
       break;
     case CONTROLSTATE_AUTO:
     case CONTROLSTATE_MANUAL:
-      setSetpoint(VS_KETTLE, getBoilTemp() * SETPOINT_MULT);
+      setSetpoint(VS_KETTLE, getBoilTemp());
       break;
   }
 }
