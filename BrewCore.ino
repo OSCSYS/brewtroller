@@ -51,8 +51,9 @@ void brewCore() {
   #ifdef HEARTBEAT
     heartbeat();
   #endif
-  
-  bubbler->compute();
+
+  if (bubbler)
+    bubbler->compute();
   triggerUpdate();
   updateHeatOutputs();
   outputs->update();
