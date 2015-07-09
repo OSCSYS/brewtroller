@@ -651,7 +651,7 @@ void menuSystemSettings() {
       else if (lastOption == 1)
         setBoilPwr(getValue_P(BOIL_POWER, boilPwr, 1, 100, PSTR("%")));
       else if (lastOption == 2)
-        setEvapRate(getValue_P(EVAPORATION_RATE, getEvapRate(), 1, 255, EVAPUNIT));
+        setEvapRate(getValue_P(EVAPORATION_RATE, getEvapRate(), 1000 / EvapRateConversion, 255, EVAPUNIT));
       else if (lastOption == 3)
         setGrainDisplacement(getValue_P(GRAIN_DISPLACEMENT, getGrainDisplacement(), 1000, 65535, GRAINRATIOUNIT));
       else if (lastOption == 4)
