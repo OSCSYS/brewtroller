@@ -645,10 +645,10 @@ unsigned long calcStrikeVol(byte recipe) {
 
 unsigned long calcTotalLiquorVol(byte recipe) {
   unsigned long retValue = calcPreboilVol(recipe);
-
+  
   //Add Water Lost in Spent Grain
   retValue += calcGrainLoss(recipe);
-  
+
   //Add extra sparge volume needed for loss during transfer of sprage liquor
   retValue += getSpargeLoss();
   
@@ -657,11 +657,12 @@ unsigned long calcTotalLiquorVol(byte recipe) {
   
   //Add extra volume needed for loss during transfer from mash to boil
   retValue += getMashLoss();
+  return retValue;
 }
 
 unsigned long calcSpargeVol(byte recipe) {
   unsigned long retValue = calcTotalLiquorVol(recipe);
-  
+    
   //Subtract Strike Water Volume
   retValue -= calcStrikeVol(recipe);
   
