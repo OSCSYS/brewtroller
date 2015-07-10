@@ -30,7 +30,9 @@ byte volCount;
 
 void updateVols() {
   //Process bubbler logic and prevent reads if bubbler is active or in delay
-  boolean readEnabled = bubbler->compute();
+  boolean readEnabled = 1;
+  if (bubbler)
+    readEnabled = bubbler->compute();
   
   //Check volume on VOLUME_READ_INTERVAL and update vol with average of VOLUME_READ_COUNT readings
   if (millis() - lastVolChk > VOLUME_READ_INTERVAL) {
