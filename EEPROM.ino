@@ -120,7 +120,7 @@ void loadPWMOutput(byte i) {
     
   pid[i].SetInputLimits(0, 25500);
   pid[i].SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
-  pid[i].SetTunings(getPIDp(i), getPIDi(i), getPIDd(i));
+  pid[i].SetTunings((double)getPIDp(i)/PIDGAIN_DIV, (double)getPIDi(i)/PIDGAIN_DIV, (double)getPIDd(i)/PIDGAIN_DIV);
   pid[i].SetMode(AUTO);
   pid[i].SetSampleTime(PID_UPDATE_INTERVAL);
 }
@@ -238,36 +238,8 @@ void setTSAddr(byte sensor, byte addr[8]) {
 }
 
 //**********************************************************************************
-//OPEN (72)
+//OPEN (72-90)
 //**********************************************************************************
-
-
-//**********************************************************************************
-//PIDp HLT (73), Mash (78), Kettle (83), RESERVED (88)
-//**********************************************************************************
-void setPIDp(byte vessel, byte value) {
-  pid[vessel].SetTunings(value, pid[vessel].GetI_Param(), pid[vessel].GetD_Param());
-  EEPROM.write(73 + vessel * 5, value);
-}
-byte getPIDp(byte vessel) { return EEPROM.read(73 + vessel * 5); }
-
-//**********************************************************************************
-//PIDi HLT (74), Mash (79), Kettle (84), RESERVED (89)
-//**********************************************************************************
-void setPIDi(byte vessel, byte value) {
-  pid[vessel].SetTunings(pid[vessel].GetP_Param(), value, pid[vessel].GetD_Param());
-  EEPROM.write(74 + vessel * 5, value);
-}
-byte getPIDi(byte vessel) { return EEPROM.read(74 + vessel * 5); }
-
-//**********************************************************************************
-//PIDd HLT (75), Mash (80), Kettle (85), RESERVED (90)
-//**********************************************************************************
-void setPIDd(byte vessel, byte value) {
-  pid[vessel].SetTunings(pid[vessel].GetP_Param(), pid[vessel].GetI_Param(), value);
-  EEPROM.write(75 + vessel * 5, value);
-}
-byte getPIDd(byte vessel) { return EEPROM.read(75 + vessel * 5); }
 
 //**********************************************************************************
 //PWM Period HLT (76), Mash (81), Kettle (86), RESERVED (91)
@@ -820,6 +792,33 @@ void initializeBrewStepConfiguration() {
   brewStepConfiguration.flySpargeHysteresis = 0;
 }
 
+//**********************************************************************************
+//PIDp HLT (2225-2226), Mash (2231-2232), Kettle (2237-2238), RESERVED (2243-2244)
+//**********************************************************************************
+void setPIDp(byte vessel, unsigned int value) {
+  pid[vessel].SetTunings((double)value/PIDGAIN_DIV, pid[vessel].GetI_Param(), pid[vessel].GetD_Param());
+  EEPROMwriteInt(2225 + vessel * 6, value);
+}
+unsigned int getPIDp(byte vessel) { return EEPROMreadInt(2225 + vessel * 6); }
+
+//**********************************************************************************
+//PIDi HLT (2227-2228), Mash (2233-2234), Kettle (2239-2240), RESERVED (2245-2246)
+//**********************************************************************************
+void setPIDi(byte vessel, unsigned int value) {
+  pid[vessel].SetTunings(pid[vessel].GetP_Param(), (double)value/PIDGAIN_DIV, pid[vessel].GetD_Param());
+  EEPROMwriteInt(2227 + vessel * 6, value);
+}
+unsigned int getPIDi(byte vessel) { return EEPROMreadInt(2227 + vessel * 6); }
+
+//**********************************************************************************
+//PIDd HLT (2229-2230), Mash (2035-2036), Kettle (2241-2242), RESERVED (2247-2248)
+//**********************************************************************************
+void setPIDd(byte vessel, unsigned int value) {
+  pid[vessel].SetTunings(pid[vessel].GetP_Param(), pid[vessel].GetI_Param(), (double)value/PIDGAIN_DIV);
+  EEPROMwriteInt(2229 + vessel * 6, value);
+}
+unsigned int getPIDd(byte vessel) { return EEPROMreadInt(2229 + vessel * 6); }
+
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
 //*****************************************************************************************************************************
@@ -926,7 +925,13 @@ boolean checkConfig() {
     case 9:
       setMashTunHeatCapacity(0);
       setMinimumSpargeVolume(0);
-      EEPROM.write(2047, 10);
+    case 10:
+       for (byte vessel = VS_HLT; vessel <= VS_KETTLE; vessel++) {
+        EEPROMwriteInt(2225 + vessel * 6, EEPROM.read(73 + vessel * 5) * PIDGAIN_DIV); //P Gain
+        EEPROMwriteInt(2227 + vessel * 6, EEPROM.read(74 + vessel * 5) * PIDGAIN_DIV); //I Gain
+        EEPROMwriteInt(2229 + vessel * 6, EEPROM.read(75 + vessel * 5) * PIDGAIN_DIV); //D Gain
+      }
+      EEPROM.write(2047, 11);
   }
   return 0;
 }
