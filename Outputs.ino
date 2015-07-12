@@ -23,7 +23,7 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
-
+unsigned long lastKettleOutSave = 0;
 // set what the PID cycle time should be based on how fast the temp sensors will respond
 
 void resetOutputs() {
@@ -37,8 +37,8 @@ void resetOutputs() {
 //Likely not called directly for any reason
 //OK, the vessel min ISRs call it to turn off outputs without clearing the setpoint.
 void resetVesselHeat(byte vessel) {
-  if (vessel == VS_KETTLE)
-    boilControlState = CONTROLSTATE_OFF;
+  if (vessel == VS_KETTLE && boilControlState != CONTROLSTATE_OFF)
+    setBoilControlState(CONTROLSTATE_OFF);
   outputs->setProfileState(vesselIdleProfile(vessel), 0);
   outputs->setProfileState(vesselHeatProfile(vessel), 0);
   outputs->setProfileState(vesselPWMActiveProfile(vessel), 0);
@@ -49,8 +49,8 @@ void resetVesselHeat(byte vessel) {
 }
 
 void updatePIDHeat(byte vessel) {
-  //Do not compute PID for kettle if boil control is AUTO or MANUAL
-  if (vessel != VS_KETTLE || boilControlState == CONTROLSTATE_OFF) {
+  //Do not compute PID for kettle if boil control is not in setpoint mode.
+  if (vessel != VS_KETTLE || boilControlState == CONTROLSTATE_SETPOINT || boilControlState == CONTROLSTATE_OFF) {
     if (temp[vessel] == BAD_TEMP)
       PIDOutput[vessel] = 0;
     else {
@@ -201,11 +201,17 @@ void updateHeatOutputs() {
   
 void updateBoilController () {
   if (boilControlState == CONTROLSTATE_AUTO) {
-    if(temp[TS_KETTLE] < setpoint[TS_KETTLE])
+    if(temp[TS_KETTLE] < getBoilTemp()*SETPOINT_MULT)
       PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? pwmOutput[VS_KETTLE]->getLimit() : 0;
     else
       PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? (unsigned int)(pwmOutput[VS_KETTLE]->getLimit()) * boilPwr / 100: 0;
   }
+
+  //Save Kettle output to EEPROM if different, check very minuite (to avoid excessive EEPROM writes)
+  if ((millis() - lastKettleOutSave > 60000) && boilControlState == CONTROLSTATE_MANUAL) {
+      lastKettleOutSave = millis();
+      setBoilOutput((byte)PIDOutput[VS_KETTLE]);
+    }
 }
 
 byte vesselHeatProfile(byte vessel) {

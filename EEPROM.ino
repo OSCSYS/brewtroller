@@ -51,9 +51,11 @@ void loadSetup() {
     vSensor[i] = EEPROM.read(114 + i);
   
   //**********************************************************************************
-  //OPEN (118)
+  //Boil Control state(118)
   //**********************************************************************************
-
+  boilControlState = (ControlState)EEPROM.read(118);
+  if (boilControlState == CONTROLSTATE_MANUAL)
+	  PIDOutput[VS_KETTLE] = getBoilOutput();
   //**********************************************************************************
   //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
   //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
@@ -315,9 +317,17 @@ unsigned int getMinimumSpargeVolume() {
 
 
 //**********************************************************************************
-// OPEN (109-111)
+// OPEN (109)
 //**********************************************************************************
 
+//**********************************************************************************
+// Boil Kettle Manual Output (110)
+//**********************************************************************************
+byte getBoilOutput() { return EEPROM.read(110); }
+void setBoilOutput(byte boilOutput) { 
+	if (getBoilOutput() != boilOutput)
+		EEPROM.write(110, boilOutput); 
+}
 
 //**********************************************************************************
 //Boil Temp (111)
@@ -352,8 +362,24 @@ byte getVolumeSensor(byte vessel) {
   return EEPROM.read(114 + vessel);
 }
 //**********************************************************************************
-//Open (118)
+//Boil Control State (118)
 //**********************************************************************************
+void setBoilControlState(ControlState state) {
+	EEPROM.write(118, (byte)state);
+	boilControlState = state;
+	switch (boilControlState) {
+		case CONTROLSTATE_MANUAL:
+			setBoilOutput((byte)PIDOutput[VS_KETTLE]); //Save PID Output for recovery
+		case CONTROLSTATE_AUTO:
+			setSetpoint(VS_KETTLE, getBoilTemp());
+			break;
+    case CONTROLSTATE_OFF:
+      setSetpoint(VS_KETTLE, 0);
+    case CONTROLSTATE_SETPOINT:
+      break;
+
+	}
+}
 
 //**********************************************************************************
 //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
