@@ -711,19 +711,19 @@ void screenBoil (enum ScreenSignal signal) {
       else LCD.print_P(0,0,PSTR("Boil"));
       break;
     case SCREENSIGNAL_UPDATE:
-        switch (boilControlState) {
-          case CONTROLSTATE_OFF:
-              LCD.print_P(0, 13, PSTR("   Off"));
-            break;
-          case CONTROLSTATE_AUTO:
-            LCD.print_P(0, 13, PSTR("  Auto"));
-            break;
-          case CONTROLSTATE_MANUAL:
-            LCD.print_P(0, 13, PSTR("Manual"));
-            break;
-		      case CONTROLSTATE_SETPOINT:
-			      uiLabelTemperature(0, 14, 5, setpoint[VS_KETTLE]);
-			      break;
+		switch (boilControlState) {
+			case CONTROLSTATE_OFF:
+				LCD.print_P(0, 13, PSTR("   Off"));
+				break;
+			case CONTROLSTATE_AUTO:
+				LCD.print_P(0, 13, PSTR("  Auto"));
+				break;
+			case CONTROLSTATE_MANUAL:
+				LCD.print_P(0, 13, PSTR("Manual"));
+				break;
+			case CONTROLSTATE_SETPOINT:
+				uiLabelTemperature(0, 14, 5, setpoint[VS_KETTLE]);
+				break;
       }
       
       printTimer(TIMER_BOIL, 3, 0);
@@ -737,11 +737,11 @@ void screenBoil (enum ScreenSignal signal) {
       break;
     case SCREENSIGNAL_ENCODERCHANGE:
       switch (boilControlState) {
-	    case CONTROLSTATE_SETPOINT:
-        case CONTROLSTATE_AUTO:
-          setBoilControlState(CONTROLSTATE_MANUAL);
-        case CONTROLSTATE_MANUAL:
-          PIDOutput[VS_KETTLE] = Encoder.getCount();
+		case CONTROLSTATE_SETPOINT:
+		case CONTROLSTATE_AUTO:
+			setBoilControlState(CONTROLSTATE_MANUAL);
+		case CONTROLSTATE_MANUAL:
+			PIDOutput[VS_KETTLE] = Encoder.getCount();
       }
       break;
     case SCREENSIGNAL_LOCK:
@@ -996,12 +996,6 @@ void boilControlMenu() {
   boilMenu.setItem_P(PSTR("Setpoint"), CONTROLSTATE_SETPOINT);
   byte lastOption = scrollMenu("Boil Control Menu", &boilMenu);
   if (lastOption < NUM_CONTROLSTATES) setBoilControlState((ControlState) lastOption);
-  switch (boilControlState) {
-    case CONTROLSTATE_OFF:
-    case CONTROLSTATE_AUTO:
-    case CONTROLSTATE_MANUAL:
-      break;
-  }
 }
 
 void continueClick() {

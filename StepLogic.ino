@@ -569,8 +569,8 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       }
       //Exit Condition  
       if(preheated[VS_KETTLE] && timerValue[TIMER_BOIL] == 0) {
-        //Kill Kettle power at end of timer...
-        setSetpoint(VS_KETTLE, 0);
+		//Kill Kettle power at end of timer...
+		  setBoilControlState(CONTROLSTATE_OFF);
         //...but wait for last hop addition to complete before leaving step
         if(lastHop == 0)
           brewStepBoil(STEPSIGNAL_ADVANCE, thread);
@@ -582,6 +582,8 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
       outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 0);
       setSetpoint(VS_KETTLE, 0);
+	  setBoilControlState(CONTROLSTATE_OFF);
+
       clearTimer(TIMER_BOIL);
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepChill(STEPSIGNAL_INIT, thread);

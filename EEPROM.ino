@@ -51,12 +51,6 @@ void loadSetup() {
     vSensor[i] = EEPROM.read(114 + i);
   
   //**********************************************************************************
-  //Boil Control state(118)
-  //**********************************************************************************
-  boilControlState = (ControlState)EEPROM.read(118);
-  if (boilControlState == CONTROLSTATE_MANUAL)
-	  PIDOutput[VS_KETTLE] = getBoilOutput();
-  //**********************************************************************************
   //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
   //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
   //**********************************************************************************
@@ -80,6 +74,13 @@ void loadSetup() {
 
   for (byte i = VS_HLT; i <= VS_KETTLE; i++)
     loadPWMOutput(i);
+
+  //**********************************************************************************
+  //Boil Control state(118)
+  //**********************************************************************************
+  setBoilControlState((ControlState)EEPROM.read(118)); //Must be after loadPWMOutput();
+  if (boilControlState == CONTROLSTATE_MANUAL)
+    PIDOutput[VS_KETTLE] = getBoilOutput();
 
   //**********************************************************************************
   //Timer/Alarm Status (306)
@@ -119,7 +120,6 @@ void loadPWMOutput(byte i) {
     delete pwmOutput[i];
   if (pwmPin != INDEX_NONE)
     pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
-    
   pid[i].SetInputLimits(0, 25500);
   pid[i].SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
   pid[i].SetTunings(getPIDp(i), getPIDi(i), getPIDd(i));
@@ -365,19 +365,19 @@ byte getVolumeSensor(byte vessel) {
 //Boil Control State (118)
 //**********************************************************************************
 void setBoilControlState(ControlState state) {
-	EEPROM.write(118, (byte)state);
+	if (boilControlState != state)
+		EEPROM.write(118, (byte)state);
 	boilControlState = state;
 	switch (boilControlState) {
-		case CONTROLSTATE_MANUAL:
-			setBoilOutput((byte)PIDOutput[VS_KETTLE]); //Save PID Output for recovery
-		case CONTROLSTATE_AUTO:
-			setSetpoint(VS_KETTLE, getBoilTemp());
+		case CONTROLSTATE_SETPOINT:
+			pid[VS_KETTLE].SetMode(1); //Set PID to Auto
 			break;
-    case CONTROLSTATE_OFF:
-      setSetpoint(VS_KETTLE, 0);
-    case CONTROLSTATE_SETPOINT:
-      break;
-
+		case CONTROLSTATE_OFF:
+			resetVesselHeat(VS_KETTLE);
+		case CONTROLSTATE_MANUAL:
+		case CONTROLSTATE_AUTO:
+			pid[VS_KETTLE].SetMode(0); //Set PID to Manual
+			break;
 	}
 }
 

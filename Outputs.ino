@@ -36,6 +36,7 @@ void resetOutputs() {
 //Called by setpoint event when setSetpoint() is called
 //Likely not called directly for any reason
 //OK, the vessel min ISRs call it to turn off outputs without clearing the setpoint.
+//Also used to reset kettle output when boilcontrolstate is changed to OFF.
 void resetVesselHeat(byte vessel) {
   if (vessel == VS_KETTLE && boilControlState != CONTROLSTATE_OFF)
     setBoilControlState(CONTROLSTATE_OFF);
@@ -49,15 +50,16 @@ void resetVesselHeat(byte vessel) {
 }
 
 void updatePIDHeat(byte vessel) {
-  //Do not compute PID for kettle if boil control is not in setpoint mode.
-  if (vessel != VS_KETTLE || boilControlState == CONTROLSTATE_SETPOINT || boilControlState == CONTROLSTATE_OFF) {
-    if (temp[vessel] == BAD_TEMP)
-      PIDOutput[vessel] = 0;
-    else {
-      PIDInput[vessel] = temp[vessel];
-      pid[vessel].Compute();
-    }
-  }
+	//Do not compute PID for kettle if boil control is not in setpoint mode. Temp sensor check can cause power loss recovery problems in manual mode.
+	if (vessel != VS_KETTLE || boilControlState == CONTROLSTATE_SETPOINT) {
+		if (temp[vessel] == BAD_TEMP)
+			PIDOutput[vessel] = 0;
+		else {
+			PIDInput[vessel] = temp[vessel];
+			pid[vessel].Compute();
+		}
+	}
+
   
   #ifdef HLT_MIN_HEAT_VOL
     if(vessel == VS_HLT && volAvg[vessel] < HLT_MIN_HEAT_VOL)
@@ -206,8 +208,11 @@ void updateBoilController () {
     else
       PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? (unsigned int)(pwmOutput[VS_KETTLE]->getLimit()) * boilPwr / 100: 0;
   }
+  else if (boilControlState == CONTROLSTATE_OFF) {
+	  PIDOutput[VS_KETTLE] = 0;
+  }
 
-  //Save Kettle output to EEPROM if different, check very minuite (to avoid excessive EEPROM writes)
+  //Save Kettle output to EEPROM if different, check every minuite (to avoid excessive EEPROM writes)
   if ((millis() - lastKettleOutSave > 60000) && boilControlState == CONTROLSTATE_MANUAL) {
       lastKettleOutSave = millis();
       setBoilOutput((byte)PIDOutput[VS_KETTLE]);
