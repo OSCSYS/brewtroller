@@ -806,13 +806,13 @@ void menuVesselSettings(byte vessel) {
       vesselMenu.appendItem(itoa(getPWMResolution(vessel), buf, 10), 2);
 
       vesselMenu.setItem_P(PSTR("P Gain: "), 3);
-      vesselMenu.appendItem(itoa(getPIDp(vessel), buf, 10), 3);
+      vesselMenu.appendItem(vftoa(getPIDp(vessel), buf, PIDGAIN_DIV, PIDGAIN_DEC), 3);
 
       vesselMenu.setItem_P(PSTR("I Gain: "), 4);
-      vesselMenu.appendItem(itoa(getPIDi(vessel), buf, 10), 4);
+      vesselMenu.appendItem(vftoa(getPIDi(vessel), buf, PIDGAIN_DIV, PIDGAIN_DEC), 4);
 
       vesselMenu.setItem_P(PSTR("D Gain: "), 5);
-      vesselMenu.appendItem(itoa(getPIDd(vessel), buf, 10), 5);
+      vesselMenu.appendItem(vftoa(getPIDd(vessel), buf, PIDGAIN_DIV, PIDGAIN_DEC), 5);
       
       vesselMenu.setItem_P(PSTR("PID Limit: "), 6);
       vesselMenu.appendItem(itoa(getPIDLimit(vessel), buf, 10), 6);
@@ -842,11 +842,11 @@ void menuVesselSettings(byte vessel) {
     else if (lastOption == 2)
       setPWMResolution(vessel, getValue_P(PSTR("PWM Resolution"), getPWMResolution(vessel), 1, 255, PSTR("")));
     else if (lastOption == 3)
-      setPIDp(vessel, getValue_P(PSTR("P Gain"), getPIDp(vessel), 1, 255, PSTR("")));
+      setPIDp(vessel, getValue_P(PSTR("P Gain"), getPIDp(vessel), PIDGAIN_DIV, PIDGAIN_LIM, PSTR("")));
     else if (lastOption == 4)
-      setPIDi(vessel, getValue_P(PSTR("I Gain"), getPIDi(vessel), 1, 255, PSTR("")));
+      setPIDi(vessel, getValue_P(PSTR("I Gain"), getPIDi(vessel), PIDGAIN_DIV, PIDGAIN_LIM, PSTR("")));
     else if (lastOption == 5)
-      setPIDd(vessel, getValue_P(PSTR("D Gain"), getPIDd(vessel), 1, 255, PSTR("")));
+      setPIDd(vessel, getValue_P(PSTR("D Gain"), getPIDd(vessel), PIDGAIN_DIV, PIDGAIN_LIM, PSTR("")));
     else if (lastOption == 6)
       setPIDLimit(vessel, getValue_P(PSTR("PID Limit"), getPIDLimit(vessel), 1, 100, PSTR("")));
     else if (lastOption == 7)

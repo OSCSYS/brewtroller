@@ -109,6 +109,10 @@ const char BTVER[] PROGMEM = "2.7";
   #ERROR
 #endif
 
+#define PIDGAIN_DIV 100
+#define PIDGAIN_DEC 2
+#define PIDGAIN_LIM 65535
+
 struct ProgramThread {
   byte activeStep;
   byte recipe;
