@@ -74,6 +74,13 @@
     OUTPUTENABLE_COUNT
   };
 
+  enum OutputStatus {
+	  OUTPUTSTATUS_DISABLED,			  //Output is disabled by an OutputEnableIndex profile
+	  OUTPUTSTATUS_FORCED,				  //Output is forced on by a profile index > OUTPUTPROFILE_USERCOUNT < OUTPUTPROFILE_SYSTEMCOUNT (non-user config profile)
+	  OUTPUTSTATUS_AUTOON,				  //Output is on by a user config profile
+	  OUTPUTSTATUS_AUTOOFF				  //Output is enabled but not currently active
+  };
+
 //Timers
 #define TIMER_MASH 0
 #define TIMER_BOIL 1

@@ -342,13 +342,13 @@ void setBoilControlState(ControlState state) {
 	boilControlState = state;
 	switch (boilControlState) {
 		case CONTROLSTATE_SETPOINT:
-			pid[VS_KETTLE].SetMode(1); //Set PID to Auto
+			pid[VS_KETTLE].SetMode(AUTO);
 			break;
 		case CONTROLSTATE_OFF:
 			resetVesselHeat(VS_KETTLE);
 		case CONTROLSTATE_MANUAL:
 		case CONTROLSTATE_AUTO:
-			pid[VS_KETTLE].SetMode(0); //Set PID to Manual
+			pid[VS_KETTLE].SetMode(MANUAL);
 			break;
 	}
 }
