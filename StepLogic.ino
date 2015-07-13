@@ -506,7 +506,6 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
 void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
   switch (signal) {
     case STEPSIGNAL_INIT:
-      setSetpoint(VS_KETTLE, getBoilTemp());
       preheated[VS_KETTLE] = 0;
       boilAdds = getProgAdds(thread->recipe);
       
@@ -523,8 +522,10 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       //Leave timer paused until preheated
       timerStatus[TIMER_BOIL] = 0;
       lastHop = 0;
-      boilControlState = CONTROLSTATE_AUTO;
-      programThreadSetStep(thread, BREWSTEP_BOIL);
+	  if (boilControlState == CONTROLSTATE_OFF)
+		setBoilControlState(CONTROLSTATE_AUTO);
+
+	  programThreadSetStep(thread, BREWSTEP_BOIL);
       break;
     case STEPSIGNAL_UPDATE:
       if (!(triggered & 32768) && temp[TS_KETTLE] != BAD_TEMP && temp[TS_KETTLE] >= brewStepConfiguration.preBoilAlarm * 100) {
@@ -532,7 +533,7 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
         triggered |= 32768; 
         setBoilAddsTrig(triggered);
       }
-      if (!preheated[VS_KETTLE] && temp[TS_KETTLE] >= setpoint[VS_KETTLE] && setpoint[VS_KETTLE] > 0) {
+	  if (!preheated[VS_KETTLE] && temp[TS_KETTLE] >= getBoilTemp()*SETPOINT_MULT) {
         preheated[VS_KETTLE] = 1;
         //Unpause Timer
         if (!timerStatus[TIMER_BOIL])
@@ -568,8 +569,8 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       }
       //Exit Condition  
       if(preheated[VS_KETTLE] && timerValue[TIMER_BOIL] == 0) {
-        //Kill Kettle power at end of timer...
-        setSetpoint(VS_KETTLE, 0);
+		//Kill Kettle power at end of timer...
+		  setBoilControlState(CONTROLSTATE_OFF);
         //...but wait for last hop addition to complete before leaving step
         if(lastHop == 0)
           brewStepBoil(STEPSIGNAL_ADVANCE, thread);
@@ -581,6 +582,8 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
       outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
       outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 0);
       setSetpoint(VS_KETTLE, 0);
+	  setBoilControlState(CONTROLSTATE_OFF);
+
       clearTimer(TIMER_BOIL);
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepChill(STEPSIGNAL_INIT, thread);

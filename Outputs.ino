@@ -23,7 +23,7 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
-
+unsigned long lastKettleOutSave = 0;
 // set what the PID cycle time should be based on how fast the temp sensors will respond
 
 void resetOutputs() {
@@ -36,9 +36,10 @@ void resetOutputs() {
 //Called by setpoint event when setSetpoint() is called
 //Likely not called directly for any reason
 //OK, the vessel min ISRs call it to turn off outputs without clearing the setpoint.
+//Also used to reset kettle output when boilcontrolstate is changed to OFF.
 void resetVesselHeat(byte vessel) {
-  if (vessel == VS_KETTLE)
-    boilControlState = CONTROLSTATE_OFF;
+  if (vessel == VS_KETTLE && boilControlState != CONTROLSTATE_OFF)
+    setBoilControlState(CONTROLSTATE_OFF);
   outputs->setProfileState(vesselIdleProfile(vessel), 0);
   outputs->setProfileState(vesselHeatProfile(vessel), 0);
   outputs->setProfileState(vesselPWMActiveProfile(vessel), 0);
@@ -49,15 +50,16 @@ void resetVesselHeat(byte vessel) {
 }
 
 void updatePIDHeat(byte vessel) {
-  //Do not compute PID for kettle if boil control is AUTO or MANUAL
-  if (vessel != VS_KETTLE || boilControlState == CONTROLSTATE_OFF) {
-    if (temp[vessel] == BAD_TEMP)
-      PIDOutput[vessel] = 0;
-    else {
-      PIDInput[vessel] = temp[vessel];
-      pid[vessel].Compute();
-    }
-  }
+	//Do not compute PID for kettle if boil control is not in setpoint mode. Temp sensor check can cause power loss recovery problems in manual mode.
+	if (vessel != VS_KETTLE || boilControlState == CONTROLSTATE_SETPOINT) {
+		if (temp[vessel] == BAD_TEMP)
+			PIDOutput[vessel] = 0;
+		else {
+			PIDInput[vessel] = temp[vessel];
+			pid[vessel].Compute();
+		}
+	}
+
   
   #ifdef HLT_MIN_HEAT_VOL
     if(vessel == VS_HLT && volAvg[vessel] < HLT_MIN_HEAT_VOL)
@@ -201,11 +203,20 @@ void updateHeatOutputs() {
   
 void updateBoilController () {
   if (boilControlState == CONTROLSTATE_AUTO) {
-    if(temp[TS_KETTLE] < setpoint[TS_KETTLE])
+    if(temp[TS_KETTLE] < getBoilTemp()*SETPOINT_MULT)
       PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? pwmOutput[VS_KETTLE]->getLimit() : 0;
     else
       PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? (unsigned int)(pwmOutput[VS_KETTLE]->getLimit()) * boilPwr / 100: 0;
   }
+  else if (boilControlState == CONTROLSTATE_OFF) {
+	  PIDOutput[VS_KETTLE] = 0;
+  }
+
+  //Save Kettle output to EEPROM if different, check every minuite (to avoid excessive EEPROM writes)
+  if ((millis() - lastKettleOutSave > 60000) && boilControlState == CONTROLSTATE_MANUAL) {
+      lastKettleOutSave = millis();
+      setBoilOutput((byte)PIDOutput[VS_KETTLE]);
+    }
 }
 
 byte vesselHeatProfile(byte vessel) {

@@ -759,20 +759,21 @@ void BTnic::execCmd(void) {
       break;
       
     case CMD_SET_BOILCTL: //}
-      boilControlState = (ControlState)getCmdParamNum(1);
+	  setBoilControlState((ControlState)getCmdParamNum(1));
       switch (boilControlState) {
         case CONTROLSTATE_OFF:
           PIDOutput[VS_KETTLE] = 0;
-          setpoint[VS_KETTLE] = 0;
           break;
         case CONTROLSTATE_AUTO:
-          setpoint[VS_KETTLE] = getBoilTemp();
           break;
         case CONTROLSTATE_MANUAL:
-          setpoint[VS_KETTLE] = 1;
           if (pwmOutput[VS_KETTLE])
             PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE]->getLimit() * getCmdParamNum(2) / 100;
-        break;
+		  break;
+		case CONTROLSTATE_SETPOINT:
+			setSetpoint(VS_KETTLE, getCmdParamNum(2));
+			break;
+
       }
     case CMD_GET_BOILCTL: //~
       logFieldCmd(CMD_GET_BOILCTL, NO_CMDINDEX);

@@ -141,8 +141,22 @@ void updateBTPD() {
 void sendVsTemp(byte chan, byte sensor, byte vessel) {
   if (temp[sensor] == BAD_TEMP )
     sendStringBTPD(chan, "    ----");
-  else
-    sendFloatsBTPD(chan, setpoint[vessel] / 100.0, temp[sensor] / 100.0);
+  else {
+	  int kettleSetpoint = 0;
+	  if (vessel == VS_KETTLE && boilControlState != CONTROLSTATE_SETPOINT) {
+		  switch (boilControlState) {
+		  case CONTROLSTATE_AUTO:
+		  case CONTROLSTATE_MANUAL:
+			  kettleSetpoint = getBoilTemp()*SETPOINT_MULT;
+			  break;
+		  case CONTROLSTATE_OFF:
+			  kettleSetpoint = 0;
+			  break;
+		  }
+	  } else 
+		  kettleSetpoint = setpoint[vessel];
+	sendFloatsBTPD(chan, kettleSetpoint / 100.0, temp[sensor] / 100.0);
+  }
 }
 
 void sendVsVol(byte chan, byte vessel) {

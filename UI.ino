@@ -711,21 +711,19 @@ void screenBoil (enum ScreenSignal signal) {
       else LCD.print_P(0,0,PSTR("Boil"));
       break;
     case SCREENSIGNAL_UPDATE:
-      if (screenLock) {
-        switch (boilControlState) {
-          case CONTROLSTATE_OFF:
-            if (setpoint[VS_KETTLE])
-              uiLabelTemperature(0, 14, 6, setpoint[VS_KETTLE]);
-            else
-              LCD.print_P(0, 14, PSTR("   Off"));
-            break;
-          case CONTROLSTATE_AUTO:
-            LCD.print_P(0, 14, PSTR("  Auto"));
-            break;
-          case CONTROLSTATE_MANUAL:
-            LCD.print_P(0, 14, PSTR("Manual"));
-            break;
-        }
+		switch (boilControlState) {
+			case CONTROLSTATE_OFF:
+				LCD.print_P(0, 13, PSTR("   Off"));
+				break;
+			case CONTROLSTATE_AUTO:
+				LCD.print_P(0, 13, PSTR("  Auto"));
+				break;
+			case CONTROLSTATE_MANUAL:
+				LCD.print_P(0, 13, PSTR("Manual"));
+				break;
+			case CONTROLSTATE_SETPOINT:
+				uiLabelTemperature(0, 14, 5, setpoint[VS_KETTLE]);
+				break;
       }
       
       printTimer(TIMER_BOIL, 3, 0);
@@ -739,21 +737,20 @@ void screenBoil (enum ScreenSignal signal) {
       break;
     case SCREENSIGNAL_ENCODERCHANGE:
       switch (boilControlState) {
-        case CONTROLSTATE_AUTO:
-          boilControlState = CONTROLSTATE_MANUAL;
-        case CONTROLSTATE_MANUAL:
-          PIDOutput[VS_KETTLE] = Encoder.getCount();
+		case CONTROLSTATE_SETPOINT:
+		case CONTROLSTATE_AUTO:
+			setBoilControlState(CONTROLSTATE_MANUAL);
+		case CONTROLSTATE_MANUAL:
+			PIDOutput[VS_KETTLE] = Encoder.getCount();
       }
       break;
     case SCREENSIGNAL_LOCK:
       Encoder.setMin(0);
       Encoder.setMax(pwmOutput[VS_KETTLE] ? pwmOutput[VS_KETTLE]->getLimit() : 1);
       Encoder.setCount(pwmOutput[VS_KETTLE] ? PIDOutput[VS_KETTLE] : heatStatus[VS_KETTLE]);
-      //If Kettle is off keep it off until unlocked
-      if (!setpoint[VS_KETTLE]) boilControlState = CONTROLSTATE_OFF;
       break;
     case SCREENSIGNAL_UNLOCK:
-      LCD.rPad(0, 14, "", 5, ' ');
+      //LCD.rPad(0, 14, "", 5, ' ');
       break;
   }
 }
@@ -776,6 +773,9 @@ void screenBoilMenu() {
     case CONTROLSTATE_MANUAL:
       boilMenu.appendItem_P(PSTR("Manual"), 2);
       break;
+	case CONTROLSTATE_SETPOINT:
+	  boilMenu.appendItem_P(PSTR("Setpoint"), 2);
+	  break;
   }
 
   boilMenu.setItem_P(PSTR("Setpoint:"), 8);
@@ -814,7 +814,6 @@ void screenBoilMenu() {
   else if (lastOption == 2) boilControlMenu();
   else if (lastOption == 3) {
     setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
-    setSetpoint(VS_KETTLE, getBoilTemp());
   }
   else if (lastOption == 4) setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
   else if (lastOption == 5)
@@ -827,7 +826,7 @@ void screenBoilMenu() {
   }
   else if (lastOption == 8) {
     setSetpoint(VS_KETTLE, getValue_P(PSTR("Kettle Setpoint"), setpoint[VS_KETTLE] / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
-    boilControlState = CONTROLSTATE_OFF;
+    setBoilControlState(CONTROLSTATE_SETPOINT);
   }
 }
 
@@ -990,21 +989,13 @@ void uiEStop() {
 #endif
 
 void boilControlMenu() {
-  menu boilMenu(3, 3);
+  menu boilMenu(3, 4);
   boilMenu.setItem_P(LABEL_BUTTONOFF, CONTROLSTATE_OFF);
   boilMenu.setItem_P(PSTR("Auto"), CONTROLSTATE_AUTO);
   boilMenu.setItem_P(PSTR("Manual"), CONTROLSTATE_MANUAL);
+  boilMenu.setItem_P(PSTR("Setpoint"), CONTROLSTATE_SETPOINT);
   byte lastOption = scrollMenu("Boil Control Menu", &boilMenu);
-  if (lastOption < NUM_CONTROLSTATES) boilControlState = (ControlState) lastOption;
-  switch (boilControlState) {
-    case CONTROLSTATE_OFF:
-      setSetpoint(VS_KETTLE, 0);
-      break;
-    case CONTROLSTATE_AUTO:
-    case CONTROLSTATE_MANUAL:
-      setSetpoint(VS_KETTLE, getBoilTemp());
-      break;
-  }
+  if (lastOption < NUM_CONTROLSTATES) setBoilControlState((ControlState) lastOption);
 }
 
 void continueClick() {
