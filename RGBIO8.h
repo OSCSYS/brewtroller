@@ -28,7 +28,7 @@ struct RGBIO8_assignment {
   byte recipe_id;
 };
 
-enum RGBIORecipeIndex {
+enum RGBIORecipeIndex : byte {
   RGBIORECIPE_OFF,
   RGBIORECIPE_AUTOOFF,
   RGBIORECIPE_AUTOON,
@@ -85,7 +85,9 @@ class RGBIO8 {
     void setIdMode(byte id_mode);
     void setAddress(byte a);
     int getInputs(void);
-    
+	boolean isAuto(byte inputIndex);
+	boolean isManual(byte inputIndex);
+
   private:
     static OutputSystem* outputs;
     static uint16_t output_recipes[RGBIO8_MAX_OUTPUT_RECIPES][RGBIORECIPE_MODECOUNT];
