@@ -38,24 +38,36 @@ void RGBIO8::update(void) {
   for (int i = 0; i < 8; i++) {
     
     RGBIO8_assignment *a = &assignments[i];
+	RGBIORecipeIndex outputRecipe = RGBIORECIPE_OFF;
+
     if (a->index != RGBIO8_UNASSIGNED) {
       //Update input
       if (isManual(i)) {
         outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 1);
         outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 1);
-        setOutput(i, output_recipes[a->recipe_id][RGBIORECIPE_ON]);
+        
       } else if (isAuto(i)) {
         outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 0);
         outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 1);
-        if (outputs->getOutputState(a->index))
-          setOutput(i, output_recipes[a->recipe_id][RGBIORECIPE_AUTOON]);
-        else
-          setOutput(i, output_recipes[a->recipe_id][RGBIORECIPE_AUTOOFF]);
       } else {
         outputs->setProfileMaskBit(OUTPUTPROFILE_RGBIO, a->index, 0);
         outputs->setOutputEnable(OUTPUTENABLE_RGBIO, a->index, 0);
-        setOutput(i, output_recipes[a->recipe_id][RGBIORECIPE_OFF]);
       }
+	  switch (outputs->getOutputStatus(a->index)) {
+		  case OUTPUTSTATUS_FORCED:
+			  outputRecipe = RGBIORECIPE_ON;
+			  break;
+		  case OUTPUTSTATUS_DISABLED:
+			  outputRecipe = RGBIORECIPE_OFF;
+			  break;
+		  case OUTPUTSTATUS_AUTOOFF:
+			  outputRecipe = RGBIORECIPE_AUTOOFF;
+			  break;
+		  case OUTPUTSTATUS_AUTOON:
+			  outputRecipe = RGBIORECIPE_AUTOON;
+			  break;
+	  }
+	  setOutput(i, output_recipes[a->recipe_id][outputRecipe]);
     }
   }
 }
