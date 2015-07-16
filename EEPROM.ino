@@ -688,16 +688,8 @@ byte getRGBIOAssignmentRecipe(byte boardIndex, byte channelIndex) {
 }
 
 //**********************************************************************************
-//Trigger Configuration - 13-Bytes * 10 Triggers (2157-2286)
+//OPEN (2157-2186)
 //**********************************************************************************
-struct TriggerConfiguration* loadTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *configuration) {
-  eeprom_read_block((void *) configuration, (unsigned char *) 2157 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
-  return configuration;
-}
-
-void saveTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *configuration) {
-  eeprom_write_block((void *) configuration, (unsigned char *) 2157 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
-}
 
 //**********************************************************************************
 //Intermittent Bubbler Configuration -  (2187-2190)
@@ -844,6 +836,18 @@ void setPIDd(byte vessel, unsigned int value) {
   EEPROMwriteInt(2229 + vessel * 6, value);
 }
 unsigned int getPIDd(byte vessel) { return EEPROMreadInt(2229 + vessel * 6); }
+
+//**********************************************************************************
+//Trigger Configuration - 13-Bytes * 10 Triggers (2249-2378)
+//**********************************************************************************
+struct TriggerConfiguration* loadTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *configuration) {
+  eeprom_read_block((void *) configuration, (unsigned char *) 2249 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
+  return configuration;
+}
+
+void saveTriggerConfiguration(byte triggerIndex, struct TriggerConfiguration *configuration) {
+  eeprom_write_block((void *) configuration, (unsigned char *) 2249 + triggerIndex * sizeof(struct TriggerConfiguration), sizeof(struct TriggerConfiguration));
+}
 
 //*****************************************************************************************************************************
 // Check/Update/Format EEPROM
