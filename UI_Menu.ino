@@ -512,8 +512,9 @@ class menuOutputProfileBitmask : public menuPROGMEM {
       for (bitPos = 0; bitPos < menuPROGMEM::getItemCount() && count < index + 1; bitPos++)
         if ((*bitmask >> bitPos) & 1)
           count++;
-      if (bitPos <  menuPROGMEM::getItemCount())
-        return outputProfileDisplayOrder[bitPos];
+      bitPos--;
+      if (index < count)
+        return bitPos;
       if (index == count)
         return 254;
       return 255;  
@@ -526,17 +527,6 @@ class menuOutputProfileBitmask : public menuPROGMEM {
         return strcpy(retString, "[Add Profile]");
       else
         return strcpy_P(retString, EXIT);
-    }
-};
-
-class menuOutputProfileList : public menuPROGMEM {
-  public:
-    menuOutputProfileList(byte pSize) : menuPROGMEM(pSize, TITLE_VLV, ARRAY_LENGTH(TITLE_VLV)) {}
-    menuOutputProfileList(byte pSize, byte altSize) : menuPROGMEM(pSize, TITLE_VLV, altSize) {}
-    byte getItemValue(byte index) {
-      if (index < OUTPUTPROFILE_USERCOUNT)
-        return outputProfileDisplayOrder[index];
-      return index;
     }
 };
 
@@ -557,6 +547,17 @@ unsigned long menuSelectOutputProfiles(char sTitle[], unsigned long currentSelec
       newSelection &= ~(1ul << lastOption);
   }
 }
+
+class menuOutputProfileList : public menuPROGMEM {
+  public:
+    menuOutputProfileList(byte pSize) : menuPROGMEM(pSize, TITLE_VLV, ARRAY_LENGTH(TITLE_VLV)) {}
+    menuOutputProfileList(byte pSize, byte altSize) : menuPROGMEM(pSize, TITLE_VLV, altSize) {}
+    byte getItemValue(byte index) {
+      if (index < OUTPUTPROFILE_USERCOUNT)
+        return outputProfileDisplayOrder[index];
+      return index;
+    }
+};
 
 byte menuSelectOutputProfile(char sTitle[]) {
   menuOutputProfileList outputMenu(3, ARRAY_LENGTH(TITLE_VLV) - 1);
@@ -1519,7 +1520,7 @@ void menuTriggers() {
       cfgTrigger(lastOption);
     else if (lastOption == USERTRIGGER_COUNT) {
       #ifdef ESTOP_PIN
-        setEStopEnabled(~getEStopEnabled());
+        setEStopEnabled(getEStopEnabled() ? 0 : 1);
         loadEStop();
       #endif
     } else 
@@ -1573,7 +1574,7 @@ class menuTriggerConfig : public menuPROGMEM {
       } else if (option == 2) {
         strcat_P(retString, (char*)pgm_read_word(&(TITLE_VS[trigConfig->index])));
       } else if (option == 4) {
-        strcpy_P(retString, trigConfig->activeLow ? PSTR("Low") : PSTR("High"));
+        strcat_P(retString, trigConfig->activeLow ? PSTR("Low") : PSTR("High"));
       } else if (option == 7) {
         char numText[4];
         strcat(retString, itoa(trigConfig->releaseHysteresis, numText, 10));
