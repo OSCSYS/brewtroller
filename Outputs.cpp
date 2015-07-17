@@ -212,7 +212,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
   
   void OutputSystem::init(void) {
-    outputState = profileState = discreetState = 0;
+    outputState = profileState = discreetState = outputStateForced = outputStateDisabled = 0;
     for (byte i = 0; i < OUTPUTENABLE_COUNT; i++)
       outputEnableMask[i] = 0xFFFFFFFFul;
     for (byte i = 0; i < OUTPUTPROFILE_SYSTEMCOUNT; i++)
@@ -271,16 +271,25 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     //Start with discreet outputs
     unsigned long newState = discreetState;
     
-    //Apply all active valve profiles
-    for (byte p = 0; p < OUTPUTPROFILE_SYSTEMCOUNT; p++) {
+    //Apply user profiles
+	for (byte p = 0; p < OUTPUTPROFILE_USERCOUNT; p++) {
       if (getProfileState(p))
         newState |= profileMask[p];
     }
-    
+
+	//Apply non-user profiles, also set forced mask if one of these profiles is turning on an output.
+	outputStateForced = 0;
+	for (byte p = OUTPUTPROFILE_USERCOUNT + 1; p < OUTPUTPROFILE_SYSTEMCOUNT; p++) {
+		if (getProfileState(p))
+			outputStateForced |= profileMask[p];
+	}
+	newState |= outputStateForced;
+
     //Apply output enable masks
+	outputStateDisabled = 0;
     for (byte i = 0; i < OUTPUTENABLE_COUNT; i++)
-      newState &= outputEnableMask[i];
-    
+		outputStateDisabled |= ~outputEnableMask[i];
+	newState &= ~outputStateDisabled;
     outputState = newState;
     
     //Push new state to banks
@@ -302,7 +311,21 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   unsigned long OutputSystem::getOutputStateMask() {
     return outputState;
   }
-  
+
+  OutputStatus OutputSystem::getOutputStatus(byte outputIndex) {
+
+	  if (outputStateDisabled & (1 << outputIndex))
+		  return OUTPUTSTATUS_DISABLED;
+
+	  if (outputStateForced & (1 << outputIndex))
+		  return OUTPUTSTATUS_FORCED;
+
+	  if (outputState & (1 << outputIndex))
+		  return OUTPUTSTATUS_AUTOON;
+	  else
+		  return OUTPUTSTATUS_AUTOOFF;
+  }
+
   boolean OutputSystem::getOutputEnable(byte enableIndex, byte outputIndex) {
     return (outputEnableMask[enableIndex] >> outputIndex) & 1;
   }

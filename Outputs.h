@@ -105,7 +105,7 @@ class OutputSystem
   private:
   OutputBank** banks;
   byte bankCount;
-  unsigned long outputState, discreetState, profileState, profileMask[OUTPUTPROFILE_SYSTEMCOUNT], outputEnableMask[OUTPUTENABLE_COUNT];
+  unsigned long outputState, outputStateForced, outputStateDisabled, discreetState, profileState, profileMask[OUTPUTPROFILE_SYSTEMCOUNT], outputEnableMask[OUTPUTENABLE_COUNT];
   
   void addBank(OutputBank* outputBank);
   
@@ -129,6 +129,7 @@ class OutputSystem
   unsigned long getOutputStateMask(void);
   boolean getOutputEnable(byte enableIndex, byte index);
   unsigned long getOutputEnableMask(byte enableIndex);
+  OutputStatus getOutputStatus(byte outputIndex);
   void setOutputEnable(byte enableIndex, byte outputIndex, boolean enableFlag);
   void setOutputEnableMask(byte enableIndex, unsigned long enableMask);
   boolean getProfileState(byte profileIndex);
