@@ -4,9 +4,10 @@
 //Generic UI Functions
 //*****************************************************************************************************************************
 void uiLabelFPoint(byte row, byte col, byte width, unsigned long value, unsigned int divisor) {
-  vftoa(value, buf, divisor, 1);
-  truncFloat(buf, width);
-  LCD.lPad(row, col, buf, width, ' ');
+  char numText[12];
+  vftoa(value, numText, divisor, 1);
+  truncFloat(numText, width);
+  LCD.lPad(row, col, numText, width, ' ');
 }
 
 void uiLabelTemperature (byte row, byte col, byte width, unsigned long value) {
@@ -19,15 +20,16 @@ void uiLabelTemperature (byte row, byte col, byte width, unsigned long value) {
 }
 
 void uiLabelPercentOnOff (byte row, byte col, byte pct) {
+  char numText[5];
   if (pct == 0)
-    strcpy_P(buf, LABEL_BUTTONOFF);
+    strcpy_P(numText, LABEL_BUTTONOFF);
   else if (pct == 100)
-    strcpy_P(buf, LABEL_BUTTONON);
+    strcpy_P(numText, LABEL_BUTTONON);
   else {
-    itoa(pct, buf, 10);
-    strcat(buf, "%"); 
+    itoa(pct, numText, 10);
+    strcat(numText, "%"); 
   }
-  LCD.lPad(row, col, buf, 3, ' ');
+  LCD.lPad(row, col, numText, 3, ' ');
 }
 
 void uiCursorNone(byte row, byte col, byte width) {
@@ -65,33 +67,32 @@ byte scrollMenu(char sTitle[], menu *objMenu) {
   boolean redraw = 1;
   
   while(1) {
-    int encValue;
-    if (redraw) encValue = Encoder.getCount();
-    else encValue = Encoder.change();
+    int encValue = redraw ? Encoder.getCount() : Encoder.change();
     if (encValue >= 0) {
-      objMenu->setSelected(Encoder.getCount());
-      if (objMenu->refreshDisp() || redraw) drawMenu(sTitle, objMenu);
-      for (byte i = 0; i < 3; i++) LCD.print(i + 1, 0, " ");
-      LCD.print(objMenu->getCursor() + 1, 0, ">");
+      objMenu->setSelected(encValue);
+      if (objMenu->refreshDisp() || redraw)
+        drawMenu(sTitle, objMenu);
+      for (byte i = 0; i < 3; i++)
+        LCD.writeCustChar(i + 1, 0, ((i == objMenu->getCursor()) ? '>' : ' '));
     }
     redraw = 0;
     //If Enter
-    if (Encoder.ok()) {
+    if (Encoder.ok())
       return objMenu->getValue();
-    } else if (Encoder.cancel()) {
+    if (Encoder.cancel())
       return 255;
-    }
     brewCore();
   }
 }
 
 void drawMenu(char sTitle[], menu *objMenu) {
   LCD.clear();
-  if (sTitle != NULL) LCD.print(0, 0, sTitle);
+  LCD.print(0, 0, sTitle);
 
   for (byte i = 0; i < 3; i++) {
-    objMenu->getVisibleRow(i, buf);
-    LCD.print(i + 1, 1, buf);
+    char optionText[20];
+    objMenu->getVisibleRow(i, optionText);
+    LCD.print(i + 1, 1, optionText);
   }
   LCD.print(objMenu->getCursor() + 1, 0, ">");
 }
@@ -103,9 +104,10 @@ void infoBox(char line1[], char line2[], char line3[], const char* prompt) {
   LCD.center(2, 0, line3, 20);
   uiCursorFocus(3, 0, 20);
   
-  strcpy_P(buf, prompt);
-  LCD.center(3, 1, buf, 18);
-  while (!Encoder.ok()) brewCore();
+  char optionText[21];
+  LCD.center(3, 1, strcpy_P(optionText, prompt), 18);
+  while (!Encoder.ok())
+    brewCore();
 }
 
 byte getChoice(menu *objMenu, byte iRow) {
@@ -140,14 +142,30 @@ byte getChoice(menu *objMenu, byte iRow) {
   }
 }
 
+class menuChoice : public menu {
+  private:
+    const char *itemText;
+    
+  public:
+    menuChoice(byte pSize, const char *choice) : menu (pSize) {
+      itemText = choice;
+    }
+
+    byte getItemCount(void) {
+      return 2;
+    }
+
+    char *getItem(byte index, char *retString) {
+      return strcpy_P(retString, index ? itemText : CANCEL);
+    }
+};
+
 boolean confirmChoice(char line1[], char line2[], char line3[], const char *choice) {
   LCD.clear();
   LCD.print(0, 0, line1);
   LCD.print(1, 0, line2);
   LCD.print(2, 0, line3);
-  menu choiceMenu(1, 2);
-  choiceMenu.setItem_P(CANCEL, 0);
-  choiceMenu.setItem_P(choice, 1);
+  menuChoice choiceMenu(1, choice);
   if(getChoice(&choiceMenu, 3) == 1) return 1; else return 0;
 }
 
@@ -338,11 +356,12 @@ unsigned long getHexValue(char sTitle[], unsigned long defValue, byte digits) {
         }
       }
       char format[6] = "%0";
-      strcat(format, itoa(digits, buf, 10));
+      char optionText[21];
+      strcat(format, itoa(digits, optionText, 10));
       strcat(format, "X");
       
-      sprintf(buf, format, retValue);
-      LCD.print(1, valuePos - 1, buf);
+      sprintf(optionText, format, retValue);
+      LCD.print(1, valuePos - 1, optionText);
       LCD.print(1, valuePos - 3, "0x");
     }
     
@@ -395,9 +414,10 @@ void printTimer(byte timer, byte iRow, byte iCol) {
       timerLastPrint = millis();
       LCD.rPad(iRow, iCol, "", 6, ' ');
       LCD.print_P(iRow, iCol+2, PSTR(":  :"));
-      LCD.lPad(iRow, iCol, itoa(hours, buf, 10), 2, '0');
-      LCD.lPad(iRow, iCol + 3, itoa(mins, buf, 10), 2, '0');
-      LCD.lPad(iRow, iCol + 6, itoa(secs, buf, 10), 2, '0');
+      char numText[4];
+      LCD.lPad(iRow, iCol, itoa(hours, numText, 10), 2, '0');
+      LCD.lPad(iRow, iCol + 3, itoa(mins, numText, 10), 2, '0');
+      LCD.lPad(iRow, iCol + 6, itoa(secs, numText, 10), 2, '0');
       if (alarmStatus) LCD.writeCustChar(iRow, iCol + 8, 5);
     }
   } else LCD.rPad(iRow, iCol, "", 9, ' ');
@@ -447,8 +467,9 @@ int getTimerValue(const char *sTitle, int defMins, byte maxHours) {
             break;
         }
       }
-      LCD.lPad(2, 8, itoa(hours, buf, 10), 2, '0');
-      LCD.lPad(2, 11, itoa(mins, buf, 10), 2, '0');
+      char numText[4];
+      LCD.lPad(2, 8, itoa(hours, numText, 10), 2, '0');
+      LCD.lPad(2, 11, itoa(mins, numText, 10), 2, '0');
     }
     
     if (Encoder.ok()) {

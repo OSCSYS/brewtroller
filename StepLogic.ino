@@ -554,12 +554,12 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
           setBoilAddsTrig(triggered); 
         }
         //Timed additions (See hoptimes[] array in BrewTroller.pde)
-        for (byte i = 0; i < 11; i++) {
-          if (((boilAdds ^ triggered) & (1<<(i + 1))) && timerValue[TIMER_BOIL] <= hoptimes[i] * 60000) { 
+        for (byte i = 1; i < 12; i++) {
+          if (((boilAdds ^ triggered) & (1 << i)) && timerValue[TIMER_BOIL] <= hoptimes[i] * 60000) { 
             outputs->setProfileState(OUTPUTPROFILE_HOPADD, 1);
             lastHop = millis();
             setAlarm(1); 
-            triggered |= (1<<(i + 1)); 
+            triggered |= 1 << i; 
             setBoilAddsTrig(triggered);
           }
         }
@@ -681,7 +681,7 @@ unsigned long calcPreboilVol(byte recipe) {
   //Alternatively set to 0, adjust batch volume and scale recipe
   retValue += getBoilLoss(); 
   
-  //Shrinkage should nto be calculated as filling volume at ground water temperature
+  //Shrinkage should not be calculated as filling volume at ground water temperature
   // will first expand at boil and then shrink at pitch temp resulting in no change.
   #ifdef VOL_SHRINKAGE
     retValue /= VOL_SHRINKAGE;

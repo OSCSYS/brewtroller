@@ -25,8 +25,16 @@ Hardware Lead: Jeremiah Dillingham (jeremiah_AT_brewtroller_DOT_com)
 Documentation, Forums and more information available at http://www.brewtroller.com
 */
 
+
+
 /*
-Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATMEGA1284P
+Compiled on Arduino-1.6.5-R2 (http://arduino.cc/en/Main/Software)
+
+Support for BrewTroller/OpenTroller boards requires the following URL to be added
+to the Additional Boards Manager URLS in Arduino Preferences:
+https://github.com/OSCSYS/boards/raw/master/package_OSCSYS_Boards_index.json
+
+Then use Tools - Board - Boards Manager to install OpenTroller ATMEGA1284P by OSCSYS
 */
 
 
@@ -57,6 +65,8 @@ Compiled on Arduino-1.0.5 (http://arduino.cc/en/Main/Software) modified for ATME
   #include "RGBIO8.h"
 #endif
 #include "Vol_Bubbler.h"
+
+#define ARRAY_LENGTH(ARRAYOBJ) (sizeof(ARRAYOBJ) / sizeof(ARRAYOBJ[0]))
 
 void(* softReset) (void) = 0;
 
@@ -200,9 +210,6 @@ OutputSystem* outputs = NULL;
   RGBIO8* rgbio[RGBIO8_MAX_BOARDS];
 #endif
 
-//Shared buffers
-char buf[20];
-
 //Output Globals
 double PIDInput[3], PIDOutput[3], setpoint[3];
 byte hysteresis[3];
@@ -227,8 +234,9 @@ struct ProgramThread programThread[PROGRAMTHREAD_MAX];
 
 struct BrewStepConfiguration brewStepConfiguration;
 
-//Bit 1 = Boil; Bit 2-11 (See Below); Bit 12 = End of Boil; Bit 13-15 (Open); Bit 16 = Preboil (If Compile Option Enabled)
-unsigned int hoptimes[11] = { 105, 90, 75, 60, 45, 30, 20, 15, 10, 5, 0 };
+//Array items correspond with 16-bit masks where:
+//Bit 1 (254) = Boil; Bit 2-12 (# Minutes); Bit 16 = Preboil; Bit 13-15 (Open); 
+const byte hoptimes[] = { 254, 105, 90, 75, 60, 45, 30, 20, 15, 10, 5, 0, 255 };
 byte pitchTemp;
 
 //Log Strings

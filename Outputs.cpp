@@ -265,7 +265,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     }
     return retString;
   }
-
+  
+  char* OutputSystem::getOutputFullName(byte outputIndex, char* retString) {
+    getOutputBankName(outputIndex, retString);
+    strcat(retString, "-");
+    char outName[OUTPUT_NAME_MAXLEN];
+    getOutputName(outputIndex, outName);
+    strcat(retString, outName);
+  }
   
   void OutputSystem::update(void) {
     //Start with discreet outputs

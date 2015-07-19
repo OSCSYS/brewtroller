@@ -282,7 +282,8 @@ void screenHome (enum ScreenSignal signal) {
       LCD.print_P(1, 4, BT);
       LCD.print_P(1, 16, BTVER);
       LCD.print_P(2, 4, PSTR("Build"));
-      LCD.lPad(2, 10, itoa(BUILD, buf, 10), 4, '0');
+      char numText[7];
+      LCD.lPad(2, 10, itoa(BUILD, numText, 10), 4, '0');
       LCD.print_P(3, 2, PSTR("github.com/OSCSYS"));
       break;
       
@@ -301,39 +302,34 @@ void screenHome (enum ScreenSignal signal) {
   }
 }
 
+class menuHomeMenu : public menuPROGMEM {
+  public:
+    menuHomeMenu(byte pSize) : menuPROGMEM(pSize, HOMEMENUOPTIONS, ARRAY_LENGTH(HOMEMENUOPTIONS)) {}
+    char *getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      if (index == 2)
+        strcat_P(retString, outputs->getProfileState(OUTPUTPROFILE_DRAIN) ? LABEL_VALUEON : LABEL_VALUEOFF);
+      else if (index == 3)
+        strcat_P(retString, outputs->getProfileState(OUTPUTPROFILE_USER1) ? LABEL_VALUEON : LABEL_VALUEOFF);
+      else if (index == 4)
+        strcat_P(retString, outputs->getProfileState(OUTPUTPROFILE_USER2) ? LABEL_VALUEON : LABEL_VALUEOFF);
+      else if (index == 5)
+        strcat_P(retString, outputs->getProfileState(OUTPUTPROFILE_USER3) ? LABEL_VALUEON : LABEL_VALUEOFF);
+    }
+};
+
 void screenHomeMenu() {
-    menu homeMenu(3, 9);
-
+  menuHomeMenu homeMenu(3);
   while(1) {
-    //Item updated on each cycle
-    homeMenu.setItem_P(PSTR("Edit Program"), 1);
-    homeMenu.setItem_P(PSTR("Start Program"), 2);
-
-    homeMenu.setItem_P(DRAIN, 3);
-    homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_DRAIN) ? PSTR(": On") : PSTR(": Off"), 3);
-
-    homeMenu.setItem_P(USER1, 4);
-    homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_USER1) ? PSTR(": On") : PSTR(": Off"), 4);
-    
-    homeMenu.setItem_P(USER2, 5);
-    homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_USER2) ? PSTR(": On") : PSTR(": Off"), 5);
-    
-    homeMenu.setItem_P(USER3, 6);
-    homeMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_USER3) ? PSTR(": On") : PSTR(": Off"), 6);
-
-    homeMenu.setItem_P(PSTR("Reset All"), 7);
-    homeMenu.setItem_P(PSTR("System Setup"), 8);
-    homeMenu.setItem_P(EXIT, 255);
-
     byte lastOption = scrollMenu("Main Menu", &homeMenu);
     
-    if (lastOption == 1) editProgramMenu();
-    else if (lastOption == 2) {
+    if (lastOption == 0) editProgramMenu();
+    else if (lastOption == 1) {
         startProgramMenu();
         if (activeScreen == SCREEN_FILL)
           break;
     }
-    else if (lastOption == 3) {
+    else if (lastOption == 2) {
       //Drain
       if (outputs->getProfileState(OUTPUTPROFILE_DRAIN))
         outputs->setProfileState(OUTPUTPROFILE_DRAIN, 0);
@@ -344,12 +340,12 @@ void screenHomeMenu() {
           outputs->setProfileState(OUTPUTPROFILE_DRAIN, 1);
       }
     }
-    else if (lastOption >= 4 && lastOption <= 6) {
+    else if (lastOption >= 3 && lastOption <= 5) {
       //User Profiles 1-3
-      byte profileIndex = OUTPUTPROFILE_USER1 + (lastOption - 4);
+      byte profileIndex = OUTPUTPROFILE_USER1 + (lastOption - 3);
       outputs->setProfileState(profileIndex, outputs->getProfileState(profileIndex) ? 0 : 1);
     }          
-    else if (lastOption == 7) {
+    else if (lastOption == 6) {
       //Reset All
       if (confirmAbort()) {
         programThreadResetAll();
@@ -358,7 +354,7 @@ void screenHomeMenu() {
         clearTimer(TIMER_BOIL);
       }
     }
-    else if (lastOption == 8) menuSetup();
+    else if (lastOption == 7) menuSetup();
     else {
       uiUnlock();
       break;
@@ -381,7 +377,7 @@ void screenFill (enum ScreenSignal signal) {
         LCD.print_P(0, 0, PSTR("Fill"));
         LCD.print_P(1, 1, PSTR("HLT"));
         LCD.print_P(2, 1, PSTR("Mash"));
-        LCD.print_P(3, 1, PSTR("Auto"));
+        LCD.print_P(3, 1, LABEL_AUTO);
       }
       LCD.setCustChar_P(0, BUTTON_OFF);
       LCD.setCustChar_P(1, BUTTON_ON);
@@ -527,30 +523,29 @@ void screenMash (enum ScreenSignal signal) {
   }
 }
 
+class menuMashMenu : public menuPROGMEM {
+  public:
+    menuMashMenu(byte pSize) : menuPROGMEM(pSize, MASHMENUOPTIONS, ARRAY_LENGTH(MASHMENUOPTIONS)) {}
+    char *getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      char numText[7];
+      if (index == 0) {
+        vftoa(setpoint[VS_HLT], numText, 100, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, TUNIT);
+      } else if (index == 1) {
+        vftoa(setpoint[VS_MASH], numText, 100, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, TUNIT);
+      } else if (index == 3 && timerStatus[TIMER_MASH])
+        strcpy_P(retString, LABEL_PAUSETIMER);
+    }
+};
+
 void screenMashMenu() {
-  menu mashMenu(3, 7);
-
-  mashMenu.setItem_P(PSTR("HLT Setpoint:"), 0);
-  vftoa(setpoint[VS_HLT], buf, 100, 1);
-  truncFloat(buf, 4);
-  mashMenu.appendItem(buf, 0);
-  mashMenu.appendItem_P(TUNIT, 0);
-  
-  mashMenu.setItem_P(PSTR("Mash Setpoint:"), 1);
-  vftoa(setpoint[VS_MASH], buf, 100, 1);
-  truncFloat(buf, 4);
-  mashMenu.appendItem(buf, 1);
-  mashMenu.appendItem_P(TUNIT, 1);
-  
-  mashMenu.setItem_P(PSTR("Set Timer"), 2);
-
-  if (timerStatus[TIMER_MASH]) mashMenu.setItem_P(PSTR("Pause Timer"), 3);
-  else mashMenu.setItem_P(PSTR("Start Timer"), 3);
-
-  mashMenu.setItem_P(CONTINUE, 4);
-  mashMenu.setItem_P(ABORT, 5);
-  mashMenu.setItem_P(EXIT, 255);
-  
+  menuMashMenu mashMenu(3);
   byte lastOption = scrollMenu("Mash Menu", &mashMenu);
   if (lastOption == 0) setSetpoint(VS_HLT, getValue_P(PSTR("HLT Setpoint"), setpoint[VS_HLT] / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
   else if (lastOption == 1) setSetpoint(VS_MASH, getValue_P(PSTR("Mash Setpoint"), setpoint[VS_MASH] / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
@@ -629,8 +624,11 @@ void screenSparge (enum ScreenSignal signal) {
           outputs->setProfileState(OUTPUTPROFILE_MASHIDLE, 1); 
         } else if (encValue == 6)
           resetSpargeOutputs();
-        else if (encValue == 7)
+        else if (encValue == 7) {
           screenSpargeMenu();
+          screenSparge(SCREENSIGNAL_INIT);
+          screenSparge(SCREENSIGNAL_LOCK);
+        }
       }
       break;
     case SCREENSIGNAL_ENCODERCHANGE:
@@ -676,15 +674,7 @@ void screenSparge (enum ScreenSignal signal) {
 }
 
 void screenSpargeMenu() {
-  menu spargeMenu(3, 8);
-  spargeMenu.setItem_P(PSTR("Auto In"), 0);
-  spargeMenu.setItem_P(PSTR("Auto Out"), 1);
-  spargeMenu.setItem_P(PSTR("Auto Fly"), 2);
-  spargeMenu.setItem_P(PSTR("HLT Target"), 3);
-  spargeMenu.setItem_P(PSTR("Kettle Target"), 4);
-  spargeMenu.setItem_P(CONTINUE, 5);
-  spargeMenu.setItem_P(ABORT, 6);
-  spargeMenu.setItem_P(EXIT, 255);
+  menuPROGMEM spargeMenu(3, SPARGEMENUOPTIONS, ARRAY_LENGTH(SPARGEMENUOPTIONS));
   byte lastOption = scrollMenu("Sparge Menu", &spargeMenu);
   if (lastOption == 0) { resetSpargeOutputs(); if(tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 1; }
   else if (lastOption == 1) { resetSpargeOutputs(); if(tgtVol[VS_KETTLE]) autoValve[AV_SPARGEOUT] = 1; }
@@ -711,25 +701,17 @@ void screenBoil (enum ScreenSignal signal) {
       else LCD.print_P(0,0,PSTR("Boil"));
       break;
     case SCREENSIGNAL_UPDATE:
-		switch (boilControlState) {
-			case CONTROLSTATE_OFF:
-				LCD.print_P(0, 13, PSTR("   Off"));
-				break;
-			case CONTROLSTATE_AUTO:
-				LCD.print_P(0, 13, PSTR("  Auto"));
-				break;
-			case CONTROLSTATE_MANUAL:
-				LCD.print_P(0, 13, PSTR("Manual"));
-				break;
-			case CONTROLSTATE_SETPOINT:
-				uiLabelTemperature(0, 14, 5, setpoint[VS_KETTLE]);
-				break;
+      if (boilControlState == CONTROLSTATE_SETPOINT)
+        uiLabelTemperature(0, 13, 6, setpoint[VS_KETTLE]);
+      else {
+        char boilModeText[7];
+        strcpy_P(boilModeText, (char*)pgm_read_word(&(BOILCONTROLOPTIONS[boilControlState])));
+        LCD.lPad(0, 13, boilModeText, 6, ' ');
       }
-      
       printTimer(TIMER_BOIL, 3, 0);
-      uiLabelFPoint(2, 15, 5, volAvg[VS_KETTLE], 1000);
-      uiLabelPercentOnOff (3, 17, getHeatPower(VS_KETTLE));
-      uiLabelTemperature (1, 14, 6, temp[TS_KETTLE]);
+      uiLabelTemperature (1, 13, 6, temp[TS_KETTLE]);
+      uiLabelFPoint(2, 14, 5, volAvg[VS_KETTLE], 1000);
+      uiLabelPercentOnOff (3, 16, getHeatPower(VS_KETTLE));
       break;
     case SCREENSIGNAL_ENCODEROK:
       screenBoilMenu();
@@ -754,52 +736,38 @@ void screenBoil (enum ScreenSignal signal) {
       break;
   }
 }
+class menuBoilMenu : public menuPROGMEM {
+  public:
+    menuBoilMenu(byte pSize) : menuPROGMEM(pSize, BOILMENUOPTIONS, ARRAY_LENGTH(BOILMENUOPTIONS)) {}
+    
+    char *getItem(byte index, char *retString) {
+      menuPROGMEM::getItem(index, retString);
+      char numText[7];
+      
+      if (index == 1 && timerStatus[TIMER_BOIL])
+        strcpy_P(retString, LABEL_PAUSETIMER);
+      else if (index == 2)
+        strcat_P(retString, (char*)pgm_read_word(&(BOILCONTROLOPTIONS[boilControlState])));
+      else if (index == 3) {
+        vftoa(setpoint[VS_KETTLE], numText, 100, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, TUNIT);
+      } else if (index == 4) {
+        vftoa(getBoilTemp() * SETPOINT_MULT, numText, 100, 1);
+        truncFloat(numText, 5);
+        strcat(retString, numText);
+        strcat_P(retString, TUNIT);
+      } else if (index == 5) {
+        strcat(retString, itoa(boilPwr, numText, 10));
+        strcat(retString, "%");
+      } else if (index == 6)
+        strcat_P(retString, outputs->getProfileState(OUTPUTPROFILE_WHIRLPOOL) ? LABEL_VALUEON : LABEL_VALUEOFF);
+    }
+};
 
 void screenBoilMenu() {
-  menu boilMenu(3, 10);
-  boilMenu.setItem_P(PSTR("Set Timer"), 0);
-  
-  if (timerStatus[TIMER_BOIL]) boilMenu.setItem_P(PSTR("Pause Timer"), 1);
-  else boilMenu.setItem_P(PSTR("Start Timer"), 1);
-  
-  boilMenu.setItem_P(PSTR("Boil Ctrl: "), 2);
-  switch (boilControlState) {
-    case CONTROLSTATE_OFF:
-      boilMenu.appendItem_P(LABEL_BUTTONOFF, 2);
-      break;
-    case CONTROLSTATE_AUTO:
-      boilMenu.appendItem_P(PSTR("Auto"), 2);
-      break;
-    case CONTROLSTATE_MANUAL:
-      boilMenu.appendItem_P(PSTR("Manual"), 2);
-      break;
-	case CONTROLSTATE_SETPOINT:
-	  boilMenu.appendItem_P(PSTR("Setpoint"), 2);
-	  break;
-  }
-
-  boilMenu.setItem_P(PSTR("Setpoint:"), 8);
-  vftoa(setpoint[VS_KETTLE], buf, 100, 1);
-  truncFloat(buf, 4);
-  boilMenu.appendItem(buf, 8);
-  boilMenu.appendItem_P(TUNIT, 8);
-  
-  boilMenu.setItem_P(PSTR("Boil Temp: "), 3);
-  vftoa(getBoilTemp() * SETPOINT_MULT, buf, 100, 1);
-  truncFloat(buf, 5);
-  boilMenu.appendItem(buf, 3);
-  boilMenu.appendItem_P(TUNIT, 3);
-  
-  boilMenu.setItem_P(PSTR("Boil Power: "), 4);
-  boilMenu.appendItem(itoa(boilPwr, buf, 10), 4);
-  boilMenu.appendItem("%", 4);
-  
-  boilMenu.setItem_P(WHIRLPOOL, 5);
-  boilMenu.appendItem_P(outputs->getProfileState(OUTPUTPROFILE_WHIRLPOOL) ? PSTR(": On") : PSTR(": Off"), 5);
-  
-  boilMenu.setItem_P(CONTINUE, 6);
-  boilMenu.setItem_P(ABORT, 7);
-  boilMenu.setItem_P(EXIT, 255);        
+  menuBoilMenu boilMenu(3);
   byte lastOption = scrollMenu("Boil Menu", &boilMenu);
   if (lastOption == 0) {
     setTimer(TIMER_BOIL, getTimerValue(PSTR("Boil Timer"), timerValue[TIMER_BOIL] / 60000, 2));
@@ -811,22 +779,24 @@ void screenBoilMenu() {
     //Force Preheated
     preheated[VS_KETTLE] = 1;
   } 
-  else if (lastOption == 2) boilControlMenu();
+  else if (lastOption == 2)
+    boilControlMenu();
   else if (lastOption == 3) {
-    setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
-  }
-  else if (lastOption == 4) setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
-  else if (lastOption == 5)
-    outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, outputs->getProfileState(OUTPUTPROFILE_WHIRLPOOL) ? 0 : 1);
-  else if (lastOption == 6) 
-    continueClick();
-  else if (lastOption == 7) {
-    if (confirmAbort())
-      brewStepSignal(BREWSTEP_BOIL, STEPSIGNAL_ABORT);
-  }
-  else if (lastOption == 8) {
     setSetpoint(VS_KETTLE, getValue_P(PSTR("Kettle Setpoint"), setpoint[VS_KETTLE] / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
     setBoilControlState(CONTROLSTATE_SETPOINT);
+  }
+  else if (lastOption == 4) {
+    setBoilTemp(getValue_P(PSTR("Boil Temp"), getBoilTemp(), SETPOINT_DIV, 255, TUNIT));
+  }
+  else if (lastOption == 5)
+    setBoilPwr(getValue_P(PSTR("Boil Power"), boilPwr, 1, 100, PSTR("%")));
+  else if (lastOption == 6)
+    outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, outputs->getProfileState(OUTPUTPROFILE_WHIRLPOOL) ? 0 : 1);
+  else if (lastOption == 7) 
+    continueClick();
+  else if (lastOption == 8) {
+    if (confirmAbort())
+      brewStepSignal(BREWSTEP_BOIL, STEPSIGNAL_ABORT);
   }
 }
 
@@ -989,13 +959,10 @@ void uiEStop() {
 #endif
 
 void boilControlMenu() {
-  menu boilMenu(3, 4);
-  boilMenu.setItem_P(LABEL_BUTTONOFF, CONTROLSTATE_OFF);
-  boilMenu.setItem_P(PSTR("Auto"), CONTROLSTATE_AUTO);
-  boilMenu.setItem_P(PSTR("Manual"), CONTROLSTATE_MANUAL);
-  boilMenu.setItem_P(PSTR("Setpoint"), CONTROLSTATE_SETPOINT);
+  menuPROGMEM boilMenu(3, BOILCONTROLOPTIONS, ARRAY_LENGTH(BOILCONTROLOPTIONS));
   byte lastOption = scrollMenu("Boil Control Menu", &boilMenu);
-  if (lastOption < NUM_CONTROLSTATES) setBoilControlState((ControlState) lastOption);
+  if (lastOption < NUM_CONTROLSTATES)
+    setBoilControlState((ControlState) lastOption);
 }
 
 void continueClick() {
