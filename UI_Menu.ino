@@ -1731,12 +1731,12 @@ byte menuTriggerType (byte type) {
         address = a;
         idMode = id;
       }
-      byte getItemCount(void) { return (*address == RGBIO8_UNASSIGNED ? 3 : 4); }
+      byte getItemCount(void) { return (*address == RGBIO8_UNASSIGNED ? 3 : 5); }
       byte getItemValue(byte index) {
-        byte values[5] = {0, 1, 4, 4};
-        if (*address != RGBIO8_UNASSIGNED) {
-          values[1] = 2;
-          values[2] = 3;
+        byte values[5] = {0, 2, 3, 4, 5};
+        if (*address == RGBIO8_UNASSIGNED) {
+          values[1] = 1;
+          values[2] = 5;
         }
         return values[index];
       }
@@ -1758,12 +1758,13 @@ byte menuTriggerType (byte type) {
   
   void menuRGBIOBoard(byte board) {
     boolean idMode = 0;
-    byte addr = getRGBIOAddr(board);
+    byte addr;
     
     menuRGBIOBoardConfig boardMenu(3, &addr, &idMode);
     char title[] = "RGBIO Board 1";
     title[12] += board;
-    while(1) {      
+    while(1) {
+      addr = getRGBIOAddr(board);      
       RGBIO8 tempRGBIO(addr);
       if (addr != RGBIO8_UNASSIGNED)
         tempRGBIO.setIdMode(idMode);
@@ -1867,25 +1868,27 @@ byte menuTriggerType (byte type) {
   };
   
   void menuRGBIOAssignment(byte board, byte channel) {
+    char title[] = "RGBIO 1 Channel 1";
+    title[6] += board;
+    title[16] += channel;
     byte assignment = getRGBIOAssignment(board, channel);
     byte recipe = getRGBIOAssignmentRecipe(board, channel);
     byte origAssignment = assignment;
     byte origRecipe = recipe;
+    
+    if (assignment == RGBIO8_UNASSIGNED)
+      assignment = menuSelectOutput(title, INDEX_NONE);
 
     menuRGBIOChannelConfig assignMenu(3, &assignment, &recipe);
-    char title[] = "RGBIO 1 Channel 1";
-    title[6] += board;
-    title[16] += channel;
-    boolean changed = 0;
     while(1) {
-      byte lastOption = scrollMenu(title, &assignMenu);
+      byte lastOption = (assignment == RGBIO8_UNASSIGNED) ? 2 : scrollMenu(title, &assignMenu);
       if (lastOption == 0)
-        assignment = menuSelectOutput(title, assignment == RGBIO8_UNASSIGNED ? INDEX_NONE : assignment);
+        assignment = menuSelectOutput(title, assignment);
       else if (lastOption == 1)
         recipe = menuRGBIOSelectRecipe(title, recipe);
-      else if (lastOption == 2)
-        assignment = RGBIO8_UNASSIGNED;
       else {
+        if (lastOption == 2)
+          assignment = RGBIO8_UNASSIGNED;
         if ((assignment != origAssignment || recipe != origRecipe) && confirmSave()) {
           setRGBIOAssignment(board, channel, assignment, recipe);
           loadRGBIO8();
@@ -1914,6 +1917,7 @@ byte menuTriggerType (byte type) {
         recipe = r;
       }
       char* getItem(byte index, char *retString) {
+        menuPROGMEM::getItem(index, retString);
         if (index < 4) {
             char hexValue[4];
             sprintf(hexValue, "%03X", recipe[index]);
@@ -1926,7 +1930,7 @@ byte menuTriggerType (byte type) {
   void menuRGBIORecipe(byte recipeIndex) {
     unsigned int recipe[4], origRecipe[4];
     getRGBIORecipe(recipeIndex, recipe);
-    memcpy(&origRecipe, &recipe, 8);
+    memcpy(&origRecipe, &recipe, sizeof(recipe));
     
     menuRGBIORecipeItems recipeMenu(3, recipe);
     while (1) {
