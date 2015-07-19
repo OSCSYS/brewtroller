@@ -624,8 +624,11 @@ void screenSparge (enum ScreenSignal signal) {
           outputs->setProfileState(OUTPUTPROFILE_MASHIDLE, 1); 
         } else if (encValue == 6)
           resetSpargeOutputs();
-        else if (encValue == 7)
+        else if (encValue == 7) {
           screenSpargeMenu();
+          screenSparge(SCREENSIGNAL_INIT);
+          screenSparge(SCREENSIGNAL_LOCK);
+        }
       }
       break;
     case SCREENSIGNAL_ENCODERCHANGE:
@@ -698,25 +701,17 @@ void screenBoil (enum ScreenSignal signal) {
       else LCD.print_P(0,0,PSTR("Boil"));
       break;
     case SCREENSIGNAL_UPDATE:
-		switch (boilControlState) {
-			case CONTROLSTATE_OFF:
-				LCD.print_P(0, 13, PSTR("   Off"));
-				break;
-			case CONTROLSTATE_AUTO:
-				LCD.print_P(0, 13, PSTR("  Auto"));
-				break;
-			case CONTROLSTATE_MANUAL:
-				LCD.print_P(0, 13, PSTR("Manual"));
-				break;
-			case CONTROLSTATE_SETPOINT:
-				uiLabelTemperature(0, 14, 5, setpoint[VS_KETTLE]);
-				break;
+      if (boilControlState == CONTROLSTATE_SETPOINT)
+        uiLabelTemperature(0, 13, 6, setpoint[VS_KETTLE]);
+      else {
+        char boilModeText[7];
+        strcpy_P(boilModeText, (char*)pgm_read_word(&(BOILCONTROLOPTIONS[boilControlState])));
+        LCD.lPad(0, 13, boilModeText, 6, ' ');
       }
-      
       printTimer(TIMER_BOIL, 3, 0);
-      uiLabelFPoint(2, 15, 5, volAvg[VS_KETTLE], 1000);
-      uiLabelPercentOnOff (3, 17, getHeatPower(VS_KETTLE));
-      uiLabelTemperature (1, 14, 6, temp[TS_KETTLE]);
+      uiLabelTemperature (1, 13, 6, temp[TS_KETTLE]);
+      uiLabelFPoint(2, 14, 5, volAvg[VS_KETTLE], 1000);
+      uiLabelPercentOnOff (3, 16, getHeatPower(VS_KETTLE));
       break;
     case SCREENSIGNAL_ENCODEROK:
       screenBoilMenu();
@@ -749,21 +744,11 @@ class menuBoilMenu : public menuPROGMEM {
       menuPROGMEM::getItem(index, retString);
       char numText[7];
       
-      if (index == 0 && timerStatus[TIMER_BOIL])
+      if (index == 1 && timerStatus[TIMER_BOIL])
         strcpy_P(retString, LABEL_PAUSETIMER);
-      else if (index == 1) {      
-        switch (boilControlState) {
-          case CONTROLSTATE_OFF:
-            strcat_P(retString, LABEL_BUTTONOFF);
-            break;
-          case CONTROLSTATE_AUTO:
-            strcat_P(retString, LABEL_AUTO);
-            break;
-          case CONTROLSTATE_MANUAL:
-            strcat_P(retString, LABEL_MANUAL);
-            break;
-        }
-      } else if (index == 3) {
+      else if (index == 2)
+        strcat_P(retString, (char*)pgm_read_word(&(BOILCONTROLOPTIONS[boilControlState])));
+      else if (index == 3) {
         vftoa(setpoint[VS_KETTLE], numText, 100, 1);
         truncFloat(numText, 4);
         strcat(retString, numText);

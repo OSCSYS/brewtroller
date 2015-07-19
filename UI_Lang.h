@@ -195,7 +195,7 @@ const char * const SPARGEMENUOPTIONS[] PROGMEM = {
 const char BOILMENUOPTIONS_SETTIMER[] PROGMEM = "Set Timer";
 const char BOILMENUOPTIONS_STARTTIMER[] PROGMEM = "Start Timer";
 const char BOILMENUOPTIONS_BOILCONTROL[] PROGMEM = "Boil Ctrl: ";
-const char BOILMENUOPTIONS_SETPOINT[] PROGMEM = "Setpoint:";
+const char BOILMENUOPTIONS_SETPOINT[] PROGMEM = "Setpoint: ";
 const char BOILMENUOPTIONS_BOILTEMP[] PROGMEM = "Boil Temp: ";
 const char BOILMENUOPTIONS_BOILPOWER[] PROGMEM = "Boil Power: ";
 
