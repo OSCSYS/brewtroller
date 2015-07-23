@@ -50,36 +50,24 @@ void resetVesselHeat(byte vessel) {
 }
 
 void updatePIDHeat(byte vessel) {
+  //This code should only be applied for vessels with a pwmOutput
+  if (!pwmOutput[vessel])
+    return;
+    
 	//Do not compute PID for kettle if boil control is not in setpoint mode. Temp sensor check can cause power loss recovery problems in manual mode.
 	if (vessel != VS_KETTLE || boilControlState == CONTROLSTATE_SETPOINT) {
 		if (temp[vessel] == BAD_TEMP)
-			PIDOutput[vessel] = 0;
+			pwmOutput[vessel]->setValue(0);
 		else {
 			PIDInput[vessel] = temp[vessel];
 			pid[vessel].Compute();
+      pwmOutput[vessel]->setValue(PIDOutput[vessel]);
 		}
 	}
-
   
-  #ifdef HLT_MIN_HEAT_VOL
-    if(vessel == VS_HLT && volAvg[vessel] < HLT_MIN_HEAT_VOL)
-      PIDOutput[vessel] = 0;
-  #endif
-  #ifdef MASH_MIN_HEAT_VOL
-    if(vessel == VS_MASH && volAvg[vessel] < MASH_MIN_HEAT_VOL)
-      PIDOutput[vessel] = 0;
-  #endif
-  #ifdef KETTLE_MIN_HEAT_VOL
-    if(vessel == VS_KETTLE && volAvg[vessel] < KETTLE_MIN_HEAT_VOL)
-      PIDOutput[vessel] = 0;
-  #endif
+  pwmOutput[vessel]->update();
   
-  if (pwmOutput[vessel]) {
-    pwmOutput[vessel]->setValue(PIDOutput[vessel]);
-    pwmOutput[vessel]->update();
-  }
-  
-  if (PIDOutput[vessel]) {
+  if (pwmOutput[vessel]->getValue()) {
     outputs->setProfileState(vesselPWMActiveProfile(vessel), 1);
     heatStatus[vessel] = 1;
   } else {
