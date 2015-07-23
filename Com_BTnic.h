@@ -762,13 +762,14 @@ void BTnic::execCmd(void) {
 	  setBoilControlState((ControlState)getCmdParamNum(1));
       switch (boilControlState) {
         case CONTROLSTATE_OFF:
-          PIDOutput[VS_KETTLE] = 0;
+          if (pwmOutput[VS_KETTLE])
+            pwmOutput[VS_KETTLE]->setValue(0);
           break;
         case CONTROLSTATE_AUTO:
           break;
         case CONTROLSTATE_MANUAL:
           if (pwmOutput[VS_KETTLE])
-            PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE]->getLimit() * getCmdParamNum(2) / 100;
+             pwmOutput[VS_KETTLE]->setValue(pwmOutput[VS_KETTLE]->getLimit() * getCmdParamNum(2) / 100);
 		  break;
 		case CONTROLSTATE_SETPOINT:
 			setSetpoint(VS_KETTLE, getCmdParamNum(2));

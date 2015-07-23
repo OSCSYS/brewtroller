@@ -79,8 +79,8 @@ void loadSetup() {
   //Boil Control state(118)
   //**********************************************************************************
   setBoilControlState((ControlState)EEPROM.read(118)); //Must be after loadPWMOutput();
-  if (boilControlState == CONTROLSTATE_MANUAL)
-    PIDOutput[VS_KETTLE] = getBoilOutput();
+  if (boilControlState == CONTROLSTATE_MANUAL && pwmOutput[VS_KETTLE])
+    pwmOutput[VS_KETTLE]->setValue(getBoilOutput());
 
   //**********************************************************************************
   //Timer/Alarm Status (306)
