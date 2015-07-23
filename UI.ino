@@ -719,17 +719,18 @@ void screenBoil (enum ScreenSignal signal) {
       break;
     case SCREENSIGNAL_ENCODERCHANGE:
       switch (boilControlState) {
-		case CONTROLSTATE_SETPOINT:
-		case CONTROLSTATE_AUTO:
-			setBoilControlState(CONTROLSTATE_MANUAL);
-		case CONTROLSTATE_MANUAL:
-			PIDOutput[VS_KETTLE] = Encoder.getCount();
+    		case CONTROLSTATE_SETPOINT:
+    		case CONTROLSTATE_AUTO:
+    			setBoilControlState(CONTROLSTATE_MANUAL);
+    		case CONTROLSTATE_MANUAL:
+    			if (pwmOutput[VS_KETTLE])
+    			  pwmOutput[VS_KETTLE]->setValue(Encoder.getCount());
       }
       break;
     case SCREENSIGNAL_LOCK:
       Encoder.setMin(0);
       Encoder.setMax(pwmOutput[VS_KETTLE] ? pwmOutput[VS_KETTLE]->getLimit() : 1);
-      Encoder.setCount(pwmOutput[VS_KETTLE] ? PIDOutput[VS_KETTLE] : heatStatus[VS_KETTLE]);
+      Encoder.setCount(pwmOutput[VS_KETTLE] ? pwmOutput[VS_KETTLE]->getValue() : heatStatus[VS_KETTLE]);
       break;
     case SCREENSIGNAL_UNLOCK:
       //LCD.rPad(0, 14, "", 5, ' ');
