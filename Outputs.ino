@@ -43,7 +43,6 @@ void resetVesselHeat(byte vessel) {
   outputs->setProfileState(vesselIdleProfile(vessel), 0);
   outputs->setProfileState(vesselHeatProfile(vessel), 0);
   outputs->setProfileState(vesselPWMActiveProfile(vessel), 0);
-  PIDOutput[vessel] = 0;
   if (pwmOutput[vessel])
     pwmOutput[vessel]->setValue(0);
   heatStatus[vessel] = 0;
@@ -190,20 +189,18 @@ void updateHeatOutputs() {
   }
   
 void updateBoilController () {
-  if (boilControlState == CONTROLSTATE_AUTO) {
-    if(temp[TS_KETTLE] < getBoilTemp()*SETPOINT_MULT)
-      PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? pwmOutput[VS_KETTLE]->getLimit() : 0;
-    else
-      PIDOutput[VS_KETTLE] = pwmOutput[VS_KETTLE] ? (unsigned int)(pwmOutput[VS_KETTLE]->getLimit()) * boilPwr / 100: 0;
-  }
-  else if (boilControlState == CONTROLSTATE_OFF) {
-	  PIDOutput[VS_KETTLE] = 0;
-  }
+  if (!pwmOutput[VS_KETTLE])
+    return;
+    
+  if (boilControlState == CONTROLSTATE_AUTO)
+    pwmOutput[VS_KETTLE]->setValue((temp[TS_KETTLE] < getBoilTemp() * SETPOINT_MULT) ? pwmOutput[VS_KETTLE]->getLimit() : (unsigned int)(pwmOutput[VS_KETTLE]->getLimit()) * boilPwr / 100);
+  else if (boilControlState == CONTROLSTATE_OFF)
+	  pwmOutput[VS_KETTLE]->setValue(0);
 
   //Save Kettle output to EEPROM if different, check every minuite (to avoid excessive EEPROM writes)
   if ((millis() - lastKettleOutSave > 60000) && boilControlState == CONTROLSTATE_MANUAL) {
       lastKettleOutSave = millis();
-      setBoilOutput((byte)PIDOutput[VS_KETTLE]);
+      setBoilOutput(pwmOutput[VS_KETTLE]->getValue());
     }
 }
 
