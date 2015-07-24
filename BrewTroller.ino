@@ -50,6 +50,8 @@ Then use Tools - Board - Boards Manager to install OpenTroller ATMEGA1284P by OS
 #include <Wire.h>
 #include "LOCAL_Menu.h"
 
+#include "BrewTrollerApplication.h"
+#include "Vessel.h"
 #include "HWProfile.h"
 #include "Config.h"
 #include "Enum.h"
@@ -157,9 +159,6 @@ struct BrewStepConfiguration {
 //**********************************************************************************
 // Globals
 //**********************************************************************************
-//Vessel PWM Output Pin Array
-analogOutput_SWPWM* pwmOutput[3] = {NULL, NULL, NULL};
-
 #ifdef ESTOP_PIN
   pin *estopPin = NULL;
 #endif
@@ -168,24 +167,14 @@ analogOutput_SWPWM* pwmOutput[3] = {NULL, NULL, NULL};
   pin hbPin;
 #endif
 
-//Volume Sensor Pin Array
-byte vSensor[3] = {INDEX_NONE, INDEX_NONE, INDEX_NONE};
-
 Trigger *trigger[USERTRIGGER_COUNT];
 
 //8-byte Temperature Sensor Address x9 Sensors
 byte tSensor[9][8];
 int temp[9];
 
-//Volume in (thousandths of gal/l)
-unsigned long tgtVol[3], volAvg[3], calibVols[3][10];
-unsigned int calibVals[3][10];
 unsigned long prevSpargeVol[2] = {0, 0};
 
-#ifdef FLOWRATE_CALCS
-//Flowrate in thousandths of gal/l per minute
-long flowRate[3] = {0, 0, 0};
-#endif
 
 Bubbler *bubbler = NULL;
 
@@ -211,23 +200,13 @@ OutputSystem* outputs = NULL;
 #endif
 
 //Output Globals
-double PIDInput[3], PIDOutput[3], setpoint[3];
-byte hysteresis[3];
-boolean heatStatus[3];
 byte boilPwr;
-
-PID pid[3] = {
-  PID(&PIDInput[VS_HLT], &PIDOutput[VS_HLT], &setpoint[VS_HLT], 3, 4, 1),
-  PID(&PIDInput[VS_MASH], &PIDOutput[VS_MASH], &setpoint[VS_MASH], 3, 4, 1),
-  PID(&PIDInput[VS_KETTLE], &PIDOutput[VS_KETTLE], &setpoint[VS_KETTLE], 3, 4, 1),
-};
 
 //Timer Globals
 unsigned long timerValue[2], lastTime[2];
 boolean timerStatus[2], alarmStatus;
 
 //Brew Step Logic Globals
-boolean preheated[4];
 ControlState boilControlState = CONTROLSTATE_OFF;
 
 struct ProgramThread programThread[PROGRAMTHREAD_MAX];
@@ -239,71 +218,12 @@ struct BrewStepConfiguration brewStepConfiguration;
 const byte hoptimes[] = { 254, 105, 90, 75, 60, 45, 30, 20, 15, 10, 5, 0, 255 };
 byte pitchTemp;
 
-//Log Strings
-const char LOGCMD[] PROGMEM = "CMD";
-const char LOGDEBUG[] PROGMEM = "DEBUG";
-const char LOGSYS[] PROGMEM = "SYS";
-const char LOGCFG[] PROGMEM = "CFG";
-const char LOGDATA[] PROGMEM = "DATA";
-
-//**********************************************************************************
-// Setup
-//**********************************************************************************
 
 void setup() {
-  #ifdef ADC_REF
-	analogReference(ADC_REF);
-  #endif
-  
-  #ifdef USE_I2C
-    Wire.begin(BT_I2C_ADDR);
-  #endif
-  
-  #ifdef HEARTBEAT
-    hbPin.setup(HEARTBEAT_PIN, OUTPUT);
-  #endif
-
-  for (byte i = 0; i < PROGRAMTHREAD_MAX; i++) {
-    programThread[i].activeStep = INDEX_NONE;
-    programThread[i].recipe = INDEX_NONE;
-  }
-  
-  for (byte i = 0; i < USERTRIGGER_COUNT; i++)
-    trigger[i] = NULL;
-  
-  initializeBrewStepConfiguration();
-
-  //We need some object for UI in case setup is not loaded due to missing config
-  //This will get thrown away after setup is loaded
-  outputs = new OutputSystem();
-  outputs->init();
-
-  tempInit();  
-  comInit();
-  
-  //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.ino)
-  if (!checkConfig())
-    loadSetup();
-  
-  //User Interface Initialization (UI.ino)
-  //Moving this to last of setup() to allow time for I2CLCD to initialize
-  #ifndef NOUI
-    uiInit();
-  #endif
+  BrewTrollerApplication::getInstance()->init();
 }
 
-
-//**********************************************************************************
-// Loop
-//**********************************************************************************
-
 void loop() {
-  //User Interface Processing (UI.ino)
-  #ifndef NOUI
-    uiUpdate();
-  #endif
-  
-  //Core BrewTroller process code (BrewCore.ino)
-  brewCore();
+  BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMALUI);
 }
 

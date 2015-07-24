@@ -81,7 +81,7 @@ byte scrollMenu(char sTitle[], menu *objMenu) {
       return objMenu->getValue();
     if (Encoder.cancel())
       return 255;
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
   }
 }
 
@@ -107,7 +107,7 @@ void infoBox(char line1[], char line2[], char line3[], const char* prompt) {
   char optionText[21];
   LCD.center(3, 1, strcpy_P(optionText, prompt), 18);
   while (!Encoder.ok())
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
 }
 
 byte getChoice(menu *objMenu, byte iRow) {
@@ -138,7 +138,7 @@ byte getChoice(menu *objMenu, byte iRow) {
     } else if (Encoder.cancel()) {
       return 255;
     }
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
   }
 }
 
@@ -285,7 +285,7 @@ unsigned long getValue(char sTitle[], unsigned long defValue, unsigned int divis
       retValue = defValue;
       break;
     }
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
   }
   return retValue;
 }
@@ -397,7 +397,7 @@ unsigned long getHexValue(char sTitle[], unsigned long defValue, byte digits) {
       retValue = defValue;
       break;
     }
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
   }
   return retValue;
 }
@@ -493,7 +493,7 @@ int getTimerValue(const char *sTitle, int defMins, byte maxHours) {
         Encoder.setCount(cursorPos);
       }
     } else if (Encoder.cancel()) return -1; //This value will be validated in SetTimerValue. SetTimerValue will reject the storage of the timer value. 
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
   }
 }
 
@@ -568,7 +568,7 @@ void getString(const char *sTitle, char defValue[], byte chars) {
         }
       }
     } else if (Encoder.cancel()) return;
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
   }
 }
 

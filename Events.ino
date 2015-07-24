@@ -29,9 +29,7 @@ void eventHandler(enum EventIndex eventID, int eventParam) {
   //Global Event handler
   //EVENT_STEPINIT: Nothing to do here (Pass to UI handler below)
   //EVENT_STEPEXIT: Nothing to do here (Pass to UI handler below)
-  if (eventID == EVENT_SETPOINT && !setpoint[eventParam])
-    resetVesselHeat(eventParam);
-  
+
   #ifndef NOUI
     //Pass Event Info to UI Event Handler
     uiEvent(eventID, eventParam);

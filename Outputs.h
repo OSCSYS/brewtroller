@@ -104,7 +104,7 @@ class OutputBankMODBUS : public OutputBank
 class OutputSystem
 {
   private:
-  OutputBank** banks;
+  OutputBank* banks[OUTPUTBANKS_MAXBANKS];
   byte bankCount;
   unsigned long outputState, outputStateForced, outputStateDisabled, discreetState, profileState, profileMask[OUTPUTPROFILE_SYSTEMCOUNT], outputEnableMask[OUTPUTENABLE_COUNT];
   

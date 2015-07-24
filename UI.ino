@@ -349,7 +349,7 @@ void screenHomeMenu() {
       //Reset All
       if (confirmAbort()) {
         programThreadResetAll();
-        resetOutputs();
+        BrewTrollerApplication::getInstance()->reset();
         clearTimer(TIMER_MASH);
         clearTimer(TIMER_BOIL);
       }
@@ -385,10 +385,11 @@ void screenFill (enum ScreenSignal signal) {
       LCD.setCustChar_P(3, BUTTON_ON_SELECTED);
       break;
     case SCREENSIGNAL_UPDATE:
-      uiLabelFPoint(1, 9, 4, tgtVol[VS_HLT], 1000);
-      uiLabelFPoint(2, 9, 4, tgtVol[VS_MASH], 1000);
-      uiLabelFPoint(1, 15, 4, volAvg[VS_HLT], 1000);
-      uiLabelFPoint(2, 15, 4, volAvg[VS_MASH], 1000);
+      for (byte i = VS_HLT; i <= VS_MASH; i++) {
+        Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(i);
+        uiLabelFPoint(i + 1, 9, 4, vessel->getTargetVolume(), 1000);
+        uiLabelFPoint(i + 1, 15, 4, vessel->getVolume(), 1000);
+      }
       screenFillUpdateButtons(screenLock ? Encoder.getCount() : INDEX_NONE);
       break;
     case SCREENSIGNAL_ENCODEROK:
@@ -481,6 +482,7 @@ void screenFillUpdateButtons(byte cursorPosition) {
 }
 
 void screenMash (enum ScreenSignal signal) {
+  BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance();
   switch (signal) {
     case SCREENSIGNAL_INIT:
       LCD.clear();
@@ -503,9 +505,10 @@ void screenMash (enum ScreenSignal signal) {
       break;
     case SCREENSIGNAL_UPDATE:
       for (byte i = VS_HLT; i <= VS_MASH; i++) {
-        uiLabelTemperature (1, i * 6 + 9, 5, setpoint[i]);
-        uiLabelTemperature (2, i * 6 + 9, 5, temp[i]);
-        uiLabelPercentOnOff (3, i * 6 + 11, getHeatPower(i));        
+        Vessel *vessel = btApp->getVessel(i);
+        uiLabelTemperature (1, i * 6 + 9, 5, vessel->getSetpoint());
+        uiLabelTemperature (2, i * 6 + 9, 5, vessel->getTemperature[i]);
+        uiLabelPercentOnOff (3, i * 6 + 11, vessel->getHeatPower());        
         printTimer(TIMER_MASH, 3, 0);
       }
       break;
@@ -530,12 +533,12 @@ class menuMashMenu : public menuPROGMEM {
       menuPROGMEM::getItem(index, retString);
       char numText[7];
       if (index == 0) {
-        vftoa(setpoint[VS_HLT], numText, 100, 1);
+        vftoa(BrewTrollerApplication::getInstance()->getVessel(VS_HLT)->getSetpoint(), numText, 100, 1);
         truncFloat(numText, 4);
         strcat(retString, numText);
         strcat_P(retString, TUNIT);
       } else if (index == 1) {
-        vftoa(setpoint[VS_MASH], numText, 100, 1);
+        vftoa(BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint(), numText, 100, 1);
         truncFloat(numText, 4);
         strcat(retString, numText);
         strcat_P(retString, TUNIT);
@@ -547,8 +550,8 @@ class menuMashMenu : public menuPROGMEM {
 void screenMashMenu() {
   menuMashMenu mashMenu(3);
   byte lastOption = scrollMenu("Mash Menu", &mashMenu);
-  if (lastOption == 0) setSetpoint(VS_HLT, getValue_P(PSTR("HLT Setpoint"), setpoint[VS_HLT] / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
-  else if (lastOption == 1) setSetpoint(VS_MASH, getValue_P(PSTR("Mash Setpoint"), setpoint[VS_MASH] / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
+  if (lastOption == 0) setSetpoint(VS_HLT, getValue_P(PSTR("HLT Setpoint"), BrewTrollerApplication::getInstance()->getVessel(VS_HLT)->getSetpoint() / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
+  else if (lastOption == 1) setSetpoint(VS_MASH, getValue_P(PSTR("Mash Setpoint"), BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint() / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
   else if (lastOption == 2) { 
     setTimer(TIMER_MASH, getTimerValue(PSTR("Mash Timer"), timerValue[TIMER_MASH] / 60000, 1));
     //Force Preheated
@@ -598,8 +601,9 @@ void screenSparge (enum ScreenSignal signal) {
       break;
     case SCREENSIGNAL_UPDATE:
       for (byte i = VS_HLT; i <= VS_KETTLE; i++) {
-        uiLabelFPoint(1 + i, 14, 6, vSensor[i] == INDEX_NONE ? tgtVol[i] : volAvg[i], 1000);
-        uiLabelTemperature (i + 1, 8, 5, temp[i]);
+        Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(i);
+        uiLabelFPoint(1 + i, 14, 6, vessel->getVolume(), 1000);
+        uiLabelTemperature (i + 1, 8, 5, vessel->getTemperature());
       }
       break;
     case SCREENSIGNAL_ENCODEROK:
@@ -693,6 +697,9 @@ void screenSpargeMenu() {
 }
 
 void screenBoil (enum ScreenSignal signal) {
+  BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance()
+  Vessel *kettle = btApp->getVessel(VS_KETTLE);
+  
   switch (signal) {
     case SCREENSIGNAL_INIT:
       LCD.clear();
@@ -702,16 +709,16 @@ void screenBoil (enum ScreenSignal signal) {
       break;
     case SCREENSIGNAL_UPDATE:
       if (boilControlState == CONTROLSTATE_SETPOINT)
-        uiLabelTemperature(0, 13, 6, setpoint[VS_KETTLE]);
+        uiLabelTemperature(0, 13, 6, kettle->getSetpoint());
       else {
         char boilModeText[7];
         strcpy_P(boilModeText, (char*)pgm_read_word(&(BOILCONTROLOPTIONS[boilControlState])));
         LCD.lPad(0, 13, boilModeText, 6, ' ');
       }
       printTimer(TIMER_BOIL, 3, 0);
-      uiLabelTemperature (1, 13, 6, temp[TS_KETTLE]);
-      uiLabelFPoint(2, 14, 5, volAvg[VS_KETTLE], 1000);
-      uiLabelPercentOnOff (3, 16, getHeatPower(VS_KETTLE));
+      uiLabelTemperature (1, 13, 6, kettle->getTemperature());
+      uiLabelFPoint(2, 14, 5, kettle->getVolume(), 1000);
+      uiLabelPercentOnOff (3, 16, kettle->getHeatPower());
       break;
     case SCREENSIGNAL_ENCODEROK:
       screenBoilMenu();
@@ -723,14 +730,17 @@ void screenBoil (enum ScreenSignal signal) {
     		case CONTROLSTATE_AUTO:
     			setBoilControlState(CONTROLSTATE_MANUAL);
     		case CONTROLSTATE_MANUAL:
-    			if (pwmOutput[VS_KETTLE])
-    			  pwmOutput[VS_KETTLE]->setValue(Encoder.getCount());
+    			if (kettle->getPWMOutput())
+    			  kettle->getPWMOutput()->setValue(Encoder.getCount());
       }
       break;
     case SCREENSIGNAL_LOCK:
-      Encoder.setMin(0);
-      Encoder.setMax(pwmOutput[VS_KETTLE] ? pwmOutput[VS_KETTLE]->getLimit() : 1);
-      Encoder.setCount(pwmOutput[VS_KETTLE] ? pwmOutput[VS_KETTLE]->getValue() : heatStatus[VS_KETTLE]);
+      {
+        Encoder.setMin(0);
+        analogOutput *pwmOutput = BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput();
+        Encoder.setMax(pwmOutput ? pwmOutput->getLimit() : 1);
+        Encoder.setCount(pwmOutput ? pwmOutput->getValue() : heatStatus[VS_KETTLE]);
+      }
       break;
     case SCREENSIGNAL_UNLOCK:
       //LCD.rPad(0, 14, "", 5, ' ');
@@ -750,7 +760,7 @@ class menuBoilMenu : public menuPROGMEM {
       else if (index == 2)
         strcat_P(retString, (char*)pgm_read_word(&(BOILCONTROLOPTIONS[boilControlState])));
       else if (index == 3) {
-        vftoa(setpoint[VS_KETTLE], numText, 100, 1);
+        vftoa(BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getSetpoint(), numText, 100, 1);
         truncFloat(numText, 4);
         strcat(retString, numText);
         strcat_P(retString, TUNIT);
@@ -783,7 +793,7 @@ void screenBoilMenu() {
   else if (lastOption == 2)
     boilControlMenu();
   else if (lastOption == 3) {
-    setSetpoint(VS_KETTLE, getValue_P(PSTR("Kettle Setpoint"), setpoint[VS_KETTLE] / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
+    setSetpoint(VS_KETTLE, getValue_P(PSTR("Kettle Setpoint"), BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getSetpoint() / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
     setBoilControlState(CONTROLSTATE_SETPOINT);
   }
   else if (lastOption == 4) {
@@ -954,7 +964,7 @@ void uiEStop() {
         loadEStop();
       }
     }
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
   }
 }
 #endif

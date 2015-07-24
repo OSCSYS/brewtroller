@@ -85,8 +85,8 @@ boolean TriggerValue::getRawValue(void) {
   return (*value > threshold) ? 1 : 0;
 }
 
-TriggerSetpointDelay::TriggerSetpointDelay(double *v, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis) {
-  value = v;
+TriggerSetpointDelay::TriggerSetpointDelay(Vessel *v, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis) {
+  vessel = v;
   tripped = 0;
   activeLow = aLow;
   filterBits = filter;
@@ -100,7 +100,7 @@ TriggerSetpointDelay::~TriggerSetpointDelay() {
 }
 
 boolean TriggerSetpointDelay::getRawValue(void) {
-  if (*value == 0)
+  if (vessel->getSetpoint() == 0)
     tripped = 0;
   else {
     if (!tripped) {

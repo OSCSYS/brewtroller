@@ -154,7 +154,7 @@ void sendVsTemp(byte chan, byte sensor, byte vessel) {
 			  break;
 		  }
 	  } else 
-		  kettleSetpoint = setpoint[vessel];
+		  kettleSetpoint = BrewTrollerApplication::getInstance()->getVessel(vessel)->getSetpoint();
 	sendFloatsBTPD(chan, kettleSetpoint / 100.0, temp[sensor] / 100.0);
   }
 }

@@ -273,7 +273,7 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
       programThreadSetStep(thread, BREWSTEP_PREHEAT);
       break;
     case STEPSIGNAL_UPDATE:
-      if (!preheated[preheatVessel] && temp[preheatVessel] >= setpoint[preheatVessel]) {
+      if (!preheated[preheatVessel] && temp[preheatVessel] >= BrewTrollerApplication::getInstance()->getVessel(preheatVessel)->getSetpoint()) {
         preheated[preheatVessel] = 1;
         setAlarm(1);
       }
@@ -397,13 +397,13 @@ void brewStepMashHelper(byte mashStep, enum StepSignal signal, struct ProgramThr
       #ifdef SMART_HERMS_HLT
         smartHERMSHLT();
       #endif
-      if (!preheated[VS_MASH] && temp[TS_MASH] >= setpoint[VS_MASH]) {
+      if (!preheated[VS_MASH] && temp[TS_MASH] >= BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint()) {
         preheated[VS_MASH] = 1;
         //Unpause Timer
         if (!timerStatus[TIMER_MASH]) pauseTimer(TIMER_MASH);
       }
       //Exit Condition (and skip unused mash steps)
-      if (setpoint[VS_MASH] == 0 || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0))
+      if (BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint() == 0 || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0))
         brewStepMashHelper(mashStep, STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
@@ -452,15 +452,15 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
       //Set HLT to Sparge Temp
       setSetpoint(TS_HLT, getProgSparge(thread->recipe));
       //Cycle through steps and use last non-zero step for mash setpoint
-      if (!setpoint[TS_MASH]) {
+      if (!(BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint())) {
         byte i = MASHSTEP_MASHOUT;
-        while (setpoint[TS_MASH] == 0 && i >= MASHSTEP_DOUGHIN && i <= MASHSTEP_MASHOUT)
+        while (BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint() == 0 && i >= MASHSTEP_DOUGHIN && i <= MASHSTEP_MASHOUT)
           setSetpoint(TS_MASH, getProgMashTemp(thread->recipe, i--));
       }
       programThreadSetStep(thread, BREWSTEP_MASHHOLD);
       break;
     case STEPSIGNAL_UPDATE:
-      if (brewStepConfiguration.autoExitMash && !zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= setpoint[VS_HLT])
+      if (brewStepConfiguration.autoExitMash && !zoneIsActive(ZONE_BOIL) && temp[VS_HLT] >= BrewTrollerApplication::getInstance()->getVessel(VS_HLT)->getSetpoint())
         brewStepMashHold(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
@@ -475,27 +475,28 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
 }
 
 void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
+  Vessel *hlt = BrewTrollerApplication::getInstance()->getVessel(VS_HLT);
+  Vessel *kettle = BrewTrollerApplication::getInstance()->getVessel(VS_Kettle);
+  
   switch (signal) {
     case STEPSIGNAL_INIT:
-      #ifdef SPARGE_IN_PUMP_CONTROL
-        prevSpargeVol[1] = volAvg[VS_HLT]; // init the value at the start of sparge
-        prevSpargeVol[0] = 0;
-      #endif
-      tgtVol[VS_KETTLE] = calcPreboilVol(thread->recipe);
+      prevSpargeVol[1] = hlt->getVolume(); // init the value at the start of sparge
+      prevSpargeVol[0] = 0;
+      kettle->setTargetVolume(calcPreboilVol(thread->recipe));
       if (brewStepConfiguration.autoStartFlySparge)
         autoValve[AV_FLYSPARGE] = 1;
 
       programThreadSetStep(thread, BREWSTEP_SPARGE);
       break;
     case STEPSIGNAL_UPDATE:
-      if (brewStepConfiguration.autoExitSparge && volAvg[VS_KETTLE] >= tgtVol[VS_KETTLE])
+      if (brewStepConfiguration.autoExitSparge && kettle->getVolume() >= kettle->getTargetVolume())
         brewStepSparge(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
-      tgtVol[VS_HLT] = 0;
-      tgtVol[VS_KETTLE] = 0;
+      hlt->setTargetVolume(0);
+      kettle->setTargetVolume(0);
       resetSpargeOutputs();
       if (signal == STEPSIGNAL_ADVANCE)
         brewStepBoil(STEPSIGNAL_INIT, thread);

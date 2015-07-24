@@ -774,7 +774,7 @@ void assignSensor() {
       Encoder.setCount(tsMenu.getSelected());
       redraw = 1;
     }
-    brewCore();
+    BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
   }
 }
 
@@ -1002,20 +1002,23 @@ void menuVesselSettings(byte vessel) {
       strcat_P(title, CALIBRATION);
       volCalibMenu(title, vessel);
     } else if (lastOption == 11) {
-      byte source = menuSelectVessel("Clone From:", INDEX_NONE, 1);
-      if (source <= VS_KETTLE) {
-        setPWMPin(vessel, getPWMPin(source));
-        setPWMPeriod(vessel, getPWMPeriod(source));
-        setPWMResolution(vessel, getPWMResolution(source));
-        setPIDp(vessel, getPIDp(source));
-        setPIDi(vessel, getPIDi(source));
-        setPIDd(vessel, getPIDd(source));
-        setPIDLimit(vessel, getPIDLimit(source));
-        setHysteresis(vessel, hysteresis[source]);
-        setVolumeSensor(vessel, getVolumeSensor(source));
-        setCapacity(vessel, getCapacity(source));
-        for (byte i = 0; i < 10; i++)
-          setVolCalib(vessel, i, calibVals[source][i], calibVols[source][i]);
+      byte sourceIndex = menuSelectVessel("Clone From:", INDEX_NONE, 1);
+      if (sourceIndex <= VS_KETTLE) {
+        Vessel *source = BrewTrollerApplication::getInstance()->getVessel(sourceIndex);
+        setPWMPin(vessel, getPWMPin(sourceIndex));
+        setPWMPeriod(vessel, getPWMPeriod(sourceIndex));
+        setPWMResolution(vessel, getPWMResolution(sourceIndex));
+        setPIDp(vessel, getPIDp(sourceIndex));
+        setPIDi(vessel, getPIDi(sourceIndexrce));
+        setPIDd(vessel, getPIDd(sourceIndex));
+        setPIDLimit(vessel, getPIDLimit(sourceIndex));
+        setHysteresis(vessel, source->getHysteresis());
+        setVolumeSensor(vessel, getVolumeSensor(sourceIndex));
+        setCapacity(vessel, getCapacity(sourceIndex));
+        for (byte i = 0; i < 10; i++) {
+          struct Calibration calibration = source->getVolumeCalibration(i);
+          setVolCalib(vessel, i, calibration.inputValue, calibration.outputValue);
+        }
       }
     }
     else {
@@ -1027,24 +1030,27 @@ void menuVesselSettings(byte vessel) {
 
 class menuVolumeCalibrationList : public menu {
   private:
-    byte vessel;
+    Vessel *vessel;
     
     char* getItemCalibration(byte index, char *retString) {
-      if (calibVals[vessel][index] == 0)
+      struct Calibration calibration = vessel->getVolumeCalibration(index);
+      
+      if (calibration.inputValue == 0)
         return strcpy(retString, "OPEN");
+        
       char numText[12];
-      vftoa(calibVols[vessel][index], retString, 1000, 1);
+      vftoa(calibration.outputValue, retString, 1000, 1);
       truncFloat(retString, 6);
       strcat(retString, " ");
       strcat_P(retString, VOLUNIT);
       strcat(retString, " (");
-      strcat(retString, itoa(calibVals[vessel][index], numText, 10));
+      strcat(retString, itoa(calibration.inputValue, numText, 10));
       strcat(retString, ")");
       return retString;
     }
         
   public:
-    menuVolumeCalibrationList(byte pSize, byte v) : menu(pSize) {
+    menuVolumeCalibrationList(byte pSize, Vessel *v) : menu(pSize) {
      vessel = v;
     }
     byte getItemCount(void) {
@@ -1059,15 +1065,18 @@ class menuVolumeCalibrationList : public menu {
     }
 };
 
-void volCalibMenu(char sTitle[], byte vessel) {
+void volCalibMenu(char sTitle[], byte vesselIndex) {
+  Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(vesselIndex);
+  
   menuVolumeCalibrationList calibMenu(3, vessel);    
   while(1) {
     byte lastOption = scrollMenu(sTitle, &calibMenu);
     if (lastOption > 9)
       return; 
-    if (calibVals[vessel][lastOption] == 0)
-      setVolCalib(vessel, lastOption, 0, getValue_P(PSTR("Current Volume:"), 0, 1000, 9999999, VOLUNIT));
-    volCalibEntryMenu(vessel, lastOption);
+    struct Calibration calibration = vessel->getVolumeCalibration(lastOption);
+    if (calibration.inputValue == 0)
+      setVolCalib(vesselIndex, lastOption, 0, getValue_P(PSTR("Current Volume:"), 0, 1000, 9999999, VOLUNIT));
+    volCalibEntryMenu(vesselIndex, lastOption);
   }
 }
 
@@ -1095,27 +1104,32 @@ class menuVolumeCalibrationOptions : public menuPROGMEM {
 //This function manages the volume value to calibrate. 
 //The value can be updated or deleted. 
 //Users can skip all actions by exiting. 
-void volCalibEntryMenu(byte vessel, byte entry) {
+void volCalibEntryMenu(byte vesselIndex, byte entry) {
+  Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(vesselIndex);
+  
   while(1) {
+    struct Calibration calibration = vessel->getVolumeCalibration(entry);
     char sTitle[21] = "Calibrate ";
     char numText[12];
-    vftoa(calibVols[vessel][entry], numText, 1000, 1);
+        
+    vftoa(calibration.outputValue, numText, 1000, 1);
     truncFloat(numText, 6);
     strcat(sTitle, numText);
     strcat(sTitle, " ");
     strcat_P(sTitle, VOLUNIT);
       
-    unsigned int newSensorValue = GetCalibrationValue(vessel);
-    menuVolumeCalibrationOptions calibMenu(3, calibVals[vessel][entry], newSensorValue);
+    unsigned int newSensorValue = vessel->getRawVolumeValue();
+    
+    menuVolumeCalibrationOptions calibMenu(3, calibration.inputValue, newSensorValue);
     byte lastOption = scrollMenu(sTitle, &calibMenu);
 
     if (lastOption == 0) {
       //Update the volume value.
-      setVolCalib(vessel, entry, newSensorValue, calibVols[vessel][entry]); 
+      setVolCalib(vessel, entry, newSensorValue, calibration.outputValue); 
       return;
     } else if (lastOption == 1) {
-      newSensorValue = (unsigned int) getValue_P(PSTR("Manual Volume Entry"), calibVals[vessel][entry], 1, 1023, PSTR(""));
-      setVolCalib(vessel, entry, newSensorValue, calibVols[vessel][entry]); 
+      newSensorValue = (unsigned int) getValue_P(PSTR("Manual Volume Entry"), calibration.inputValue, 1, 1023, PSTR(""));
+      setVolCalib(vessel, entry, newSensorValue, calibration.outputValue); 
       return;    
     } else if (lastOption == 2) {
       //Delete the volume and value.
@@ -1455,7 +1469,7 @@ void menuOutputProfiles() {
           Encoder.setCount(cursorPos);
         }
       } else if (Encoder.cancel()) return;
-      brewCore();
+      BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
     }
   }
 #endif //#ifdef UI_DISPLAY_SETUP
@@ -1799,7 +1813,7 @@ byte menuTriggerType (byte type) {
     tempRGBIO.setAddress(newAddr);
     unsigned long waitUntil = millis() + 250;
     while (millis() < waitUntil)
-      brewCore();
+      BrewTrollerApplication::getInstance()->update(PRIORITYLEVEL_NORMAL);
     tempRGBIO.restart();
     setRGBIOAddr(board, newAddr);
     loadRGBIO8();
