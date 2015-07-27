@@ -28,6 +28,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 #include "LOCAL_Pin.h"
 #include "Vessel.h"
 
+class Vessel;
+
 class Trigger
 {
   protected:
@@ -54,15 +56,15 @@ class TriggerGPIO : public Trigger
     
 };
 
-class TriggerValue : public Trigger
+class TriggerVolume : public Trigger
 {
   private:
-  unsigned long *value;
+  Vessel *vessel;
   unsigned long threshold;
   
   public:
-  TriggerValue(unsigned long *v, unsigned long t, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis);
-  ~TriggerValue();
+  TriggerVolume(Vessel *v, unsigned long t, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis);
+  ~TriggerVolume();
   boolean getRawValue(void);
 };
 

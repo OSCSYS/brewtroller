@@ -215,7 +215,7 @@ void uiSetCustomCharactors() {
 //**********************************************************************************
 void uiUpdate() {
   #ifdef ESTOP_PIN
-  if (isEStop()) {
+  if (BrewTrollerApplication::getInstance()->isEStop()) {
     uiEStop(); //Note: Holds focus in event of eStop Trigger
     uiJumpScreen(activeScreen);
   }
@@ -406,14 +406,20 @@ void screenFill (enum ScreenSignal signal) {
             outputs->toggleProfileState(OUTPUTPROFILE_FILLHLT);
             break;
           case 2:
-            tgtVol[VS_HLT] = getValue_P(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 1000, 9999999, VOLUNIT);
+            {
+              Vessel *hlt = BrewTrollerApplication::getInstance()->getVessel(VS_HLT);
+              hlt->setTargetVolume(getValue_P(PSTR("HLT Target Vol"), hlt->getTargetVolume(), 1000, 9999999, VOLUNIT));
+            }
             uiRedrawActiveScreen();
             break;
           case 3:
             outputs->toggleProfileState(OUTPUTPROFILE_FILLMASH);
             break;
           case 4:
-            tgtVol[VS_MASH] = getValue_P(PSTR("Mash Target Vol"), tgtVol[VS_MASH], 1000, 9999999, VOLUNIT);
+            {
+              Vessel *mash = BrewTrollerApplication::getInstance()->getVessel(VS_MASH);
+              mash->setTargetVolume(getValue_P(PSTR("Mash Target Vol"), mash->getTargetVolume(), 1000, 9999999, VOLUNIT));
+            }
             uiRedrawActiveScreen();
             break;
           case 5:
@@ -507,7 +513,7 @@ void screenMash (enum ScreenSignal signal) {
       for (byte i = VS_HLT; i <= VS_MASH; i++) {
         Vessel *vessel = btApp->getVessel(i);
         uiLabelTemperature (1, i * 6 + 9, 5, vessel->getSetpoint());
-        uiLabelTemperature (2, i * 6 + 9, 5, vessel->getTemperature[i]);
+        uiLabelTemperature (2, i * 6 + 9, 5, vessel->getTemperature());
         uiLabelPercentOnOff (3, i * 6 + 11, vessel->getHeatPower());        
         printTimer(TIMER_MASH, 3, 0);
       }
@@ -552,16 +558,10 @@ void screenMashMenu() {
   byte lastOption = scrollMenu("Mash Menu", &mashMenu);
   if (lastOption == 0) setSetpoint(VS_HLT, getValue_P(PSTR("HLT Setpoint"), BrewTrollerApplication::getInstance()->getVessel(VS_HLT)->getSetpoint() / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
   else if (lastOption == 1) setSetpoint(VS_MASH, getValue_P(PSTR("Mash Setpoint"), BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint() / SETPOINT_MULT, SETPOINT_DIV, 255, TUNIT));
-  else if (lastOption == 2) { 
+  else if (lastOption == 2)
     setTimer(TIMER_MASH, getTimerValue(PSTR("Mash Timer"), timerValue[TIMER_MASH] / 60000, 1));
-    //Force Preheated
-    preheated[VS_MASH] = 1;
-  } 
-  else if (lastOption == 3) {
+  else if (lastOption == 3)
     pauseTimer(TIMER_MASH);
-    //Force Preheated
-    preheated[VS_MASH] = 1;
-  } 
   else if (lastOption == 4)
     continueClick();
   else if (lastOption == 5) {
@@ -622,10 +622,10 @@ void screenSparge (enum ScreenSignal signal) {
           outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 1); 
         } else if (encValue == 4) {
           resetSpargeOutputs(); 
-          outputs->setProfileState(OUTPUTPROFILE_MASHHEAT, 1); 
+          outputs->setProfileState(OUTPUTPROFILE_VESSEL1HEAT + VS_MASH, 1); 
         } else if (encValue == 5) {
           resetSpargeOutputs(); 
-          outputs->setProfileState(OUTPUTPROFILE_MASHIDLE, 1); 
+          outputs->setProfileState(OUTPUTPROFILE_VESSEL1IDLE + VS_MASH, 1); 
         } else if (encValue == 6)
           resetSpargeOutputs();
         else if (encValue == 7) {
@@ -678,14 +678,28 @@ void screenSparge (enum ScreenSignal signal) {
 }
 
 void screenSpargeMenu() {
+  Vessel *hlt = BrewTrollerApplication::getInstance()->getVessel(VS_HLT);
+  Vessel *kettle = BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE);
   menuPROGMEM spargeMenu(3, SPARGEMENUOPTIONS, ARRAY_LENGTH(SPARGEMENUOPTIONS));
   byte lastOption = scrollMenu("Sparge Menu", &spargeMenu);
-  if (lastOption == 0) { resetSpargeOutputs(); if(tgtVol[VS_HLT]) autoValve[AV_SPARGEIN] = 1; }
-  else if (lastOption == 1) { resetSpargeOutputs(); if(tgtVol[VS_KETTLE]) autoValve[AV_SPARGEOUT] = 1; }
-  else if (lastOption == 2) { resetSpargeOutputs(); if(tgtVol[VS_KETTLE]) autoValve[AV_FLYSPARGE] = 1; }
-  else if (lastOption == 3) tgtVol[VS_HLT] = getValue_P(PSTR("HLT Target Vol"), tgtVol[VS_HLT], 1000, 9999999, VOLUNIT);
-  else if (lastOption == 4) tgtVol[VS_KETTLE] = getValue_P(PSTR("Kettle Target Vol"), tgtVol[VS_KETTLE], 1000, 9999999, VOLUNIT);
-  else if (lastOption == 5) continueClick();
+  if (lastOption == 0) {
+    resetSpargeOutputs();
+    if(hlt->getTargetVolume())
+      autoValve[AV_SPARGEIN] = 1; 
+  } else if (lastOption == 1) {
+    resetSpargeOutputs();
+      if(kettle->getTargetVolume())
+        autoValve[AV_SPARGEOUT] = 1;
+  } else if (lastOption == 2) {
+    resetSpargeOutputs();
+      if(kettle->getTargetVolume())
+        autoValve[AV_FLYSPARGE] = 1; 
+  } else if (lastOption == 3)
+    hlt->setTargetVolume(getValue_P(PSTR("HLT Target Vol"), hlt->getTargetVolume(), 1000, 9999999, VOLUNIT));
+  else if (lastOption == 4)
+    kettle->setTargetVolume(getValue_P(PSTR("Kettle Target Vol"), kettle->getTargetVolume(), 1000, 9999999, VOLUNIT));
+  else if (lastOption == 5)
+    continueClick();
   else if (lastOption == 6) {
     if (confirmAbort()) {
       if (brewStepIsActive(BREWSTEP_GRAININ))
@@ -697,7 +711,7 @@ void screenSpargeMenu() {
 }
 
 void screenBoil (enum ScreenSignal signal) {
-  BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance()
+  BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance();
   Vessel *kettle = btApp->getVessel(VS_KETTLE);
   
   switch (signal) {
@@ -739,7 +753,7 @@ void screenBoil (enum ScreenSignal signal) {
         Encoder.setMin(0);
         analogOutput *pwmOutput = BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput();
         Encoder.setMax(pwmOutput ? pwmOutput->getLimit() : 1);
-        Encoder.setCount(pwmOutput ? pwmOutput->getValue() : heatStatus[VS_KETTLE]);
+        Encoder.setCount(pwmOutput ? pwmOutput->getValue() : 0);
       }
       break;
     case SCREENSIGNAL_UNLOCK:
@@ -780,16 +794,10 @@ class menuBoilMenu : public menuPROGMEM {
 void screenBoilMenu() {
   menuBoilMenu boilMenu(3);
   byte lastOption = scrollMenu("Boil Menu", &boilMenu);
-  if (lastOption == 0) {
+  if (lastOption == 0)
     setTimer(TIMER_BOIL, getTimerValue(PSTR("Boil Timer"), timerValue[TIMER_BOIL] / 60000, 2));
-    //Force Preheated
-    preheated[VS_KETTLE] = 1;
-  } 
-  else if (lastOption == 1) {
+  else if (lastOption == 1)
     pauseTimer(TIMER_BOIL);
-    //Force Preheated
-    preheated[VS_KETTLE] = 1;
-  } 
   else if (lastOption == 2)
     boilControlMenu();
   else if (lastOption == 3) {
@@ -949,7 +957,7 @@ void uiEStop() {
   LCD.print_P(1, 0, PSTR(">Clear Alarm"));
   LCD.print_P(2, 0, PSTR(" Disable E-Stop"));
 
-  while (isEStop()) {
+  while (BrewTrollerApplication::getInstance()->isEStop()) {
     if (Encoder.change() >= 0) {
       for (byte i = 0; i < 3; i++)
         LCD.print(i + 1, 0, " ");

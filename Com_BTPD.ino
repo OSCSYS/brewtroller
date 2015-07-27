@@ -159,8 +159,9 @@ void sendVsTemp(byte chan, byte sensor, byte vessel) {
   }
 }
 
-void sendVsVol(byte chan, byte vessel) {
-  sendFloatsBTPD(chan, tgtVol[vessel] / 1000.0, volAvg[vessel] / 1000.0);
+void sendVsVol(byte chan, byte vesselIndex) {
+  Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(vesselIndex);
+  sendFloatsBTPD(chan, vessel->getTargetVolume() / 1000.0, vessel->getVolume() / 1000.0);
 }
 
 void sendStringBTPD(byte chan, char *string) {

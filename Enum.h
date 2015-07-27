@@ -1,6 +1,9 @@
 #ifndef BT_ENUM
 #define BT_ENUM
 
+#include <Arduino.h>
+#include "HWProfile.h"
+
 //TSensor and Output (0-2) Array Element Constants
   #define TS_HLT 0
   #define TS_MASH 1
@@ -50,13 +53,13 @@
     OUTPUTPROFILE_USER3,
     OUTPUTPROFILE_ALARM,
     OUTPUTPROFILE_VESSEL1HEAT,
-    OUTPUTPROFILE_VESSEL1IDLE,
-    OUTPUTPROFILE_VESSEL1PWMACTIVE,
     OUTPUTPROFILE_VESSEL2HEAT,
-    OUTPUTPROFILE_VESSEL2IDLE,
-    OUTPUTPROFILE_VESSEL2PWMACTIVE,
     OUTPUTPROFILE_VESSEL3HEAT,
+    OUTPUTPROFILE_VESSEL1IDLE,
+    OUTPUTPROFILE_VESSEL2IDLE,
     OUTPUTPROFILE_VESSEL3IDLE,
+    OUTPUTPROFILE_VESSEL1PWMACTIVE,
+    OUTPUTPROFILE_VESSEL2PWMACTIVE,
     OUTPUTPROFILE_VESSEL3PWMACTIVE,
     OUTPUTPROFILE_USERCOUNT,                          //The number of user configurable output profiles
     OUTPUTPROFILE_BTNIC = OUTPUTPROFILE_USERCOUNT,    //Dymanic profile used by BTNIC logic to turn on outputs (not implemented)
@@ -190,5 +193,44 @@ enum connectionStatusIndex {
   CONNECTIONSTATUS_CONNECTED,
   CONNECTIONSTATUS_ERROR
 };
+
+struct ProgramThread {
+  byte activeStep;
+  byte recipe;
+};
+
+struct TriggerConfiguration {
+  byte type                    :3;
+  byte index                   :4;
+  boolean activeLow            :1;
+  unsigned long threshold      :24;
+  unsigned long profileFilter;
+  unsigned long disableMask;
+  byte releaseHysteresis;
+};
+
+struct BrewStepConfiguration {
+  boolean fillSpargeBeforePreheat       :1;
+  boolean autoStartFill                 :1;
+  boolean autoExitFill                  :1;
+  boolean autoExitPreheat               :1;
+  boolean autoStrikeTransfer            :1;
+  byte autoExitGrainInMinutes           :8;
+  boolean autoExitMash                  :1;
+  boolean autoStartFlySparge            :1;
+  boolean autoExitSparge                :1;
+  byte autoBoilWhirlpoolMinutes         :8;
+  byte boilAdditionSeconds              :8;
+  byte preBoilAlarm                     :8;
+  byte flySpargeHysteresis              :8;
+};
+
+#ifdef USEMETRIC
+  #define SETPOINT_MULT 50
+  #define SETPOINT_DIV  2
+#else
+  #define SETPOINT_MULT 100
+  #define SETPOINT_DIV  1
+#endif
 
 #endif

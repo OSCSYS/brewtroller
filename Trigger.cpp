@@ -67,8 +67,8 @@ boolean TriggerGPIO::getRawValue(void) {
   return inputPin.get();
 }
   
-TriggerValue::TriggerValue(unsigned long *v, unsigned long t, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis) {
-  value = v;
+TriggerVolume::TriggerVolume(Vessel *v, unsigned long t, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis) {
+  vessel = v;
   threshold = t;
   activeLow = aLow;
   filterBits = filter;
@@ -77,12 +77,12 @@ TriggerValue::TriggerValue(unsigned long *v, unsigned long t, boolean aLow, unsi
   releaseMillis = 0;
 }
 
-TriggerValue::~TriggerValue() {
+TriggerVolume::~TriggerVolume() {
   
 }
 
-boolean TriggerValue::getRawValue(void) {
-  return (*value > threshold) ? 1 : 0;
+boolean TriggerVolume::getRawValue(void) {
+  return (vessel->getVolume() > threshold) ? 1 : 0;
 }
 
 TriggerSetpointDelay::TriggerSetpointDelay(Vessel *v, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis) {

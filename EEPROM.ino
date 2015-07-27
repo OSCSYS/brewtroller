@@ -42,7 +42,7 @@ void loadSetup() {
   //PWM Pin (309-312)
   //**********************************************************************************
   for (byte i = VS_HLT; i <= VS_KETTLE; i++)
-    hysteresis[i] = EEPROM.read(77 + i * 5);
+    btApp->getVessel(i)->setHysteresis(EEPROM.read(77 + i * 5));
 
   //**********************************************************************************
   //boilPwr (112)
@@ -50,14 +50,19 @@ void loadSetup() {
   boilPwr = EEPROM.read(112);
   
   for (byte i = 0; i <= VS_KETTLE; i++)
-    vSensor[i] = EEPROM.read(114 + i);
+    btApp->getVessel(i)->setVolumeInput(EEPROM.read(114 + i));
   
   //**********************************************************************************
   //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
   //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
   //**********************************************************************************
-  eeprom_read_block(&calibVols, (unsigned char *) 119, 120);
-  eeprom_read_block(&calibVals, (unsigned char *) 239, 60);
+  for (byte i = 0; i <= VS_KETTLE; i++)
+    for (byte j = 0; j < 10; j++) {
+      struct Calibration calibration;
+      calibration.inputValue = EEPROMreadInt(239 + i * 20 + j * 2);
+      calibration.outputValue = EEPROMreadLong(119 + i * 40 + j * 4);
+      btApp->getVessel(i)->setVolumeCalibration(j, calibration);
+    }
 
   //**********************************************************************************
   //setpoints (299-301)
@@ -170,7 +175,7 @@ void loadTriggerInstance(byte i) {
   loadTriggerConfiguration(i, &trigConfig);
   
   if (trigConfig.type == TRIGGERTYPE_VOLUME)
-    trigger[i] = new TriggerValue(&volAvg[trigConfig.index], trigConfig.threshold, trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
+    trigger[i] = new TriggerVolume(BrewTrollerApplication::getInstance()->getVessel(trigConfig.index), trigConfig.threshold, trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
 #ifdef DIGITAL_INPUTS  
   else if (trigConfig.type == TRIGGERTYPE_GPIO)
     trigger[i] = new TriggerGPIO(triggerPinMap[trigConfig.index], trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
@@ -220,13 +225,9 @@ void loadTriggerInstance(byte i) {
 #endif
 
 void loadBubbler() {  
-  if (bubbler)
-    delete bubbler;
-  bubbler = NULL;
   byte bubbleOut = getBubblerOutput();
-  if (bubbleOut != INDEX_NONE) {
-    bubbler = new Bubbler(outputs, bubbleOut, getBubblerInterval(), getBubblerDuration(), getBubblerDelay());
-  }
+  if (bubbleOut != INDEX_NONE)
+    BrewTrollerApplication::getInstance()->addBubbler(new Bubbler(outputs, bubbleOut, getBubblerInterval(), getBubblerDuration(), getBubblerDelay()));
 }
 
 //*****************************************************************************************************************************
@@ -258,7 +259,7 @@ void setPWMPeriod(byte vessel, byte value) {
 //Hysteresis HLT (77), Mash (82), Kettle (87), RESERVED (92)
 //**********************************************************************************
 void setHysteresis(byte vessel, byte value) {
-  hysteresis[vessel] = value;
+  BrewTrollerApplication::getInstance()->getVessel(vessel)->setHysteresis(value);
   EEPROM.write(77 + vessel * 5, value);
 }
 
@@ -330,7 +331,7 @@ byte getEvapRate() { return EEPROM.read(113); }
 //Volume Sensors (114-117) HLT/Mash/Kettle/Reserved
 //**********************************************************************************
 void setVolumeSensor(byte vessel, byte index) {
-  vSensor[vessel] = index;
+  BrewTrollerApplication::getInstance()->getVessel(vessel)->setVolumeInput(index);
   EEPROM.write(114 + vessel, index);
 }
 byte getVolumeSensor(byte vessel) {
@@ -351,8 +352,8 @@ void setBoilControlState(ControlState state) {
   			kettle->getPID()->SetMode(AUTO);
 			break;
 		case CONTROLSTATE_OFF:
-			if (kettle->pwmOutput())
-			  kettle->pwmOutput()->setValue(0);
+			if (kettle->getPWMOutput())
+			  kettle->getPWMOutput()->setValue(0);
 		case CONTROLSTATE_MANUAL:
 		case CONTROLSTATE_AUTO:
 			if (kettle->getPID())
@@ -820,7 +821,8 @@ void initializeBrewStepConfiguration() {
 //PIDp HLT (2225-2226), Mash (2231-2232), Kettle (2237-2238), RESERVED (2243-2244)
 //**********************************************************************************
 void setPIDp(byte vessel, unsigned int value) {
-  pid[vessel].SetTunings((double)value/PIDGAIN_DIV, pid[vessel].GetI_Param(), pid[vessel].GetD_Param());
+  PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
+  pid->SetTunings((double)value/PIDGAIN_DIV, pid->GetI_Param(), pid->GetD_Param());
   EEPROMwriteInt(2225 + vessel * 6, value);
 }
 unsigned int getPIDp(byte vessel) { return EEPROMreadInt(2225 + vessel * 6); }
@@ -829,7 +831,8 @@ unsigned int getPIDp(byte vessel) { return EEPROMreadInt(2225 + vessel * 6); }
 //PIDi HLT (2227-2228), Mash (2233-2234), Kettle (2239-2240), RESERVED (2245-2246)
 //**********************************************************************************
 void setPIDi(byte vessel, unsigned int value) {
-  pid[vessel].SetTunings(pid[vessel].GetP_Param(), (double)value/PIDGAIN_DIV, pid[vessel].GetD_Param());
+  PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
+  pid->SetTunings(pid->GetP_Param(), (double)value/PIDGAIN_DIV, pid->GetD_Param());
   EEPROMwriteInt(2227 + vessel * 6, value);
 }
 unsigned int getPIDi(byte vessel) { return EEPROMreadInt(2227 + vessel * 6); }
@@ -838,7 +841,8 @@ unsigned int getPIDi(byte vessel) { return EEPROMreadInt(2227 + vessel * 6); }
 //PIDd HLT (2229-2230), Mash (2035-2036), Kettle (2241-2242), RESERVED (2247-2248)
 //**********************************************************************************
 void setPIDd(byte vessel, unsigned int value) {
-  pid[vessel].SetTunings(pid[vessel].GetP_Param(), pid[vessel].GetI_Param(), (double)value/PIDGAIN_DIV);
+  PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
+  pid->SetTunings(pid->GetP_Param(), pid->GetI_Param(), (double)value/PIDGAIN_DIV);
   EEPROMwriteInt(2229 + vessel * 6, value);
 }
 unsigned int getPIDd(byte vessel) { return EEPROMreadInt(2229 + vessel * 6); }

@@ -1,5 +1,47 @@
 #include "BrewTrollerApplication.h"
 
+//Eventually we'll move the logic into new classes owned by the application
+//In the near-term we'll poke some holes to access globals
+extern int temp[NUM_TS];
+extern struct ProgramThread programThread[PROGRAMTHREAD_MAX];
+extern Trigger *trigger[USERTRIGGER_COUNT];
+extern OutputSystem *outputs;
+#if defined UI_LCD_4BIT
+  extern LCD4Bit LCD;
+#elif defined UI_LCD_I2C
+  extern LCDI2C LCD;
+#endif
+extern ControlState boilControlState;
+extern byte boilPwr;
+extern boolean autoValve[NUM_AV];
+extern struct BrewStepConfiguration brewStepConfiguration;
+extern unsigned long prevSpargeVol[2];
+
+void initializeBrewStepConfiguration();
+void tempInit();
+void comInit();
+boolean checkConfig();
+void loadSetup();
+void uiInit();
+void triggerUpdate();
+void updateTimers();
+void updateTemps();
+void updateBuzzer();
+void programThreadsUpdate();
+#ifdef RGBIO8_ENABLE
+  void RGBIO8_Update();
+#endif
+void updateCom();
+void updateAutoValve();
+
+#ifndef NOUI
+  void uiUpdate();
+#endif
+
+byte getBoilTemp();
+void setBoilOutput(byte);
+void setBoilControlState(ControlState);
+
 BrewTrollerApplication* BrewTrollerApplication::INSTANCE = new BrewTrollerApplication();
 
 enum schedulerTasks {
@@ -21,6 +63,7 @@ enum schedulerTasks {
 BrewTrollerApplication::BrewTrollerApplication(void) {
   for (byte index = 0; index < VESSEL_COUNT; index++)
     vessel[index] = new Vessel(temp + index, OUTPUTPROFILE_VESSEL1PWMACTIVE + index, OUTPUTPROFILE_VESSEL1HEAT + index, OUTPUTPROFILE_VESSEL1IDLE + index);
+  bubbler = NULL;
 }
 
 BrewTrollerApplication::~BrewTrollerApplication(void) {
@@ -174,7 +217,7 @@ void BrewTrollerApplication::updateBoilController () {
     return;
 
   if (boilControlState == CONTROLSTATE_AUTO)
-    vessel[VS_KETTLE]->getPWMOutput()->setValue((temp[TS_KETTLE] < getBoilTemp() * SETPOINT_MULT) ? vessel[VS_KETTLE]->getPWMOutput()->getLimit() : (unsigned int)(vessel[VS_KETTLE]->getPWMOutput()->getLimit()) * boilPwr / 100);
+    vessel[VS_KETTLE]->getPWMOutput()->setValue((vessel[VS_KETTLE]->getTemperature() < getBoilTemp() * SETPOINT_MULT) ? vessel[VS_KETTLE]->getPWMOutput()->getLimit() : (unsigned int)(vessel[VS_KETTLE]->getPWMOutput()->getLimit()) * boilPwr / 100);
   else if (boilControlState == CONTROLSTATE_OFF)
     vessel[VS_KETTLE]->getPWMOutput()->setValue(0);
 
@@ -195,25 +238,25 @@ void BrewTrollerApplication::reset(void) {
 void BrewTrollerApplication::updateAutoValve() {
     //Do Valves
     if (autoValve[AV_FILL]) {
-      outputs->setProfileState(OUTPUTPROFILE_FILLHLT, (volAvg[VS_HLT] < tgtVol[VS_HLT]) ? 1 : 0);
-      outputs->setProfileState(OUTPUTPROFILE_FILLMASH, (volAvg[VS_MASH] < tgtVol[VS_MASH]) ? 1 : 0);
+      outputs->setProfileState(OUTPUTPROFILE_FILLHLT, (vessel[VS_HLT]->getVolume() < vessel[VS_HLT]->getTargetVolume()) ? 1 : 0);
+      outputs->setProfileState(OUTPUTPROFILE_FILLMASH, (vessel[VS_MASH]->getVolume() < vessel[VS_MASH]->getTargetVolume()) ? 1 : 0);
     }
     
     if (autoValve[AV_SPARGEIN])
-      outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, (volAvg[VS_HLT] > tgtVol[VS_HLT]) ? 1 : 0);
+      outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, (vessel[VS_HLT]->getVolume() > vessel[VS_HLT]->getTargetVolume()) ? 1 : 0);
 
     if (autoValve[AV_SPARGEOUT])
-      outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) ? 1 : 0);
+      outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, (vessel[VS_KETTLE]->getVolume() < vessel[VS_KETTLE]->getTargetVolume()) ? 1 : 0);
 
     if (autoValve[AV_FLYSPARGE]) {
-      if (volAvg[VS_KETTLE] < tgtVol[VS_KETTLE]) {
+      if (vessel[VS_KETTLE]->getVolume() < vessel[VS_KETTLE]->getTargetVolume()) {
         if (brewStepConfiguration.flySpargeHysteresis) {
-          if((long)volAvg[VS_KETTLE] - (long)prevSpargeVol[0] >= brewStepConfiguration.flySpargeHysteresis * 100ul) {
+          if((long)(vessel[VS_KETTLE]->getVolume()) - (long)prevSpargeVol[0] >= brewStepConfiguration.flySpargeHysteresis * 100ul) {
              outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1);
-             prevSpargeVol[0] = volAvg[VS_KETTLE];
-          } else if((long)prevSpargeVol[1] - (long)volAvg[VS_HLT] >= brewStepConfiguration.flySpargeHysteresis * 100ul) {
+             prevSpargeVol[0] = vessel[VS_KETTLE]->getVolume();
+          } else if((long)prevSpargeVol[1] - (long)(vessel[VS_HLT]->getVolume()) >= brewStepConfiguration.flySpargeHysteresis * 100ul) {
              outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
-             prevSpargeVol[1] = volAvg[VS_HLT];
+             prevSpargeVol[1] = vessel[VS_HLT]->getVolume();
           }
         } else {
           outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 1);
@@ -257,9 +300,22 @@ byte BrewTrollerApplication::autoValveBitmask(void) {
   return modeMask;
 }
 
-#ifdef ESTOP_PIN
-boolean BrewTrollerApplication::isEStop() {
-  return (outputs->getOutputEnableMask(OUTPUTENABLE_ESTOP) == outputs->getProfileMask(OUTPUTPROFILE_ALARM));
+
+boolean BrewTrollerApplication::isEStop(void) {
+  #ifdef ESTOP_PIN
+    return (outputs->getOutputEnableMask(OUTPUTENABLE_ESTOP) == outputs->getProfileMask(OUTPUTPROFILE_ALARM));
+  #else
+    return 0;
+  #endif
 }
-#endif
+
+Bubbler* BrewTrollerApplication::getBubbler(void) {
+  return bubbler;
+}
+
+void BrewTrollerApplication::addBubbler(Bubbler *b) {
+  if (bubbler)
+    delete bubbler;
+  bubbler = b;
+}
 

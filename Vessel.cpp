@@ -16,9 +16,8 @@ Vessel::~Vessel(void) {
 }
 
 void Vessel::update(void) {
-  
   updateVolume();
-  updateFlowrate();
+  updateFlowRate();
 }
 
 PID* Vessel::getPID(void) {
@@ -33,7 +32,11 @@ void Vessel::setPWMOutput(analogOutput *aout) {
   pwmOutput = aout;
 }
 
-void Vessel::setVSensor(byte pin) {
+byte Vessel::getVolumeInput(void) {
+  return vSensor;
+}
+
+void Vessel::setVolumeInput(byte pin) {
   vSensor = pin;
 }
 
@@ -65,6 +68,10 @@ unsigned long Vessel::getTargetVolume(void) {
   return targetVolume;
 }
 
+void Vessel::setTargetVolume(unsigned long target) {
+  targetVolume = target;
+}
+
 long Vessel::getFlowRate(void) {
   return flowRate;
 }
@@ -75,14 +82,11 @@ byte Vessel::getHeatPower (void) {
 
 
 void Vessel::updateHeat(void) {
-  if (!setpoint)
-    resetVesselHeat();
-
   //Call On/Off Update first to set heatstatus
   if (outputs->getProfileState(heatProfile))
-    setHeatStatus((*temperature == BAD_TEMP || *temperature >= setpoint) ? 0 : 1);
+    setHeatStatus((!setpoint || *temperature == BAD_TEMP || *temperature >= setpoint) ? 0 : 1);
   else
-    setHeatStatus((*temperature != BAD_TEMP && (setpoint - *temperature) >= hysteresis * 10) ? 1 : 0);
+    setHeatStatus((setpoint && *temperature != BAD_TEMP && (setpoint - *temperature) >= hysteresis * 10) ? 1 : 0);
 
   //Only updates heatstatus if PID value is non-zero
   updatePIDHeat();
@@ -98,39 +102,36 @@ void Vessel::updatePIDHeat(void) {
   //This code should only be applied for vessels with a pwmOutput
   if (!pwmOutput)
     return;
-    
-  //Do not compute PID for kettle if boil control is not in setpoint mode. Temp sensor check can cause power loss recovery problems in manual mode.
-  if (vessel != VS_KETTLE || boilControlState == CONTROLSTATE_SETPOINT) {
-    if (*temperature == BAD_TEMP)
-      pwmOutput[vessel]->setValue(0);
-    else {
-      PIDInput[vessel] = *temperature;
-      BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID()->Compute();
-      pwmOutput[vessel]->setValue(PIDOutput[vessel]);
-    }
+ 
+  if (*temperature == BAD_TEMP)
+    pwmOutput->setValue(0);
+  else {
+    PIDInput = *temperature;
+    pid->Compute();
+    pwmOutput->setValue(PIDOutput);
   }
   
-  pwmOutput[vessel]->update();
+  pwmOutput->update();
   
-  if (pwmOutput[vessel]->getValue()) {
-    outputs->setProfileState(vesselPWMActiveProfile(vessel), 1);
-    heatStatus[vessel] = 1;
+  if (pwmOutput->getValue()) {
+    outputs->setProfileState(pwmActiveProfile, 1);
+    heatStatus = 1;
   } else {
     //Do not modify heatStatus; initial value is set in On/Off logic and only updated if PID is active
-    outputs->setProfileState(vesselPWMActiveProfile(vessel), 0);
+    outputs->setProfileState(pwmActiveProfile, 0);
   }
 }
 
 void Vessel::updateVolume(void) {
   //Process bubbler logic and prevent reads if bubbler is active or in delay
   boolean readEnabled = 1;
-  if (bubbler)
-    readEnabled = bubbler->compute();
+  if (BrewTrollerApplication::getInstance()->getBubbler())
+    readEnabled = BrewTrollerApplication::getInstance()->getBubbler()->compute();
   
   //Check volume on VOLUME_READ_INTERVAL and update vol with average of VOLUME_READ_COUNT readings
   if (millis() - lastVolumeRead > VOLUME_READ_INTERVAL) {
     if (vSensor != INDEX_NONE && readEnabled) {
-      volumeReadings[volumeReadCursor] = analogRead(vSensor);
+      volumeReadings[volumeReadCursor++] = analogRead(vSensor);
       unsigned long rawVolume = 0;
       for (byte i = 0; i < VOLUME_READ_COUNT; i++)
         rawVolume += volumeReadings[i];
@@ -138,7 +139,6 @@ void Vessel::updateVolume(void) {
       volume = calibrateVolume(rawVolume);
     }
 
-    volumeReadCount++;
     if (volumeReadCursor >= VOLUME_READ_COUNT)
       volumeReadCursor = 0;
     lastVolumeRead = millis();
@@ -228,7 +228,11 @@ unsigned int Vessel::getRawVolumeValue(void) {
   return (newSensorValueAverage / VOLUME_READ_COUNT);
 }
 
-struct Calibration getVolumeCalibration(byte index) {
+struct Calibration Vessel::getVolumeCalibration(byte index) {
   return volumeCalibration[index];
+}
+
+void Vessel::setVolumeCalibration(byte index, struct Calibration calibration) {
+  volumeCalibration[index] = calibration;
 }
 

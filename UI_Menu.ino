@@ -986,7 +986,7 @@ void menuVesselSettings(byte vessel) {
     else if (lastOption == 6)
       setPIDLimit(vessel, getValue_P(PSTR("PID Limit"), getPIDLimit(vessel), 1, 100, PSTR("")));
     else if (lastOption == 7)
-      setHysteresis(vessel, getValue_P(HYSTERESIS, hysteresis[vessel], 10, 255, TUNIT));
+      setHysteresis(vessel, getValue_P(HYSTERESIS, BrewTrollerApplication::getInstance()->getVessel(vessel)->getHysteresis(), 10, 255, TUNIT));
 
     else if (lastOption  == 9) {
       strcat_P(title, CAPACITY);
@@ -995,7 +995,7 @@ void menuVesselSettings(byte vessel) {
     #ifdef ANALOGINPUTS_GPIO
       else if (lastOption  == 8) {
         strcat_P(title, PSTR("Sensor"));
-        setVolumeSensor(vessel, menuSelectAnalogInput(title, vSensor[vessel]));
+        setVolumeSensor(vessel, menuSelectAnalogInput(title, BrewTrollerApplication::getInstance()->getVessel(vessel)->getVolumeInput()));
       } 
     #endif
     else if (lastOption == 10) {
@@ -1009,7 +1009,7 @@ void menuVesselSettings(byte vessel) {
         setPWMPeriod(vessel, getPWMPeriod(sourceIndex));
         setPWMResolution(vessel, getPWMResolution(sourceIndex));
         setPIDp(vessel, getPIDp(sourceIndex));
-        setPIDi(vessel, getPIDi(sourceIndexrce));
+        setPIDi(vessel, getPIDi(sourceIndex));
         setPIDd(vessel, getPIDd(sourceIndex));
         setPIDLimit(vessel, getPIDLimit(sourceIndex));
         setHysteresis(vessel, source->getHysteresis());
@@ -1017,7 +1017,7 @@ void menuVesselSettings(byte vessel) {
         setCapacity(vessel, getCapacity(sourceIndex));
         for (byte i = 0; i < 10; i++) {
           struct Calibration calibration = source->getVolumeCalibration(i);
-          setVolCalib(vessel, i, calibration.inputValue, calibration.outputValue);
+          setVolCalib(vessel, i, calibration);
         }
       }
     }
@@ -1074,8 +1074,10 @@ void volCalibMenu(char sTitle[], byte vesselIndex) {
     if (lastOption > 9)
       return; 
     struct Calibration calibration = vessel->getVolumeCalibration(lastOption);
-    if (calibration.inputValue == 0)
-      setVolCalib(vesselIndex, lastOption, 0, getValue_P(PSTR("Current Volume:"), 0, 1000, 9999999, VOLUNIT));
+    if (calibration.inputValue == 0) {
+      calibration.outputValue = getValue_P(PSTR("Current Volume:"), 0, 1000, 9999999, VOLUNIT);
+      setVolCalib(vesselIndex, lastOption, calibration);
+    }
     volCalibEntryMenu(vesselIndex, lastOption);
   }
 }
@@ -1106,38 +1108,34 @@ class menuVolumeCalibrationOptions : public menuPROGMEM {
 //Users can skip all actions by exiting. 
 void volCalibEntryMenu(byte vesselIndex, byte entry) {
   Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(vesselIndex);
-  
-  while(1) {
-    struct Calibration calibration = vessel->getVolumeCalibration(entry);
-    char sTitle[21] = "Calibrate ";
-    char numText[12];
-        
-    vftoa(calibration.outputValue, numText, 1000, 1);
-    truncFloat(numText, 6);
-    strcat(sTitle, numText);
-    strcat(sTitle, " ");
-    strcat_P(sTitle, VOLUNIT);
-      
-    unsigned int newSensorValue = vessel->getRawVolumeValue();
-    
-    menuVolumeCalibrationOptions calibMenu(3, calibration.inputValue, newSensorValue);
-    byte lastOption = scrollMenu(sTitle, &calibMenu);
 
-    if (lastOption == 0) {
-      //Update the volume value.
-      setVolCalib(vessel, entry, newSensorValue, calibration.outputValue); 
-      return;
-    } else if (lastOption == 1) {
-      newSensorValue = (unsigned int) getValue_P(PSTR("Manual Volume Entry"), calibration.inputValue, 1, 1023, PSTR(""));
-      setVolCalib(vessel, entry, newSensorValue, calibration.outputValue); 
-      return;    
-    } else if (lastOption == 2) {
-      //Delete the volume and value.
-      if(confirmDel()) {
-        setVolCalib(vessel, entry, 0, 0); 
-        return;
-      } 
-    } else return;
+  struct Calibration calibration = vessel->getVolumeCalibration(entry);
+  char sTitle[21] = "Calibrate ";
+  char numText[12];
+      
+  vftoa(calibration.outputValue, numText, 1000, 1);
+  truncFloat(numText, 6);
+  strcat(sTitle, numText);
+  strcat(sTitle, " ");
+  strcat_P(sTitle, VOLUNIT);
+
+  unsigned int origValue = calibration.inputValue;
+  calibration.inputValue = vessel->getRawVolumeValue();
+  
+  menuVolumeCalibrationOptions calibMenu(3, origValue, calibration.inputValue);
+  byte lastOption = scrollMenu(sTitle, &calibMenu);
+
+  if (lastOption < 2) {
+    if (lastOption == 1)
+      calibration.inputValue = (unsigned int) getValue_P(PSTR("Manual Volume Entry"), calibration.inputValue, 1, 1023, PSTR(""));
+    setVolCalib(vesselIndex, entry, calibration); 
+  } else if (lastOption == 2) {
+    //Delete the volume and value.
+    if(confirmDel()) {
+      calibration.inputValue = 0;
+      calibration.outputValue = 0;
+      setVolCalib(vesselIndex, entry, calibration); 
+    } 
   }
 }
 

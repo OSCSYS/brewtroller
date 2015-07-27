@@ -189,29 +189,31 @@ void programThreadResetAll() {
 }
 
 void brewStepFill(enum StepSignal signal, struct ProgramThread *thread) {
+  Vessel *hlt = BrewTrollerApplication::getInstance()->getVessel(VS_HLT);
+  Vessel *mash = BrewTrollerApplication::getInstance()->getVessel(VS_MASH);
   switch (signal) {
     case STEPSIGNAL_INIT:
-      tgtVol[VS_HLT] = 0;
+      hlt->setTargetVolume(0);
       if (brewStepConfiguration.fillSpargeBeforePreheat)
-        tgtVol[VS_HLT] = calcSpargeVol(thread->recipe);
-      tgtVol[VS_MASH] = calcStrikeVol(thread->recipe);
+        hlt->setTargetVolume(calcSpargeVol(thread->recipe));
+      mash->setTargetVolume(calcStrikeVol(thread->recipe));
       if (getProgMLHeatSrc(thread->recipe) == VS_HLT) {
-        tgtVol[VS_HLT] = min(tgtVol[VS_HLT] + tgtVol[VS_MASH], getCapacity(VS_HLT));
-        tgtVol[VS_MASH] = 0;
+        hlt->setTargetVolume(min(hlt->getTargetVolume() + mash->getTargetVolume(), getCapacity(VS_HLT)));
+        mash->setTargetVolume(0);
       }
       if (brewStepConfiguration.autoStartFill)
         autoValve[AV_FILL] = 1;
       programThreadSetStep(thread, BREWSTEP_FILL);
       break;
     case STEPSIGNAL_UPDATE:
-      if (brewStepConfiguration.autoExitFill && volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH])
+      if (brewStepConfiguration.autoExitFill && hlt->getVolume() >= hlt->getTargetVolume() && mash->getVolume() >= mash->getTargetVolume())
         brewStepFill(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
-      tgtVol[VS_HLT] = 0;
-      tgtVol[VS_MASH] = 0;
+      hlt->setTargetVolume(0);
+      mash->setTargetVolume(0);
       autoValve[AV_FILL] = 0;
       outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
       outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0);
@@ -254,6 +256,8 @@ void brewStepDelay(enum StepSignal signal, struct ProgramThread *thread) {
 
 void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
   static byte preheatVessel;
+  static boolean strikePreheated = 0;
+  
   switch (signal) {
     case STEPSIGNAL_INIT:
       preheatVessel = getProgMLHeatSrc(thread->recipe);
@@ -266,19 +270,21 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
         setSetpoint(TS_MASH, calcStrikeTemp(thread->recipe));
       }
       
-      preheated[VS_HLT] = 0;
-      preheated[VS_MASH] = 0;
+      strikePreheated = 0;
       //No timer used for preheat
       clearTimer(TIMER_MASH);
       programThreadSetStep(thread, BREWSTEP_PREHEAT);
       break;
     case STEPSIGNAL_UPDATE:
-      if (!preheated[preheatVessel] && temp[preheatVessel] >= BrewTrollerApplication::getInstance()->getVessel(preheatVessel)->getSetpoint()) {
-        preheated[preheatVessel] = 1;
-        setAlarm(1);
+      {
+        Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(preheatVessel);
+        if (!strikePreheated && vessel->getTemperature() >= vessel->getSetpoint()) {
+          strikePreheated = 1;
+          setAlarm(1);
+        }
       }
-    
-      if (brewStepConfiguration.autoExitPreheat && preheated[preheatVessel])
+          
+      if (brewStepConfiguration.autoExitPreheat && strikePreheated)
         brewStepPreheat(STEPSIGNAL_ADVANCE, thread);
 
       #if defined SMART_HERMS_HLT && defined SMART_HERMS_PREHEAT
@@ -298,6 +304,8 @@ void brewStepPreheat(enum StepSignal signal, struct ProgramThread *thread) {
 }
 
 void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
+  Vessel *hlt = BrewTrollerApplication::getInstance()->getVessel(VS_HLT);
+  Vessel *mash = BrewTrollerApplication::getInstance()->getVessel(VS_MASH);
   switch (signal) {
     case STEPSIGNAL_INIT:
       //Disable HLT and Mash heat output during 'Add Grain' to avoid dry running heat elements and burns from HERMS recirc
@@ -309,8 +317,8 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
       if(getProgMLHeatSrc(thread->recipe) == VS_HLT) {
         unsigned long spargeVol = calcSpargeVol(thread->recipe);
         unsigned long mashVol = calcStrikeVol(thread->recipe);
-        tgtVol[VS_HLT] = (min((spargeVol + mashVol), getCapacity(VS_HLT)) - mashVol);
-        tgtVol[VS_MASH] = mashVol;
+        hlt->setTargetVolume((min((spargeVol + mashVol), getCapacity(VS_HLT)) - mashVol));
+        mash->setTargetVolume(mashVol);
 
         if (brewStepConfiguration.autoStrikeTransfer)
            autoValve[AV_SPARGEIN] = 1;
@@ -327,16 +335,16 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
       //Turn off Sparge In AutoValve if tgtVol has been reached
       //Because this function is called before processautovalves() if we clear the auto valve here the bit in the active profile will still be set until the
       // user exits the grain in step, causing it to not shut off when target volume is reached. 
-      if (autoValve[AV_SPARGEIN] && volAvg[VS_HLT] <= tgtVol[VS_HLT]) {
+      if (autoValve[AV_SPARGEIN] && hlt->getVolume() <= hlt->getTargetVolume()) {
         autoValve[AV_SPARGEIN] = 0;
         outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
-      } else if (volAvg[VS_HLT] <= tgtVol[VS_HLT])
+      } else if (hlt->getVolume() <= hlt->getTargetVolume())
         outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
-      tgtVol[VS_HLT] = 0;
+      hlt->setTargetVolume(0);
       autoValve[AV_SPARGEIN] = 0;
       outputs->setProfileState(OUTPUTPROFILE_ADDGRAIN, 0);
       outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
@@ -350,27 +358,29 @@ void brewStepGrainIn(enum StepSignal signal, struct ProgramThread *thread) {
 }
 
 void brewStepRefill(enum StepSignal signal, struct ProgramThread *thread) {
+  Vessel *hlt = BrewTrollerApplication::getInstance()->getVessel(VS_HLT);
+  Vessel *mash = BrewTrollerApplication::getInstance()->getVessel(VS_MASH);
   switch (signal) {
     case STEPSIGNAL_INIT:
       //Check if we delayed filling the HLT (default logic) OR if strike was heated in HLT and it wasn't big enough to hold both strike and sparge
       if (!brewStepConfiguration.fillSpargeBeforePreheat || ((getProgMLHeatSrc(thread->recipe) == VS_HLT) && (calcStrikeVol(thread->recipe) + calcSpargeVol(thread->recipe) > getCapacity(VS_HLT)))) {
-        tgtVol[VS_HLT] = calcSpargeVol(thread->recipe);
+        hlt->setTargetVolume(calcSpargeVol(thread->recipe));
       }
 
-      tgtVol[VS_MASH] = 0;
+      mash->setTargetVolume(0);
       if (brewStepConfiguration.autoStartFill)
         autoValve[AV_FILL] = 1;
       programThreadSetStep(thread, BREWSTEP_REFILL);
       break;
     case STEPSIGNAL_UPDATE:
-      if (tgtVol[VS_HLT] == 0 || (brewStepConfiguration.autoExitFill && volAvg[VS_HLT] >= tgtVol[VS_HLT] && volAvg[VS_MASH] >= tgtVol[VS_MASH]))
+      if (hlt->getTargetVolume() == 0 || (brewStepConfiguration.autoExitFill && hlt->getVolume() >= hlt->getTargetVolume() && mash->getVolume() >= mash->getTargetVolume()))
         brewStepRefill(STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
     case STEPSIGNAL_ADVANCE:
-      tgtVol[VS_HLT] = 0;
-      tgtVol[VS_MASH] = 0;
+      hlt->setTargetVolume(0);
+      mash->setTargetVolume(0);
       autoValve[AV_FILL] = 0;
       outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
       outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0);
@@ -381,14 +391,16 @@ void brewStepRefill(enum StepSignal signal, struct ProgramThread *thread) {
 }
 
 void brewStepMashHelper(byte mashStep, enum StepSignal signal, struct ProgramThread *thread) {
+  static boolean mashPreheated = 0;
   switch (signal) {
     case STEPSIGNAL_INIT:
       setSetpoint(TS_HLT, getProgHLT(thread->recipe));
       setSetpoint(TS_MASH, getProgMashTemp(thread->recipe, mashStep));
      
-      preheated[VS_MASH] = 0;
+      mashPreheated = 0;
       //Set timer only if empty (for purposes of power loss recovery)
-      if (!timerValue[TIMER_MASH]) setTimer(TIMER_MASH, getProgMashMins(thread->recipe, mashStep)); 
+      if (!timerValue[TIMER_MASH])
+        setTimer(TIMER_MASH, getProgMashMins(thread->recipe, mashStep)); 
       //Leave timer paused until preheated
       timerStatus[TIMER_MASH] = 0;
       programThreadSetStep(thread, BREWSTEP_DOUGHIN + mashStep);
@@ -397,14 +409,22 @@ void brewStepMashHelper(byte mashStep, enum StepSignal signal, struct ProgramThr
       #ifdef SMART_HERMS_HLT
         smartHERMSHLT();
       #endif
-      if (!preheated[VS_MASH] && temp[TS_MASH] >= BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint()) {
-        preheated[VS_MASH] = 1;
-        //Unpause Timer
-        if (!timerStatus[TIMER_MASH]) pauseTimer(TIMER_MASH);
+      {
+        Vessel *mash = BrewTrollerApplication::getInstance()->getVessel(VS_MASH);
+        if (!mashPreheated && timerStatus[TIMER_MASH])
+          mashPreheated = 1; //Timer is started, force preheated
+        
+        if (!mashPreheated && mash->getTemperature() >= mash->getSetpoint()) {
+          mashPreheated = 1;
+          //Unpause Timer
+          if (!timerStatus[TIMER_MASH])
+            pauseTimer(TIMER_MASH);
+        }
+        
+        //Exit Condition (and skip unused mash steps)
+        if (mash->getSetpoint() == 0 || (mashPreheated && timerValue[TIMER_MASH] == 0))
+          brewStepMashHelper(mashStep, STEPSIGNAL_ADVANCE, thread);
       }
-      //Exit Condition (and skip unused mash steps)
-      if (BrewTrollerApplication::getInstance()->getVessel(VS_MASH)->getSetpoint() == 0 || (preheated[VS_MASH] && timerValue[TIMER_MASH] == 0))
-        brewStepMashHelper(mashStep, STEPSIGNAL_ADVANCE, thread);
       break;
     case STEPSIGNAL_ABORT:
       programThreadSetStep(thread, INDEX_NONE);
@@ -476,7 +496,7 @@ void brewStepMashHold(enum StepSignal signal, struct ProgramThread *thread) {
 
 void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
   Vessel *hlt = BrewTrollerApplication::getInstance()->getVessel(VS_HLT);
-  Vessel *kettle = BrewTrollerApplication::getInstance()->getVessel(VS_Kettle);
+  Vessel *kettle = BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE);
   
   switch (signal) {
     case STEPSIGNAL_INIT:
@@ -505,9 +525,10 @@ void brewStepSparge(enum StepSignal signal, struct ProgramThread *thread) {
 }
 
 void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
+  static boolean kettlePreheated = 0;
   switch (signal) {
     case STEPSIGNAL_INIT:
-      preheated[VS_KETTLE] = 0;
+      kettlePreheated = 0;
       boilAdds = getProgAdds(thread->recipe);
       
       //Set timer only if empty (for purposes of power loss recovery)
@@ -529,52 +550,58 @@ void brewStepBoil(enum StepSignal signal, struct ProgramThread *thread) {
 	  programThreadSetStep(thread, BREWSTEP_BOIL);
       break;
     case STEPSIGNAL_UPDATE:
-      if (!(triggered & 32768) && temp[TS_KETTLE] != BAD_TEMP && temp[TS_KETTLE] >= brewStepConfiguration.preBoilAlarm * 100) {
-        setAlarm(1);
-        triggered |= 32768; 
-        setBoilAddsTrig(triggered);
-      }
-	  if (!preheated[VS_KETTLE] && temp[TS_KETTLE] >= getBoilTemp()*SETPOINT_MULT) {
-        preheated[VS_KETTLE] = 1;
-        //Unpause Timer
-        if (!timerStatus[TIMER_BOIL])
-          pauseTimer(TIMER_BOIL);
-      }
-      //Turn off hop valve profile after 5s
-      if (lastHop > 0 && millis() - lastHop > brewStepConfiguration.boilAdditionSeconds * 1000) {
-        outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
-        lastHop = 0;
-      }
-      if (preheated[VS_KETTLE]) {
-        //Boil Addition
-        if ((boilAdds ^ triggered) & 1) {
-          outputs->setProfileState(OUTPUTPROFILE_HOPADD, 1);
-          lastHop = millis();
-          setAlarm(1); 
-          triggered |= 1; 
-          setBoilAddsTrig(triggered); 
+      {
+        int kettleTemperature = BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getTemperature();
+        
+        if (!(triggered & 32768) && kettleTemperature != BAD_TEMP && kettleTemperature >= brewStepConfiguration.preBoilAlarm * 100) {
+          setAlarm(1);
+          triggered |= 32768; 
+          setBoilAddsTrig(triggered);
         }
-        //Timed additions (See hoptimes[] array in BrewTroller.pde)
-        for (byte i = 1; i < 12; i++) {
-          if (((boilAdds ^ triggered) & (1 << i)) && timerValue[TIMER_BOIL] <= hoptimes[i] * 60000) { 
+      if (!kettlePreheated && timerStatus[TIMER_BOIL])
+        kettlePreheated = 1; //Timer was started, force preheated
+  	  if (!kettlePreheated && kettleTemperature >= getBoilTemp() * SETPOINT_MULT) {
+          kettlePreheated = 1;
+          //Unpause Timer
+          if (!timerStatus[TIMER_BOIL])
+            pauseTimer(TIMER_BOIL);
+        }
+        //Turn off hop valve profile after 5s
+        if (lastHop > 0 && millis() - lastHop > brewStepConfiguration.boilAdditionSeconds * 1000) {
+          outputs->setProfileState(OUTPUTPROFILE_HOPADD, 0);
+          lastHop = 0;
+        }
+        if (kettlePreheated) {
+          //Boil Addition
+          if ((boilAdds ^ triggered) & 1) {
             outputs->setProfileState(OUTPUTPROFILE_HOPADD, 1);
             lastHop = millis();
             setAlarm(1); 
-            triggered |= 1 << i; 
-            setBoilAddsTrig(triggered);
+            triggered |= 1; 
+            setBoilAddsTrig(triggered); 
           }
+          //Timed additions (See hoptimes[] array in BrewTroller.pde)
+          for (byte i = 1; i < 12; i++) {
+            if (((boilAdds ^ triggered) & (1 << i)) && timerValue[TIMER_BOIL] <= hoptimes[i] * 60000) { 
+              outputs->setProfileState(OUTPUTPROFILE_HOPADD, 1);
+              lastHop = millis();
+              setAlarm(1); 
+              triggered |= 1 << i; 
+              setBoilAddsTrig(triggered);
+            }
+          }
+          
+          if (brewStepConfiguration.autoBoilWhirlpoolMinutes && timerValue[TIMER_BOIL] <= brewStepConfiguration.autoBoilWhirlpoolMinutes * 60000)
+            outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 1);
         }
-        
-        if (brewStepConfiguration.autoBoilWhirlpoolMinutes && timerValue[TIMER_BOIL] <= brewStepConfiguration.autoBoilWhirlpoolMinutes * 60000)
-          outputs->setProfileState(OUTPUTPROFILE_WHIRLPOOL, 1);
-      }
-      //Exit Condition  
-      if(preheated[VS_KETTLE] && timerValue[TIMER_BOIL] == 0) {
-		//Kill Kettle power at end of timer...
-		  setBoilControlState(CONTROLSTATE_OFF);
-        //...but wait for last hop addition to complete before leaving step
-        if(lastHop == 0)
-          brewStepBoil(STEPSIGNAL_ADVANCE, thread);
+        //Exit Condition  
+        if(kettlePreheated && timerValue[TIMER_BOIL] == 0) {
+  		//Kill Kettle power at end of timer...
+  		  setBoilControlState(CONTROLSTATE_OFF);
+          //...but wait for last hop addition to complete before leaving step
+          if(lastHop == 0)
+            brewStepBoil(STEPSIGNAL_ADVANCE, thread);
+        }
       }
       break;
     case STEPSIGNAL_ABORT:
@@ -616,8 +643,8 @@ void resetSpargeOutputs() {
   autoValve[AV_FLYSPARGE] = 0;
   outputs->setProfileState(OUTPUTPROFILE_SPARGEIN, 0);
   outputs->setProfileState(OUTPUTPROFILE_SPARGEOUT, 0);
-  outputs->setProfileState(OUTPUTPROFILE_MASHHEAT, 0);
-  outputs->setProfileState(OUTPUTPROFILE_MASHIDLE, 0);
+  outputs->setProfileState(OUTPUTPROFILE_VESSEL1HEAT + VS_MASH, 0);
+  outputs->setProfileState(OUTPUTPROFILE_VESSEL1IDLE + VS_MASH, 0);
 }
 
 #ifdef SMART_HERMS_HLT

@@ -1,6 +1,7 @@
 #ifndef Vessel_h
 #define Vessel_h
 
+#include "BrewTrollerApplication.h"
 #include "LOCAL_PID_Beta6.h"
 #include "Outputs.h"
 
@@ -8,6 +9,8 @@ struct Calibration {
   unsigned int inputValue;
   unsigned long outputValue;
 };
+
+extern OutputSystem *outputs;
 
 class Vessel {
   private:
@@ -22,7 +25,6 @@ class Vessel {
     struct Calibration volumeCalibration[10];
     byte hysteresis;
     boolean heatStatus;
-    boolean preheated;
     unsigned int volumeReadings[VOLUME_READ_COUNT], lastFlowrateVolume;
     unsigned long lastVolumeRead, lastFlowrateRead;
     byte volumeReadCursor;
@@ -41,6 +43,8 @@ class Vessel {
     PID* getPID(void);
     analogOutput* getPWMOutput(void);
     void setPWMOutput(analogOutput *aout);
+    byte getVolumeInput(void);
+    void setVolumeInput(byte pin);
     double getSetpoint(void);
     double setSetpoint(double value);
     byte getHysteresis(void);
@@ -48,9 +52,11 @@ class Vessel {
     unsigned long getTemperature(void);
     unsigned long getVolume(void);
     unsigned long getTargetVolume(void);
+    void setTargetVolume(unsigned long target);
     long getFlowRate(void);
     byte getHeatPower(void);
     struct Calibration getVolumeCalibration(byte index);
+    void setVolumeCalibration(byte index, struct Calibration calibration);
     unsigned int getRawVolumeValue(void);
 };
 

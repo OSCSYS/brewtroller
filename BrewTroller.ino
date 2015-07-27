@@ -84,14 +84,6 @@ const char BTVER[] PROGMEM = "2.7";
   #define MASH_AVG
 #endif
 
-#ifdef USEMETRIC
-  #define SETPOINT_MULT 50
-  #define SETPOINT_DIV 2
-#else
-  #define SETPOINT_MULT 100
-  #define SETPOINT_DIV 1
-#endif
-
 #ifndef STRIKE_TEMP_OFFSET
   #define STRIKE_TEMP_OFFSET 0
 #endif
@@ -125,36 +117,7 @@ const char BTVER[] PROGMEM = "2.7";
 #define PIDGAIN_DEC 2
 #define PIDGAIN_LIM 65535
 
-struct ProgramThread {
-  byte activeStep;
-  byte recipe;
-};
 
-struct TriggerConfiguration {
-  byte type                    :3;
-  byte index                   :4;
-  boolean activeLow            :1;
-  unsigned long threshold      :24;
-  unsigned long profileFilter;
-  unsigned long disableMask;
-  byte releaseHysteresis;
-};
-
-struct BrewStepConfiguration {
-  boolean fillSpargeBeforePreheat       :1;
-  boolean autoStartFill                 :1;
-  boolean autoExitFill                  :1;
-  boolean autoExitPreheat               :1;
-  boolean autoStrikeTransfer            :1;
-  byte autoExitGrainInMinutes           :8;
-  boolean autoExitMash                  :1;
-  boolean autoStartFlySparge            :1;
-  boolean autoExitSparge                :1;
-  byte autoBoilWhirlpoolMinutes         :8;
-  byte boilAdditionSeconds              :8;
-  byte preBoilAlarm                     :8;
-  byte flySpargeHysteresis              :8;
-};
 
 //**********************************************************************************
 // Globals
@@ -163,20 +126,13 @@ struct BrewStepConfiguration {
   pin *estopPin = NULL;
 #endif
 
-#ifdef HEARTBEAT
-  pin hbPin;
-#endif
-
 Trigger *trigger[USERTRIGGER_COUNT];
 
 //8-byte Temperature Sensor Address x9 Sensors
-byte tSensor[9][8];
-int temp[9];
+byte tSensor[NUM_TS][8];
+int temp[NUM_TS];
 
 unsigned long prevSpargeVol[2] = {0, 0};
-
-
-Bubbler *bubbler = NULL;
 
 //Create the appropriate 'LCD' object for the hardware configuration (4-Bit GPIO, I2C)
 #if defined UI_LCD_4BIT
