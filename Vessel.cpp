@@ -106,9 +106,11 @@ void Vessel::updatePIDHeat(void) {
   if (*temperature == BAD_TEMP)
     pwmOutput->setValue(0);
   else {
-    PIDInput = *temperature;
-    pid->Compute();
-    pwmOutput->setValue(PIDOutput);
+    if (pid->GetMode() == AUTO) {
+      PIDInput = *temperature;
+      pid->Compute();
+      pwmOutput->setValue(PIDOutput);
+    }
   }
   
   pwmOutput->update();
