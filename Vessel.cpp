@@ -8,6 +8,20 @@ Vessel::Vessel(int *t, byte pwmActive, byte heat, byte idle) {
   pid = new PID(&PIDInput, &PIDOutput, &setpoint, 1, 0, 0);
   pwmOutput = NULL;
   vSensor = INDEX_NONE;
+  targetVolume = 0;
+  volume = 0;
+
+  PIDInput = 0;
+  PIDOutput = 0;
+  setpoint = 0;
+  flowRate;
+  heatStatus = 0;
+  for (byte i = 0; i < VOLUME_READ_COUNT; i++)
+    volumeReadings[i] = 0;
+  lastFlowrateVolume = 0;
+  lastVolumeRead = 0;
+  lastFlowrateRead = 0;
+  volumeReadCursor = 0;
 }
 
 Vessel::~Vessel(void) {

@@ -21,16 +21,16 @@ class BrewTrollerApplication {
   private:
     Vessel *vessel[VESSEL_COUNT];
     static BrewTrollerApplication* INSTANCE;
-    BrewTrollerApplication(void);
-    ~BrewTrollerApplication(void);
-    unsigned long lastKettleOutSave = 0;
+    unsigned long lastKettleOutSave;
     byte scheduler;
     #ifdef HEARTBEAT
-      unsigned long hbStart = 0;
+      unsigned long hbStart;
       pin hbPin;
     #endif
     Bubbler *bubbler;
 
+    BrewTrollerApplication(void);
+    ~BrewTrollerApplication(void);
     void updateBoilController(void);
     void updateAutoValve();
     void heartbeat(void);

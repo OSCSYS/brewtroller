@@ -64,6 +64,12 @@ BrewTrollerApplication::BrewTrollerApplication(void) {
   for (byte index = 0; index < VESSEL_COUNT; index++)
     vessel[index] = new Vessel(temp + index, OUTPUTPROFILE_VESSEL1PWMACTIVE + index, OUTPUTPROFILE_VESSEL1HEAT + index, OUTPUTPROFILE_VESSEL1IDLE + index);
   bubbler = NULL;
+
+  lastKettleOutSave = 0;
+  scheduler = SCHEDULETASK_TIMERS;
+  #ifdef HEARTBEAT
+    hbStart = 0;
+  #endif
 }
 
 BrewTrollerApplication::~BrewTrollerApplication(void) {
