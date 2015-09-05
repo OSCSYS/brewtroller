@@ -429,6 +429,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     period = p;
     value = 0;
   }
+
+  analogOutput_SWPWM::~analogOutput_SWPWM(void) {
+    outputs->setDiscreetState(pinIndex, 0);
+  }
   
   OutputSystem* analogOutput_SWPWM::outputs = NULL;
   void analogOutput_SWPWM::setup(OutputSystem* o)

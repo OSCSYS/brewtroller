@@ -131,7 +131,9 @@ void loadPWMOutput(byte i) {
   pid->SetInputLimits(0, 25500);
   pid->SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
   pid->SetTunings((double)getPIDp(i)/PIDGAIN_DIV, (double)getPIDi(i)/PIDGAIN_DIV, (double)getPIDd(i)/PIDGAIN_DIV);
-  pid->SetMode(AUTO);
+  //Boil Controller will take care of PID Mode for Kettle
+  if (i != VS_KETTLE)
+    pid->SetMode(AUTO);
   pid->SetSampleTime(PID_UPDATE_INTERVAL);
 }
 

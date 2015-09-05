@@ -38,6 +38,7 @@ void updateAutoValve();
   void uiUpdate();
 #endif
 
+void setSetpoint(byte, int);
 byte getBoilTemp();
 void setBoilOutput(byte);
 void setBoilControlState(ControlState);
@@ -138,7 +139,7 @@ void BrewTrollerApplication::update(enum ApplicationUpdatePriorityLevel priority
   if (priorityLevel < PRIORITYLEVEL_HIGH)
     return;
 
-  //START HIGH PRIORITY: Time-sensitive updates perfromed on each iteration
+  //START HIGH PRIORITY: Time-sensitive updates performed on each iteration
   if (bubbler)
     bubbler->compute();
 
@@ -237,7 +238,7 @@ void BrewTrollerApplication::updateBoilController () {
 void BrewTrollerApplication::reset(void) {
   setBoilControlState(CONTROLSTATE_OFF);
   for (byte i = 0; i < VESSEL_COUNT; i++)
-    vessel[i]->setSetpoint(0);
+    setSetpoint(i, 0);
   outputs->setProfileStateMask(0x00000000ul, 0);
 }
 

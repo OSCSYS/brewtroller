@@ -167,6 +167,7 @@ class analogOutput_SWPWM : public analogOutput {
   
   public:
   analogOutput_SWPWM(byte index, byte period, byte resolution);
+  ~analogOutput_SWPWM(void);
   void setValue(byte v);
   void update();
   static void setup(OutputSystem* o);

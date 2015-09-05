@@ -32,6 +32,7 @@ Vessel::~Vessel(void) {
 void Vessel::update(void) {
   updateVolume();
   updateFlowRate();
+  updateHeat();
 }
 
 PID* Vessel::getPID(void) {
@@ -43,6 +44,8 @@ analogOutput* Vessel::getPWMOutput(void) {
 }
 
 void Vessel::setPWMOutput(analogOutput *aout) {
+  if (pwmOutput)
+    delete pwmOutput;
   pwmOutput = aout;
 }
 
@@ -97,10 +100,14 @@ byte Vessel::getHeatPower (void) {
 
 void Vessel::updateHeat(void) {
   //Call On/Off Update first to set heatstatus
-  if (outputs->getProfileState(heatProfile))
-    setHeatStatus((!setpoint || *temperature == BAD_TEMP || *temperature >= setpoint) ? 0 : 1);
+  if (!setpoint) {
+    outputs->setProfileState(heatProfile, 0);
+    outputs->setProfileState(idleProfile, 0);
+    heatStatus = 0;    
+  } else if (outputs->getProfileState(heatProfile))
+    setHeatStatus((*temperature == BAD_TEMP || *temperature >= setpoint) ? 0 : 1);
   else
-    setHeatStatus((setpoint && *temperature != BAD_TEMP && (setpoint - *temperature) >= hysteresis * 10) ? 1 : 0);
+    setHeatStatus((*temperature != BAD_TEMP && (setpoint - *temperature) >= hysteresis * 10) ? 1 : 0);
 
   //Only updates heatstatus if PID value is non-zero
   updatePIDHeat();

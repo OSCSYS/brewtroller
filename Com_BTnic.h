@@ -421,7 +421,7 @@ void BTnic::execCmd(void) {
         
         logFieldCmd(CMD_GET_OSET, cmdIndex);
         logFieldI(getPWMPin(cmdIndex));
-        logFieldI(pwm ? pwm->getLimit() : 0);
+        logFieldI(getPWMPeriod(cmdIndex));
         logFieldI(getPIDp(cmdIndex));
         logFieldI(getPIDi(cmdIndex));
         logFieldI(getPIDd(cmdIndex));
@@ -758,7 +758,7 @@ void BTnic::execCmd(void) {
       break;
       
     case CMD_SET_BOILCTL: //}
-	  setBoilControlState((ControlState)getCmdParamNum(1));
+	    setBoilControlState((ControlState)getCmdParamNum(1));
       switch (boilControlState) {
         case CONTROLSTATE_OFF:
           if (BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput())
@@ -769,11 +769,10 @@ void BTnic::execCmd(void) {
         case CONTROLSTATE_MANUAL:
           if (BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput())
              BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput()->setValue(BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput()->getLimit() * getCmdParamNum(2) / 100);
-		  break;
-		case CONTROLSTATE_SETPOINT:
-			setSetpoint(VS_KETTLE, getCmdParamNum(2));
-			break;
-
+    		  break;
+    		case CONTROLSTATE_SETPOINT:
+    			setSetpoint(VS_KETTLE, getCmdParamNum(2));
+    			break;
       }
     case CMD_GET_BOILCTL: //~
       logFieldCmd(CMD_GET_BOILCTL, NO_CMDINDEX);
