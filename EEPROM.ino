@@ -25,6 +25,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 */
 
 void loadSetup() {
+  BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance();
+  
   //**********************************************************************************
   //TSensors: HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39),
   //          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
@@ -40,7 +42,7 @@ void loadSetup() {
   //PWM Pin (309-312)
   //**********************************************************************************
   for (byte i = VS_HLT; i <= VS_KETTLE; i++)
-    hysteresis[i] = EEPROM.read(77 + i * 5);
+    btApp->getVessel(i)->setHysteresis(EEPROM.read(77 + i * 5));
 
   //**********************************************************************************
   //boilPwr (112)
@@ -48,27 +50,31 @@ void loadSetup() {
   boilPwr = EEPROM.read(112);
   
   for (byte i = 0; i <= VS_KETTLE; i++)
-    vSensor[i] = EEPROM.read(114 + i);
+    btApp->getVessel(i)->setVolumeInput(EEPROM.read(114 + i));
   
   //**********************************************************************************
   //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
   //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
   //**********************************************************************************
-  eeprom_read_block(&calibVols, (unsigned char *) 119, 120);
-  eeprom_read_block(&calibVals, (unsigned char *) 239, 60);
+  for (byte i = 0; i <= VS_KETTLE; i++)
+    for (byte j = 0; j < 10; j++) {
+      struct Calibration calibration;
+      calibration.inputValue = EEPROMreadInt(239 + i * 20 + j * 2);
+      calibration.outputValue = EEPROMreadLong(119 + i * 40 + j * 4);
+      btApp->getVessel(i)->setVolumeCalibration(j, calibration);
+    }
 
   //**********************************************************************************
   //setpoints (299-301)
   //**********************************************************************************
-  for (byte i=VS_HLT; i<=VS_KETTLE; i++) { 
-    setpoint[i] = EEPROM.read(299 + i) * SETPOINT_MULT;
-    eventHandler(EVENT_SETPOINT, i);
-  }
+  for (byte i=VS_HLT; i<=VS_KETTLE; i++)
+    btApp->getVessel(i)->setSetpoint(EEPROM.read(299 + i) * SETPOINT_MULT);
   
   //**********************************************************************************
   //timers (302-305)
   //**********************************************************************************
-  for (byte i=TIMER_MASH; i<=TIMER_BOIL; i++) { timerValue[i] = EEPROMreadInt(302 + i * 2) * 60000; }
+  for (byte i=TIMER_MASH; i<=TIMER_BOIL; i++)
+    timerValue[i] = EEPROMreadInt(302 + i * 2) * 60000;
   
   loadOutputSystem();
 
@@ -79,8 +85,8 @@ void loadSetup() {
   //Boil Control state(118)
   //**********************************************************************************
   setBoilControlState((ControlState)EEPROM.read(118)); //Must be after loadPWMOutput();
-  if (boilControlState == CONTROLSTATE_MANUAL)
-    PIDOutput[VS_KETTLE] = getBoilOutput();
+  if (boilControlState == CONTROLSTATE_MANUAL && btApp->getVessel(VS_KETTLE)->getPWMOutput())
+    btApp->getVessel(VS_KETTLE)->getPWMOutput()->setValue(getBoilOutput());
 
   //**********************************************************************************
   //Timer/Alarm Status (306)
@@ -116,15 +122,19 @@ void loadPWMOutput(byte i) {
   byte pwmCycle = getPWMPeriod(i);
   byte pwmResolution = getPWMResolution(i);
   byte pidLimit = getPIDLimit(i);
-  if (pwmOutput[i])
-    delete pwmOutput[i];
+  Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(i);
+  analogOutput_SWPWM *pwmOutput = NULL;
   if (pwmPin != INDEX_NONE)
-    pwmOutput[i] = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
-  pid[i].SetInputLimits(0, 25500);
-  pid[i].SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
-  pid[i].SetTunings((double)getPIDp(i)/PIDGAIN_DIV, (double)getPIDi(i)/PIDGAIN_DIV, (double)getPIDd(i)/PIDGAIN_DIV);
-  pid[i].SetMode(AUTO);
-  pid[i].SetSampleTime(PID_UPDATE_INTERVAL);
+    pwmOutput = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
+  vessel->setPWMOutput(pwmOutput);
+  PID *pid = vessel->getPID();
+  pid->SetInputLimits(0, 25500);
+  pid->SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
+  pid->SetTunings((double)getPIDp(i)/PIDGAIN_DIV, (double)getPIDi(i)/PIDGAIN_DIV, (double)getPIDd(i)/PIDGAIN_DIV);
+  //Boil Controller will take care of PID Mode for Kettle
+  if (i != VS_KETTLE)
+    pid->SetMode(AUTO);
+  pid->SetSampleTime(PID_UPDATE_INTERVAL);
 }
 
 void loadOutputSystem() {
@@ -167,13 +177,13 @@ void loadTriggerInstance(byte i) {
   loadTriggerConfiguration(i, &trigConfig);
   
   if (trigConfig.type == TRIGGERTYPE_VOLUME)
-    trigger[i] = new TriggerValue(&volAvg[trigConfig.index], trigConfig.threshold, trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
+    trigger[i] = new TriggerVolume(BrewTrollerApplication::getInstance()->getVessel(trigConfig.index), trigConfig.threshold, trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
 #ifdef DIGITAL_INPUTS  
   else if (trigConfig.type == TRIGGERTYPE_GPIO)
     trigger[i] = new TriggerGPIO(triggerPinMap[trigConfig.index], trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
 #endif
   else if (trigConfig.type == TRIGGERTYPE_SETPOINTDELAY)
-    trigger[i] = new TriggerSetpointDelay(&setpoint[trigConfig.index], trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
+    trigger[i] = new TriggerSetpointDelay(BrewTrollerApplication::getInstance()->getVessel(trigConfig.index), trigConfig.activeLow, trigConfig.profileFilter, trigConfig.disableMask, trigConfig.releaseHysteresis);
 }
 
 #ifdef ESTOP_PIN
@@ -217,13 +227,9 @@ void loadTriggerInstance(byte i) {
 #endif
 
 void loadBubbler() {  
-  if (bubbler)
-    delete bubbler;
-  bubbler = NULL;
   byte bubbleOut = getBubblerOutput();
-  if (bubbleOut != INDEX_NONE) {
-    bubbler = new Bubbler(outputs, bubbleOut, getBubblerInterval(), getBubblerDuration(), getBubblerDelay());
-  }
+  if (bubbleOut != INDEX_NONE)
+    BrewTrollerApplication::getInstance()->addBubbler(new Bubbler(outputs, bubbleOut, getBubblerInterval(), getBubblerDuration(), getBubblerDelay()));
 }
 
 //*****************************************************************************************************************************
@@ -232,7 +238,7 @@ void loadBubbler() {
 
 //**********************************************************************************
 //TSensors: HLT (0-7), MASH (8-15), KETTLE (16-23), H2OIN (24-31), H2OOUT (32-39), 
-//          BEEROUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
+//          WORTOUT (40-47), AUX1 (48-55), AUX2 (56-63), AUX3 (64-71)
 //**********************************************************************************
 void setTSAddr(byte sensor, byte addr[8]) {
   memcpy(tSensor[sensor], addr, 8);
@@ -240,7 +246,7 @@ void setTSAddr(byte sensor, byte addr[8]) {
 }
 
 //**********************************************************************************
-//OPEN (72-90)
+//OPEN (72-75)
 //**********************************************************************************
 
 //**********************************************************************************
@@ -255,7 +261,7 @@ void setPWMPeriod(byte vessel, byte value) {
 //Hysteresis HLT (77), Mash (82), Kettle (87), RESERVED (92)
 //**********************************************************************************
 void setHysteresis(byte vessel, byte value) {
-  hysteresis[vessel] = value;
+  BrewTrollerApplication::getInstance()->getVessel(vessel)->setHysteresis(value);
   EEPROM.write(77 + vessel * 5, value);
 }
 
@@ -327,7 +333,7 @@ byte getEvapRate() { return EEPROM.read(113); }
 //Volume Sensors (114-117) HLT/Mash/Kettle/Reserved
 //**********************************************************************************
 void setVolumeSensor(byte vessel, byte index) {
-  vSensor[vessel] = index;
+  BrewTrollerApplication::getInstance()->getVessel(vessel)->setVolumeInput(index);
   EEPROM.write(114 + vessel, index);
 }
 byte getVolumeSensor(byte vessel) {
@@ -337,18 +343,23 @@ byte getVolumeSensor(byte vessel) {
 //Boil Control State (118)
 //**********************************************************************************
 void setBoilControlState(ControlState state) {
+  Vessel *kettle = BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE);
+  
 	if (boilControlState != state)
 		EEPROM.write(118, (byte)state);
 	boilControlState = state;
 	switch (boilControlState) {
 		case CONTROLSTATE_SETPOINT:
-			pid[VS_KETTLE].SetMode(AUTO);
+      if (kettle->getPID())
+  			kettle->getPID()->SetMode(AUTO);
 			break;
 		case CONTROLSTATE_OFF:
-			resetVesselHeat(VS_KETTLE);
+			if (kettle->getPWMOutput())
+			  kettle->getPWMOutput()->setValue(0);
 		case CONTROLSTATE_MANUAL:
 		case CONTROLSTATE_AUTO:
-			pid[VS_KETTLE].SetMode(MANUAL);
+			if (kettle->getPID())
+        kettle->getPID()->SetMode(MANUAL);
 			break;
 	}
 }
@@ -357,11 +368,10 @@ void setBoilControlState(ControlState state) {
 //calibVols HLT (119-158), Mash (159-198), Kettle (199-238)
 //calibVals HLT (239-258), Mash (259-278), Kettle (279-298)
 //**********************************************************************************
-void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) {
-  calibVols[vessel][slot] = vol;
-  calibVals[vessel][slot] = value;
-  EEPROMwriteLong(119 + vessel * 40 + slot * 4, vol);
-  EEPROMwriteInt(239 + vessel * 20 + slot * 2, value);
+void setVolCalib(byte vessel, byte slot, struct Calibration calibration) {
+  BrewTrollerApplication::getInstance()->getVessel(vessel)->setVolumeCalibration(slot, calibration);
+  EEPROMwriteLong(119 + vessel * 40 + slot * 4, calibration.outputValue);
+  EEPROMwriteInt(239 + vessel * 20 + slot * 2, calibration.inputValue);
 }
 
 //*****************************************************************************************************************************
@@ -372,9 +382,8 @@ void setVolCalib(byte vessel, byte slot, unsigned int value, unsigned long vol) 
 //setpoints (299-301)
 //**********************************************************************************
 void setSetpoint(byte vessel, int value) {
-  setpoint[vessel] = value * SETPOINT_MULT;
+  BrewTrollerApplication::getInstance()->getVessel(vessel)->setSetpoint(value * SETPOINT_MULT);
   EEPROM.write(299 + vessel, value);
-  eventHandler(EVENT_SETPOINT, vessel);
 }
 
 //**********************************************************************************
@@ -814,7 +823,8 @@ void initializeBrewStepConfiguration() {
 //PIDp HLT (2225-2226), Mash (2231-2232), Kettle (2237-2238), RESERVED (2243-2244)
 //**********************************************************************************
 void setPIDp(byte vessel, unsigned int value) {
-  pid[vessel].SetTunings((double)value/PIDGAIN_DIV, pid[vessel].GetI_Param(), pid[vessel].GetD_Param());
+  PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
+  pid->SetTunings((double)value/PIDGAIN_DIV, pid->GetI_Param(), pid->GetD_Param());
   EEPROMwriteInt(2225 + vessel * 6, value);
 }
 unsigned int getPIDp(byte vessel) { return EEPROMreadInt(2225 + vessel * 6); }
@@ -823,7 +833,8 @@ unsigned int getPIDp(byte vessel) { return EEPROMreadInt(2225 + vessel * 6); }
 //PIDi HLT (2227-2228), Mash (2233-2234), Kettle (2239-2240), RESERVED (2245-2246)
 //**********************************************************************************
 void setPIDi(byte vessel, unsigned int value) {
-  pid[vessel].SetTunings(pid[vessel].GetP_Param(), (double)value/PIDGAIN_DIV, pid[vessel].GetD_Param());
+  PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
+  pid->SetTunings(pid->GetP_Param(), (double)value/PIDGAIN_DIV, pid->GetD_Param());
   EEPROMwriteInt(2227 + vessel * 6, value);
 }
 unsigned int getPIDi(byte vessel) { return EEPROMreadInt(2227 + vessel * 6); }
@@ -832,7 +843,8 @@ unsigned int getPIDi(byte vessel) { return EEPROMreadInt(2227 + vessel * 6); }
 //PIDd HLT (2229-2230), Mash (2035-2036), Kettle (2241-2242), RESERVED (2247-2248)
 //**********************************************************************************
 void setPIDd(byte vessel, unsigned int value) {
-  pid[vessel].SetTunings(pid[vessel].GetP_Param(), pid[vessel].GetI_Param(), (double)value/PIDGAIN_DIV);
+  PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
+  pid->SetTunings(pid->GetP_Param(), pid->GetI_Param(), (double)value/PIDGAIN_DIV);
   EEPROMwriteInt(2229 + vessel * 6, value);
 }
 unsigned int getPIDd(byte vessel) { return EEPROMreadInt(2229 + vessel * 6); }

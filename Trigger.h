@@ -26,6 +26,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 #include <Arduino.h>
 #include "LOCAL_Pin.h"
+#include "Vessel.h"
+
+class Vessel;
 
 class Trigger
 {
@@ -53,26 +56,26 @@ class TriggerGPIO : public Trigger
     
 };
 
-class TriggerValue : public Trigger
+class TriggerVolume : public Trigger
 {
   private:
-  unsigned long *value;
+  Vessel *vessel;
   unsigned long threshold;
   
   public:
-  TriggerValue(unsigned long *v, unsigned long t, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis);
-  ~TriggerValue();
+  TriggerVolume(Vessel *v, unsigned long t, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis);
+  ~TriggerVolume();
   boolean getRawValue(void);
 };
 
 class TriggerSetpointDelay : public Trigger
 {
   private:
-  double *value;
+  Vessel *vessel;
   boolean tripped;
   
   public:
-  TriggerSetpointDelay(double *v, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis);
+  TriggerSetpointDelay(Vessel *v, boolean aLow, unsigned long filter, unsigned long dMask, byte rHysteresis);
   ~TriggerSetpointDelay();
   boolean getRawValue(void);
 };

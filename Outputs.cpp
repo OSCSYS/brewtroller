@@ -193,10 +193,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
 
   OutputSystem::OutputSystem(void) {
-    banks = new OutputBank* [OUTPUTBANKS_MAXBANKS];
-    for (uint8_t i = 0; i < OUTPUTBANKS_MAXBANKS; i++) {
+    for (uint8_t i = 0; i < OUTPUTBANKS_MAXBANKS; i++)
       banks[i] = NULL;
-    }
+
     bankCount = 0;
     #ifdef OUTPUTBANK_GPIO
       addBank(new OutputBankGPIO());
@@ -208,7 +207,9 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   }
 
   OutputSystem::~OutputSystem(void) {
-    delete [] banks;
+    for (uint8_t i = 0; i < OUTPUTBANKS_MAXBANKS; i++)
+      if (banks[i])
+        delete banks[i];
   }
   
   void OutputSystem::init(void) {
@@ -427,6 +428,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     limit = resolution;
     period = p;
     value = 0;
+  }
+
+  analogOutput_SWPWM::~analogOutput_SWPWM(void) {
+    outputs->setDiscreetState(pinIndex, 0);
   }
   
   OutputSystem* analogOutput_SWPWM::outputs = NULL;

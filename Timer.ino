@@ -60,10 +60,9 @@ void clearTimer(byte timer) {
 void updateTimers() {
   for (byte timer = TIMER_MASH; timer <= TIMER_BOIL; timer++) {
     if (timerStatus[timer]) {
-      #ifdef ESTOP_PIN
-        if (isEStop())
-          pauseTimer(timer);
-      #endif
+      if (BrewTrollerApplication::getInstance()->isEStop())
+        pauseTimer(timer);
+
       
       unsigned long now = millis();
       if (timerValue[timer] > now - lastTime[timer]) {
