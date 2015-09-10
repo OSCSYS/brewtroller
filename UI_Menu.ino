@@ -1125,7 +1125,7 @@ void uiAutoTune(byte vIndex, int useDerivative, byte aTuneStartPercent, byte aTu
     if (!didInit) {
       LCD.clear();
       LCD.print_P(0, 3, PSTR("PID Auto Tune"));
-      LCD.print_P(1, 2, PSTR("Peak Count: 0/10"));
+      LCD.print_P(1, 2, PSTR("Peak Count:   /10"));
       LCD.print_P(2, 10, PSTR("-"));
       LCD.print_P(3, 0, PSTR("Current:"));
       didInit = 1;
@@ -1138,7 +1138,7 @@ void uiAutoTune(byte vIndex, int useDerivative, byte aTuneStartPercent, byte aTu
       didInit = 0;
     }
     char numText[7];
-    LCD.print(1, 14, itoa(vessel->getPIDAutoTune()->GetPeakCount(), numText, 10));
+    LCD.lPad(1, 14, itoa(vessel->getPIDAutoTune()->GetPeakCount(), numText, 10), 2, ' ');
     uiLabelTemperature(2, 3, 6, vessel->getPIDAutoTune()->GetAbsMin());
     uiLabelTemperature(2, 12, 6, vessel->getPIDAutoTune()->GetAbsMax());
     uiLabelTemperature(3, 9, 6, vessel->getTemperature());
