@@ -2,8 +2,9 @@
 #define Vessel_h
 
 #include "BrewTrollerApplication.h"
-#include "LOCAL_PID_Beta6.h"
+#include "LOCAL_PID_v1.h"
 #include "Outputs.h"
+#include "LOCAL_PID_AutoTune_v0.h"
 
 struct Calibration {
   unsigned int inputValue;
@@ -16,6 +17,9 @@ class Vessel {
   private:
     PID *pid;
     double PIDInput, PIDOutput, setpoint;
+    byte ATuneModeRemember;
+    boolean tuning;
+    PID_ATune *aTune;
     analogOutput *pwmOutput;
     byte pwmActiveProfile, heatProfile, idleProfile;
     int *temperature;
@@ -55,6 +59,10 @@ class Vessel {
     void setTargetVolume(unsigned long target);
     long getFlowRate(void);
     byte getHeatPower(void);
+    void startAutoTune(int useDerivative, unsigned long aTuneStartValue, unsigned long aTuneStep, double aTuneNoise, unsigned int aTuneLookBack);
+    void stopAutoTune();
+    boolean isTuning();
+    PID_ATune* getPIDAutoTune();
     struct Calibration getVolumeCalibration(byte index);
     void setVolumeCalibration(byte index, struct Calibration calibration);
     unsigned int getRawVolumeValue(void);

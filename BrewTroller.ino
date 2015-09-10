@@ -44,7 +44,8 @@ Then use Tools - Board - Boards Manager to install OpenTroller ATMEGA1284P by OS
 //*****************************************************************************************************************************
 
 #include <avr/pgmspace.h>
-#include "LOCAL_PID_Beta6.h"
+#include "LOCAL_PID_v1.h"
+#include "LOCAL_PID_AutoTune_v0.h"
 #include "LOCAL_Pin.h"
 #include "LOCAL_ModbusMaster.h"
 #include <Wire.h>

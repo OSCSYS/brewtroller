@@ -88,6 +88,10 @@ Vessel* BrewTrollerApplication::getVessel(byte index) {
 }
 
 void BrewTrollerApplication::init(void) {
+  #ifdef DEBUG
+    Serial.println();
+  #endif
+  
   #ifdef ADC_REF
   analogReference(ADC_REF);
   #endif
@@ -132,6 +136,9 @@ void BrewTrollerApplication::init(void) {
 void BrewTrollerApplication::update(enum ApplicationUpdatePriorityLevel priorityLevel) {
   //START CRITICAL PRIORITY (Avoid ESTOP)
   #ifdef HEARTBEAT
+    #ifdef DEBUG
+      Serial.print("A");
+    #endif
     heartbeat();
   #endif
   //END CRITICAL PRIORITY
@@ -140,15 +147,31 @@ void BrewTrollerApplication::update(enum ApplicationUpdatePriorityLevel priority
     return;
 
   //START HIGH PRIORITY: Time-sensitive updates performed on each iteration
+  #ifdef DEBUG
+    Serial.print("B");
+  #endif
   if (bubbler)
     bubbler->compute();
-
+    
+  #ifdef DEBUG
+    Serial.print("C");
+  #endif
   triggerUpdate();
 
+  #ifdef DEBUG
+    Serial.print("D");
+  #endif
   updateBoilController();
+  
+  #ifdef DEBUG
+      Serial.print("E");
+  #endif
   for (byte i = 0; i < VESSEL_COUNT; i++)
     vessel[i]->update();
 
+  #ifdef DEBUG
+    Serial.print("F");
+  #endif
   outputs->update();
   //END HIGH PRIORITY
 
@@ -159,42 +182,66 @@ void BrewTrollerApplication::update(enum ApplicationUpdatePriorityLevel priority
   switch (scheduler) {
 #ifndef NOUI
     case SCHEDULETASK_LCD:
+      #ifdef DEBUG
+        Serial.print("G");
+      #endif
       LCD.update();
       break;
 #endif  
 
     case SCHEDULETASK_TIMERS:
       //Timers: Timer.ino
+      #ifdef DEBUG
+        Serial.print("H");
+      #endif
       updateTimers();
       break;
       
     case SCHEDULETASK_TEMPS:
      //temps: Temp.ino
-     updateTemps();
+     #ifdef DEBUG
+        Serial.print("I");
+     #endif
+      updateTemps();
      break;
 
     case SCHEDULETASK_BUZZER:
       //Alarm update allows to have a beeping alarm
+      #ifdef DEBUG
+        Serial.print("J");
+      #endif
       updateBuzzer();
       break;
       
     case SCHEDULETASK_PROGRAMS:
       //Step Logic: StepLogic.ino
+      #ifdef DEBUG
+        Serial.print("K");
+      #endif
       programThreadsUpdate();
       break;
       
 #ifdef RGBIO8_ENABLE
     case SCHEDULETASK_RGBIO:
+      #ifdef DEBUG
+        Serial.print("L");
+      #endif
       RGBIO8_Update();
 #endif
       
     case SCHEDULETASK_COMS:
       //Communications: Com.ino
+      #ifdef DEBUG
+        Serial.print("M");
+      #endif
       updateCom();
       break;
       
     case SCHEDULETASK_AUTOVALVE:
       //Auto Valve Logic: Outputs.ino
+      #ifdef DEBUG
+        Serial.print("N");
+      #endif
       updateAutoValve();
       break;
   }
@@ -206,6 +253,9 @@ void BrewTrollerApplication::update(enum ApplicationUpdatePriorityLevel priority
     return;
 
   #ifndef NOUI
+    #ifdef DEBUG
+      Serial.print("R");
+    #endif
     uiUpdate();
   #endif
 }

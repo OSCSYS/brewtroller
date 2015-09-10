@@ -23,7 +23,7 @@ void uiLabelPercentOnOff (byte row, byte col, byte pct) {
   char numText[5];
   if (pct == 0)
     strcpy_P(numText, LABEL_BUTTONOFF);
-  else if (pct == 100)
+  else if (pct > 99)
     strcpy_P(numText, LABEL_BUTTONON);
   else {
     itoa(pct, numText, 10);
