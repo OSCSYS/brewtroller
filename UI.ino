@@ -514,7 +514,7 @@ void screenMash (enum ScreenSignal signal) {
         Vessel *vessel = btApp->getVessel(i);
         uiLabelTemperature (1, i * 6 + 9, 5, vessel->getSetpoint());
         uiLabelTemperature (2, i * 6 + 9, 5, vessel->getTemperature());
-        uiLabelPercentOnOff (3, i * 6 + 11, vessel->getHeatPower());        
+        uiLabelPercentOnOff (3, i * 6 + 11, vessel->getHeatPower());
         printTimer(TIMER_MASH, 3, 0);
       }
       break;

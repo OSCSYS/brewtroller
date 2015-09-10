@@ -5,7 +5,10 @@ Vessel::Vessel(int *t, byte pwmActive, byte heat, byte idle) {
   pwmActiveProfile = pwmActive;
   heatProfile = heat;
   idleProfile = idle;
-  pid = new PID(&PIDInput, &PIDOutput, &setpoint, 1, 0, 0);
+  pid = new PID(&PIDInput, &PIDOutput, &setpoint, 1, 0, 0, DIRECT);
+  aTune = new PID_ATune(&PIDInput, &PIDOutput);
+  ATuneModeRemember = MANUAL;
+  tuning = false;
   pwmOutput = NULL;
   vSensor = INDEX_NONE;
   targetVolume = 0;
@@ -123,17 +126,20 @@ void Vessel::updatePIDHeat(void) {
   //This code should only be applied for vessels with a pwmOutput
   if (!pwmOutput)
     return;
- 
+
   if (*temperature == BAD_TEMP)
     pwmOutput->setValue(0);
   else {
-    if (pid->GetMode() == AUTO) {
+    if (pid->GetMode() == AUTOMATIC || tuning) {
       PIDInput = *temperature;
-      pid->Compute();
+      if(!tuning)
+        pid->Compute();
+      else if (aTune->Runtime() != 0)
+        stopAutoTune();
       pwmOutput->setValue(PIDOutput);
     }
   }
-  
+    
   pwmOutput->update();
   
   if (pwmOutput->getValue()) {
@@ -143,6 +149,35 @@ void Vessel::updatePIDHeat(void) {
     //Do not modify heatStatus; initial value is set in On/Off logic and only updated if PID is active
     outputs->setProfileState(pwmActiveProfile, 0);
   }
+}
+
+void Vessel::startAutoTune(int useDerivative, unsigned long aTuneStartValue, unsigned long aTuneStep, double aTuneNoise, unsigned int aTuneLookBack)
+{
+  PIDOutput = aTuneStartValue;
+  aTune->SetNoiseBand(aTuneNoise);
+  aTune->SetOutputStep(aTuneStep);
+  aTune->SetLookbackSec((int)aTuneLookBack);
+  aTune->SetControlType(useDerivative);
+  ATuneModeRemember = pid->GetMode();
+  pid->SetMode(MANUAL);
+  tuning = true;
+}
+
+void Vessel::stopAutoTune()
+{
+  tuning = false;
+  aTune->Cancel();
+  pid->SetMode(ATuneModeRemember);
+  PIDOutput = 0;
+}
+
+boolean Vessel::isTuning()
+{
+  return tuning;
+}
+
+PID_ATune* Vessel::getPIDAutoTune() {
+  return aTune;
 }
 
 void Vessel::updateVolume(void) {

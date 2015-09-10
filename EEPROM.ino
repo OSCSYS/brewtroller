@@ -128,12 +128,11 @@ void loadPWMOutput(byte i) {
     pwmOutput = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
   vessel->setPWMOutput(pwmOutput);
   PID *pid = vessel->getPID();
-  pid->SetInputLimits(0, 25500);
   pid->SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
   pid->SetTunings((double)getPIDp(i)/PIDGAIN_DIV, (double)getPIDi(i)/PIDGAIN_DIV, (double)getPIDd(i)/PIDGAIN_DIV);
   //Boil Controller will take care of PID Mode for Kettle
   if (i != VS_KETTLE)
-    pid->SetMode(AUTO);
+    pid->SetMode(AUTOMATIC);
   pid->SetSampleTime(PID_UPDATE_INTERVAL);
 }
 
@@ -351,7 +350,7 @@ void setBoilControlState(ControlState state) {
 	switch (boilControlState) {
 		case CONTROLSTATE_SETPOINT:
       if (kettle->getPID())
-  			kettle->getPID()->SetMode(AUTO);
+  			kettle->getPID()->SetMode(AUTOMATIC);
 			break;
 		case CONTROLSTATE_OFF:
 			if (kettle->getPWMOutput())
@@ -824,7 +823,7 @@ void initializeBrewStepConfiguration() {
 //**********************************************************************************
 void setPIDp(byte vessel, unsigned int value) {
   PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
-  pid->SetTunings((double)value/PIDGAIN_DIV, pid->GetI_Param(), pid->GetD_Param());
+  pid->SetTunings((double)value/PIDGAIN_DIV, pid->GetKi(), pid->GetKd());
   EEPROMwriteInt(2225 + vessel * 6, value);
 }
 unsigned int getPIDp(byte vessel) { return EEPROMreadInt(2225 + vessel * 6); }
@@ -834,7 +833,7 @@ unsigned int getPIDp(byte vessel) { return EEPROMreadInt(2225 + vessel * 6); }
 //**********************************************************************************
 void setPIDi(byte vessel, unsigned int value) {
   PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
-  pid->SetTunings(pid->GetP_Param(), (double)value/PIDGAIN_DIV, pid->GetD_Param());
+  pid->SetTunings(pid->GetKp(), (double)value/PIDGAIN_DIV, pid->GetKd());
   EEPROMwriteInt(2227 + vessel * 6, value);
 }
 unsigned int getPIDi(byte vessel) { return EEPROMreadInt(2227 + vessel * 6); }
@@ -844,7 +843,7 @@ unsigned int getPIDi(byte vessel) { return EEPROMreadInt(2227 + vessel * 6); }
 //**********************************************************************************
 void setPIDd(byte vessel, unsigned int value) {
   PID *pid = BrewTrollerApplication::getInstance()->getVessel(vessel)->getPID();
-  pid->SetTunings(pid->GetP_Param(), pid->GetI_Param(), (double)value/PIDGAIN_DIV);
+  pid->SetTunings(pid->GetKp(), pid->GetKi(), (double)value/PIDGAIN_DIV);
   EEPROMwriteInt(2229 + vessel * 6, value);
 }
 unsigned int getPIDd(byte vessel) { return EEPROMreadInt(2229 + vessel * 6); }
