@@ -119,17 +119,16 @@ void loadSetup() {
 
 void loadPWMOutput(byte i) {
   byte pwmPin = getPWMPin(i);
-  byte pwmCycle = getPWMPeriod(i);
-  byte pwmResolution = getPWMResolution(i);
+  unsigned int pwmCycle = getPWMPeriod(i) * 100; //converted from tenths to ms
   byte pidLimit = getPIDLimit(i);
   Vessel *vessel = BrewTrollerApplication::getInstance()->getVessel(i);
   analogOutput_SWPWM *pwmOutput = NULL;
   if (pwmPin != INDEX_NONE)
-    pwmOutput = new analogOutput_SWPWM(pwmPin, pwmCycle, pwmResolution);
+    pwmOutput = new analogOutput_SWPWM(pwmPin, pwmCycle);
   vessel->setPWMOutput(pwmOutput);
   PID *pid = vessel->getPID();
-  pid->SetOutputLimits(0, (unsigned long)pwmResolution * pidLimit / 100);
-  pid->SetTunings((double)getPIDp(i)/PIDGAIN_DIV, (double)getPIDi(i)/PIDGAIN_DIV, (double)getPIDd(i)/PIDGAIN_DIV);
+  pid->SetOutputLimits(0, pidLimit);
+  pid->SetTunings((double)getPIDp(i) / PIDGAIN_DIV, (double)getPIDi(i) / PIDGAIN_DIV, (double)getPIDd(i) / PIDGAIN_DIV);
   //Boil Controller will take care of PID Mode for Kettle
   if (i != VS_KETTLE)
     pid->SetMode(AUTOMATIC);

@@ -1034,12 +1034,12 @@ class menuAutoTuneOptions : public menuPROGMEM {
   private:
     byte *startPercent;
     byte *stepPercent;
-    unsigned int *lookbackSecs;
-    byte *inputNoise;
-    int *controlMode;
+    int *lookbackSecs;
+    int *inputNoise;
+    byte *controlMode;
     
   public:
-    menuAutoTuneOptions(byte pSize, byte *startP, byte *stepP, unsigned int *lookback, byte *noise, int *mode) : menuPROGMEM(pSize, MENUAUTOTUNEOPTIONS, ARRAY_LENGTH(MENUAUTOTUNEOPTIONS) ) { 
+    menuAutoTuneOptions(byte pSize, byte *startP, byte *stepP, int *lookback, int *noise, byte *mode) : menuPROGMEM(pSize, MENUAUTOTUNEOPTIONS, ARRAY_LENGTH(MENUAUTOTUNEOPTIONS) ) { 
       startPercent = startP;
       stepPercent = stepP;
       lookbackSecs = lookback;
@@ -1062,11 +1062,11 @@ class menuAutoTuneOptions : public menuPROGMEM {
           strcat(retString, "s");
         } else if (option == 3) {
           vftoa(*inputNoise, numText, 100, 1);
-          truncFloat(numText, 4);
+          truncFloat(numText, 5);
           strcat(retString, numText);
           strcat_P(retString, TUNIT);
-        } else if (option == 4 && *controlMode)
-          strcat(retString, "D");
+        } else if (option == 4)
+          strcpy_P(retString, (char*)pgm_read_word(&(MENUAUTOTUNETYPES[*controlMode])));
         return retString;
       }
 };
@@ -1074,18 +1074,18 @@ class menuAutoTuneOptions : public menuPROGMEM {
 void uiAutoTuneMenu(byte vIndex) {
   byte aTuneStartPercent = 40;
   byte aTuneStepPercent = 20;
-  unsigned int aTuneLookBack = 20;
+  int aTuneLookBack = 20;
 
   #ifdef USEMETRIC
-    byte aTuneNoise = 56;
+    int aTuneNoise = 56;
   #else
-    byte aTuneNoise = 100;
+    int aTuneNoise = 100;
   #endif
 
   // Default to PI control
-  int useDerivative = 0;
+  byte controlMode = 0;
 
-  menuAutoTuneOptions autoTuneMenu(3, &aTuneStartPercent, &aTuneStepPercent, &aTuneLookBack, &aTuneNoise, &useDerivative);
+  menuAutoTuneOptions autoTuneMenu(3, &aTuneStartPercent, &aTuneStepPercent, &aTuneLookBack, &aTuneNoise, &controlMode);
   while(1) {
     byte lastOption = scrollMenu("PID Auto Tune", &autoTuneMenu);
     if (lastOption == 0)
@@ -1095,38 +1095,43 @@ void uiAutoTuneMenu(byte vIndex) {
     else if (lastOption == 2)
       aTuneLookBack = getValue_P(PSTR("Lookback:"), aTuneLookBack, 1, 999, SEC);
     else if (lastOption == 3)
-      aTuneNoise = getValue_P(PSTR("Input Noise:"), aTuneNoise, 100, 255, TUNIT);
+      aTuneNoise = getValue_P(PSTR("Input Noise:"), aTuneNoise, 100, 9999, TUNIT);
     else if (lastOption == 4)
-      useDerivative = useDerivative ? 0 : 1;
-    else {
-      if (lastOption == 5 && (confirmChoice(" Vessel filled and", " ready to heat for", "  PID Auto Tuning?", CONTINUE)))
-        uiAutoTune(vIndex, useDerivative, aTuneStartPercent, aTuneStepPercent, aTuneNoise, aTuneLookBack);
+      controlMode = uiAutoTuneTypeMenu(controlMode);
+    else if (lastOption == 5) {
+      if (confirmChoice(" Vessel filled and", " ready to heat for", "  PID Auto Tuning?", CONTINUE)) {
+        uiAutoTune(vIndex, controlMode, aTuneStartPercent, aTuneStepPercent, aTuneNoise, aTuneLookBack);
+        break;
+      }
+    } else
       break;
-    }
   }
 }
 
-void uiAutoTune(byte vIndex, int useDerivative, byte aTuneStartPercent, byte aTuneStepPercent, byte aTuneNoise, unsigned int aTuneLookBack) {
+byte uiAutoTuneTypeMenu(byte currentValue) {
+  menuPROGMEM autoTuneMenu(3, MENUAUTOTUNETYPES, ARRAY_LENGTH(MENUAUTOTUNETYPES));
+  byte selected = scrollMenu("PID Auto Tune Type", &autoTuneMenu);
+  if (selected < PID_ATune::PID_AUTOTUNE_TYPE_COUNT)
+    return selected;
+  return currentValue;
+}
+
+void uiAutoTune(byte vIndex, byte controlMode, byte aTuneStartPercent, byte aTuneStepPercent, int aTuneNoise, int aTuneLookBack) {
   BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance();
   Vessel *vessel = btApp->getVessel(vIndex);
   if (!vessel->getPWMOutput())
     return;
-  unsigned long maxOutput = vessel->getPWMOutput()->getLimit();
-  
-  unsigned long aTuneStartValue =  maxOutput * aTuneStartPercent / 100;
-  unsigned long aTuneStep =  maxOutput * aTuneStepPercent / 100;
   
   if (vIndex == VS_KETTLE)
     setBoilControlState(CONTROLSTATE_MANUAL);
   
-  vessel->startAutoTune(useDerivative, aTuneStartValue, aTuneStep, aTuneNoise, aTuneLookBack);
+  vessel->startAutoTune(controlMode, aTuneStartPercent, aTuneStepPercent, aTuneNoise, aTuneLookBack);
   boolean didInit = 0;
   while (vessel->isTuning()) {
     if (!didInit) {
       LCD.clear();
       LCD.print_P(0, 3, PSTR("PID Auto Tune"));
       LCD.print_P(1, 2, PSTR("Peak Count:   /10"));
-      LCD.print_P(2, 10, PSTR("-"));
       LCD.print_P(3, 0, PSTR("Current:"));
       didInit = 1;
     }
@@ -1137,10 +1142,8 @@ void uiAutoTune(byte vIndex, int useDerivative, byte aTuneStartPercent, byte aTu
       }
       didInit = 0;
     }
-    char numText[7];
+    char numText[4];
     LCD.lPad(1, 14, itoa(vessel->getPIDAutoTune()->GetPeakCount(), numText, 10), 2, ' ');
-    uiLabelTemperature(2, 3, 6, vessel->getPIDAutoTune()->GetAbsMin());
-    uiLabelTemperature(2, 12, 6, vessel->getPIDAutoTune()->GetAbsMax());
     uiLabelTemperature(3, 9, 6, vessel->getTemperature());
     uiLabelPercentOnOff(3, 17, vessel->getHeatPower());
     btApp->update(PRIORITYLEVEL_NORMAL);
@@ -1152,7 +1155,6 @@ void uiAutoTune(byte vIndex, int useDerivative, byte aTuneStartPercent, byte aTu
   LCD.clear();
   LCD.print(0, 1,  "Auto Tune Complete");
   LCD.print(1, 2,  "Peak Count:");
-  LCD.print(2, 10, "-");
   LCD.print(3, 0,  "P");
   LCD.print(3, 7,  "I");
   LCD.print(3, 14, "D");
@@ -1161,9 +1163,6 @@ void uiAutoTune(byte vIndex, int useDerivative, byte aTuneStartPercent, byte aTu
   LCD.print(1, 14, itoa(vessel->getPIDAutoTune()->GetPeakCount(), numText, 10));
   uiLabelFPoint(3, 1, 5,  vessel->getPIDAutoTune()->GetKp() * PIDGAIN_DIV, 1);
 
-  uiLabelTemperature(2, 3, 6, vessel->getPIDAutoTune()->GetAbsMin());
-  uiLabelTemperature(2, 12, 6, vessel->getPIDAutoTune()->GetAbsMax());
-  
   uiLabelFPoint(3, 1, 5,  vessel->getPIDAutoTune()->GetKp() * PIDGAIN_DIV, PIDGAIN_DIV);
   uiLabelFPoint(3, 8, 5,  vessel->getPIDAutoTune()->GetKi() * PIDGAIN_DIV, PIDGAIN_DIV);
   uiLabelFPoint(3, 15, 5, vessel->getPIDAutoTune()->GetKd() * PIDGAIN_DIV, PIDGAIN_DIV);

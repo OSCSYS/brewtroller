@@ -149,12 +149,11 @@ class OutputSystem
 
 class analogOutput {
   protected:
-  byte value, limit;
+  double value;
   
   public:
-  virtual void setValue(byte v);
-  byte getLimit();
-  byte getValue();
+  virtual void setValue(double v);
+  double getValue();
   virtual void init();
   virtual void update() = 0;
 };
@@ -162,35 +161,15 @@ class analogOutput {
 class analogOutput_SWPWM : public analogOutput {
   private:
   static OutputSystem* outputs;
-  byte pinIndex, period;
-  unsigned long sPeriod; //Start of PWM period: millis()
+  byte pinIndex;;
+  unsigned long sPeriod;  //Start of PWM period: millis()
+  unsigned int period;
   
   public:
-  analogOutput_SWPWM(byte index, byte period, byte resolution);
+  analogOutput_SWPWM(byte index, unsigned int period);
   ~analogOutput_SWPWM(void);
-  void setValue(byte v);
+  void setValue(double v);
   void update();
   static void setup(OutputSystem* o);
 };
-
-#ifdef ANALOGOUTPUTS_HWPWM
-class analogOutput_HWPWM : public analogOutput {
-  private:
-  byte pin;
-  
-  public:
-  analogOutput_HWPWM(byte p);
-  void setValue(byte v);
-  void update();
-  
-  //Utility methods:
-  static byte getCount();  
-  static byte getPin(byte index);
-  static byte getTimer(byte index);
-  static char* getName(byte index, char* retString);
-  static byte getTimerModes(byte timer);
-  static byte getTimerValue(byte timer, byte index);
-  static char * getTimerText(byte timer, byte index, char* retString);
-};
-#endif
 #endif

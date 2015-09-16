@@ -14,3 +14,32 @@ As of Arduino 1.6 and BrewTroller v2.7 Build 11 a customized Arduino is no longe
 
 ## More Information
 See [BrewTroller User Manual (develop)](https://github.com/OSCSYS/brewtroller/wiki/BrewTroller-v2.7-Manual-%28develop%29)
+
+## Contributors
+BrewTroller is the collective work of a handful of developers and a much larger group of users. I'd like to specifically thank the following users who have contributed directly to BrewTroller. If I've missed someone it is entirely my error. Please open an issue and remind me.
+
+ * Jeremiah Dillingham
+ * Jason Vreeland
+ * Jason von Nieda
+ * Keith Mycek
+ * Martin Leblanc
+ * Tom Harkaway
+ * Devon Dallmann
+ * Timothy Reaves
+ * Adam Shake
+ * Eric Yanush
+ * Allan Marshall
+
+
+Some key formulas used in BrewTroller calculations came from the following books: 
+
+ * _How to Brew_ by John Palmer
+ * _Designing Great Beers_ by Ray Daniels
+
+A slew of libraries developed by members of the Arduino community are used in this project. Some of the more prominent examples include:
+
+  * PID - Brett Beauregard
+  * PID Autotune - Brett Beauregard, Tom Price (fork)
+  * DS2482 - Paeae Technologies
+  * ModbusMaster - Doc Walker
+  * OneWire - Jim Studt, Paul Stoffregen

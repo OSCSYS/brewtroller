@@ -417,15 +417,13 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       discreetState &= ~mask;
   }
   
-  void analogOutput::setValue(byte v) { value = v; }
-  byte analogOutput::getLimit() { return limit; }
-  byte analogOutput::getValue() { return value; }
+  void analogOutput::setValue(double v) { value = min(v, 100.0); }
+  double analogOutput::getValue() { return value; }
   void analogOutput::init() {}
 
 
-  analogOutput_SWPWM::analogOutput_SWPWM(byte index, byte p, byte resolution) {
+  analogOutput_SWPWM::analogOutput_SWPWM(byte index, unsigned int p) {
     pinIndex = index;
-    limit = resolution;
     period = p;
     value = 0;
   }
@@ -440,99 +438,18 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     analogOutput_SWPWM::outputs = o;
   }
   
-  void analogOutput_SWPWM::setValue(byte v) {
+  void analogOutput_SWPWM::setValue(double v) {
     //Transition from inactive to active
     if (!value && v) { sPeriod = millis(); }
-    value = v;
+    value = min(v, 100.0);
     if (!value) outputs->setDiscreetState(pinIndex, 0);
   }
   
   void analogOutput_SWPWM::update() {
     if (value) { 
       unsigned long sUpdated = millis();
-      if (sUpdated - sPeriod > period * 100)
+      if (sUpdated - sPeriod > period)
         sPeriod = sUpdated;
-      outputs->setDiscreetState(pinIndex, (sUpdated - sPeriod < (unsigned long)period * 100 * value / limit) ? 1 : 0);
+      outputs->setDiscreetState(pinIndex, (sUpdated - sPeriod < period * value / 100.0) ? 1 : 0);
     }
   }
-
-#ifdef ANALOGOUTPUTS_HWPWM
-  analogOutput_HWPWM::analogOutput_HWPWM(byte p) {
-    pin = p;
-  }
-  
-  void analogOutput_HWPWM::setValue(byte v) { analogWrite(pin, v);  }
-  void analogOutput_HWPWM::update() {  }
-  
-  //Utility methods:
-  byte analogOutput_HWPWM::getCount() { 
-      return ANALOGOUTPUTS_HWPWM_PINCOUNT;
-  }
-  
-  byte analogOutput_HWPWM::getPin(byte index) {
-    if (index < ANALOGOUTPUTS_HWPWM_PINCOUNT) {
-      byte pins[] = ANALOGOUTPUTS_HWPWM_PINS;
-      return pins[index];
-    }
-    return 255;
-  }
-
-  byte analogOutput_HWPWM::getTimer(byte index) { 
-    if (index < ANALOGOUTPUTS_HWPWM_PINCOUNT) {
-      byte timers[] = ANALOGOUTPUTS_HWPWM_TIMERS;
-      return timers[index];
-    }
-    return 255;
-  }
-
-  char* analogOutput_HWPWM::getName(byte index, char* retString) {
-    if (index < ANALOGOUTPUTS_HWPWM_PINCOUNT) {
-      char names[] = ANALOGOUTPUTS_HWPWM_NAMES;
-      char* pos = names;
-      for (byte i = 0; i <= index; i++) {
-        strlcpy(retString, pos, OUTPUT_NAME_MAXLEN);
-        pos += strlen(retString) + 1;
-      }
-    }
-    else retString[0] = '\0';
-    return retString;
-  }
-  
-  byte analogOutput_HWPWM::getTimerModes(byte timer) { 
-    if (timer == 0) return 1;
-    else if (timer == 1) return 5;
-    else if (timer == 2) return 7;
-    else return 0;
-  }
-
-  byte analogOutput_HWPWM::getTimerValue(byte timer, byte index) {
-    if (timer == 0) { return 0x03; } //Timer 0 always equals 1KHz
-    else if ((timer == 1 && index < 5) || (timer == 2 && index < 7)) { return index; } //Timer 1 values 1-5, Timer 2 values 1-7
-    else return 0;
-  }
-  
-  char * analogOutput_HWPWM::getTimerText(byte timer, byte index, char* retString) {
-    unsigned int freqs[3][7] = {
-      {977, 0, 0, 0, 0, 0, 0},                //Timer0
-      {31250, 3906, 488, 122, 30, 0, 0},      //Timer1
-      {31250, 3906, 977, 488, 244, 122, 30}   //Timer2
-    };
-    unsigned int value = 0;
-    if (index < 7) { value = freqs[timer][index]; }
-    if (value == 0) strcpy(retString, "Invalid Mode");
-    else if (value > 1000) {
-      char sFreq[3];
-      itoa(round(value/1000), sFreq, 10);
-      strcpy(retString, sFreq);
-      strcat(retString, " kHz");
-    }
-    else {
-      char sFreq[4];
-      itoa(value, sFreq, 10);
-      strcpy(retString, sFreq);
-      strcat(retString, " Hz");
-    }
-    return retString;
-  }
-#endif
-

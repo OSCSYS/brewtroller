@@ -5,7 +5,7 @@ Vessel::Vessel(int *t, byte pwmActive, byte heat, byte idle) {
   pwmActiveProfile = pwmActive;
   heatProfile = heat;
   idleProfile = idle;
-  pid = new PID(&PIDInput, &PIDOutput, &setpoint, 1, 0, 0, DIRECT);
+  pid = new PID(&PIDInput, &PIDOutput, &PIDSetpoint, 1, 0, 0, DIRECT);
   aTune = new PID_ATune(&PIDInput, &PIDOutput);
   ATuneModeRemember = MANUAL;
   tuning = false;
@@ -16,6 +16,7 @@ Vessel::Vessel(int *t, byte pwmActive, byte heat, byte idle) {
 
   PIDInput = 0;
   PIDOutput = 0;
+  PIDSetpoint = 0;
   setpoint = 0;
   flowRate;
   heatStatus = 0;
@@ -30,6 +31,8 @@ Vessel::Vessel(int *t, byte pwmActive, byte heat, byte idle) {
 Vessel::~Vessel(void) {
   if (pid)
     delete pid;
+  if (aTune)
+    delete aTune;
 }
 
 void Vessel::update(void) {
@@ -60,12 +63,17 @@ void Vessel::setVolumeInput(byte pin) {
   vSensor = pin;
 }
 
-double Vessel::getSetpoint(void) {
+unsigned int Vessel::getSetpoint(void) {
   return setpoint;
 }
 
-double Vessel::setSetpoint(double value) {
+void Vessel::setSetpoint(unsigned int value) {
   setpoint = value;
+  PIDSetpoint = tToPercent(value);
+}
+
+double Vessel::tToPercent(double tValue) {
+  return (tValue - WORKING_TEMPERATURE_MINIMUM) / (WORKING_TEMPERATURE_MAXIMUM - WORKING_TEMPERATURE_MINIMUM) * 100;
 }
 
 byte Vessel::getHysteresis(void) {
@@ -96,8 +104,8 @@ long Vessel::getFlowRate(void) {
   return flowRate;
 }
 
-byte Vessel::getHeatPower (void) {
-  return (pwmOutput ? ((unsigned int)(pwmOutput->getValue()) * 100 / pwmOutput->getLimit()) : (heatStatus ? 100 : 0));
+double Vessel::getHeatPower (void) {
+  return (pwmOutput ? pwmOutput->getValue() : (heatStatus ? 100.0 : 0.0));
 }
 
 
@@ -131,7 +139,7 @@ void Vessel::updatePIDHeat(void) {
     pwmOutput->setValue(0);
   else {
     if (pid->GetMode() == AUTOMATIC || tuning) {
-      PIDInput = *temperature;
+      PIDInput = tToPercent(*temperature);
       if(!tuning)
         pid->Compute();
       else if (aTune->Runtime() != 0)
@@ -151,13 +159,13 @@ void Vessel::updatePIDHeat(void) {
   }
 }
 
-void Vessel::startAutoTune(int useDerivative, unsigned long aTuneStartValue, unsigned long aTuneStep, double aTuneNoise, unsigned int aTuneLookBack)
+void Vessel::startAutoTune(byte controlMode, double aTuneStartValue, double aTuneStep, double aTuneNoise, int aTuneLookBack)
 {
   PIDOutput = aTuneStartValue;
-  aTune->SetNoiseBand(aTuneNoise);
+  aTune->SetNoiseBand(tToPercent(aTuneNoise));
   aTune->SetOutputStep(aTuneStep);
-  aTune->SetLookbackSec((int)aTuneLookBack);
-  aTune->SetControlType(useDerivative);
+  aTune->SetLookbackSec(aTuneLookBack);
+  aTune->SetControlType(controlMode);
   ATuneModeRemember = pid->GetMode();
   pid->SetMode(MANUAL);
   tuning = true;

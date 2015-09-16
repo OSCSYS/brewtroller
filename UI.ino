@@ -745,15 +745,16 @@ void screenBoil (enum ScreenSignal signal) {
     			setBoilControlState(CONTROLSTATE_MANUAL);
     		case CONTROLSTATE_MANUAL:
     			if (kettle->getPWMOutput())
-    			  kettle->getPWMOutput()->setValue(Encoder.getCount());
+    			  kettle->getPWMOutput()->setValue(Encoder.getCount() * 100.0 / getPWMResolution(VS_KETTLE));
       }
       break;
     case SCREENSIGNAL_LOCK:
       {
         Encoder.setMin(0);
         analogOutput *pwmOutput = BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput();
-        Encoder.setMax(pwmOutput ? pwmOutput->getLimit() : 1);
-        Encoder.setCount(pwmOutput ? pwmOutput->getValue() : 0);
+        byte resolution = getPWMResolution(VS_KETTLE);
+        Encoder.setMax(pwmOutput ? resolution : 1);
+        Encoder.setCount(pwmOutput ? pwmOutput->getValue() * resolution / 100 : 0);
       }
       break;
     case SCREENSIGNAL_UNLOCK:

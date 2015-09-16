@@ -40,6 +40,7 @@ void updateAutoValve();
 
 void setSetpoint(byte, int);
 byte getBoilTemp();
+byte getPIDLimit(byte);
 void setBoilOutput(byte);
 void setBoilControlState(ControlState);
 
@@ -50,7 +51,6 @@ enum schedulerTasks {
 #ifndef NOUI
   SCHEDULETASK_LCD,
 #endif
-  SCHEDULETASK_TEMPS,
   SCHEDULETASK_BUZZER,
   SCHEDULETASK_PROGRAMS,
 #ifdef RGBIO8_ENABLE
@@ -162,6 +162,12 @@ void BrewTrollerApplication::update(enum ApplicationUpdatePriorityLevel priority
     Serial.print("D");
   #endif
   updateBoilController();
+
+  //temps: Temp.ino
+  #ifdef DEBUG
+    Serial.print("I");
+  #endif
+  updateTemps();
   
   #ifdef DEBUG
       Serial.print("E");
@@ -197,14 +203,6 @@ void BrewTrollerApplication::update(enum ApplicationUpdatePriorityLevel priority
       updateTimers();
       break;
       
-    case SCHEDULETASK_TEMPS:
-     //temps: Temp.ino
-     #ifdef DEBUG
-        Serial.print("I");
-     #endif
-      updateTemps();
-     break;
-
     case SCHEDULETASK_BUZZER:
       //Alarm update allows to have a beeping alarm
       #ifdef DEBUG
@@ -274,7 +272,7 @@ void BrewTrollerApplication::updateBoilController () {
     return;
 
   if (boilControlState == CONTROLSTATE_AUTO)
-    vessel[VS_KETTLE]->getPWMOutput()->setValue((vessel[VS_KETTLE]->getTemperature() < getBoilTemp() * SETPOINT_MULT) ? vessel[VS_KETTLE]->getPWMOutput()->getLimit() : (unsigned int)(vessel[VS_KETTLE]->getPWMOutput()->getLimit()) * boilPwr / 100);
+    vessel[VS_KETTLE]->getPWMOutput()->setValue((vessel[VS_KETTLE]->getTemperature() < getBoilTemp() * SETPOINT_MULT) ? getPIDLimit(VS_KETTLE) : boilPwr);
   else if (boilControlState == CONTROLSTATE_OFF)
     vessel[VS_KETTLE]->getPWMOutput()->setValue(0);
 

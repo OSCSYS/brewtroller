@@ -16,13 +16,14 @@ extern OutputSystem *outputs;
 class Vessel {
   private:
     PID *pid;
-    double PIDInput, PIDOutput, setpoint;
+    double PIDInput, PIDOutput, PIDSetpoint;
     byte ATuneModeRemember;
     boolean tuning;
     PID_ATune *aTune;
     analogOutput *pwmOutput;
     byte pwmActiveProfile, heatProfile, idleProfile;
     int *temperature;
+    unsigned int setpoint;
     byte vSensor;
     unsigned long targetVolume, volume;
     long flowRate;  //Thousandths of gal/l per minute
@@ -33,6 +34,7 @@ class Vessel {
     unsigned long lastVolumeRead, lastFlowrateRead;
     byte volumeReadCursor;
 
+    double tToPercent(double tValue);
     void updateHeat(void);
     void setHeatStatus(boolean status);
     void updatePIDHeat(void);
@@ -49,8 +51,8 @@ class Vessel {
     void setPWMOutput(analogOutput *aout);
     byte getVolumeInput(void);
     void setVolumeInput(byte pin);
-    double getSetpoint(void);
-    double setSetpoint(double value);
+    unsigned int getSetpoint(void);
+    void setSetpoint(unsigned int value);
     byte getHysteresis(void);
     void setHysteresis(byte value);
     unsigned long getTemperature(void);
@@ -58,8 +60,8 @@ class Vessel {
     unsigned long getTargetVolume(void);
     void setTargetVolume(unsigned long target);
     long getFlowRate(void);
-    byte getHeatPower(void);
-    void startAutoTune(int useDerivative, unsigned long aTuneStartValue, unsigned long aTuneStep, double aTuneNoise, unsigned int aTuneLookBack);
+    double getHeatPower(void);
+    void startAutoTune(byte controlMode, double aTuneStartValue, double aTuneStep, double aTuneNoise, int aTuneLookBack);
     void stopAutoTune();
     boolean isTuning();
     PID_ATune* getPIDAutoTune();

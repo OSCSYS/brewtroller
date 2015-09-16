@@ -649,10 +649,15 @@ void resetSpargeOutputs() {
 
 #ifdef SMART_HERMS_HLT
 void smartHERMSHLT() {
-  if (!setpoint[VS_MASH]) return;
-  setpoint[VS_HLT] = setpoint[VS_MASH] * 2 - temp[TS_MASH];
+  BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance();
+  Vessel *vesselHLT = btApp->getVessel(VS_HLT);
+  Vessel *vesselMash = btApp->getVessel(VS_MASH);
+  if (!vesselHLT->getSetpoint())
+    return;
+  unsigned int newSetpoint = vesselMash->getSetpoint() * 2 - vesselMash->getTemperature();
   //Constrain HLT Setpoint to Mash Setpoint + MASH_HEAT_LOSS (minimum) and HLT_MAX_TEMP (Maximum)
-  setpoint[VS_HLT] = constrain(setpoint[VS_HLT], setpoint[VS_MASH] + MASH_HEAT_LOSS * 100, HLT_MAX_TEMP * 100);
+  newSetpoint = constrain(newSetpoint, vesselMash->getSetpoint() + MASH_HEAT_LOSS * 100, HLT_MAX_TEMP * 100);  
+  vesselHLT->setSetpoint(newSetpoint);
 }
 #endif
   

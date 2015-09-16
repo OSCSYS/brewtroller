@@ -768,7 +768,7 @@ void BTnic::execCmd(void) {
           break;
         case CONTROLSTATE_MANUAL:
           if (BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput())
-             BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput()->setValue(BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput()->getLimit() * getCmdParamNum(2) / 100);
+             BrewTrollerApplication::getInstance()->getVessel(VS_KETTLE)->getPWMOutput()->setValue(min(getCmdParamNum(2), 100));
     		  break;
     		case CONTROLSTATE_SETPOINT:
     			setSetpoint(VS_KETTLE, getCmdParamNum(2));

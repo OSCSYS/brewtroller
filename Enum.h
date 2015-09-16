@@ -4,6 +4,14 @@
 #include <Arduino.h>
 #include "HWProfile.h"
 
+#ifdef USEMETRIC
+  #define WORKING_TEMPERATURE_MINIMUM 0.0
+  #define WORKING_TEMPERATURE_MAXIMUM 100.0
+#else
+  #define WORKING_TEMPERATURE_MINIMUM 32.0
+  #define WORKING_TEMPERATURE_MAXIMUM 212.0
+#endif
+
 //TSensor and Output (0-2) Array Element Constants
   #define TS_HLT 0
   #define TS_MASH 1
