@@ -73,7 +73,7 @@ void Vessel::setSetpoint(unsigned int value) {
 }
 
 double Vessel::tToPercent(double tValue) {
-  return (tValue - WORKING_TEMPERATURE_MINIMUM) / (WORKING_TEMPERATURE_MAXIMUM - WORKING_TEMPERATURE_MINIMUM) * 100;
+  return (tValue - WORKING_TEMPERATURE_MINIMUM) / (WORKING_TEMPERATURE_MAXIMUM - WORKING_TEMPERATURE_MINIMUM) * 100.0;
 }
 
 byte Vessel::getHysteresis(void) {
@@ -135,7 +135,7 @@ void Vessel::updatePIDHeat(void) {
   if (!pwmOutput)
     return;
 
-  if (*temperature == BAD_TEMP)
+  if (*temperature == BAD_TEMP || !setpoint)
     pwmOutput->setValue(0);
   else {
     if (pid->GetMode() == AUTOMATIC || tuning) {
@@ -162,7 +162,7 @@ void Vessel::updatePIDHeat(void) {
 void Vessel::startAutoTune(byte controlMode, double aTuneStartValue, double aTuneStep, double aTuneNoise, int aTuneLookBack)
 {
   PIDOutput = aTuneStartValue;
-  aTune->SetNoiseBand(tToPercent(aTuneNoise));
+  aTune->SetNoiseBand(tToPercent(aTuneNoise + WORKING_TEMPERATURE_MINIMUM));
   aTune->SetOutputStep(aTuneStep);
   aTune->SetLookbackSec(aTuneLookBack);
   aTune->SetControlType(controlMode);

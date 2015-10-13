@@ -47,7 +47,7 @@ class Bubbler
       unsigned long timestamp = millis();
       
       //Check for first interval
-      if (_interval == 0)
+      if (_intervalStart == 0)
         _intervalStart = timestamp;
       
       //Check for new interval

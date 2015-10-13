@@ -54,17 +54,15 @@ bool PID::Compute()
       /*Compute all the working error variables*/
 	  double input = *myInput;
       double error = *mySetpoint - input;
-      ITerm+= (ki * error);
-      if(ITerm > outMax) ITerm= outMax;
-      else if(ITerm < outMin) ITerm= outMin;
+      if (*myOutput < outMax)
+        ITerm += (ki * error);
+      ITerm = constrain(ITerm, outMin, outMax);
       double dInput = (input - lastInput);
  
       /*Compute PID Output*/
       double output = kp * error + ITerm- kd * dInput;
-      
-	  if(output > outMax) output = outMax;
-      else if(output < outMin) output = outMin;
-	  *myOutput = output;
+  	  output = constrain(output, outMin, outMax);
+  	  *myOutput = output;
 	  
       /*Remember some variables for next time*/
       lastInput = input;
