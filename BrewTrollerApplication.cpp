@@ -119,18 +119,20 @@ void BrewTrollerApplication::init(void) {
   outputs = new OutputSystem();
   outputs->init();
 
-  tempInit();  
   comInit();
   
   //Check for cfgVersion variable and update EEPROM if necessary (EEPROM.ino)
   if (!checkConfig())
     loadSetup();
-  
+
   //User Interface Initialization (UI.ino)
-  //Moving this to last of setup() to allow time for I2CLCD to initialize
   #ifndef NOUI
     uiInit();
   #endif
+
+  //Allowing time for 1-Wire initialization
+  //Seems that I2C comm is an issue during start up. I2C_LCD logic provides 1000ms delay.
+  tempInit();
 }
 
 void BrewTrollerApplication::update(enum ApplicationUpdatePriorityLevel priorityLevel) {

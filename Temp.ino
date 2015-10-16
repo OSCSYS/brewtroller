@@ -36,29 +36,18 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   //One Wire Bus on 
   
   void tempInit() {
-    for (byte i = 0; i < NUM_TS; i++) temp[i] = BAD_TEMP;
     #ifdef TS_ONEWIRE_I2C
-      ds.configure(DS2482_CONFIG_APU | DS2482_CONFIG_SPU);
+      ds.configure(DS2482_CONFIG_APU);
     #endif
-    ds.reset();
-    ds.skip();
-    ds.write(0x4E, TS_ONEWIRE_PPWR); //Write to scratchpad
-    ds.write(0x4B, TS_ONEWIRE_PPWR); //Default value of TH reg (user byte 1)
-    ds.write(0x46, TS_ONEWIRE_PPWR); //Default value of TL reg (user byte 2)
-  
-    #if TS_ONEWIRE_RES == 12
-      ds.write(0x7F, TS_ONEWIRE_PPWR); //Config Reg (12-bit)
-    #elif TS_ONEWIRE_RES == 11
-      ds.write(0x5F, TS_ONEWIRE_PPWR); //Config Reg (11-bit)
-    #elif TS_ONEWIRE_RES == 10
-      ds.write(0x3F, TS_ONEWIRE_PPWR); //Config Reg (10-bit)
-    #else //Default to 9-bit
-      ds.write(0x1F, TS_ONEWIRE_PPWR); //Config Reg (9-bit)
-    #endif
-  
-    ds.reset();
-    ds.skip();
-    ds.write(0x48, TS_ONEWIRE_PPWR); //Copy scratchpad to EEPROM
+    for (byte i = 0; i < NUM_TS; i++) {
+      temp[i] = BAD_TEMP;
+
+      if (validAddr(tSensor[i])) {
+        byte resolution = getResolution(tSensor[i]);
+        if (resolution && resolution != TS_ONEWIRE_RES)
+          setResolution(tSensor[i], TS_ONEWIRE_RES);
+      }
+    }
   }
 
 
@@ -149,6 +138,49 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       limit++;
     }      
   }
+
+void setResolution(byte *addr, byte resolution) {
+  resolution = constrain(resolution, 9, 12);
+  resolution = 0x1F + ((resolution - 9) << 5);
+
+  ds.reset();
+  ds.select(addr);
+  ds.write(0x4E, TS_ONEWIRE_PPWR); //Write to scratchpad
+  ds.write(0x4B, TS_ONEWIRE_PPWR); //Default value of TH reg (user byte 1)
+  ds.write(0x46, TS_ONEWIRE_PPWR); //Default value of TL reg (user byte 2)
+  ds.write(resolution, TS_ONEWIRE_PPWR); //Config Reg (12-bit)
+
+  ds.reset();
+  ds.select(addr);
+  ds.write(0xBE, TS_ONEWIRE_PPWR); //Read scratchpad
+  byte data;
+  for (byte i = 0; i < 5; i++)
+    data = ds.read();
+  Serial.println(((data >> 5) & 3) + 9, DEC);
+
+  ds.reset();
+  ds.select(addr);
+  ds.write(0x48, TS_ONEWIRE_PPWR); //Copy scratchpad to EEPROM
+}
+
+byte getResolution(byte *addr) {
+  byte data;
+  
+  ds.reset();
+  ds.select(addr);
+  ds.write(0xB8, TS_ONEWIRE_PPWR); //Copy EEPROM to scratchpad
+  
+  
+  ds.reset();
+  ds.select(addr);
+  ds.write(0xBE, TS_ONEWIRE_PPWR); //Read scratchpad
+  for (byte i = 0; i < 5; i++)
+    data = ds.read();
+
+  if (data == 0xFF)
+    return 0;
+  return ((data >> 5) & 3) + 9;
+}
   
 //Returns Int representing hundreths of degree
   int read_temp(byte* addr) {
