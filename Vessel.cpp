@@ -6,9 +6,11 @@ Vessel::Vessel(int *t, byte pwmActive, byte heat, byte idle) {
   heatProfile = heat;
   idleProfile = idle;
   pid = new PID(&PIDInput, &PIDOutput, &PIDSetpoint, 1, 0, 0, DIRECT);
-  aTune = new PID_ATune(&PIDInput, &PIDOutput);
-  ATuneModeRemember = MANUAL;
-  tuning = false;
+  #ifdef PID_AUTOTUNE
+    aTune = new PID_ATune(&PIDInput, &PIDOutput);
+    ATuneModeRemember = MANUAL;
+    tuning = false;
+  #endif
   pwmOutput = NULL;
   vSensor = INDEX_NONE;
   targetVolume = 0;
@@ -31,8 +33,10 @@ Vessel::Vessel(int *t, byte pwmActive, byte heat, byte idle) {
 Vessel::~Vessel(void) {
   if (pid)
     delete pid;
-  if (aTune)
-    delete aTune;
+  #ifdef PID_AUTOTUNE
+    if (aTune)
+      delete aTune;
+  #endif
 }
 
 void Vessel::update(void) {
@@ -138,12 +142,20 @@ void Vessel::updatePIDHeat(void) {
   if (*temperature == BAD_TEMP || !setpoint)
     pwmOutput->setValue(0);
   else {
-    if (pid->GetMode() == AUTOMATIC || tuning) {
+    if (pid->GetMode() == AUTOMATIC
+        #ifdef PID_AUTOTUNE
+          || tuning
+        #endif
+    ) {
       PIDInput = tToPercent(*temperature);
-      if(!tuning)
+      #ifdef PID_AUTOTUNE
+        if(!tuning)
+      #endif
         pid->Compute();
+      #ifdef PID_AUTOTUNE
       else if (aTune->Runtime() != 0)
         stopAutoTune();
+      #endif
       pwmOutput->setValue(PIDOutput);
     }
   }
@@ -159,6 +171,7 @@ void Vessel::updatePIDHeat(void) {
   }
 }
 
+#ifdef PID_AUTOTUNE
 void Vessel::startAutoTune(byte controlMode, double aTuneStartValue, double aTuneStep, double aTuneNoise, int aTuneLookBack)
 {
   PIDOutput = aTuneStartValue;
@@ -187,6 +200,7 @@ boolean Vessel::isTuning()
 PID_ATune* Vessel::getPIDAutoTune() {
   return aTune;
 }
+#endif
 
 void Vessel::updateVolume(void) {
   //Process bubbler logic and prevent reads if bubbler is active or in delay

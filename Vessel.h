@@ -17,9 +17,11 @@ class Vessel {
   private:
     PID *pid;
     double PIDInput, PIDOutput, PIDSetpoint;
-    byte ATuneModeRemember;
-    boolean tuning;
-    PID_ATune *aTune;
+    #ifdef PID_AUTOTUNE
+      byte ATuneModeRemember;
+      boolean tuning;
+      PID_ATune *aTune;
+    #endif
     analogOutput *pwmOutput;
     byte pwmActiveProfile, heatProfile, idleProfile;
     int *temperature;
@@ -61,10 +63,12 @@ class Vessel {
     void setTargetVolume(unsigned long target);
     long getFlowRate(void);
     double getHeatPower(void);
-    void startAutoTune(byte controlMode, double aTuneStartValue, double aTuneStep, double aTuneNoise, int aTuneLookBack);
-    void stopAutoTune();
-    boolean isTuning();
-    PID_ATune* getPIDAutoTune();
+    #ifdef PID_AUTOTUNE
+      void startAutoTune(byte controlMode, double aTuneStartValue, double aTuneStep, double aTuneNoise, int aTuneLookBack);
+      void stopAutoTune();
+      boolean isTuning();
+      PID_ATune* getPIDAutoTune();
+    #endif
     struct Calibration getVolumeCalibration(byte index);
     void setVolumeCalibration(byte index, struct Calibration calibration);
     unsigned int getRawVolumeValue(void);

@@ -931,28 +931,45 @@ class menuVesselOptions : public menuPROGMEM {
       vessel = v;  
     }
     byte getItemCount(void) {
+      byte itemCount = 5;
       #ifdef ANALOGINPUTS_GPIO
-        return (getPWMPin(vessel) == INDEX_NONE) ? 7 : 14;
-      #else
-        return (getPWMPin(vessel) == INDEX_NONE) ? 5 : 12;
+        itemCount += 2;
       #endif
+      if (getPWMPin(vessel) != INDEX_NONE)
+        itemCount += 6;
+      #ifdef PID_AUTOTUNE
+        itemCount++;
+      #endif
+      return itemCount;
     }
 
     byte getItemValue(byte index) {
-      #ifdef ANALOGINPUTS_GPIO
-        byte values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
-      #else
-        byte values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13};
-      #endif
+      byte itemPos = 0;
+      byte values[14];
       
-      if (getPWMPin(vessel) == INDEX_NONE) {
-        #ifdef ANALOGINPUTS_GPIO
-          byte extraOptions[] = {8, 9, 10, 11, 12, 13, 13, 13, 13, 13, 13, 13, 13};
-        #else
-          byte extraOptions[] = {8, 10, 12, 13, 13, 13, 13, 13, 13, 13, 13};
+      values[itemPos++] = 0; //PWM Output
+      if (getPWMPin(vessel) != INDEX_NONE) {
+        values[itemPos++] = 1; //PWM Period
+        values[itemPos++] = 2; //PWM Resolution
+        values[itemPos++] = 3; //P Gain
+        values[itemPos++] = 4; //I Gain
+        values[itemPos++] = 5; //D Gain
+        #ifdef PID_AUTOTUNE
+          values[itemPos++] = 6; //PID AutoTune
         #endif
-        memcpy(values + 1, extraOptions, sizeof(extraOptions));
+        values[itemPos++] = 7; //PWM Limit
       }
+      values[itemPos++] = 8; //Hysteresis
+      #ifdef ANALOGINPUTS_GPIO
+        values[itemPos++] = 9; //Analog Input
+      #endif
+      values[itemPos++] = 10; //Capacity
+      #ifdef ANALOGINPUTS_GPIO
+        values[itemPos++] = 11; //Volume Calibration
+      #endif
+      values[itemPos++] = 12; //Clone
+      while (itemPos < 14)
+        values[itemPos++] = 13;
       return values[index];
     }
 };
@@ -983,8 +1000,10 @@ void menuVesselSettings(byte vessel) {
       setPIDi(vessel, getValue_P(PSTR("I Gain"), getPIDi(vessel), PIDGAIN_DIV, PIDGAIN_LIM, PSTR("")));
     else if (lastOption == 5)
       setPIDd(vessel, getValue_P(PSTR("D Gain"), getPIDd(vessel), PIDGAIN_DIV, PIDGAIN_LIM, PSTR("")));
-    else if (lastOption == 6)
-      uiAutoTuneMenu(vessel);
+    #ifdef PID_AUTOTUNE
+      else if (lastOption == 6)
+        uiAutoTuneMenu(vessel);
+    #endif
     else if (lastOption == 7)
       setPIDLimit(vessel, getValue_P(PSTR("PID Limit"), getPIDLimit(vessel), 1, 100, PSTR("")));
     else if (lastOption == 8)
@@ -1030,150 +1049,152 @@ void menuVesselSettings(byte vessel) {
   } 
 }
 
-class menuAutoTuneOptions : public menuPROGMEM {
-  private:
-    byte *startPercent;
-    byte *stepPercent;
-    int *lookbackSecs;
-    int *inputNoise;
-    byte *controlMode;
-    
-  public:
-    menuAutoTuneOptions(byte pSize, byte *startP, byte *stepP, int *lookback, int *noise, byte *mode) : menuPROGMEM(pSize, MENUAUTOTUNEOPTIONS, ARRAY_LENGTH(MENUAUTOTUNEOPTIONS) ) { 
-      startPercent = startP;
-      stepPercent = stepP;
-      lookbackSecs = lookback;
-      inputNoise = noise;
-      controlMode = mode;
-    }
-    
-    char* getItem(byte index, char *retString) {
-        menuPROGMEM::getItem(index, retString);
-        byte option = getItemValue(index);
-        char numText[6];
-        if (option == 0) {
-          strcat(retString, itoa(*startPercent, numText, 10));
-          strcat(retString, "%");
-        } else if (option == 1) {
-          strcat(retString, itoa(*stepPercent, numText, 10));
-          strcat(retString, "%");
-        } else if (option == 2) {
-          strcat(retString, itoa(*lookbackSecs, numText, 10));
-          strcat(retString, "s");
-        } else if (option == 3) {
-          vftoa(*inputNoise, numText, 100, 1);
-          truncFloat(numText, 5);
-          strcat(retString, numText);
-          strcat_P(retString, TUNIT);
-        } else if (option == 4)
-          strcpy_P(retString, (char*)pgm_read_word(&(MENUAUTOTUNETYPES[*controlMode])));
-        return retString;
+#ifdef PID_AUTOTUNE
+  class menuAutoTuneOptions : public menuPROGMEM {
+    private:
+      byte *startPercent;
+      byte *stepPercent;
+      int *lookbackSecs;
+      int *inputNoise;
+      byte *controlMode;
+      
+    public:
+      menuAutoTuneOptions(byte pSize, byte *startP, byte *stepP, int *lookback, int *noise, byte *mode) : menuPROGMEM(pSize, MENUAUTOTUNEOPTIONS, ARRAY_LENGTH(MENUAUTOTUNEOPTIONS) ) { 
+        startPercent = startP;
+        stepPercent = stepP;
+        lookbackSecs = lookback;
+        inputNoise = noise;
+        controlMode = mode;
       }
-};
-
-void uiAutoTuneMenu(byte vIndex) {
-  byte aTuneStartPercent = 40;
-  byte aTuneStepPercent = 20;
-  int aTuneLookBack = 20;
-
-  #ifdef USEMETRIC
-    int aTuneNoise = 56;
-  #else
-    int aTuneNoise = 100;
-  #endif
-
-  // Default to PI control
-  byte controlMode = 0;
-
-  menuAutoTuneOptions autoTuneMenu(3, &aTuneStartPercent, &aTuneStepPercent, &aTuneLookBack, &aTuneNoise, &controlMode);
-  while(1) {
-    byte lastOption = scrollMenu("PID Auto Tune", &autoTuneMenu);
-    if (lastOption == 0)
-      aTuneStartPercent = getValue_P(PSTR("Start Power:"), aTuneStartPercent, 1, 100, PSTR("%"));
-    else if (lastOption == 1)
-      aTuneStepPercent = getValue_P(PSTR("Step Power:"), aTuneStepPercent, 1, 100, PSTR("%"));
-    else if (lastOption == 2)
-      aTuneLookBack = getValue_P(PSTR("Lookback:"), aTuneLookBack, 1, 999, SEC);
-    else if (lastOption == 3)
-      aTuneNoise = getValue_P(PSTR("Input Noise:"), aTuneNoise, 100, 9999, TUNIT);
-    else if (lastOption == 4)
-      controlMode = uiAutoTuneTypeMenu(controlMode);
-    else if (lastOption == 5) {
-      if (confirmChoice(" Vessel filled and", " ready to heat for", "  PID Auto Tuning?", CONTINUE)) {
-        uiAutoTune(vIndex, controlMode, aTuneStartPercent, aTuneStepPercent, aTuneNoise, aTuneLookBack);
+      
+      char* getItem(byte index, char *retString) {
+          menuPROGMEM::getItem(index, retString);
+          byte option = getItemValue(index);
+          char numText[6];
+          if (option == 0) {
+            strcat(retString, itoa(*startPercent, numText, 10));
+            strcat(retString, "%");
+          } else if (option == 1) {
+            strcat(retString, itoa(*stepPercent, numText, 10));
+            strcat(retString, "%");
+          } else if (option == 2) {
+            strcat(retString, itoa(*lookbackSecs, numText, 10));
+            strcat(retString, "s");
+          } else if (option == 3) {
+            vftoa(*inputNoise, numText, 100, 1);
+            truncFloat(numText, 5);
+            strcat(retString, numText);
+            strcat_P(retString, TUNIT);
+          } else if (option == 4)
+            strcpy_P(retString, (char*)pgm_read_word(&(MENUAUTOTUNETYPES[*controlMode])));
+          return retString;
+        }
+  };
+  
+  void uiAutoTuneMenu(byte vIndex) {
+    byte aTuneStartPercent = 40;
+    byte aTuneStepPercent = 20;
+    int aTuneLookBack = 20;
+  
+    #ifdef USEMETRIC
+      int aTuneNoise = 56;
+    #else
+      int aTuneNoise = 100;
+    #endif
+  
+    // Default to PI control
+    byte controlMode = 0;
+  
+    menuAutoTuneOptions autoTuneMenu(3, &aTuneStartPercent, &aTuneStepPercent, &aTuneLookBack, &aTuneNoise, &controlMode);
+    while(1) {
+      byte lastOption = scrollMenu("PID Auto Tune", &autoTuneMenu);
+      if (lastOption == 0)
+        aTuneStartPercent = getValue_P(PSTR("Start Power:"), aTuneStartPercent, 1, 100, PSTR("%"));
+      else if (lastOption == 1)
+        aTuneStepPercent = getValue_P(PSTR("Step Power:"), aTuneStepPercent, 1, 100, PSTR("%"));
+      else if (lastOption == 2)
+        aTuneLookBack = getValue_P(PSTR("Lookback:"), aTuneLookBack, 1, 999, SEC);
+      else if (lastOption == 3)
+        aTuneNoise = getValue_P(PSTR("Input Noise:"), aTuneNoise, 100, 9999, TUNIT);
+      else if (lastOption == 4)
+        controlMode = uiAutoTuneTypeMenu(controlMode);
+      else if (lastOption == 5) {
+        if (confirmChoice(" Vessel filled and", " ready to heat for", "  PID Auto Tuning?", CONTINUE)) {
+          uiAutoTune(vIndex, controlMode, aTuneStartPercent, aTuneStepPercent, aTuneNoise, aTuneLookBack);
+          break;
+        }
+      } else
         break;
-      }
-    } else
-      break;
-  }
-}
-
-byte uiAutoTuneTypeMenu(byte currentValue) {
-  menuPROGMEM autoTuneMenu(3, MENUAUTOTUNETYPES, ARRAY_LENGTH(MENUAUTOTUNETYPES));
-  byte selected = scrollMenu("PID Auto Tune Type", &autoTuneMenu);
-  if (selected < PID_ATune::PID_AUTOTUNE_TYPE_COUNT)
-    return selected;
-  return currentValue;
-}
-
-void uiAutoTune(byte vIndex, byte controlMode, byte aTuneStartPercent, byte aTuneStepPercent, int aTuneNoise, int aTuneLookBack) {
-  BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance();
-  Vessel *vessel = btApp->getVessel(vIndex);
-  if (!vessel->getPWMOutput())
-    return;
-  
-  if (vIndex == VS_KETTLE)
-    setBoilControlState(CONTROLSTATE_MANUAL);
-  
-  vessel->startAutoTune(controlMode, aTuneStartPercent, aTuneStepPercent, aTuneNoise, aTuneLookBack);
-  boolean didInit = 0;
-  while (vessel->isTuning()) {
-    if (!didInit) {
-      LCD.clear();
-      LCD.print_P(0, 3, PSTR("PID Auto Tune"));
-      LCD.print_P(1, 2, PSTR("Peak Count:   /10"));
-      LCD.print_P(3, 0, PSTR("Current:"));
-      didInit = 1;
     }
-    if (Encoder.ok()) {
-      if (confirmChoice("", "Abort PID Auto Tune?", "", ABORT)) {
-        vessel->stopAutoTune();
-        return;
-      }
-      didInit = 0;
-    }
-    char numText[4];
-    LCD.lPad(1, 14, itoa(vessel->getPIDAutoTune()->GetPeakCount(), numText, 10), 2, ' ');
-    uiLabelTemperature(3, 9, 6, vessel->getTemperature());
-    uiLabelPercentOnOff(3, 17, vessel->getHeatPower());
-    btApp->update(PRIORITYLEVEL_NORMAL);
   }
-
-  if (vIndex == VS_KETTLE)
-    setBoilControlState(CONTROLSTATE_OFF);
+  
+  byte uiAutoTuneTypeMenu(byte currentValue) {
+    menuPROGMEM autoTuneMenu(3, MENUAUTOTUNETYPES, ARRAY_LENGTH(MENUAUTOTUNETYPES));
+    byte selected = scrollMenu("PID Auto Tune Type", &autoTuneMenu);
+    if (selected < PID_ATune::PID_AUTOTUNE_TYPE_COUNT)
+      return selected;
+    return currentValue;
+  }
+  
+  void uiAutoTune(byte vIndex, byte controlMode, byte aTuneStartPercent, byte aTuneStepPercent, int aTuneNoise, int aTuneLookBack) {
+    BrewTrollerApplication *btApp = BrewTrollerApplication::getInstance();
+    Vessel *vessel = btApp->getVessel(vIndex);
+    if (!vessel->getPWMOutput())
+      return;
     
-  LCD.clear();
-  LCD.print(0, 1,  "Auto Tune Complete");
-  LCD.print(1, 2,  "Peak Count:");
-  LCD.print(3, 0,  "P");
-  LCD.print(3, 7,  "I");
-  LCD.print(3, 14, "D");
-
-  char numText[7];
-  LCD.print(1, 14, itoa(vessel->getPIDAutoTune()->GetPeakCount(), numText, 10));
-  uiLabelFPoint(3, 1, 5,  vessel->getPIDAutoTune()->GetKp() * PIDGAIN_DIV, 1);
-
-  uiLabelFPoint(3, 1, 5,  vessel->getPIDAutoTune()->GetKp() * PIDGAIN_DIV, PIDGAIN_DIV);
-  uiLabelFPoint(3, 8, 5,  vessel->getPIDAutoTune()->GetKi() * PIDGAIN_DIV, PIDGAIN_DIV);
-  uiLabelFPoint(3, 15, 5, vessel->getPIDAutoTune()->GetKd() * PIDGAIN_DIV, PIDGAIN_DIV);
-
-  while(!Encoder.ok())
-    btApp->update(PRIORITYLEVEL_NORMAL);
+    if (vIndex == VS_KETTLE)
+      setBoilControlState(CONTROLSTATE_MANUAL);
     
-  setPIDp(vIndex, vessel->getPIDAutoTune()->GetKp() * PIDGAIN_DIV);
-  setPIDi(vIndex, vessel->getPIDAutoTune()->GetKi() * PIDGAIN_DIV);
-  setPIDd(vIndex, vessel->getPIDAutoTune()->GetKd() * PIDGAIN_DIV);
-}
+    vessel->startAutoTune(controlMode, aTuneStartPercent, aTuneStepPercent, aTuneNoise, aTuneLookBack);
+    boolean didInit = 0;
+    while (vessel->isTuning()) {
+      if (!didInit) {
+        LCD.clear();
+        LCD.print_P(0, 3, PSTR("PID Auto Tune"));
+        LCD.print_P(1, 2, PSTR("Peak Count:   /10"));
+        LCD.print_P(3, 0, PSTR("Current:"));
+        didInit = 1;
+      }
+      if (Encoder.ok()) {
+        if (confirmChoice("", "Abort PID Auto Tune?", "", ABORT)) {
+          vessel->stopAutoTune();
+          return;
+        }
+        didInit = 0;
+      }
+      char numText[4];
+      LCD.lPad(1, 14, itoa(vessel->getPIDAutoTune()->GetPeakCount(), numText, 10), 2, ' ');
+      uiLabelTemperature(3, 9, 6, vessel->getTemperature());
+      uiLabelPercentOnOff(3, 17, vessel->getHeatPower());
+      btApp->update(PRIORITYLEVEL_NORMAL);
+    }
+  
+    if (vIndex == VS_KETTLE)
+      setBoilControlState(CONTROLSTATE_OFF);
+      
+    LCD.clear();
+    LCD.print(0, 1,  "Auto Tune Complete");
+    LCD.print(1, 2,  "Peak Count:");
+    LCD.print(3, 0,  "P");
+    LCD.print(3, 7,  "I");
+    LCD.print(3, 14, "D");
+  
+    char numText[7];
+    LCD.print(1, 14, itoa(vessel->getPIDAutoTune()->GetPeakCount(), numText, 10));
+    uiLabelFPoint(3, 1, 5,  vessel->getPIDAutoTune()->GetKp() * PIDGAIN_DIV, 1);
+  
+    uiLabelFPoint(3, 1, 5,  vessel->getPIDAutoTune()->GetKp() * PIDGAIN_DIV, PIDGAIN_DIV);
+    uiLabelFPoint(3, 8, 5,  vessel->getPIDAutoTune()->GetKi() * PIDGAIN_DIV, PIDGAIN_DIV);
+    uiLabelFPoint(3, 15, 5, vessel->getPIDAutoTune()->GetKd() * PIDGAIN_DIV, PIDGAIN_DIV);
+  
+    while(!Encoder.ok())
+      btApp->update(PRIORITYLEVEL_NORMAL);
+      
+    setPIDp(vIndex, vessel->getPIDAutoTune()->GetKp() * PIDGAIN_DIV);
+    setPIDi(vIndex, vessel->getPIDAutoTune()->GetKi() * PIDGAIN_DIV);
+    setPIDd(vIndex, vessel->getPIDAutoTune()->GetKd() * PIDGAIN_DIV);
+  }
+#endif //ifdef PID_AUTOTUNE
 
 class menuVolumeCalibrationList : public menu {
   private:

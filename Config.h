@@ -153,5 +153,15 @@
 //**********************************************************************************
 #define RGBIO8_ENABLE
 
+//**********************************************************************************
+// PID AutoTune
+//**********************************************************************************
+// PID AutoTune logic was added but the resulting tunings were not optimal.
+// Rather than completely ripping the logic out permanently this config option will
+// allow it to be optionally enabled if additional testing is desired.
+// Program space: 6KB
+// #define PID_AUTOTUNE
+
+
 #endif
 
