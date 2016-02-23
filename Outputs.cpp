@@ -82,14 +82,14 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     #ifdef OUTPUTBANK_MUX_ENABLELOGIC
       //MUX in Reset State
       muxLatchPin.clear(); //Prepare to copy pin states
-      muxEnablePin.clear(); //Force clear of pin registers
+      muxEnablePin.set(); //Force clear (inverse) of pin registers
       muxLatchPin.set();
       delayMicroseconds(10);
       muxLatchPin.clear();
-      muxEnablePin.set(); //Disable clear
+      muxEnablePin.clear(); //Disable clear inverse)
     #else
       set(0);
-      muxEnablePin.clear();
+      muxEnablePin.set();
     #endif
   }
   
@@ -102,7 +102,10 @@ Documentation, Forums and more information available at http://www.brewtroller.c
   
     for (byte i = OUTPUTBANK_MUX_COUNT; i > 0; i--)  {
       muxClockPin.clear();
-      muxDataPin.set(outputsState & ((unsigned long)1<<(i - 1)));
+      if(outputsState & ((unsigned long)1<<(i - 1)))
+        muxDataPin.set();
+      else
+        muxDataPin.clear();
       muxClockPin.set();
       muxDataPin.clear();
     }
