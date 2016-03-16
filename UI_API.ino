@@ -403,24 +403,20 @@ unsigned long getHexValue(char sTitle[], unsigned long defValue, byte digits) {
 }
 
 void printTimer(byte timer, byte iRow, byte iCol) {
-  if (timerValue[timer] > 0 && !timerStatus[timer]) LCD.print(iRow, iCol, "PAUSED");
+  LCD.rPad(iRow, iCol, "", 5, ' ');
+  
+  if (timerValue[timer] && !timerStatus[timer])
+    LCD.print(iRow, iCol, "PAUSE");
   else if (alarmStatus || timerStatus[timer]) {
     byte hours = timerValue[timer] / 3600000;
     byte mins = (timerValue[timer] - hours * 3600000) / 60000;
     byte secs = (timerValue[timer] - hours * 3600000 - mins * 60000) / 1000;
 
-    //Update LCD once per second
-    if (millis() - timerLastPrint >= 1000) {
-      timerLastPrint = millis();
-      LCD.rPad(iRow, iCol, "", 6, ' ');
-      LCD.print_P(iRow, iCol+2, PSTR(":  :"));
-      char numText[4];
-      LCD.lPad(iRow, iCol, itoa(hours, numText, 10), 2, '0');
-      LCD.lPad(iRow, iCol + 3, itoa(mins, numText, 10), 2, '0');
-      LCD.lPad(iRow, iCol + 6, itoa(secs, numText, 10), 2, '0');
-      if (alarmStatus) LCD.writeCustChar(iRow, iCol + 8, 5);
-    }
-  } else LCD.rPad(iRow, iCol, "", 9, ' ');
+    LCD.writeCustChar(iRow, iCol + 2, (alarmStatus && !timerValue[timer]) ? 5 : ':');
+    char numText[4];
+    LCD.lPad(iRow, iCol, itoa(hours ? hours : mins, numText, 10), 2, '0');
+    LCD.lPad(iRow, iCol + 3, itoa(hours ? mins : secs, numText, 10), 2, '0');
+  }
 }
 
 int getTimerValue(const char *sTitle, int defMins, byte maxHours) {

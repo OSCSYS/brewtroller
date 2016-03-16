@@ -57,7 +57,6 @@ byte screenCount;
 // or by the active screen (locked)
 boolean screenLock;
 
-unsigned long timerLastPrint;
 
 //**********************************************************************************
 // uiInit:  One time initialization of all UI logic
@@ -144,6 +143,7 @@ void (*uiBrewStepToScreenFunction(byte brewStep))(enum ScreenSignal) {
 
 void uiJumpScreen(byte screenIndex) {
   activeScreen = screenIndex;
+  LCD.writeCustChar(0, 0, 6);
   (*screenMap[activeScreen])(SCREENSIGNAL_INIT);
   if (screenLock)
     (*screenMap[activeScreen])(SCREENSIGNAL_LOCK);
@@ -189,6 +189,7 @@ void uiUnlock() {
   Encoder.setMax(screenCount - 1);
   Encoder.setCount(activeScreen);
   screenLock = 0;
+  uiSetCustomCharactors();
   LCD.writeCustChar(0, 19, 7);
   (*screenMap[activeScreen])(SCREENSIGNAL_UNLOCK);
 }
@@ -206,7 +207,6 @@ void uiSetCustomCharactors() {
   
   //Print Program Active Char (Overwritten if no program active)
   LCD.setCustChar_P(6, PROG_ICON);
-  LCD.writeCustChar(0, 0, 6);
   LCD.setCustChar_P(5, BELL);
 }
 
@@ -398,39 +398,34 @@ void screenFill (enum ScreenSignal signal) {
         boolean refillActive = brewStepIsActive(BREWSTEP_REFILL);
         switch (Encoder.getCount()) {
           case 0:
-            if (confirmAdvance())
-              continueClick();
-            uiRedrawActiveScreen();
-            break;
-          case 1:
             outputs->toggleProfileState(OUTPUTPROFILE_FILLHLT);
             break;
-          case 2:
+          case 1:
             {
               Vessel *hlt = BrewTrollerApplication::getInstance()->getVessel(VS_HLT);
               hlt->setTargetVolume(getValue_P(PSTR("HLT Target Vol"), hlt->getTargetVolume(), 1000, 9999999, VOLUNIT));
             }
             uiRedrawActiveScreen();
             break;
-          case 3:
+          case 2:
             outputs->toggleProfileState(OUTPUTPROFILE_FILLMASH);
             break;
-          case 4:
+          case 3:
             {
               Vessel *mash = BrewTrollerApplication::getInstance()->getVessel(VS_MASH);
               mash->setTargetVolume(getValue_P(PSTR("Mash Target Vol"), mash->getTargetVolume(), 1000, 9999999, VOLUNIT));
             }
             uiRedrawActiveScreen();
             break;
-          case 5:
+          case 4:
             autoValve[AV_FILL] ^= 1;
             break;
-          case 6:
+          case 5:
             outputs->setProfileState(OUTPUTPROFILE_FILLHLT, 0);
             outputs->setProfileState(OUTPUTPROFILE_FILLMASH, 0);
             autoValve[AV_FILL] = 0;
             break;
-          case 7:
+          case 6:
             if (confirmAbort()) {
               if (fillActive)
                 brewStepSignal(BREWSTEP_FILL, STEPSIGNAL_ABORT);
@@ -439,19 +434,24 @@ void screenFill (enum ScreenSignal signal) {
             }
             uiRedrawActiveScreen();
             break;
+          case 7:
+            if (confirmAdvance())
+              continueClick();
+            uiRedrawActiveScreen();
+            break;
         }
       }
       break;
     case SCREENSIGNAL_ENCODERCHANGE:
       {
         byte cursorPosition = Encoder.getCount();        
-        uiCursorHasFocus(1, 8, 6, cursorPosition == 2);
-        uiCursorHasFocus(2, 8, 6, cursorPosition == 4);
-        uiCursorHasFocus(3, 6, 6, cursorPosition == 6);
+        uiCursorHasFocus(1, 8, 6, cursorPosition == 1);
+        uiCursorHasFocus(2, 8, 6, cursorPosition == 3);
+        uiCursorHasFocus(3, 6, 6, cursorPosition == 5);
 
         if (brewStepIsActive(BREWSTEP_FILL) || brewStepIsActive(BREWSTEP_REFILL)) {
-          uiCursorHasFocus(0, 10, 10, cursorPosition == 0);
-          uiCursorHasFocus(3, 13, 7, cursorPosition == 7);
+          uiCursorHasFocus(3, 14, 3, cursorPosition == 6);
+          uiCursorHasFocus(3, 17, 3, cursorPosition == 7);
         }
       }
       break;
@@ -459,13 +459,13 @@ void screenFill (enum ScreenSignal signal) {
       {
         boolean fillActive = brewStepIsActive(BREWSTEP_FILL);
         boolean refillActive = brewStepIsActive(BREWSTEP_REFILL);
-        Encoder.setMin  (fillActive || refillActive ? 0 : 1);
-        Encoder.setMax  (fillActive || refillActive ? 7 : 6);
-        Encoder.setCount(fillActive || refillActive ? 0 : 1);
+        Encoder.setMin(0);
+        Encoder.setMax(fillActive || refillActive ? 7 : 5);
+        Encoder.setCount(0);
         LCD.print_P(3, 7, PSTR("Stop"));
         if (fillActive || refillActive) {
-          LCD.print_P(0, 11, PSTR("Continue"));
-          LCD.print_P(3, 14, PSTR("Abort"));
+          LCD.writeCustChar(3, 15, 219);
+          LCD.writeCustChar(3, 18, 126);
         }
         screenFill(SCREENSIGNAL_ENCODERCHANGE);
       }
@@ -482,9 +482,9 @@ void screenFill (enum ScreenSignal signal) {
 }
 
 void screenFillUpdateButtons(byte cursorPosition) {
-  LCD.writeCustChar(1, 0, (outputs->getProfileState(OUTPUTPROFILE_FILLHLT) ? 1 : 0) | ((cursorPosition == 1) ? 2 : 0));
-  LCD.writeCustChar(2, 0, (outputs->getProfileState(OUTPUTPROFILE_FILLMASH) ? 1 : 0) | ((cursorPosition == 3) ? 2 : 0));
-  LCD.writeCustChar(3, 0, (autoValve[AV_FILL] ? 1 : 0) | ((cursorPosition == 5) ? 2 : 0));
+  LCD.writeCustChar(1, 0, (outputs->getProfileState(OUTPUTPROFILE_FILLHLT) ? 1 : 0) | ((cursorPosition == 0) ? 2 : 0));
+  LCD.writeCustChar(2, 0, (outputs->getProfileState(OUTPUTPROFILE_FILLMASH) ? 1 : 0) | ((cursorPosition == 2) ? 2 : 0));
+  LCD.writeCustChar(3, 0, (autoValve[AV_FILL] ? 1 : 0) | ((cursorPosition == 4) ? 2 : 0));
 }
 
 void screenMash (enum ScreenSignal signal) {
@@ -492,7 +492,6 @@ void screenMash (enum ScreenSignal signal) {
   switch (signal) {
     case SCREENSIGNAL_INIT:
       LCD.clear();
-      timerLastPrint = 0;
       
       if (brewStepIsActive(BREWSTEP_DELAY)) LCD.print_P(0, 1, PSTR("Delay"));
       else if (brewStepIsActive(BREWSTEP_PREHEAT)) LCD.print_P(0, 1, PSTR("Preheat"));
@@ -717,7 +716,6 @@ void screenBoil (enum ScreenSignal signal) {
   switch (signal) {
     case SCREENSIGNAL_INIT:
       LCD.clear();
-      timerLastPrint = 0;
       if (brewStepIsActive(BREWSTEP_BOIL)) LCD.print_P(0, 1, PSTR("Boil"));
       else LCD.print_P(0,0,PSTR("Boil"));
       break;

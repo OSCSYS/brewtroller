@@ -255,7 +255,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       void init(){
         delay(1000);
         Wire.begin();
-        fastWrite = (i2cLcdGetVersion() > 968 ? 1 : 0);
+        for (byte i = 0; i < 8; i++)
+          customCharDefs[i] = NULL;
       }
       
       void print(byte iRow, byte iCol, char sText[]){
@@ -270,8 +271,12 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       } 
       
       void clear() {
+        i2cLcdBegin(20, 4);
         memset(screen, ' ', 80);
         i2cLcdClear();
+        for (byte i = 0; i < 8; i++)
+          if (customCharDefs[i])
+            i2cLcdSetCustChar_P(i, customCharDefs[i]);
       }
       
       void center(byte iRow, byte iCol, char sText[], byte fieldWidth){
@@ -304,6 +309,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       }  
       
       void setCustChar_P(byte slot, const byte *charDef) {
+        customCharDefs[slot] = charDef;
         i2cLcdSetCustChar_P(slot, charDef);
       }
       
@@ -312,13 +318,8 @@ Documentation, Forums and more information available at http://www.brewtroller.c
       }
       
       void update() {
-        for (byte row = 0; row < 4; row++) {
-          if (fastWrite) i2cLcdSetCursor(0, row);
-          for (byte col = 0; col < 20; col++) {
-            if (fastWrite) i2cLcdWriteByte(screen[row * 20 + col]);
-            else i2cLcdWriteCustChar(col, row, screen[row * 20 + col]);
-          }
-        }
+        for (byte row = 0; row < 4; row++)
+          i2cLcdWrite(0, row, 20, (char *)(screen + row * 20));
       }
       
       void setBright(byte val) {
@@ -344,7 +345,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     private:
       byte screen[80];
       uint8_t i2cLCDAddr;
-      boolean fastWrite;
+      const byte *customCharDefs[8];
 
       uint8_t i2cLcdBegin(byte iCols, byte iRows) {
         Wire.beginTransmission(i2cLCDAddr);
