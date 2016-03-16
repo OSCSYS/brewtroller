@@ -20,7 +20,7 @@ Vessel::Vessel(int *t, byte pwmActive, byte heat, byte idle) {
   PIDOutput = 0;
   PIDSetpoint = 0;
   setpoint = 0;
-  flowRate;
+  flowRate = 0;
   heatStatus = 0;
   for (byte i = 0; i < VOLUME_READ_COUNT; i++)
     volumeReadings[i] = 0;
@@ -112,26 +112,23 @@ double Vessel::getHeatPower (void) {
   return (pwmOutput ? pwmOutput->getValue() : (heatStatus ? 100.0 : 0.0));
 }
 
-
 void Vessel::updateHeat(void) {
   //Call On/Off Update first to set heatstatus
-  if (!setpoint) {
-    outputs->setProfileState(heatProfile, 0);
-    outputs->setProfileState(idleProfile, 0);
-    heatStatus = 0;    
-  } else if (outputs->getProfileState(heatProfile))
-    setHeatStatus((*temperature == BAD_TEMP || *temperature >= setpoint) ? 0 : 1);
-  else
-    setHeatStatus((*temperature != BAD_TEMP && (setpoint - *temperature) >= hysteresis * 10) ? 1 : 0);
-
+  if (!setpoint || *temperature == BAD_TEMP)
+    setHeatStatus(HEATSTATE_DISABLE);
+  else if (heatStatus && (*temperature >= setpoint))
+    setHeatStatus(HEATSTATE_IDLE);
+  else if (!heatStatus && (*temperature <= (setpoint - (hysteresis * 10))))
+    setHeatStatus(HEATSTATE_HEAT);
+  
   //Only updates heatstatus if PID value is non-zero
   updatePIDHeat();
 }
 
-void Vessel::setHeatStatus(boolean status) {
-  outputs->setProfileState(heatProfile, status);
-  outputs->setProfileState(idleProfile, ~status);
-  heatStatus = status;
+void Vessel::setHeatStatus(enum HeatState heatState) {
+  heatStatus = heatState & 1;
+  outputs->setProfileState(heatProfile, heatStatus);
+  outputs->setProfileState(idleProfile, heatState>>1);
 }
 
 void Vessel::updatePIDHeat(void) {
@@ -139,7 +136,7 @@ void Vessel::updatePIDHeat(void) {
   if (!pwmOutput)
     return;
 
-  if (*temperature == BAD_TEMP || !setpoint)
+  if (!setpoint)
     pwmOutput->setValue(0);
   else {
     if (pid->GetMode() == AUTOMATIC

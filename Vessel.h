@@ -11,6 +11,12 @@ struct Calibration {
   unsigned long outputValue;
 };
 
+enum HeatState {
+    HEATSTATE_DISABLE,
+    HEATSTATE_HEAT,
+    HEATSTATE_IDLE
+};
+
 extern OutputSystem *outputs;
 
 class Vessel {
@@ -38,7 +44,7 @@ class Vessel {
 
     double tToPercent(double tValue);
     void updateHeat(void);
-    void setHeatStatus(boolean status);
+    void setHeatStatus(enum HeatState heatState);
     void updatePIDHeat(void);
     void updateVolume(void);
     void updateFlowRate(void);
