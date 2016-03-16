@@ -273,6 +273,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
     char outName[OUTPUT_NAME_MAXLEN];
     getOutputName(outputIndex, outName);
     strcat(retString, outName);
+    return retString;
   }
   
   void OutputSystem::update(void) {
@@ -287,7 +288,7 @@ Documentation, Forums and more information available at http://www.brewtroller.c
 
 	//Apply non-user profiles, also set forced mask if one of these profiles is turning on an output.
 	outputStateForced = 0;
-	for (byte p = OUTPUTPROFILE_USERCOUNT + 1; p < OUTPUTPROFILE_SYSTEMCOUNT; p++) {
+	for (byte p = OUTPUTPROFILE_USERCOUNT; p < OUTPUTPROFILE_SYSTEMCOUNT; p++) {
 		if (getProfileState(p))
 			outputStateForced |= profileMask[p];
 	}
