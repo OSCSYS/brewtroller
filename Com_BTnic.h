@@ -369,6 +369,12 @@ void BTnic::execCmd(void) {
       }
       logFieldI(boilControlState);      
       logStepPrg();
+      logFieldI(triggerGetRawStateMask());
+      logFieldI(outputs->getOutputEnableMask(OUTPUTENABLE_TRIGGER));
+      logFieldI(outputs->getProfileMask(OUTPUTPROFILE_RGBIO));
+      logFieldI(outputs->getOutputEnableMask(OUTPUTENABLE_RGBIO));
+      logFieldI(outputs->getOutputEnableMask(OUTPUTENABLE_ESTOP));
+      logFieldI(outputs->getOutputEnableMask(OUTPUTENABLE_SYSTEMTEST));
       break;
     
     case CMD_SET_BOIL:  //K

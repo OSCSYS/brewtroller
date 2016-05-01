@@ -39,6 +39,16 @@ void triggerUpdate() {
   outputs->setOutputEnableMask(OUTPUTENABLE_TRIGGER, triggerEnable);
 }
 
+unsigned long triggerGetRawStateMask() {
+  unsigned long returnValue = 0;
+  for (byte i = 0; i < USERTRIGGER_COUNT; i++) {
+    if (trigger[i]) {
+      returnValue |= (unsigned long)(trigger[i]->getRawValue()) << i;
+    }
+  }
+  return returnValue;
+}
+
 #ifdef ESTOP_PIN
   void estopUpdate() {
     if (estopPin) {
