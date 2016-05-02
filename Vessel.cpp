@@ -120,6 +120,8 @@ void Vessel::updateHeat(void) {
     setHeatStatus(HEATSTATE_IDLE);
   else if (!heatStatus && (*temperature <= (setpoint - (hysteresis * 10))))
     setHeatStatus(HEATSTATE_HEAT);
+  else if (!heatStatus)
+    setHeatStatus(HEATSTATE_IDLE); //Required when setpoint is set after temperature is already above setpoint
   
   //Only updates heatstatus if PID value is non-zero
   updatePIDHeat();
