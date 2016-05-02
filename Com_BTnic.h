@@ -374,6 +374,7 @@ void BTnic::execCmd(void) {
       logFieldI(outputs->getProfileMask(OUTPUTPROFILE_RGBIO));
       logFieldI(outputs->getOutputEnableMask(OUTPUTENABLE_RGBIO));
       logFieldI(outputs->getOutputEnableMask(OUTPUTENABLE_ESTOP));
+      logFieldI(outputs->getProfileMask(OUTPUTPROFILE_SYSTEMTEST));
       logFieldI(outputs->getOutputEnableMask(OUTPUTENABLE_SYSTEMTEST));
       break;
     
