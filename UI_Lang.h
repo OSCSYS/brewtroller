@@ -24,6 +24,88 @@ const char LABEL_MANUAL[] PROGMEM = "Manual";
 const char LABEL_SETPOINT[] PROGMEM = "Setpoint";
 const char LABEL_PAUSETIMER[] PROGMEM = "Pause Timer";
 
+const char * const BOILCONTROLOPTIONS[] PROGMEM = {
+  OFF,
+  LABEL_AUTO,
+  LABEL_MANUAL,
+  LABEL_SETPOINT
+};
+
+
+const char TITLE_VS_HLT[] PROGMEM = "HLT";
+const char TITLE_VS_MASH[] PROGMEM = "Mash";
+const char TITLE_VS_KETTLE[] PROGMEM = "Kettle";
+const char BUBBLER[] PROGMEM = "Bubbler";
+const char NONE[] PROGMEM = "None";
+
+const char * const TITLE_VS[] PROGMEM = {
+  TITLE_VS_HLT,
+  TITLE_VS_MASH,
+  TITLE_VS_KETTLE,
+  BUBBLER,
+  EXIT
+};
+
+const char * const VESSELSELECTION[] PROGMEM = {
+  TITLE_VS_HLT,
+  TITLE_VS_MASH,
+  TITLE_VS_KETTLE,
+  NONE
+};
+
+const char TITLE_TS_H2OIN[] PROGMEM = "H2O In";
+const char TITLE_TS_H2OOUT[] PROGMEM = "H2O Out";
+const char TITLE_TS_WORTOUT[] PROGMEM = "Wort Out";
+const char TITLE_TS_AUX1[] PROGMEM = "AUX 1";
+const char TITLE_TS_AUX2[] PROGMEM = "AUX 2";
+const char TITLE_TS_AUX3[] PROGMEM = "AUX 3";
+
+const char * const TITLE_TS[] PROGMEM = {
+  TITLE_VS_HLT,
+  TITLE_VS_MASH,
+  TITLE_VS_KETTLE,
+  TITLE_TS_H2OIN,
+  TITLE_TS_H2OOUT,
+  TITLE_TS_WORTOUT,
+  TITLE_TS_AUX1,
+  TITLE_TS_AUX2,
+  TITLE_TS_AUX3
+};
+
+const char PIDCYCLE[] PROGMEM = " PID Cycle";
+const char PIDGAIN[] PROGMEM = " PID Gain";
+const char HYSTERESIS[] PROGMEM = "Hysteresis";
+const char CAPACITY[] PROGMEM = "Capacity";
+const char CALIBRATION[] PROGMEM = "Calibration";
+
+const char BOIL_TEMP[] PROGMEM = "Boil Temp";
+const char BOIL_POWER[] PROGMEM = "Boil Power";
+const char EVAPORATION_RATE[] PROGMEM = "Evaporation Rate";
+const char GRAIN_DISPLACEMENT[] PROGMEM = "Grain Displacement";
+const char GRAIN_LIQUOR_LOSS[] PROGMEM = "Grain Liquor Loss";
+const char STRIKE_LOSS[] PROGMEM = "Strike Loss";
+const char SPARGE_LOSS[] PROGMEM = "Sparge Loss";
+const char MASH_LOSS[] PROGMEM = "Mash Loss";
+const char BOIL_LOSS[] PROGMEM = "Boil Loss";
+
+const char SEC[] PROGMEM = "s";
+
+#ifdef USEMETRIC
+const char VOLUNIT[] PROGMEM = "l";
+const char WTUNIT[] PROGMEM = "kg";
+const char TUNIT[] PROGMEM = "C";
+const char EVAPUNIT[] PROGMEM = "l /hr";
+const char GRAINRATIOUNIT[] PROGMEM = "l /kg";
+#else
+const char VOLUNIT[] PROGMEM = "gal";
+const char WTUNIT[] PROGMEM = "lb";
+const char TUNIT[] PROGMEM = "F";
+const char EVAPUNIT[] PROGMEM = "gal /hr";
+const char GRAINRATIOUNIT[] PROGMEM = "gal/lb";
+#endif
+
+const char MIN[] PROGMEM = " min";
+
 //Global Output Profile display order
 const byte outputProfileDisplayOrder[] = {
   OUTPUTPROFILE_ALARM,
@@ -105,12 +187,12 @@ const char * const TITLE_VLV[] PROGMEM = {
   EXIT
 };
 
-const char RECIPECALCS_STRIKETEMP[] PROGMEM = "Strike Temp:";
-const char RECIPECALCS_STRIKEVOL[] PROGMEM =  "Strike Vol:";
-const char RECIPECALCS_SPARGEVOL[] PROGMEM =  "Sparge Vol:";
-const char RECIPECALCS_PREBOILVOL[] PROGMEM = "Preboil Vol:";
-const char RECIPECALCS_GRAINVOL[] PROGMEM =   "Grain Vol:";
-const char RECIPECALCS_GRAINLOSS[] PROGMEM =  "Grain Loss:";
+const char RECIPECALCS_STRIKETEMP[] PROGMEM = "Strike Temp";
+const char RECIPECALCS_STRIKEVOL[] PROGMEM =  "Strike Vol";
+const char RECIPECALCS_SPARGEVOL[] PROGMEM =  "Sparge Vol";
+const char RECIPECALCS_PREBOILVOL[] PROGMEM = "Preboil Vol";
+const char RECIPECALCS_GRAINVOL[] PROGMEM =   "Grain Vol";
+const char RECIPECALCS_GRAINLOSS[] PROGMEM =  "Grain Loss";
 
 const char * const RECIPECALCS[] PROGMEM = {
   RECIPECALCS_STRIKETEMP,
@@ -119,6 +201,10 @@ const char * const RECIPECALCS[] PROGMEM = {
   RECIPECALCS_PREBOILVOL,
   RECIPECALCS_GRAINVOL,
   RECIPECALCS_GRAINLOSS,
+  STRIKE_LOSS,
+  SPARGE_LOSS,
+  MASH_LOSS,
+  BOIL_LOSS,
   EXIT
 };
 
@@ -211,88 +297,6 @@ const char * const BOILMENUOPTIONS[] PROGMEM = {
   ABORT,
   EXIT
 };
-
-const char * const BOILCONTROLOPTIONS[] PROGMEM = {
-  OFF,
-  LABEL_AUTO,
-  LABEL_MANUAL,
-  LABEL_SETPOINT
-};
-
-
-const char TITLE_VS_HLT[] PROGMEM = "HLT";
-const char TITLE_VS_MASH[] PROGMEM = "Mash";
-const char TITLE_VS_KETTLE[] PROGMEM = "Kettle";
-const char BUBBLER[] PROGMEM = "Bubbler";
-const char NONE[] PROGMEM = "None";
-
-const char * const TITLE_VS[] PROGMEM = {
-  TITLE_VS_HLT,
-  TITLE_VS_MASH,
-  TITLE_VS_KETTLE,
-  BUBBLER,
-  EXIT
-};
-
-const char * const VESSELSELECTION[] PROGMEM = {
-  TITLE_VS_HLT,
-  TITLE_VS_MASH,
-  TITLE_VS_KETTLE,
-  NONE
-};
-
-const char TITLE_TS_H2OIN[] PROGMEM = "H2O In";
-const char TITLE_TS_H2OOUT[] PROGMEM = "H2O Out";
-const char TITLE_TS_WORTOUT[] PROGMEM = "Wort Out";
-const char TITLE_TS_AUX1[] PROGMEM = "AUX 1";
-const char TITLE_TS_AUX2[] PROGMEM = "AUX 2";
-const char TITLE_TS_AUX3[] PROGMEM = "AUX 3";
-
-const char * const TITLE_TS[] PROGMEM = {
-  TITLE_VS_HLT,
-  TITLE_VS_MASH,
-  TITLE_VS_KETTLE,
-  TITLE_TS_H2OIN,
-  TITLE_TS_H2OOUT,
-  TITLE_TS_WORTOUT,
-  TITLE_TS_AUX1,
-  TITLE_TS_AUX2,
-  TITLE_TS_AUX3
-};
-
-const char PIDCYCLE[] PROGMEM = " PID Cycle";
-const char PIDGAIN[] PROGMEM = " PID Gain";
-const char HYSTERESIS[] PROGMEM = "Hysteresis";
-const char CAPACITY[] PROGMEM = "Capacity";
-const char CALIBRATION[] PROGMEM = "Calibration";
-
-const char BOIL_TEMP[] PROGMEM = "Boil Temp";
-const char BOIL_POWER[] PROGMEM = "Boil Power";
-const char EVAPORATION_RATE[] PROGMEM = "Evaporation Rate";
-const char GRAIN_DISPLACEMENT[] PROGMEM = "Grain Displacement";
-const char GRAIN_LIQUOR_LOSS[] PROGMEM = "Grain Liquor Loss";
-const char STRIKE_LOSS[] PROGMEM = "Strike Loss";
-const char SPARGE_LOSS[] PROGMEM = "Sparge Loss";
-const char MASH_LOSS[] PROGMEM = "Mash Loss";
-const char BOIL_LOSS[] PROGMEM = "Boil Loss";
-
-const char SEC[] PROGMEM = "s";
-
-#ifdef USEMETRIC
-const char VOLUNIT[] PROGMEM = "l";
-const char WTUNIT[] PROGMEM = "kg";
-const char TUNIT[] PROGMEM = "C";
-const char EVAPUNIT[] PROGMEM = "l /hr";
-const char GRAINRATIOUNIT[] PROGMEM = "l /kg";
-#else
-const char VOLUNIT[] PROGMEM = "gal";
-const char WTUNIT[] PROGMEM = "lb";
-const char TUNIT[] PROGMEM = "F";
-const char EVAPUNIT[] PROGMEM = "gal /hr";
-const char GRAINRATIOUNIT[] PROGMEM = "gal/lb";
-#endif
-
-const char MIN[] PROGMEM = " min";
 
 const char STARTPROGRAMOPTIONS_GRAINTEMP[] PROGMEM = "Grain Temp:";
 const char STARTPROGRAMOPTIONS_START[] PROGMEM = "Start";

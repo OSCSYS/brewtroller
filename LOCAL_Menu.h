@@ -54,6 +54,8 @@ class menuPROGMEM : public menu
 {
   private:
     const void *PROGMEMData;
+
+  protected:
     byte menuSize;
         
   public:

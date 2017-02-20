@@ -191,6 +191,8 @@ class menuRecipeCalculations : public menuPROGMEM {
     }
     char *getItem(byte index, char *retString) {
       menuPROGMEM::getItem(index, retString);
+      if (index < menuPROGMEM::menuSize - 1)
+        strcat(retString, ":");
       char numText[12];
       if (index == 0) {
         vftoa(calcStrikeTemp(recipe) * SETPOINT_MULT, numText, 100, 1);
@@ -219,6 +221,26 @@ class menuRecipeCalculations : public menuPROGMEM {
         strcat_P(retString, VOLUNIT);
       } else if (index == 5) {
         vftoa(calcGrainLoss(recipe), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 6) {
+        vftoa(getStrikeLoss(), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 7) {
+        vftoa(getSpargeLoss(), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 8) {
+        vftoa(getMashLoss(), numText, 1000, 1);
+        truncFloat(numText, 4);
+        strcat(retString, numText);
+        strcat_P(retString, VOLUNIT);
+      } else if (index == 9) {
+        vftoa(getBoilLoss(), numText, 1000, 1);
         truncFloat(numText, 4);
         strcat(retString, numText);
         strcat_P(retString, VOLUNIT);
